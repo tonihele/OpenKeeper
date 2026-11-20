@@ -582,13 +582,13 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (result == null) {
             result = new Node("Wat"); // FIXME: Yeah...
         }
+        Node shotNode = new Node(result.getName());
+        shotNode.attachChild(result);
         if (shotViewState.velocity != null) {
-            Node flyingShot = new Node(result.getName());
-            flyingShot.attachChild(result);
-            flyingShot.addControl(new ShotFlightControl(shotViewState.velocity));
-            addShotTrail(e.getId(), kwdFile.getShotById(shotViewState.shotId), flyingShot);
-            result = flyingShot;
+            shotNode.addControl(new ShotFlightControl(shotViewState.velocity));
         }
+        addShotTrail(e.getId(), kwdFile.getShotById(shotViewState.shotId), shotNode);
+        result = shotNode;
         nodeShots.attachChild(result);
 
         Shot shot = kwdFile.getShotById(shotViewState.shotId);
@@ -601,9 +601,9 @@ public class PlayerEntityViewState extends AbstractAppState {
     }
 
     /**
-     * A flying shot drags its general effect along, like the fire trail of the
-     * cannon ball. DKII.EXE moves the effect with the shot every turn
-     * (0x4AB180). The effect lasts as long as the shot flies.
+     * A shot carries its general effect, including an instant pressure shot's
+     * effects. DKII.EXE moves it with the shot (0x4AB180); its own lifetime
+     * can outlast the shot unless KILL_EFFECTS_WHEN_DEAD is set (0x4AAF70).
      */
     private void addShotTrail(EntityId entityId, Shot shot, Node flyingShot) {
         EffectManagerState effectManagerState = stateManager.getState(EffectManagerState.class);
@@ -617,6 +617,19 @@ public class PlayerEntityViewState extends AbstractAppState {
             trail.generateThroughoutLifetime();
             shotTrails.put(entityId, trail);
         }
+    }
+
+    void releaseShotEffect(VisualEffect effect, Spatial shotModel, Shot shot) {
+        if (shot.getFlags().contains(Shot.ShotFlag.KILL_EFFECTS_WHEN_DEAD)) {
+            effect.removeEffect();
+            return;
+        }
+        // Preserve the final placement and visibility while the independent effect finishes.
+        Node effectNode = effect.getEffectNode();
+        var transform = effectNode.getLocalTransform().clone().combineWithParent(shotModel.getLocalTransform());
+        nodeShots.attachChild(effectNode);
+        effectNode.setLocalTransform(transform);
+        effectNode.setCullHint(shotModel.getCullHint());
     }
 
     /**
@@ -713,6 +726,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         VisualEffect visual = stateManager.getState(EffectManagerState.class)
                 .load(root, effect.position(), effect.effectId(), false);
         if (visual != null) {
+            if (effect.throughoutLifetime()) {
+                visual.generateThroughoutLifetime();
+            }
             visual.getEffectNode().rotate(0, effect.yaw(), 0);
         }
     }
@@ -1159,7 +1175,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void removeObject(Spatial object, Entity e) {
             VisualEffect trail = shotTrails.remove(e.getId());
             if (trail != null) {
-                trail.removeEffect();
+                Shot shot = kwdFile.getShotById(e.get(ShotViewState.class).shotId);
+                releaseShotEffect(trail, object, shot);
             }
             removeModel(object, e);
         }

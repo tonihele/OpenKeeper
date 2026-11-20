@@ -124,6 +124,35 @@ class TrapSystemTest {
     }
 
     @Test
+    void onlySuccessfulShotsAdvanceTheVisualSequence() {
+        EntityId sentry = addTrap(SENTRY, TRAP_TILE);
+        addCreature(IMP, ENEMY, 13, 10);
+        keeper.setMana(0);
+        tick();
+        assertEquals(0, entityData.getComponent(sentry, TrapViewState.class).fireSequence);
+        keeper.setMana(1000);
+        gameTime = 0.25;
+        tick();
+        assertEquals(1, entityData.getComponent(sentry, TrapViewState.class).fireSequence);
+        gameTime = 0.5;
+        tick();
+        assertEquals(1, entityData.getComponent(sentry, TrapViewState.class).fireSequence);
+        gameTime = 6.25;
+        tick();
+        assertEquals(2, entityData.getComponent(sentry, TrapViewState.class).fireSequence);
+    }
+
+    @Test
+    void firingHiddenTrapPublishesRevealAndAnimationTogether() {
+        EntityId gas = addHiddenTrap(GAS, TRAP_TILE);
+        addCreature(IMP, ENEMY, TRAP_TILE.x, TRAP_TILE.y);
+        tick();
+        TrapViewState view = entityData.getComponent(gas, TrapViewState.class);
+        assertFalse(view.hidden);
+        assertEquals(1, view.fireSequence);
+    }
+
+    @Test
     void sentryFiresAtEnemyInSight() {
         addTrap(SENTRY, TRAP_TILE);
         EntityId enemy = addCreature(IMP, ENEMY, 13, 10);

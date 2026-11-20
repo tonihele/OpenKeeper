@@ -42,6 +42,7 @@ import java.io.IOException;
 public class EffectParticleInfluencer implements ParticleInfluencer {
 
     private EffectElement element;
+    private Vector3f generationOrigin = new Vector3f();
 
     /**
      * For serialization only. Do not use.
@@ -53,9 +54,15 @@ public class EffectParticleInfluencer implements ParticleInfluencer {
         this.element = element;
     }
 
+    public EffectParticleInfluencer(EffectElement element, Vector3f generationOrigin) {
+        this.element = element;
+        this.generationOrigin = generationOrigin;
+    }
+
     @Override
     public void influenceParticle(Particle particle, EmitterShape emitterShape) {
         emitterShape.getRandomPoint(particle.position);
+        particle.position.addLocal(generationOrigin);
 
         Vector3f velocity = EffectControl.calculateVelocity(element);
         particle.velocity.set(velocity);

@@ -22,6 +22,7 @@ import com.jme3.effect.ParticleMesh;
 import com.jme3.math.FastMath;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
+import java.util.function.BiPredicate;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -43,6 +44,9 @@ public class EffectParticleEmitter extends ParticleEmitter {
     private static final float DIRECTIONAL_FRICTION_DRIFT_AMPLITUDE = 0.2f;
 
     private AdditiveParticleColor additiveColor;
+    private ParticleScale particleScale;
+    private Vector3f generationOrigin = Vector3f.ZERO;
+    private BiPredicate<Integer, Integer> solidTile;
 
     private final float airFriction;
     private final float elasticity;
@@ -56,6 +60,18 @@ public class EffectParticleEmitter extends ParticleEmitter {
         this.elasticity = elasticity;
         this.directionalFriction = directionalFriction;
         this.whirlpoolRate = whirlpoolRate;
+    }
+
+    void setSolidTiles(BiPredicate<Integer, Integer> solidTile) {
+        this.solidTile = solidTile;
+    }
+
+    void setGenerationOrigin(Vector3f origin) {
+        generationOrigin = origin;
+    }
+
+    void setParticleScale(float minScale, float maxScale, float ratio) {
+        particleScale = new ParticleScale(minScale, maxScale, ratio);
     }
 
     void setAdditiveColor(ColorRGBA color, boolean fade) {
@@ -84,6 +100,7 @@ public class EffectParticleEmitter extends ParticleEmitter {
         // from its position alone - checked pre-tick here so a landed
         // particle doesn't get nudged sideways by whirl forever.
         boolean wasLanded = directionalFriction && p.position.y <= floorHeightLocal;
+        float preY = p.position.y;
         float preX = p.position.x;
         float preZ = p.position.z;
 
@@ -91,15 +108,29 @@ public class EffectParticleEmitter extends ParticleEmitter {
         // upkeep are all private to the base class, so they still have to
         // run through here rather than being reimplemented.
         super.updateParticle(p, tpf, min, max);
+        if (particleScale != null) {
+            particleScale.update(p, justSpawned);
+            min.minLocal(new Vector3f(p.position.x - p.size, p.position.y - p.size, p.position.z - p.size));
+            max.maxLocal(new Vector3f(p.position.x + p.size, p.position.y + p.size, p.position.z + p.size));
+        }
         if (additiveColor != null) {
             additiveColor.update(p, justSpawned);
         }
 
         if (whirlpoolRate != 0 && !justSpawned && !wasLanded) {
             Vector3f base = getLocalTranslation();
-            Vector3f delta = EffectControl.whirlpoolDelta(whirlpoolRate / 4, base.x + preX, base.z + preZ, tpf);
+            Vector3f delta = EffectControl.whirlpoolDelta(whirlpoolRate, base.x + preX - generationOrigin.x, base.z + preZ - generationOrigin.z, tpf);
             p.position.x += delta.x;
             p.position.z += delta.z;
+        }
+
+        if (solidTile != null) {
+            Vector3f from = localToWorld(new Vector3f(preX, preY, preZ), null);
+            Vector3f to = localToWorld(p.position, null);
+            Vector3f velocity = getWorldRotation().mult(p.velocity);
+            EffectWallCollision.reflect(from, to, velocity, solidTile);
+            worldToLocal(to, p.position);
+            getWorldRotation().inverse().mult(velocity, p.velocity);
         }
 
         if (directionalFriction) {

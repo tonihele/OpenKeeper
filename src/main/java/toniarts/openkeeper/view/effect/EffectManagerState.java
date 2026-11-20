@@ -178,6 +178,16 @@ public class EffectManagerState extends AbstractAppState {
         return stateManager != null ? stateManager.getState(PlayerMapViewState.class) : null;
     }
 
+    boolean isSolidEffectTile(int x, int z) {
+        PlayerMapViewState map = getPlayerMapViewState();
+        if (map == null || !map.isMapLoaded()) {
+            return false;
+        }
+        var information = map.getMapInformation();
+        var tile = new toniarts.openkeeper.utils.Point(x, z);
+        return information.getMapData().getTile(tile) == null || information.isSolid(tile);
+    }
+
     public AssetManager getAssetManger() {
         return assetManager;
     }

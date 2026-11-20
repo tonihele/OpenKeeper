@@ -108,13 +108,46 @@ animation change. It was also observed historically in issue #234.
 
 Follow-up: activation and Fear Trap eyes (#1359)
 ------------------------------------------------
-The Fear shot's general effect is effect 239, Fear Trap Effect, which
-generates Soul and seyes elements. The eyes are not supplied by the active
-trap mesh alone. OK's instant-shot processing currently creates no shot
-view entity for this shot, so that general effect is absent. PR #1343 fixes
-continuous emission for existing flying-shot trails; it does not supply the
-missing stationary-shot view/lifetime. Reuse that effect machinery when
-addressing the eyes, rather than inventing a second trap-specific emitter.
+The Fear shot's general effect supplies the eyes. In the comparison map this
+is a line-of-sight shot, not a stationary shot. Its one-turn life can end in
+the same game-loop iteration that creates it, before a client observes a
+ShotViewState. The current implementation sends its independent general
+effect through the existing generated-effect event and lifetime emitter.
+Ordinary shot general effects detach on shot removal and finish naturally,
+unless KILL_EFFECTS_WHEN_DEAD explicitly requests removal (sub_4AAF70).
+PR #1343 supplies continuous shot-trail emission and is reused here.
+
+Further native checks for the eyes:
+- Effect generation height limits are signed shorts. Reading them unsigned
+  put these elements far above the map.
+- Element velocity has four extra fractional bits relative to positions;
+  convert with the effect clock and that precision difference, not a
+  trap-specific speed multiplier (sub_435F20 and sub_4476E0).
+- CUBE_GEN expands its signed whirlpool rate by four bits before calling
+  sub_438520 (caller sub_4386F0). Omitting the caller conversion makes the
+  rotation too weak. Its impulse depends on squared distance from the
+  generator and uses the native angular unit.
+- Native horizontal wall sweeps reflect velocity even when elasticity is
+  zero (sub_4472F0). Sprite particles now sweep tile boundaries too.
+- Min/max scale define the random initial element scale. SHRINK/EXPAND
+  interpolate towards that sample multiplied by scaleRatio, rather than
+  between min/max scale. Verified in sub_435F20, sub_4363F0 and sub_4B4160.
+  Ignoring the multiplier left the moving eyes too small to form the
+  visible streams. Synthetic regression values test this distinction.
+
+- The general effect's next-effect chain includes a launcher of moving,
+  invisible generators. Those generators continuously leave stationary eye
+  elements at successive emission points. Updating only the first general
+  effect, or requiring art before moving a generator, leaves a central ring
+  and loses the streams. Chained and newly generated effects now emit for
+  their own authored lifetimes; existing particles retain their positions.
+- Bounded native initializer samples confirmed that the moving eye's scale
+  target is its starting scale multiplied by the authored ratio. The same
+  samples confirmed the current drag conversion and neutral colour bytes;
+  changing those to guessed values would not reproduce native behavior.
+
+The user confirmed the outward streaks in the revised private preview.
+This does not establish complete lighting or pixel-for-pixel parity with DKII.
 
 The peaceful trap-targeting bypass is tracked separately in issue #1358.
 A second private comparison map replaces the Knight with a level-1 Imp so

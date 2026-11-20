@@ -1886,8 +1886,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             }
             effect.setGenerateIds(generateIds);
             effect.setOuterOriginRange(reader.readUnsignedShort());
-            effect.setLowerHeightLimit(reader.readUnsignedShort());
-            effect.setUpperHeightLimit(reader.readUnsignedShort());
+            readEffectHeightLimits(reader, effect);
             effect.setOrientationRange(reader.readUnsignedShort());
             effect.setSpriteSpinRateRange(reader.readUnsignedShort());
             effect.setWhirlpoolRate(reader.readUnsignedShort());
@@ -1907,6 +1906,12 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             // Check reader offset
             checkOffset(header, reader, offset);
         }
+    }
+
+    static void readEffectHeightLimits(IResourceChunkReader reader, Effect effect) {
+        // Signed offsets: effects can generate below their origin (e.g. Fear Trap eyes).
+        effect.setLowerHeightLimit(reader.readShort());
+        effect.setUpperHeightLimit(reader.readShort());
     }
 
     /**

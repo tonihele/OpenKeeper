@@ -58,6 +58,11 @@ public final class TrapFiringFixtures {
         return art;
     }
 
+    public static Trap withAnimations(Trap trap, ArtResource idle, ArtResource fire) {
+        trap.setFireResource(fire);
+        return withIdleAnimation(trap, idle);
+    }
+
     public static Trap withIdleAnimation(Trap trap, ArtResource idle) {
         trap.setMeshResource(idle);
         return trap;

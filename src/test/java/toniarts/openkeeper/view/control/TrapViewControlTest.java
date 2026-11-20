@@ -37,9 +37,11 @@ class TrapViewControlTest {
 
     private static final short TRAP_ID = 42;
     private static final String IDLE = "synthetic-trap-idle";
-    private final Trap trap = TrapFiringFixtures.withIdleAnimation(
+    private static final String FIRE = "synthetic-trap-fire";
+    private final Trap trap = TrapFiringFixtures.withAnimations(
             TrapFiringFixtures.trap(TRAP_ID, Trap.TriggerType.PRESSURE, 1, 6, (short) 1),
-            new ArtResource(IDLE, ArtResource.ArtResourceType.ANIMATING_MESH));
+            new ArtResource(IDLE, ArtResource.ArtResourceType.ANIMATING_MESH),
+            new ArtResource(FIRE, ArtResource.ArtResourceType.ANIMATING_MESH));
     private final Node root = new Node("trap");
     private TrapViewControl control;
 
@@ -78,16 +80,21 @@ class TrapViewControlTest {
     }
 
     @Test
-    void idleUsesItsAuthoredFrameRate() {
-        TrapFiringFixtures.withIdleAnimation(trap, TrapFiringFixtures.animation(IDLE, 48, 12));
+    void idleAndActiveUseTheirOwnAuthoredFrameRates() {
+        TrapFiringFixtures.withAnimations(trap,
+                TrapFiringFixtures.animation(IDLE, 48, 12), TrapFiringFixtures.animation(FIRE, 48, 36));
         start(false);
         // The synthetic clip lasts one second: rate .25 makes the authored 4 seconds.
         assertEquals(0.25, composer(IDLE).getGlobalSpeed(), 0.0001);
         advance(1);
         assertEquals(0.25, composer(IDLE).getTime(), 0.06);
-        advance(4);
-        assertTrue(composer(IDLE).isEnabled());
-        assertEquals(0.25, composer(IDLE).getTime(), 0.06);
+        control.setTargetState(new TrapViewState(TRAP_ID, false, false, 1));
+        assertEquals(0.75, composer(FIRE).getGlobalSpeed(), 0.0001);
+        advance(1);
+        assertNotNull(root.getChild(FIRE));
+        advance(0.5f);
+        assertNull(root.getChild(FIRE));
+        assertEquals(0.25, composer(IDLE).getGlobalSpeed(), 0.0001);
     }
 
     @Test
@@ -99,6 +106,64 @@ class TrapViewControlTest {
         assertFalse(control.isStopAnimation());
     }
 
+    @Test
+    void successfulShotPlaysActiveOnceThenReturnsToIdle() {
+        start(false);
+        control.setTargetState(new TrapViewState(TRAP_ID, false, false, 1));
+        assertNotNull(root.getChild(FIRE));
+        assertTrue(control.isStopAnimation());
+        advance(1.3f);
+        assertNull(root.getChild(FIRE));
+        assertTrue(composer(IDLE).isEnabled());
+    }
+
+    @Test
+    void anotherShotRestartsActiveButAVisibilityUpdateDoesNot() {
+        start(false);
+        control.setTargetState(new TrapViewState(TRAP_ID, false, true, 1));
+        advance(0.4f);
+        var active = root.getChild(FIRE);
+        control.setTargetState(new TrapViewState(TRAP_ID, false, false, 1));
+        assertSame(active, root.getChild(FIRE));
+        control.setTargetState(new TrapViewState(TRAP_ID, false, false, 2));
+        assertNotSame(active, root.getChild(FIRE));
+        assertEquals(0, composer(FIRE).getTime(), 0.001);
+    }
+
+    @Test
+    void loopFireAnimationRemainsActiveAfterItsFirstCycle() {
+        trap.getFlags().add(Trap.TrapFlag.LOOP_FIRE_ANIMATION);
+        start(false);
+        control.setTargetState(new TrapViewState(TRAP_ID, false, false, 1));
+        advance(3);
+        assertTrue(composer(FIRE).isEnabled());
+        assertFalse(control.isStopAnimation());
+        assertNull(root.getChild(IDLE));
+    }
+
+    @Test
+    void blueprintIsStillUntilArmed() {
+        start(true);
+        assertFalse(composer(IDLE).isEnabled());
+        advance(2);
+        assertFalse(composer(IDLE).isEnabled());
+        control.setTargetState(new TrapViewState(TRAP_ID, false));
+        assertTrue(composer(IDLE).isEnabled());
+        assertFalse(control.isStopAnimation());
+    }
+
+    @Test
+    void joiningAfterAnOldShotStartsIdleInsteadOfReplayingIt() {
+        start(false);
+        root.removeControl(control);
+        var data = new DefaultEntityData();
+        var assets = control.assetManager;
+        control = new TrapViewControl(data.createEntity(), data, trap,
+                new TrapViewState(TRAP_ID, false, false, 7), assets, null);
+        root.addControl(control);
+        assertNotNull(root.getChild(IDLE));
+        assertNull(root.getChild(FIRE));
+    }
     @Test
     void visibilityUpdateDoesNotRestartIdle() {
         start(false);
@@ -115,17 +180,6 @@ class TrapViewControlTest {
         TrapFiringFixtures.withIdleAnimation(trap, TrapFiringFixtures.animation(IDLE, 48, 0));
         start(false);
         assertEquals(1, composer(IDLE).getGlobalSpeed(), 0.0001);
-    }
-
-    @Test
-    void blueprintIsStillUntilArmed() {
-        start(true);
-        assertFalse(composer(IDLE).isEnabled());
-        advance(2);
-        assertFalse(composer(IDLE).isEnabled());
-        control.setTargetState(new TrapViewState(TRAP_ID, false));
-        assertTrue(composer(IDLE).isEnabled());
-        assertFalse(control.isStopAnimation());
     }
 
 }

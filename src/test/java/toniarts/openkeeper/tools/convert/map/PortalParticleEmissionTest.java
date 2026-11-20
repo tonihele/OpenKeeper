@@ -75,7 +75,7 @@ class PortalParticleEmissionTest {
         Particle particle = new Particle();
         new EffectParticleInfluencer(element).influenceParticle(particle, new EmitterPointShape(Vector3f.ZERO));
         assertEquals(0, particle.velocity.x, 0f);
-        assertEquals(3, particle.velocity.y, 0f);
+        assertEquals(3 * 20f / 16f, particle.velocity.y, 0f);
         assertEquals(0, particle.velocity.z, 0f);
     }
 
@@ -92,6 +92,50 @@ class PortalParticleEmissionTest {
         f.effect.removeEffect();
         assertEquals(0, f.root.getQuantity());
         assertFalse(f.effect.update(0.1f));
+    }
+
+    @Test
+    void invisibleMovingGeneratorLeavesStationaryParticlesAtSuccessiveOrigins() throws Exception {
+        Fixture f = new Fixture();
+        f.definition.setMinSpeedYz(2f);
+        f.definition.setMaxSpeedYz(2f);
+        f.effect.generateThroughoutLifetime();
+        var originField = VisualEffect.class.getDeclaredField("generationOrigin");
+        originField.setAccessible(true);
+        f.emitter.setParticleInfluencer(new EffectParticleInfluencer(new EffectElement(),
+                (Vector3f) originField.get(f.effect)));
+        f.effect.update(.05f);
+        Particle first = java.util.Arrays.stream(f.emitter.getParticles()).filter(p -> p.life > 0).findFirst().orElseThrow();
+        assertEquals(.125f, first.position.y, 1e-6);
+        f.effect.update(.05f);
+        assertEquals(.125f, first.position.y, 1e-6, "Earlier trail elements do not follow the generator");
+        assertEquals(6, java.util.Arrays.stream(f.emitter.getParticles())
+                .filter(p -> p.life > 0 && Math.abs(p.position.y - .25f) < 1e-6).count());
+    }
+
+    @Test
+    void chainedAndGeneratedEffectsAlsoGenerateThroughoutTheirOwnLifetimes() throws Exception {
+        Effect parent = ShotEffectFixtures.emptyEffect();
+        parent.setFlags(EnumSet.of(Effect.EffectFlag.GENERATE_EFFECTS));
+        parent.setGenerateIds(List.of(120));
+        parent.setMinHp(4); parent.setMaxHp(4); parent.setElementsPerTurn((short) 1);
+        Effect child = ShotEffectFixtures.emptyEffect();
+        child.setMinHp(3); child.setMaxHp(3);
+        IKwdFile data = (IKwdFile) java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{IKwdFile.class}, (p, m, a) -> m.getName().equals("getEffect") ? child : null);
+        var effect = new VisualEffect(new EffectManagerState(data, null), new Node(), parent);
+        effect.generateThroughoutLifetime();
+        effect.update(.05f);
+        assertEquals(2, effect.getEffectNode().getQuantity());
+        var childrenField = VisualEffect.class.getDeclaredField("effects");
+        childrenField.setAccessible(true);
+        var lifeField = VisualEffect.class.getDeclaredField("generationStepsRemaining");
+        lifeField.setAccessible(true);
+        for (var nested : (List<?>) childrenField.get(effect)) {
+            assertEquals(2, lifeField.getInt(nested), "New and existing child generators advance their own life");
+        }
+        effect.update(.05f);
+        assertEquals(3, effect.getEffectNode().getQuantity());
     }
 
     private static final class Fixture {

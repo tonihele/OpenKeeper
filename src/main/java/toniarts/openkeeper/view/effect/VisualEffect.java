@@ -87,6 +87,9 @@ public class VisualEffect {
     private final EffectManagerState effectManagerState;
     private final short ownerId;
     private boolean infinite;
+    private final Vector3f generationOrigin = new Vector3f();
+    private Vector3f generationVelocity;
+    private boolean sustainedGeneration;
     private int generationStepsRemaining;
     private double generationStepRemainder;
     private Spatial lightTarget;
@@ -343,6 +346,9 @@ public class VisualEffect {
         }
 
         VisualEffect visualEffect = new VisualEffect(effectManagerState, effectNode, location, kwdFile.getEffect(id), false, ownerId);
+        if (sustainedGeneration) {
+            visualEffect.generateThroughoutLifetime();
+        }
         effects.add(visualEffect);
         effectNode.attachChild(visualEffect.effectNode);
     }
@@ -412,6 +418,8 @@ public class VisualEffect {
                 element.getElasticity(),
                 element.getFlags().contains(EffectElement.EffectElementFlag.DIRECTIONAL_FRICTION),
                 effect.getWhirlpoolRate());
+        ((EffectParticleEmitter) emitter).setGenerationOrigin(generationOrigin);
+        ((EffectParticleEmitter) emitter).setSolidTiles(effectManagerState::isSolidEffectTile);
         if (effect.getGenerationType() == Effect.GenerationType.CUBE_GEN) {
             // Scatter each particle's spawn point across the annulus/
             // height band instead of jME3's default emission point
@@ -432,7 +440,7 @@ public class VisualEffect {
         // full minSpeedXy/maxSpeedXy/minSpeedYz/maxSpeedYz range, instead of
         // jME3's default of sharing one vector across the whole burst and
         // only lightly varying it (see EffectParticleInfluencer).
-        emitter.setParticleInfluencer(new EffectParticleInfluencer(element));
+        emitter.setParticleInfluencer(new EffectParticleInfluencer(element, generationOrigin));
         //
         applyParticleScale(emitter, element);
         //
@@ -447,7 +455,7 @@ public class VisualEffect {
         }
         emitter.setFacingVelocity(!flat && element.getFlags().contains(EffectElement.EffectElementFlag.ROTATE_TO_MOVEMENT_DIRECTION));
         //
-        emitter.setRandomAngle(true);
+        emitter.setRandomAngle(effect.getOrientationRange() != 0);
         emitter.setRotateSpeed(Math.abs(EffectControl.randomSpinRate(effect.getSpriteSpinRateRange())));
         emitter.setGravity(0, element.getMass() * GRAVITY_FACTOR, 0);
         emitter.setLowLife(element.getMinHp() / 20f);
@@ -520,21 +528,13 @@ public class VisualEffect {
     }
 
     private void applyParticleScale(ParticleEmitter emitter, EffectElement element) {
-        // jME3's particle "size" is a half-extent - ParticleTriMesh builds
-        // each quad from position +/- size, i.e. a full width/height of
-        // 2*size - so the element's scale (a full-size multiplier, same as
-        // the mesh path's Spatial.setLocalScale) has to be halved here or
-        // every particle renders twice as big as authored.
-        if (element.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
-            emitter.setStartSize(element.getMaxScale());
-            emitter.setEndSize(element.getMinScale());
-        } else if (element.getFlags().contains(EffectElement.EffectElementFlag.EXPAND)) {
-            emitter.setStartSize(element.getMinScale());
-            emitter.setEndSize(element.getMaxScale());
-        } else {
-            emitter.setStartSize(element.getMinScale());
-            emitter.setEndSize(element.getMinScale());
-        }
+        boolean changesScale = element.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)
+                || element.getFlags().contains(EffectElement.EffectElementFlag.EXPAND);
+        // The two limits describe random starting sizes, not animation endpoints.
+        // Native element initialization multiplies that sample by scaleRatio
+        // and interpolates towards the result over the element's lifetime.
+        ((EffectParticleEmitter) emitter).setParticleScale(element.getMinScale(), element.getMaxScale(),
+                changesScale ? element.getScaleRatio() : 1f);
     }
 
     private EffectEmitter createMeshElement(EffectElement element, ArtResource resource) {
@@ -682,8 +682,11 @@ public class VisualEffect {
      * Portal build-up needs a sustained emitter instead of the legacy one-shot burst.
      */
     public void generateThroughoutLifetime() {
+        sustainedGeneration = true;
+        generationVelocity = EffectControl.calculateVelocity(effect);
         generationStepsRemaining = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp());
         generationStepRemainder = 0;
+        effects.forEach(VisualEffect::generateThroughoutLifetime);
         for (Entry<Spatial, EffectElement> entry : effectElements.entrySet()) {
             if (entry.getKey() instanceof ParticleEmitter emitter) {
                 int perTick = effect.getElementsPerTurn();
@@ -706,11 +709,18 @@ public class VisualEffect {
             int steps = (int) ((generationStepRemainder + 1e-7) / 0.05);
             if (steps > 0) {
                 generationStepRemainder -= steps * 0.05;
-                // Native CBridge advances life by elapsed 50 ms steps, but CUBE_GEN
-                // emits one packet per update call, including when that call catches up.
-                for (Spatial element : effectElements.keySet()) {
-                    if (element instanceof ParticleEmitter emitter) {
-                        emitter.emitParticles(effect.getElementsPerTurn());
+                advanceGenerator(steps * EFFECT_TICK);
+                if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECTS)) {
+                    for (int i = 0; i < effect.getElementsPerTurn(); i++) {
+                        for (Integer id : effect.getGenerateIds()) {
+                            addEffect(id, generationOrigin.add(randomGenerationOffset()));
+                        }
+                    }
+                } else {
+                    for (Spatial element : effectElements.keySet()) {
+                        if (element instanceof ParticleEmitter emitter) {
+                            emitter.emitParticles(effect.getElementsPerTurn());
+                        }
                     }
                 }
                 generationStepsRemaining -= steps;
@@ -765,6 +775,26 @@ public class VisualEffect {
                 }
             }
         }
+    }
+
+    private void advanceGenerator(float elapsed) {
+        // Generators may have no art resource at all. Their movement still
+        // changes each emission point; previously emitted particles stay put.
+        if (generationVelocity == null) {
+            return;
+        }
+        float friction = effect.getAirFriction();
+        if (friction != 0) {
+            generationVelocity.multLocal(FastMath.pow(1f - 16f * friction, elapsed * 20f));
+        }
+        Vector3f target = generationOrigin.add(generationVelocity.mult(elapsed));
+        Vector3f fromWorld = effectNode.localToWorld(generationOrigin, null);
+        Vector3f toWorld = effectNode.localToWorld(target, null);
+        Vector3f velocityWorld = effectNode.getWorldRotation().mult(generationVelocity);
+        EffectWallCollision.reflect(fromWorld, toWorld, velocityWorld, effectManagerState::isSolidEffectTile);
+        effectNode.worldToLocal(toWorld, generationOrigin);
+        effectNode.getWorldRotation().inverse().mult(velocityWorld, generationVelocity);
+        generationVelocity.y -= effect.getMass() * GRAVITY_FACTOR * elapsed;
     }
 
     private void updateCircularPath(float tpf) {
@@ -847,7 +877,8 @@ public class VisualEffect {
      * @return true if the effect is still valid, false if it has died
      */
     private boolean handleEffectCompletion() {
-        if (effectElements.isEmpty() && effects.isEmpty() && effectNode.getQuantity() == 0) {
+        if (generationStepsRemaining <= 0 && lifetimeLeft <= 0
+                && effectElements.isEmpty() && effects.isEmpty() && effectNode.getQuantity() == 0) {
             LightRules lightRules = getLightRules();
             // If infitine, just restart
             if (infinite) {

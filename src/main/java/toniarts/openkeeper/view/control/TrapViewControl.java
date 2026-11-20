@@ -43,6 +43,7 @@ import toniarts.openkeeper.view.text.EntityTextParser;
 public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState> {
 
     private boolean initialized = false;
+    private boolean firing;
 
     public TrapViewControl(EntityId entityId, EntityData entityData, Trap data, TrapViewState viewState,
             AssetManager assetManager, EntityTextParser<Trap> textParser) {
@@ -81,7 +82,18 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
 
     @Override
     public boolean isStopAnimation() {
-        return currentState.blueprint;
+        return currentState.blueprint || (firing
+                && !getDataObject().getFlags().contains(Trap.TrapFlag.LOOP_FIRE_ANIMATION));
+    }
+
+    @Override
+    protected void controlUpdate(float tpf) {
+        super.controlUpdate(tpf);
+        // Wait until the animation callback has finished before replacing its model.
+        if (firing && !isAnimationPlaying) {
+            firing = false;
+            playAnimation();
+        }
     }
 
     private void playAnimation() {
@@ -132,10 +144,13 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
             return;
         }
         boolean constructionChanged = current == null || current.blueprint != target.blueprint;
+        boolean shot = current != null && current.fireSequence != target.fireSequence;
         currentState = target;
-        if (constructionChanged) {
+        if (constructionChanged || (!target.blueprint && shot)) {
+            firing = !target.blueprint && shot && getDataObject().getFireResource() != null;
             playAnimation();
-            if (current != null && !target.blueprint && spatial.getCullHint() != Spatial.CullHint.Always) {
+            if (constructionChanged && current != null && !target.blueprint
+                    && spatial.getCullHint() != Spatial.CullHint.Always) {
                 ThingSounds.play(getDataObject().getSoundCategory(), ThingSounds.MANUFACTURED, spatial.getWorldTranslation());
             }
         }
@@ -148,7 +163,7 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
 
     @Override
     protected ArtResource getAnimationData(TrapViewState viewState) {
-        return getDataObject().getMeshResource();
+        return firing ? getDataObject().getFireResource() : getDataObject().getMeshResource();
     }
 
     @Override

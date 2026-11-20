@@ -433,9 +433,9 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
-    public void sendEffect(int effectId, Vector3f position, float yaw) {
+    public void sendEffect(int effectId, Vector3f position, float yaw, boolean throughoutLifetime) {
         for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onEffect(effectId, position, yaw);
+            gameSession.onEffect(effectId, position, yaw, throughoutLifetime);
         }
     }
 
@@ -846,8 +846,8 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
-        public void onEffect(int effectId, Vector3f position, float yaw) {
-            getCallback().onEffect(effectId, position, yaw);
+        public void onEffect(int effectId, Vector3f position, float yaw, boolean throughoutLifetime) {
+            getCallback().onEffect(effectId, position, yaw, throughoutLifetime);
         }
 
         @Override

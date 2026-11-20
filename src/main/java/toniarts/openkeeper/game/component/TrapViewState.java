@@ -32,6 +32,9 @@ public final class TrapViewState implements EntityComponent {
     public boolean blueprint;
     public boolean hidden;
 
+    /** Increases for each successful shot, so repeated shots reach the views. */
+    public int fireSequence;
+
     public TrapViewState() {
         // For serialization
     }
@@ -41,9 +44,14 @@ public final class TrapViewState implements EntityComponent {
     }
 
     public TrapViewState(short trapId, boolean blueprint, boolean hidden) {
+        this(trapId, blueprint, hidden, 0);
+    }
+
+    public TrapViewState(short trapId, boolean blueprint, boolean hidden, int fireSequence) {
         this.trapId = trapId;
         this.blueprint = blueprint;
         this.hidden = hidden;
+        this.fireSequence = fireSequence;
     }
 
     /**

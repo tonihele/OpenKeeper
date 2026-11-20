@@ -43,7 +43,10 @@ class GeneratedEffectDeliveryTest {
         var position = new Vector3f(10.25f, 1f, 20.75f);
         server.emitEffect(123, position, .75f);
         assertEquals(1, received.size());
-        assertArrayEquals(new Object[]{123, position, .75f}, received.getFirst());
+        assertArrayEquals(new Object[]{123, position, .75f, false}, received.getFirst());
+        server.emitEffect(981, position, .25f, true);
+        assertEquals(2, received.size());
+        assertArrayEquals(new Object[]{981, position, .25f, true}, received.get(1));
         session.removeGameSessionListener(listener);
     }
 }

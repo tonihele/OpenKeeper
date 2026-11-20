@@ -285,6 +285,14 @@ public final class TrapSystem implements IGameLogicUpdatable {
             reveal(trapEntity);
         }
 
+        // A successful shot also starts the authored firing animation on clients.
+        // Read the current component because revealing the trap may have changed it.
+        TrapViewState view = entityData.getComponent(trapEntity.getId(), TrapViewState.class);
+        if (view != null) {
+            entityData.setComponent(trapEntity.getId(), new TrapViewState(view.trapId, view.blueprint,
+                    view.hidden, view.fireSequence + 1));
+        }
+
         // Every shot threatens the enemies anew
         double threatEndTime = firing.threatEndTime;
         if (trap.getThreat() > 0 && trap.getThreatDuration() > 0) {
@@ -423,7 +431,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
     private void reveal(Entity trapEntity) {
         TrapViewState viewState = trapEntity.get(TrapViewState.class);
         if (viewState.hidden) {
-            entityData.setComponent(trapEntity.getId(), new TrapViewState(viewState.trapId, viewState.blueprint, false));
+            entityData.setComponent(trapEntity.getId(), new TrapViewState(viewState.trapId, viewState.blueprint, false, viewState.fireSequence));
         }
     }
 
