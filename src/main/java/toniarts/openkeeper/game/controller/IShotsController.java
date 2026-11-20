@@ -66,4 +66,12 @@ public interface IShotsController {
      */
     public void hit(EntityId shot, EntityId thing);
 
+    /**
+     * A flying shot that does what it does on every turn of its flight has
+     * its turn
+     *
+     * @param shot the shot entity
+     */
+    public void fly(EntityId shot);
+
 }

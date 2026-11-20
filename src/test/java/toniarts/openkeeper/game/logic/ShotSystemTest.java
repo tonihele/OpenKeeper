@@ -60,11 +60,13 @@ class ShotSystemTest {
 
     private DefaultEntityData entityData;
     private final Shot fireball = ShotFixtures.fireball();
+    private final Shot cyclone = ShotFixtures.cyclone();
     private final Creature imp = ShotFixtures.creature(IMP_ID, EnumSet.noneOf(Creature.CreatureFlag.class),
             EnumSet.noneOf(Creature.CreatureFlag3.class));
     private final List<EntityId> creatures = new ArrayList<>();
     private final Set<Point> solidTiles = new HashSet<>();
     private final List<EntityId[]> hits = new ArrayList<>();
+    private final List<Vector3f> turns = new ArrayList<>();
     private final List<Object[]> effects = new ArrayList<>();
     private ShotSystem shotSystem;
 
@@ -74,7 +76,7 @@ class ShotSystemTest {
         ShotFixtures.setSize(imp, 0.14f, 0.5f);
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
-            case "getShotById" -> fireball;
+            case "getShotById" -> (Short) args[0] == ShotFixtures.CYCLONE_ID ? cyclone : fireball;
             case "getCreature" -> imp;
             default -> throw new UnsupportedOperationException(method.getName());
         });
@@ -82,6 +84,10 @@ class ShotSystemTest {
                 new Class<?>[]{IShotsController.class}, (proxy, method, args) -> {
                     if (method.getName().equals("hit")) {
                         hits.add(new EntityId[]{(EntityId) args[0], (EntityId) args[1]});
+                        return null;
+                    }
+                    if (method.getName().equals("fly")) {
+                        turns.add(positionOf((EntityId) args[0]).clone());
                         return null;
                     }
                     throw new UnsupportedOperationException(method.getName());
@@ -231,6 +237,27 @@ class ShotSystemTest {
         shotSystem.processTick(0.25f);
         shotSystem.processTick(0.25f);
         assertNull(positionOf(shot));
+    }
+
+    @Test
+    void shotThatWorksEveryTurnHasItsTurnBeforeItMoves() {
+        EntityId shot = createShot(new Vector3f(1, 1.3f, 1), new Vector3f(0.25f, 0, 0), 0.4f);
+        entityData.setComponent(shot, new ShotFlight(ShotFixtures.CYCLONE_ID, PLAYER_ID, null, 3, 0, new Vector3f(0.25f, 0, 0),
+                new Vector3f(1, 1.3f, 1), 0.4f, cyclone.getHealth()));
+
+        shotSystem.processTick(0.25f);
+        shotSystem.processTick(0.25f);
+
+        assertEquals(List.of(new Vector3f(1, 1.3f, 1), new Vector3f(1.25f, 1.3f, 1)), turns);
+    }
+
+    @Test
+    void shotThatWorksOnAHitHasNoTurn() {
+        createShot(new Vector3f(1, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertTrue(turns.isEmpty());
     }
 
     @Test
