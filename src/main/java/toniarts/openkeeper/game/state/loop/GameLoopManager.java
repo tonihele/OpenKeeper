@@ -65,6 +65,7 @@ import toniarts.openkeeper.game.logic.ShotSystem;
 import toniarts.openkeeper.game.logic.SlapSystem;
 import toniarts.openkeeper.game.logic.SpinSystem;
 import toniarts.openkeeper.game.logic.TrapSystem;
+import toniarts.openkeeper.game.logic.VerminSystem;
 import toniarts.openkeeper.game.logic.WallDeteriorationSystem;
 import toniarts.openkeeper.game.logic.WoodenBridgeDecaySystem;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
@@ -119,6 +120,8 @@ public final class GameLoopManager {
                 new WallDeteriorationSystem(gameWorldController.getMapController(), playerControllers.values(),
                         (int) gameController.getLevelVariable(Variable.MiscVariable.MiscType.NUMBER_OF_RANDOM_WALL_DETERIORATIONS_PER_SECOND),
                         (int) gameController.getLevelVariable(Variable.MiscVariable.MiscType.WALL_DETERIORATION_DAMAGE)),
+                new VerminSystem(entityData, gameWorldController.getMapController(),
+                        gameWorldController.getObjectsController(), playerControllers.values()),
                 new CreatureExperienceSystem(entityData, levelInfo.getLevelData(), gameSettings,
                         gameWorldController.getCreaturesController()),
                 new CreatureSleepSystem(entityData, levelInfo.getLevelData(),
