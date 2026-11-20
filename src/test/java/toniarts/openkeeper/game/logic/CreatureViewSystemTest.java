@@ -89,6 +89,24 @@ class CreatureViewSystemTest {
     }
 
     @Test
+    void prisonerIsAngryOnlyForAsLongAsItsStateSays() {
+        EntityId prisoner = entityData.createEntity();
+        entityData.setComponents(prisoner, new CreatureViewState((short) 4, 0, Creature.AnimationType.IDLE_1),
+                new Position(0, new Vector3f()), new CreatureAi(1, CreatureState.IMPRISONED, (short) 4, null, 2));
+        CreatureViewSystem system = new CreatureViewSystem(entityData, null);
+
+        // Angry from 1 to 3 seconds
+        Creature.AnimationType[] seconds = new Creature.AnimationType[4];
+        for (int second = 0; second < seconds.length; second++) {
+            system.processTick(1);
+            seconds[second] = entityData.getComponent(prisoner, CreatureViewState.class).state;
+        }
+
+        assertArrayEquals(new Creature.AnimationType[]{Creature.AnimationType.ANGRY, Creature.AnimationType.ANGRY,
+            Creature.AnimationType.STAND_STILL, Creature.AnimationType.STAND_STILL}, seconds);
+    }
+
+    @Test
     void victimOnATortureWheelIsOnTheWheel() {
         assertEquals(Creature.AnimationType.TORTURED_WHEEL, tortureAnimation(TORTURE_WHEEL));
     }

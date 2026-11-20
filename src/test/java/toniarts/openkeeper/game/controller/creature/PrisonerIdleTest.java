@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Damage;
@@ -46,6 +47,7 @@ import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureFixtures;
 import toniarts.openkeeper.tools.convert.map.CreatureMoodFixtures;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -59,7 +61,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * An idle prisoner now and then walks to a tile of the cage next to its own
- * (DKII.EXE 0x473350, 0x4731F0, 0x4E50F0). A hungry one goes for the chickens
+ * or is angry for a while (DKII.EXE 0x473350, 0x4731F0, 0x4E50F0). A hungry one goes for the chickens
  * in the Prison instead, and so does every prisoner when food is dropped into
  * the cage (0x473550, 0x473750)
  */
@@ -75,6 +77,8 @@ class PrisonerIdleTest {
     private final Set<Point> cageTiles = new HashSet<>();
     private final Map<Point, List<EntityId>> thingsByTile = new HashMap<>();
     private final List<EntityId> eaten = new ArrayList<>();
+    private boolean hasAngryAnimation = true;
+    private double now = 0;
 
     PrisonerIdleTest() {
 
@@ -92,12 +96,30 @@ class PrisonerIdleTest {
 
     @Test
     void movesOnOneTickInTenToACageTileNextToItsOwn() {
-        CreatureController controller = createController();
-        Point corner = new Point(11, 11);
-        List<Point> destinations = new ArrayList<>();
+        List<Point> destinations = idleInTheCorner();
 
+        // 400 moves expected, the deviation is 19
+        assertTrue(destinations.size() > 280 && destinations.size() < 520, "Moved " + destinations.size() + " times");
+        assertEquals(Set.of(new Point(12, 11), new Point(11, 12)), new HashSet<>(destinations));
+    }
+
+    @Test
+    void movesOnOneTickInFiveWithoutTheAngryAnimation() {
+        hasAngryAnimation = false;
+
+        List<Point> destinations = idleInTheCorner();
+
+        // 800 moves expected, the deviation is 25
+        assertTrue(destinations.size() > 650 && destinations.size() < 950, "Moved " + destinations.size() + " times");
+    }
+
+    private List<Point> idleInTheCorner() {
+        CreatureController controller = createController();
+        List<Point> destinations = new ArrayList<>();
         for (int tick = 0; tick < TICKS; tick++) {
-            entityData.setComponent(prisoner, new Position(0, new Vector3f(corner.x, 1, corner.y)));
+
+            // Back to the corner, and done with being angry
+            entityData.setComponents(prisoner, new Position(0, new Vector3f(11, 1, 11)), new CreatureAi(now, CreatureState.IMPRISONED, (short) 6));
             controller.idleInPrison();
             Navigation navigation = entityData.getComponent(prisoner, Navigation.class);
             if (navigation != null) {
@@ -105,10 +127,35 @@ class PrisonerIdleTest {
                 entityData.removeComponent(prisoner, Navigation.class);
             }
         }
+        return destinations;
+    }
 
-        // 400 moves expected, the deviation is 19
-        assertTrue(destinations.size() > 280 && destinations.size() < 520, "Moved " + destinations.size() + " times");
-        assertEquals(Set.of(new Point(12, 11), new Point(11, 12)), new HashSet<>(destinations));
+    @Test
+    void isAngryTwoToFourTimesOverAndDoesNothingElseMeanwhile() {
+        CreatureController controller = createController();
+        cageTiles.removeIf(tile -> !tile.equals(new Point(12, 11)));
+        entityData.setComponents(prisoner, new Position(0, new Vector3f(12, 1, 11)), new CreatureAi(now, CreatureState.IMPRISONED, (short) 6));
+        Set<Double> durations = new HashSet<>();
+
+        for (int tick = 0; tick < TICKS; tick++) {
+            now += 0.25;
+
+            // With nowhere to go it only moves if it rolls while it is angry, when the whole Prison is open to it
+            CreatureAi ai = entityData.getComponent(prisoner, CreatureAi.class);
+            if (now >= ai.stateStartTime + ai.stateDuration) {
+                cageTiles.removeIf(tile -> !tile.equals(new Point(12, 11)));
+            }
+            controller.idleInPrison();
+            ai = entityData.getComponent(prisoner, CreatureAi.class);
+            if (ai.stateDuration > 0 && ai.stateStartTime == now) {
+                durations.add(ai.stateDuration);
+                cageTiles.addAll(prisonTiles);
+            }
+            assertNull(entityData.getComponent(prisoner, Navigation.class));
+        }
+
+        // The animation is 2 seconds long
+        assertEquals(Set.of(4.0, 6.0, 8.0), durations);
     }
 
     @Test
@@ -270,8 +317,11 @@ class PrisonerIdleTest {
         });
         IKwdFile kwdFile = proxy(IKwdFile.class, (method, args) -> method.equals("getGameLevel") ? CreatureSleepFixtures.level(4) : null);
         Creature creature = CreatureMoodFixtures.withAngerNoFood(CreatureSleepFixtures.sleeper(10), ANGER_NO_FOOD);
+        if (hasAngryAnimation) {
+            CreatureFixtures.withAnimation(creature, Creature.AnimationType.ANGRY, 60, 30);
+        }
 
-        return new CreatureController(prisoner, entityData, creature, navigationService, null, () -> 0, Map.of(), null,
+        return new CreatureController(prisoner, entityData, creature, navigationService, null, () -> now, Map.of(), null,
                 entityPositionLookup, mapController,
                 proxy(ILevelInfo.class, (method, args) -> method.equals("getLevelData") ? kwdFile : null), null, null, null);
     }

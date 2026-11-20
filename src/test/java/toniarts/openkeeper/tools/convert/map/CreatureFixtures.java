@@ -46,6 +46,25 @@ public final class CreatureFixtures {
     }
 
     /**
+     * Fills an animation slot of the creature
+     *
+     * @param creature the creature
+     * @param animation the animation slot
+     * @param frames the length of the animation in frames
+     * @param fps the frames a second
+     * @return the same creature
+     */
+    public static Creature withAnimation(Creature creature, Creature.AnimationType animation, int frames, int fps) {
+        ArtResource resource = new ArtResource();
+        resource.setName("Test-" + animation);
+        resource.setType(ArtResource.ArtResourceType.ANIMATING_MESH);
+        resource.setData(ArtResource.KEY_FRAMES, frames);
+        resource.setData(ArtResource.KEY_FPS, fps);
+        creature.setAnimation(animation, resource);
+        return creature;
+    }
+
+    /**
      * A creature that works in the workshop
      *
      * @param id the creature ID

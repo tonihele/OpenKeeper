@@ -456,9 +456,9 @@ public final class CreatureController extends EntityController implements ICreat
      * Like in DK II (DKII.EXE 0x473350, 0x4731F0, 0x4E50F0), an idle prisoner
      * rolls 100 every tick. One in ten it moves on: starting from a random
      * one, it takes the first of the four tiles next to it that is in the cage
-     * with it and walks there. Another one in ten goes to an animation DK II
-     * plays two to four times, which is not built: OpenKeeper's prisoners show
-     * that animation all the time they stand.
+     * with it and walks there. Another one in ten, if it has the animation, it
+     * is angry instead, two to four times over, and rolls for nothing until
+     * that is done. A creature without the animation moves on then too.
      * <br>
      * A hungry prisoner goes after food instead of moving on, no more often
      * than a free creature tries to eat (0x4731F0), and so does every
@@ -481,8 +481,20 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
 
+        // The state lasts as long as the animation plays
+        CreatureAi ai = entityData.getComponent(entityId, CreatureAi.class);
+        double gameTime = gameTimer.getGameTime();
+        if (ai != null && gameTime < ai.stateStartTime + ai.stateDuration) {
+            return;
+        }
         int roll = Utils.getRandom().nextInt(100);
-        if (roll < PRISONER_ANIMATION_ROLL || roll >= PRISONER_MOVE_ROLL) {
+        ArtResource angry = creature.getAnimation(Creature.AnimationType.ANGRY);
+        if (roll < PRISONER_ANIMATION_ROLL && ai != null && angry != null && angry.getType() != ArtResource.ArtResourceType.NONE) {
+            entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.IMPRISONED, ai.creatureId, ai.getTargetState(),
+                    (2 + Utils.getRandom().nextInt(3)) * getAnimationTime(creature, Creature.AnimationType.ANGRY)));
+            return;
+        }
+        if (roll >= PRISONER_MOVE_ROLL) {
             return;
         }
         if (isHungry() && startEatAttempt()) {
