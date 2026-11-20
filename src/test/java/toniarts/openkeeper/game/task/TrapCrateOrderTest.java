@@ -83,7 +83,7 @@ class TrapCrateOrderTest {
             default ->
                 throw new UnsupportedOperationException(method.getName());
         });
-        return new TaskManager.TaskWorkerPriority(task, null, points, null);
+        return new TaskManager.TaskWorkerPriority(task, null, points, Integer.MAX_VALUE, false, null);
     }
 
 }
