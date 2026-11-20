@@ -94,6 +94,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.CollectPay;
 import toniarts.openkeeper.game.task.creature.CollectWinnings;
+import toniarts.openkeeper.game.task.creature.Explore;
 import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
@@ -1059,6 +1060,20 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case DRINK: {
                 return assignClosestRoomTask(creature, ObjectType.GAMBLER, null, assign);
+            }
+            case EXPLORE: {
+
+                // There is always somewhere to explore, the tile is picked when the creature sets off
+                if (!assign) {
+                    return true;
+                }
+                Explore task = new Explore(navigationService, mapController);
+                if (task.chooseDestination(creature, Utils.getRandom())) {
+                    task.assign(creature, true);
+                    tasksByIds.put(task.getId(), task);
+                    return true;
+                }
+                return false;
             }
             default:
                 return false;
