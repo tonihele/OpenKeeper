@@ -23,6 +23,7 @@ import java.util.Arrays;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**
@@ -59,6 +60,7 @@ public abstract class DKFolderSelector extends javax.swing.JFrame {
         exitButton = new javax.swing.JButton();
         continueButton = new javax.swing.JButton();
         statusIcon = new javax.swing.JLabel();
+        hdTexturesCheckBox = new javax.swing.JCheckBox();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("OpenKeeper");
@@ -90,6 +92,8 @@ public abstract class DKFolderSelector extends javax.swing.JFrame {
 
         statusIcon.setIcon(new ImageIcon(Main.class.getResource("/Interface/Images/Action-ok-icon.png")));
 
+        hdTexturesCheckBox.setText("Make HD textures (needs a Vulkan GPU, about 6 minutes)");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -98,6 +102,7 @@ public abstract class DKFolderSelector extends javax.swing.JFrame {
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
+                    .addComponent(hdTexturesCheckBox)
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(selectFolderButton)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -118,6 +123,8 @@ public abstract class DKFolderSelector extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(statusIcon)
                     .addComponent(selectFolderButton))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(hdTexturesCheckBox)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 27, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(exitButton)
@@ -155,6 +162,7 @@ public abstract class DKFolderSelector extends javax.swing.JFrame {
     }//GEN-LAST:event_exitButtonActionPerformed
 
     private void continueButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_continueButtonActionPerformed
+        Main.getSettings().putBoolean(AssetsConverter.HD_TEXTURES_SETTING, hdTexturesCheckBox.isSelected());
         continueOk(fc.getSelectedFile().getPath());
         dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
         dispose();
@@ -201,6 +209,7 @@ public abstract class DKFolderSelector extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton continueButton;
     private javax.swing.JButton exitButton;
+    private javax.swing.JCheckBox hdTexturesCheckBox;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JButton selectFolderButton;
     private javax.swing.JLabel statusIcon;
