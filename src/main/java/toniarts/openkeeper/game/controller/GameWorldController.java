@@ -298,8 +298,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         synchronized (GOLD_LOCK) {
 
             // See if the player has any gold even
-            Keeper keeper = players.get(playerId);
-            if (keeper.getGold() == 0) {
+            if (playerControllers.get(playerId).getGoldControl().getGold() == 0) {
                 return amount;
             }
 
@@ -378,7 +377,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         RoomPlacementValidator.Result placement = RoomPlacementValidator.validate(
                 kwdFile, mapController, this::isConstructionBlocked, start, end,
-                playerId, roomId, player.getGold());
+                playerId, roomId, playerControllers.get(playerId).getGoldControl().getGold());
         if (!placement.isValid()) {
             return;
         }
@@ -500,7 +499,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // skipcq: JAVA-E1061
         synchronized (GOLD_LOCK) {
             int cost = plotCount * room.getCost();
-            if (cost > players.get(playerId).getGold()) {
+            if (cost > playerControllers.get(playerId).getGoldControl().getGold()) {
                 return false;
             }
             substractGold(cost, playerId);
@@ -1764,7 +1763,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         // Validate
-        if (DoorPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, door, player.getGold())
+        if (DoorPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, door, playerControllers.get(playerId).getGoldControl().getGold())
                 != DoorPlacementValidator.Failure.NONE) {
             return;
         }
@@ -1782,7 +1781,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // skipcq: JAVA-E1061
         synchronized (GOLD_LOCK) {
             int cost = door.getGoldCost();
-            if (cost > players.get(playerId).getGold()) {
+            if (cost > playerControllers.get(playerId).getGoldControl().getGold()) {
                 return false;
             }
             substractGold(cost, playerId);
@@ -1820,7 +1819,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean hasWorkshop = playerControllers.get(playerId).getRoomControl()
                 .getTypeCount(kwdFile.getRoomById(TrapPlacementValidator.WORKSHOP_ROOM_ID)) > 0;
         if (TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, trap, hasWorkshop,
-                player.getGold()) != TrapPlacementValidator.Failure.NONE) {
+                playerControllers.get(playerId).getGoldControl().getGold()) != TrapPlacementValidator.Failure.NONE) {
             return;
         }
 
@@ -1837,7 +1836,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // skipcq: JAVA-E1061
         synchronized (GOLD_LOCK) {
             int cost = trap.getGoldCost();
-            if (cost > players.get(playerId).getGold()) {
+            if (cost > playerControllers.get(playerId).getGoldControl().getGold()) {
                 return false;
             }
             substractGold(cost, playerId);

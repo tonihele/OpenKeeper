@@ -79,6 +79,7 @@ import toniarts.openkeeper.game.component.ImpGenerator;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.InfernoArea;
+import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.component.KeeperSpellCast;
 import toniarts.openkeeper.game.component.LevelIndicator;
 import toniarts.openkeeper.game.component.Mana;
@@ -251,6 +252,7 @@ public final class NetworkServer {
             Serializer.registerClass(InHand.class, new FieldSerializer());
             Serializer.registerClass(Interaction.class, new FieldSerializer());
             Serializer.registerClass(InfernoArea.class, new FieldSerializer());
+            Serializer.registerClass(KeeperComponent.class, new FieldSerializer());
             Serializer.registerClass(KeeperSpellCast.class, new FieldSerializer());
             Serializer.registerClass(LevelIndicator.class, new FieldSerializer());
             Serializer.registerClass(Mana.class, new FieldSerializer());
