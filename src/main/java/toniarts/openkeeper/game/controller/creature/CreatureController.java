@@ -1552,6 +1552,27 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public boolean answerHeartCall(Point enemyTile) {
+        Health health = entityData.getComponent(entityId, Health.class);
+        if (entityData.getComponent(entityId, CreatureAi.class) == null
+                || !(stateMachine.isInState(CreatureState.IDLE) || stateMachine.isInState(CreatureState.WORK))
+                || isIncapacitated()
+                || creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)
+                || entityData.getComponent(entityId, Peaceful.class) != null
+                || health.health <= health.maxHealth / 4) {
+            return false;
+        }
+        GraphPath<IMapTileInformation> path = navigationService.findPath(getCreatureCoordinates(), enemyTile, this);
+        if (path == null) {
+            return false;
+        }
+
+        stateMachine.changeState(CreatureState.HEART_CALL);
+        entityData.setComponent(entityId, new Navigation(enemyTile, null, SteeringUtils.pathToList(path)));
+        return true;
+    }
+
+    @Override
     public boolean heedCallToArms() {
         FollowTarget followTarget = entityData.getComponent(entityId, FollowTarget.class);
         if (followTarget == null || entityData.getComponent(followTarget.entityId, CallToArms.class) == null) {
