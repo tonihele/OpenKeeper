@@ -1814,6 +1814,7 @@ public final class CreatureController extends EntityController implements ICreat
             }
             changeToFlee();
             createNavigation(getCreatureCoordinates(), lair, null);
+            rememberWhereWeWithdrewFrom();
             return true;
         }
         Keeper keeper = levelInfo.getPlayer(getOwnerId());

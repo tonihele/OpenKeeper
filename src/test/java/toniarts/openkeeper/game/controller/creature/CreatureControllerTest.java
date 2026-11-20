@@ -571,6 +571,8 @@ class CreatureControllerTest {
             assertTrue(f.controller.flee());
 
             assertEquals(new Point(8, 4), f.data.getComponent(f.entity, Navigation.class).target);
+            // It remembers where it withdrew from, as for any withdraw (0x4611D0)
+            assertEquals(new Point(3, 4), f.data.getComponent(f.entity, WithdrawnFrom.class).tile);
 
             // Its lair out of reach, it doesn't withdraw at all, the heart isn't tried (0x4611D0)
             f.data.removeComponent(f.entity, Navigation.class);
