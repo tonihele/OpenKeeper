@@ -52,6 +52,18 @@ public final class TrapFiringFixtures {
     }
 
     /**
+     * Gives the trap type its health
+     *
+     * @param trap the trap
+     * @param health the health
+     * @return the same trap
+     */
+    public static Trap withHealth(Trap trap, int health) {
+        trap.setHealth(health);
+        return trap;
+    }
+
+    /**
      * Gives the trap the shot offset, in tiles
      *
      * @param trap the trap

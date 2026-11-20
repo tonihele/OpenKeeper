@@ -27,10 +27,14 @@ import toniarts.openkeeper.game.component.Boulder;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -42,6 +46,7 @@ import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
@@ -71,6 +76,12 @@ import toniarts.openkeeper.utils.Utils;
  * What the creature loses the boulder loses too, and the creature is knocked
  * off its feet. Creatures that are out cold, in a hand or already down are
  * left alone (0x4A0930).
+ * <br>
+ * It smashes what stands in its way the same way, paying with its health: a
+ * built door it touches takes up to the door type's full health a tick, a
+ * built trap a quarter of the trap type's health, and an object that boulders
+ * destroy, like a bed or a chicken, its type's health. Only its own keeper's
+ * Trigger Traps are spared (0x4A0930).
  */
 public final class BoulderSystem implements IGameLogicUpdatable {
 
@@ -191,19 +202,58 @@ public final class BoulderSystem implements IGameLogicUpdatable {
                 for (int tileOffsetY = -1; tileOffsetY <= 1; tileOffsetY++) {
                     for (EntityId thing : entityPositionLookup.getEntitiesInLocation(new Point(tileX + tileOffsetX, tileY + tileOffsetY))) {
                         if (!thing.equals(entityId) && wear < healthLeft) {
-                            hitCreature(thing);
+                            hit(thing);
                         }
                     }
                 }
             }
         }
 
-        private void hitCreature(EntityId thing) {
+        private void hit(EntityId thing) {
+            Health thingHealth = entityData.getComponent(thing, Health.class);
+            if (thingHealth == null) {
+                return;
+            }
             CreatureComponent creature = entityData.getComponent(thing, CreatureComponent.class);
-            Health creatureHealth = entityData.getComponent(thing, Health.class);
+            DoorComponent door = entityData.getComponent(thing, DoorComponent.class);
+            TrapViewState trap = entityData.getComponent(thing, TrapViewState.class);
+            ObjectComponent object = entityData.getComponent(thing, ObjectComponent.class);
+            if (creature != null) {
+                hitCreature(thing, creature, thingHealth);
+            } else if (door != null) {
+                if (!door.blueprint && isTouching(thing, 0)) {
+                    smash(thing, thingHealth, kwdFile.getDoorById(door.doorId).getHealth());
+                }
+            } else if (trap != null) {
+                Trap trapType = kwdFile.getTrapById(trap.trapId);
+                if (!trap.blueprint && !isOwnTriggerTrap(thing, trapType) && isTouching(thing, 0)) {
+                    smash(thing, thingHealth, trapType.getHealth() / 4);
+                }
+            } else if (object != null) {
+                GameObject objectType = kwdFile.getObject(object.objectId);
+                if (objectType.getFlags().contains(GameObject.ObjectFlag.BOULDER_DESTROYS) && isTouching(thing, objectType.getWidth())) {
+                    smash(thing, thingHealth, objectType.getHp());
+                }
+            }
+        }
+
+        private boolean isOwnTriggerTrap(EntityId trap, Trap trapType) {
+            Owner owner = entityData.getComponent(entityId, Owner.class);
+            Owner trapOwner = entityData.getComponent(trap, Owner.class);
+
+            return trapType.getTriggerType() == Trap.TriggerType.TRIGGER && owner != null && trapOwner != null
+                    && owner.ownerId == trapOwner.ownerId;
+        }
+
+        private void smash(EntityId thing, Health thingHealth, int damage) {
+            damage = Math.min(Math.min(damage, healthLeft - wear), thingHealth.health);
+            EntityController.setDamage(entityData, thing, damage);
+            wear += damage;
+        }
+
+        private void hitCreature(EntityId thing, CreatureComponent creature, Health creatureHealth) {
             CreatureAi creatureAi = entityData.getComponent(thing, CreatureAi.class);
-            if (creature == null || creatureHealth == null
-                    || entityData.getComponent(thing, Unconscious.class) != null
+            if (entityData.getComponent(thing, Unconscious.class) != null
                     || entityData.getComponent(thing, InHand.class) != null
                     || (creatureAi != null && creatureAi.getCreatureState() == CreatureState.FALLEN)
                     || !isTouching(thing, kwdFile.getCreature(creature.creatureId).getAttributes().getWidth())) {

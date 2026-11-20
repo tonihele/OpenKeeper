@@ -33,9 +33,12 @@ import toniarts.openkeeper.game.component.Boulder;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -45,10 +48,13 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.DoorFixtures;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.GameObjectFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
+import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.tools.convert.map.TrapFiringFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.tools.convert.map.VariableFixtures;
 import toniarts.openkeeper.utils.Point;
@@ -62,7 +68,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * as it wears out (DKII.EXE 0x4A1390, 0x4A0E30, 0x453C10). At the original
  * levels' speed of 4915 / 4096 tiles a second, 4 ticks a second and a speed
  * to health ratio of 50 a whole boulder rolls 3684 / 4096 tiles a tick.
- * It runs over the creatures it touches (0x4A0930)
+ * It runs over the creatures it touches and smashes doors, traps and the
+ * objects boulders destroy (0x4A0930)
  */
 class BoulderSystemTest {
 
@@ -72,6 +79,12 @@ class BoulderSystemTest {
     private static final short PILLAR_ID = 76;
     private static final short CHICKEN_ID = 9;
     private static final short GOBLIN_ID = 3;
+    private static final short BED_ID = 22;
+    private static final short GOLD_ID = 1;
+    private static final short SENTRY_TRAP_ID = 3;
+    private static final short TRIGGER_TRAP_ID = 9;
+    private static final short KEEPER = 3;
+    private static final short ENEMY = 4;
 
     private final EntityData entityData = new DefaultEntityData();
     private final Set<Point> solidTiles = new HashSet<>();
@@ -225,6 +238,63 @@ class BoulderSystemTest {
         assertTrue(knockedDown.isEmpty());
     }
 
+    @Test
+    void smashesTheDoorItTouchesAndPaysWithItsHealth() {
+        EntityId boulder = createBoulder(5, 5, 1, 0, HEALTH);
+        EntityId weakDoor = place(new Point(5, 5), new DoorComponent((short) 1, false, false), new Health(500, 1500));
+        EntityId blueprint = place(new Point(5, 5), new DoorComponent((short) 1, false, true), new Health(1500, 1500));
+        EntityId doorAhead = place(new Point(6, 5), new DoorComponent((short) 1, true, false), new Health(1500, 1500));
+
+        system.processTick(TICK);
+
+        // The door type's whole health, 1500, is more than the weak door has left
+        assertEquals(500, entityData.getComponent(weakDoor, Damage.class).damage);
+        assertNull(entityData.getComponent(blueprint, Damage.class));
+        assertNull(entityData.getComponent(doorAhead, Damage.class));
+        assertEquals(500, entityData.getComponent(boulder, Damage.class).damage);
+    }
+
+    @Test
+    void takesAQuarterOfATrapsHealthATickButSparesItsOwnKeepersTriggerTraps() {
+        EntityId boulder = createBoulder(5, 5, 1, 0, HEALTH);
+        EntityId sentry = place(new Point(5, 5), new TrapViewState(SENTRY_TRAP_ID, false), new Health(3000, 3000), new Owner(KEEPER, KEEPER));
+        EntityId blueprint = place(new Point(5, 5), new TrapViewState(SENTRY_TRAP_ID, true), new Health(3000, 3000), new Owner(KEEPER, KEEPER));
+        EntityId ownTrigger = place(new Point(5, 5), new TrapViewState(TRIGGER_TRAP_ID, false), new Health(3000, 3000), new Owner(KEEPER, KEEPER));
+        EntityId enemyTrigger = place(new Point(5, 5), new TrapViewState(TRIGGER_TRAP_ID, false), new Health(3000, 3000), new Owner(ENEMY, ENEMY));
+
+        system.processTick(TICK);
+
+        assertEquals(750, entityData.getComponent(sentry, Damage.class).damage);
+        assertNull(entityData.getComponent(blueprint, Damage.class));
+        assertNull(entityData.getComponent(ownTrigger, Damage.class));
+        assertEquals(750, entityData.getComponent(enemyTrigger, Damage.class).damage);
+        assertEquals(1500, entityData.getComponent(boulder, Damage.class).damage);
+    }
+
+    @Test
+    void destroysTheObjectsBouldersDestroy() {
+        EntityId boulder = createBoulder(5, 5, 0, -1, HEALTH);
+        EntityId bed = place(new Point(6, 5), new ObjectComponent(BED_ID, null), new Health(100, 100));
+        EntityId gold = place(new Point(5, 5), new ObjectComponent(GOLD_ID, null), new Health(10, 10));
+
+        system.processTick(TICK);
+
+        // The boulder is a tile wide and the bed a tile and a half, they touch within a tile and a quarter
+        assertEquals(100, entityData.getComponent(bed, Damage.class).damage);
+        assertNull(entityData.getComponent(gold, Damage.class));
+        assertEquals(100, entityData.getComponent(boulder, Damage.class).damage);
+    }
+
+    private EntityId place(Point tile, Object... components) {
+        EntityId thing = entityData.createEntity();
+        for (Object component : components) {
+            entityData.setComponent(thing, (com.simsilica.es.EntityComponent) component);
+        }
+        entityData.setComponent(thing, new Position(0, new Vector3f(tile.x, 1, tile.y)));
+        entitiesByTile.computeIfAbsent(tile, key -> new ArrayList<>()).add(thing);
+        return thing;
+    }
+
     private EntityId createCreature(float x, float y, Health health) {
         EntityId creature = entityData.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();
@@ -237,7 +307,7 @@ class BoulderSystemTest {
     private EntityId createBoulder(int x, int y, int directionX, int directionY, int health) {
         EntityId boulder = entityData.createEntity();
         entityData.setComponents(boulder, new Boulder(directionX, directionY, directionX, directionY), new Health(health, HEALTH),
-                new Position(0, new Vector3f(x, 1, y)));
+                new Position(0, new Vector3f(x, 1, y)), new Owner(KEEPER, KEEPER));
         return boulder;
     }
 
@@ -253,11 +323,19 @@ class BoulderSystemTest {
         IKwdFile kwdFile = proxy(IKwdFile.class, (method, args) -> switch (method) {
             case "getGameLevel" -> ShotFixtures.gameLevel(4);
             case "getCreature" -> goblin;
+            case "getDoorById" -> DoorFixtures.door((short) 1, 0, 1500);
+            case "getTrapById" -> TrapFiringFixtures.withHealth(TrapFiringFixtures.trap(((Number) args[0]).shortValue(),
+                    ((Number) args[0]).shortValue() == TRIGGER_TRAP_ID ? Trap.TriggerType.TRIGGER : Trap.TriggerType.LINE_OF_SIGHT, 0, 0, (short) 0), 3000);
             case "getObject" -> switch ((int) args[0]) {
                 case ObjectsController.OBJECT_BOULDER_ID ->
                     GameObjectFixtures.withWidth(GameObjectFixtures.gameObject("Boulder", GameObject.ObjectFlag.BOULDER_CAN_ROLL_THROUGH), 1);
                 case CHICKEN_ID ->
                     GameObjectFixtures.gameObject("Chicken", GameObject.ObjectFlag.BOULDER_CAN_ROLL_THROUGH);
+                case GOLD_ID ->
+                    GameObjectFixtures.gameObject("Gold", GameObject.ObjectFlag.BOULDER_CAN_ROLL_THROUGH);
+                case BED_ID ->
+                    GameObjectFixtures.withHp(GameObjectFixtures.withWidth(GameObjectFixtures.gameObject("Bed",
+                            GameObject.ObjectFlag.BOULDER_CAN_ROLL_THROUGH, GameObject.ObjectFlag.BOULDER_DESTROYS), 1.5f), 100);
                 default ->
                     GameObjectFixtures.gameObject("Pillar");
             };
