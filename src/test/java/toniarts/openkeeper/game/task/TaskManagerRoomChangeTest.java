@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -27,8 +28,12 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -63,6 +68,7 @@ class TaskManagerRoomChangeTest {
     private final Map<EntityId, Boolean> atTaskTarget = new HashMap<>();
     private final List<EntityId> sentToIdle = new ArrayList<>();
     private PlayerActionListener playerActions;
+    private TaskManager taskManager;
     private EntityId walking;
     private EntityId working;
     private EntityId otherKeepers;
@@ -90,7 +96,7 @@ class TaskManagerRoomChangeTest {
                 });
         ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(),
                 new Class<?>[]{ICreaturesController.class}, (proxy, method, args) -> createController((EntityId) args[0]));
-        new TaskManager(entityData, gameWorldController, mapController, stub(IObjectsController.class, Map.of()),
+        taskManager = new TaskManager(entityData, gameWorldController, mapController, stub(IObjectsController.class, Map.of()),
                 creaturesController, stub(INavigationService.class, Map.of()),
                 List.of(stub(IPlayerController.class, Map.of("getKeeper", new Keeper(false, Player.KEEPER1_ID)))),
                 stub(ILevelInfo.class, Map.of("getLevelData", stub(IKwdFile.class, Map.of("getRoomByTerrain", RoomFixtures.room((short) 1, 0))))),
@@ -116,6 +122,38 @@ class TaskManagerRoomChangeTest {
         playerActions.onBuild(Player.KEEPER1_ID, List.of(new Point(1, 1)));
 
         assertFalse(sentToIdle.contains(goingToMakeLair));
+    }
+
+    @Test
+    void placingATrapSendsCreaturesOnTheirWayBackToIdle() {
+        entityData.setComponents(entityData.createEntity(), new TrapComponent((short) 3), new TrapViewState((short) 3, true),
+                new Owner(Player.KEEPER1_ID, Player.KEEPER1_ID), new Position(0, new Vector3f(3, 1, 3)));
+
+        taskManager.processTick(0.25f);
+
+        assertEquals(List.of(walking), sentToIdle);
+    }
+
+    @Test
+    void placingADoorSendsCreaturesOnTheirWayBackToIdle() {
+        entityData.setComponents(entityData.createEntity(), new DoorComponent((short) 1, false, true),
+                new Owner(Player.KEEPER1_ID, Player.KEEPER1_ID), new Position(0, new Vector3f(3, 1, 3)));
+
+        taskManager.processTick(0.25f);
+
+        assertEquals(List.of(walking), sentToIdle);
+    }
+
+    @Test
+    void aTrapOrDoorThatIsNoBlueprintSendsNobodyBack() {
+        entityData.setComponents(entityData.createEntity(), new TrapComponent((short) 3), new TrapViewState((short) 3, false),
+                new Owner(Player.KEEPER1_ID, Player.KEEPER1_ID), new Position(0, new Vector3f(3, 1, 3)));
+        entityData.setComponents(entityData.createEntity(), new DoorComponent((short) 1, false, false),
+                new Owner(Player.KEEPER1_ID, Player.KEEPER1_ID), new Position(0, new Vector3f(4, 1, 3)));
+
+        taskManager.processTick(0.25f);
+
+        assertEquals(List.of(), sentToIdle);
     }
 
     private EntityId createCreature(short ownerId, boolean atTarget, TaskType taskType) {
