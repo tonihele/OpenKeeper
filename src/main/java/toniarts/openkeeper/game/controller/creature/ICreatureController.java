@@ -175,6 +175,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean flee();
 
     /**
+     * After a withdraw, a creature other than an Imp walks back to where it
+     * withdrew from once it has over three quarters of its health, if that was
+     * less than 500 turns ago (DK II 0x4773D0). Starts the walk if so
+     *
+     * @return true if we walk back
+     */
+    public boolean goBackToWhereWeFought();
+
+    /**
      * Weighs the threat of the enemies we fight against our fear. Call once on
      * every turn of a fight, it takes a few turns in a row to scare us
      *

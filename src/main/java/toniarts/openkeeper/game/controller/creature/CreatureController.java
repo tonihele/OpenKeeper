@@ -73,6 +73,7 @@ import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.component.WithdrawnFrom;
 import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -194,6 +195,10 @@ public final class CreatureController extends EntityController implements ICreat
      * How long an idle hero does nothing before it tries its objective again, as in DK II (DKII.EXE 0x477850)
      */
     private static final int HERO_IDLE_TICKS = 12;
+    /**
+     * How long after a withdraw a creature still goes back to where it fought, as in DK II (DKII.EXE 0x4773D0)
+     */
+    private static final int RETURN_TO_FIGHT_TICKS = 500;
 
     /**
      * The possessed melee attack hits what is at most 341/2048 of a full
@@ -1742,6 +1747,39 @@ public final class CreatureController extends EntityController implements ICreat
             changeToFlee();
             navigateToRandomPoint();
         }
+        rememberWhereWeWithdrewFrom();
+        return true;
+    }
+
+    /**
+     * Remembers the tile we withdraw from and when, to go back there once we
+     * are well again. DK II does it for every creature but the Imp (0x4611D0).
+     * DK II stores the tile as (x, x), a bug; we keep the intended (x, y)
+     */
+    private void rememberWhereWeWithdrewFrom() {
+        if (creature.getId() != levelInfo.getLevelData().getImp().getId()) {
+            entityData.setComponent(entityId, new WithdrawnFrom(getCreatureCoordinates(), gameTimer.getGameTime()));
+        }
+    }
+
+    @Override
+    public boolean goBackToWhereWeFought() {
+        WithdrawnFrom withdrawnFrom = entityData.getComponent(entityId, WithdrawnFrom.class);
+        if (withdrawnFrom == null) {
+            return false;
+        }
+
+        // Within 500 turns of the withdraw, once we have over three quarters of our health (DK II 0x4773D0)
+        if (gameTimer.getGameTime() >= withdrawnFrom.time + RETURN_TO_FIGHT_TICKS / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()) {
+            entityData.removeComponent(entityId, WithdrawnFrom.class);
+            return false;
+        }
+        Health health = entityData.getComponent(entityId, Health.class);
+        if (health == null || health.health <= health.maxHealth * 3 / 4
+                || createNavigation(getCreatureCoordinates(), withdrawnFrom.tile, null)) {
+            return false;
+        }
+        entityData.removeComponent(entityId, WithdrawnFrom.class);
         return true;
     }
 
@@ -2543,6 +2581,7 @@ public final class CreatureController extends EntityController implements ICreat
         // To the first hero lair action point we can get to, else we fight on (DK II 0x4611D0)
         for (ActionPoint actionPoint : levelInfo.getActionPoints()) {
             if (actionPoint.getFlags().contains(Thing.ActionPoint.ActionPointFlag.HERO_LAIR) && !createNavigation(getCreatureCoordinates(), actionPoint.getStart(), null)) {
+                rememberWhereWeWithdrewFrom();
                 return true;
             }
         }
