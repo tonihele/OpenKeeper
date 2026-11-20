@@ -70,6 +70,7 @@ class CreatureCombatTest {
     private static final short HERO = Player.GOOD_PLAYER_ID;
     private static final short WOODEN_DOOR = 1;
     private static final short SECRET_DOOR = 5;
+    private static final short CREATURES_ONLY_SPELL = 9;
 
     private EntityData entityData;
     private Map<Short, Creature> creatures;
@@ -240,6 +241,49 @@ class CreatureCombatTest {
         assertEquals(100, entityData.getComponent(door, Damage.class).damage);
     }
 
+    @Test
+    void creatureCastsItsReadyAttackSpellAtADoor() {
+        EntityId door = createDoor(WOODEN_DOOR, new Point(5, 5));
+        giveAttackSpell(us);
+
+        // Against a door, the attack spell that is ready is cast even right next to it (0x45CB00)
+        createController(us).attackAdjacentDoor();
+
+        CastShot castShot = entityData.getComponent(us, CastShot.class);
+        assertEquals(door, castShot.target);
+        assertNull(entityData.getComponent(door, Damage.class));
+    }
+
+    @Test
+    void spellThatOnlyWorksOnCreaturesIsNotCastAtADoor() {
+        EntityId door = createDoor(WOODEN_DOOR, new Point(5, 5));
+        giveAttackSpells(us, castAt(CREATURES_ONLY_SPELL, 5, null));
+
+        createController(us).attackAdjacentDoor();
+
+        assertNull(entityData.getComponent(us, CastShot.class));
+        assertEquals(100, entityData.getComponent(door, Damage.class).damage);
+    }
+
+    @Test
+    void supportCreatureWaitsForItsSpellAtADoorWhereOthersHitIt() {
+        EntityId door = createDoor(WOODEN_DOOR, new Point(5, 5));
+        giveAttackSpells(us, castAt((short) 1, 5, 8.0));
+
+        // A support creature takes its attack spell even while it recharges (0x45CB00) and waits for it
+        creatures.put(FIGHTER, CombatCreatureFixtures.fighter(FIGHTER, Creature.FightStyle.SUPPORT));
+        createController(us).attackAdjacentDoor();
+
+        assertNull(entityData.getComponent(us, CastShot.class));
+        assertNull(entityData.getComponent(door, Damage.class));
+
+        // Any other one hits the door while its spell recharges
+        creatures.put(FIGHTER, CombatCreatureFixtures.fighter(FIGHTER, Creature.FightStyle.BLOCKER));
+        createController(us).attackAdjacentDoor();
+
+        assertEquals(100, entityData.getComponent(door, Damage.class).damage);
+    }
+
     private EntityId createDoor(short doorId, Point tile) {
         EntityId door = entityData.createEntity();
         entityData.setComponents(door, new DoorComponent(doorId, false, false), new Owner(HERO, HERO),
@@ -374,7 +418,9 @@ class CreatureCombatTest {
         Map<Short, Keeper> keepers = Map.of(KEEPER, new Keeper(false, KEEPER), HERO, new Keeper(false, HERO));
         IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
             case "getCreature" -> creatures.get((Short) args[0]);
-            case "getCreatureSpellById" -> CombatCreatureFixtures.attackSpell();
+            case "getCreatureSpellById" -> (Short) args[0] == CREATURES_ONLY_SPELL
+                    ? CombatCreatureFixtures.attackSpell(toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag.CAST_ONLY_ON_CREATURES)
+                    : CombatCreatureFixtures.attackSpell();
             case "getDoorById" -> (Integer) args[0] == SECRET_DOOR
                     ? DoorFixtures.door(SECRET_DOOR, 0, Door.DoorFlag.IS_SECRET) : DoorFixtures.door(WOODEN_DOOR, 0);
             default -> null;
@@ -388,6 +434,7 @@ class CreatureCombatTest {
         IEntityPositionLookup positionLookup = stub(IEntityPositionLookup.class, (name, args) -> switch (name) {
             case "getSensedEntities" -> sensed.getOrDefault((EntityId) args[0], Set.of());
             case "getBlockingDoor" -> doors.get(new Point((Integer) args[0], (Integer) args[1]));
+            case "hasLineOfSight" -> true;
             default -> null;
         });
         ICreaturesController creaturesController = stub(ICreaturesController.class, (name, args) -> switch (name) {

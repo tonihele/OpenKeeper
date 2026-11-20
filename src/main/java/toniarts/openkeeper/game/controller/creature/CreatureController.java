@@ -211,6 +211,13 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private static final int PHYSICAL_HIT_EFFECT_ID = 237;
     private static final int SPARK_SHOWER_EFFECT_ID = 313;
+    /**
+     * Of the attack spells, the one that was ready first: the smallest last
+     * cast plus recharge, and the earlier slot on a tie (DK II 0x45CB00,
+     * 0x48C800). A spell never cast counts as cast at 0.
+     */
+    private static final Comparator<CreatureSpell> READY_FIRST = Comparator.comparingDouble(
+            creatureSpell -> (creatureSpell.attactStartTime != null ? creatureSpell.attactStartTime : 0) + creatureSpell.rechargeTime);
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -681,12 +688,20 @@ public final class CreatureController extends EntityController implements ICreat
         List<Point> tiles = new ArrayList<>(path.getCount());
         path.forEach(tile -> tiles.add(tile.getLocation()));
         int doorIndex = DoorAttackTarget.getDoorIndex(tiles, this::isDoorToBreak);
-        if (doorIndex == DoorAttackTarget.ADJACENT_DOOR_INDEX) {
-            breakDoor(getBlockingDoor(tiles.get(doorIndex)));
+        EntityId door = doorIndex >= DoorAttackTarget.ADJACENT_DOOR_INDEX ? getBlockingDoor(tiles.get(doorIndex)) : null;
+        if (doorIndex == DoorAttackTarget.ADJACENT_DOOR_INDEX
+                || door != null && isDoorInReach(door, WorldUtils.vector3fToVector2f(getPosition()))) {
+            breakDoor(door);
             return false;
-        } else if (doorIndex > DoorAttackTarget.ADJACENT_DOOR_INDEX) {
-            path = DoorAttackTarget.stopBefore(path, doorIndex);
-            destination = tiles.get(doorIndex - 1);
+        } else if (door != null) {
+
+            // The walk ends on the first tile from where the door is in reach, at the latest on the one next to it
+            int stop = DoorAttackTarget.ADJACENT_DOOR_INDEX;
+            while (stop < doorIndex - 1 && !isDoorInReach(door, WorldUtils.pointToVector2f(tiles.get(stop)))) {
+                stop++;
+            }
+            path = DoorAttackTarget.stopBefore(path, stop + 1);
+            destination = tiles.get(stop);
             faceTarget = tiles.get(doorIndex);
             workPosition = null;
         }
@@ -760,40 +775,94 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     /**
-     * Breaks a door next to us: hits it when it is in reach, and otherwise
-     * steps up to it first. The door is a target of the original's fight
-     * state like any other (0x481400), in reach at the creature's melee reach
-     * for a door (0x45CB00).
+     * Breaks a door in our way: attacks it when it is in reach, and otherwise
+     * steps up to it first, the door then being next to us. The door is a
+     * target of the original's fight state like any other (0x481400).
      *
      * @param door the door
      */
     private void breakDoor(EntityId door) {
         Vector3f position = getPosition();
-        Vector3f doorPosition = getPosition(entityData, door);
-        float reach = DoorAttackTarget.getMeleeReach(levelInfo.getLevelData().getDoorById(
-                entityData.getComponent(door, DoorComponent.class).doorId), getMeleeRange());
-        if (WorldUtils.vector3fToVector2f(doorPosition).distance(WorldUtils.vector3fToVector2f(position)) < reach) {
+        if (isDoorInReach(door, WorldUtils.vector3fToVector2f(position))) {
             attackDoor(door);
             return;
         }
 
         Point tile = getCreatureCoordinates();
-        Point doorTile = WorldUtils.vectorToPoint(doorPosition);
-        Vector2f spot = DoorAttackTarget.getApproachPoint(doorTile, tile, reach);
+        Point doorTile = getCreatureCoordinates(entityData, door);
+        Vector2f spot = DoorAttackTarget.getApproachPoint(doorTile, tile, getDoorReach(door));
         entityData.setComponent(entityId, new Navigation(tile, doorTile, new ArrayList<>(List.of(
                 new Vector2(position.x, position.z), new Vector2(spot.x, spot.y)))));
     }
 
     /**
-     * Hits a door in reach with the melee attack, as often as the attack
-     * recharges. The creature turns to it before every hit and the hit is a
-     * normal melee hit (0x45F030, 0x498E30).
+     * Is a door in reach from a spot. Like DK II (0x45E8F0), the door also
+     * needs to be in sight.
+     *
+     * @param door the door
+     * @param from the spot
+     * @return true if we can attack the door from the spot
+     */
+    private boolean isDoorInReach(EntityId door, Vector2f from) {
+        Vector3f doorPosition = getPosition(entityData, door);
+        return WorldUtils.vector3fToVector2f(doorPosition).distance(from) < getDoorReach(door)
+                && entityPositionLookup.hasLineOfSight(new Vector3f(from.x, doorPosition.y, from.y), doorPosition);
+    }
+
+    /**
+     * How far from a door's centre we attack it: the range of the attack spell
+     * we cast at it, or else our melee reach for a door (0x45CB00)
+     *
+     * @param door the door
+     * @return the reach
+     */
+    private float getDoorReach(EntityId door) {
+        Optional<CreatureSpell> spell = getDoorAttackSpell();
+        return spell.isPresent() ? spell.get().range : DoorAttackTarget.getMeleeReach(levelInfo.getLevelData().getDoorById(
+                entityData.getComponent(door, DoorComponent.class).doorId), getMeleeRange());
+    }
+
+    /**
+     * The attack spell we cast at a door. DK II picks it as against other
+     * targets, the one that was ready first, but leaves out the spells that
+     * only work on creatures, and a support creature also takes one that
+     * still recharges and waits for it (0x45CB00, 0x45F030). A door is a
+     * target given to the creature, so DK II doesn't look at its distance
+     * here: the spell is cast even from right next to the door.
+     *
+     * @return the spell, empty to hit the door in melee
+     */
+    private Optional<CreatureSpell> getDoorAttackSpell() {
+        boolean support = creature.getFightStyle() == Creature.FightStyle.SUPPORT;
+        return getCreatureSpells()
+                .stream()
+                .filter(creatureSpell -> {
+                    EnumSet<CreatureSpellFlag> flags = levelInfo.getLevelData().getCreatureSpellById(creatureSpell.creatureSpellId).getFlags();
+                    return (support || isAttackRecharged(creatureSpell)) && flags.contains(CreatureSpellFlag.IS_ATTACKING)
+                            && !flags.contains(CreatureSpellFlag.CAST_ONLY_ON_CREATURES);
+                })
+                .min(READY_FIRST);
+    }
+
+    /**
+     * Attacks a door in reach as often as the attack recharges, with the
+     * attack spell or else in melee. The creature turns to it before every
+     * attack, and the hit is a normal melee hit (0x45F030, 0x498E30).
      *
      * @param door the door
      */
     private void attackDoor(EntityId door) {
+        if (!faceAttackTarget(door)) {
+            return;
+        }
+
+        Optional<CreatureSpell> spell = getDoorAttackSpell();
         CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
-        if (creatureMeleeAttack != null && faceAttackTarget(door) && isAttackRecharged(creatureMeleeAttack)) {
+        if (spell.isPresent()) {
+            if (isAttackRecharged(spell.get())) {
+                castAttackSpell(spell.get(), door);
+            }
+        } else if (creatureMeleeAttack != null && isAttackRecharged(creatureMeleeAttack)) {
             stateMachine.changeState(CreatureState.MELEE_ATTACK);
             hitWithMelee(door, creatureMeleeAttack, creatureMeleeAttack.damage);
         }
@@ -1249,23 +1318,30 @@ public final class CreatureController extends EntityController implements ICreat
                         getCombatPitDamage(attackTarget, creatureMeleeAttack.damage)));
             }
         } else {
-            Optional<CreatureSpell> attack = getPreferredAttackSpell(attackTarget);
-            if (attack.isPresent()) {
-                CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
-                for (EntityId creatureSpellEntity : creatureSpells.creatureSpells) {
-                    CreatureSpell spell = entityData.getComponent(creatureSpellEntity, CreatureSpell.class);
-                    if (spell.creatureSpellId == attack.get().creatureSpellId) {
-                        entityData.setComponent(creatureSpellEntity, new CreatureSpell(attack.get(), gameTimer.getGameTime()));
-                        break;
-                    }
-                }
-                stateMachine.changeState(CreatureState.CAST_SPELL);
+            getPreferredAttackSpell(attackTarget).ifPresent(attack -> castAttackSpell(attack, attackTarget));
+        }
+    }
 
-                // The shot leaves during the cast, after the spell's shot delay (0x4984D0)
-                entityData.setComponent(entityId, new CastShot(attack.get().creatureSpellId, attackTarget, attack.get().range,
-                        gameTimer.getGameTime() + getShotDelay(attack.get().creatureSpellId)));
+    /**
+     * Casts an attack spell at the target, the spell then needs to recharge
+     *
+     * @param attack the spell
+     * @param attackTarget the target
+     */
+    private void castAttackSpell(CreatureSpell attack, EntityId attackTarget) {
+        CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+        for (EntityId creatureSpellEntity : creatureSpells.creatureSpells) {
+            CreatureSpell spell = entityData.getComponent(creatureSpellEntity, CreatureSpell.class);
+            if (spell.creatureSpellId == attack.creatureSpellId) {
+                entityData.setComponent(creatureSpellEntity, new CreatureSpell(attack, gameTimer.getGameTime()));
+                break;
             }
         }
+        stateMachine.changeState(CreatureState.CAST_SPELL);
+
+        // The shot leaves during the cast, after the spell's shot delay (0x4984D0)
+        entityData.setComponent(entityId, new CastShot(attack.creatureSpellId, attackTarget, attack.range,
+                gameTimer.getGameTime() + getShotDelay(attack.creatureSpellId)));
     }
 
     @Override
@@ -1449,12 +1525,11 @@ public final class CreatureController extends EntityController implements ICreat
             return Optional.empty();
         }
 
-        // Of the attack spells that are ready, the one that was ready first: the smallest last cast plus recharge,
-        // and the earlier slot on a tie (DK II 0x45CB00, 0x48C800). A spell never cast counts as cast at 0
+        // Of the attack spells that are ready, the one that was ready first
         return creatureSpells
                 .stream()
                 .filter(creatureSpell -> isAttackRecharged(creatureSpell) && isInRange(creatureSpell.range, attackTarget) && levelInfo.getLevelData().getCreatureSpellById(creatureSpell.creatureSpellId).getFlags().contains(CreatureSpellFlag.IS_ATTACKING))
-                .min(Comparator.comparingDouble(creatureSpell -> (creatureSpell.attactStartTime != null ? creatureSpell.attactStartTime : 0) + creatureSpell.rechargeTime));
+                .min(READY_FIRST);
     }
 
     /**

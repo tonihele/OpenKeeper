@@ -35,8 +35,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * An enemy door as a target of an attack. A door that stands in the way of a
- * creature is not walked round, the creature goes up to it and hits it with its
- * melee attack until the door gives way.
+ * creature is not walked round, the creature goes up to it and attacks it until
+ * the door gives way.
  */
 public final class DoorAttackTarget {
 

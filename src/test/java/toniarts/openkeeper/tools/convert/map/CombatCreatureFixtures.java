@@ -43,9 +43,13 @@ public final class CombatCreatureFixtures {
         return creature;
     }
 
-    public static CreatureSpell attackSpell() {
+    public static CreatureSpell attackSpell(CreatureSpell.CreatureSpellFlag... flags) {
         CreatureSpell spell = new CreatureSpell();
-        spell.setFlags(EnumSet.of(CreatureSpell.CreatureSpellFlag.IS_ATTACKING));
+        EnumSet<CreatureSpell.CreatureSpellFlag> set = EnumSet.of(CreatureSpell.CreatureSpellFlag.IS_ATTACKING);
+        for (CreatureSpell.CreatureSpellFlag flag : flags) {
+            set.add(flag);
+        }
+        spell.setFlags(set);
         return spell;
     }
 
