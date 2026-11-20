@@ -338,8 +338,7 @@ public class TriggerControl extends Control {
                 break;
 
             case SET_SLAPS_LIMIT:
-                // TODO this
-                value = trigger.getUserData("value", int.class); // 0 = Off
+                gameController.getGameWorldController().setSlapsLimit(trigger.getUserData("value", int.class)); // 0 = Off
                 break;
 
             case SET_TIMER_SPEECH:
