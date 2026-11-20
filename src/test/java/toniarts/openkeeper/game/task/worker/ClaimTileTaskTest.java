@@ -69,6 +69,19 @@ class ClaimTileTaskTest {
         assertEquals(task, near.task.get());
     }
 
+    /**
+     * A worker in the keeper's hand has no position, it is not on its way to
+     * the tile
+     */
+    @Test
+    void workerInTheHandLosesTheClaim() {
+        Imp held = new Imp(null, false);
+        task.assign(held.creature, true);
+
+        assertTrue(task.makeRoomFor(new Imp(new Vector3f(16, 0, 10), false).creature));
+        assertNull(held.task.get());
+    }
+
     @Test
     void workerClaimingTheTileKeepsIt() {
         Imp claiming = new Imp(new Vector3f(16, 0, 10), true);

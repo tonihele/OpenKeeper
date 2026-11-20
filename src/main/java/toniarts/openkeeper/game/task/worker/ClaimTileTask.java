@@ -97,7 +97,10 @@ public class ClaimTileTask extends AbstractTileTask {
     public boolean makeRoomFor(ICreatureController creature) {
         Vector2f tile = WorldUtils.pointToVector2f(getTaskLocation());
         for (ICreatureController assignee : getAssignees()) {
-            if (assignee.isAtAssignedTaskTarget() || getDistanceSquared(assignee, tile) <= getDistanceSquared(creature, tile)) {
+
+            // One in the keeper's hand isn't on its way, it has no position
+            if (assignee.getPosition() != null && (assignee.isAtAssignedTaskTarget()
+                    || getDistanceSquared(assignee, tile) <= getDistanceSquared(creature, tile))) {
                 return false;
             }
         }
