@@ -14,14 +14,25 @@ uniform float m_AmbientScale;
 #ifdef MESH_CENTER
 uniform vec3 m_MeshCenter;
 #endif
-#ifdef ANIMATED_TILES
+#if defined(ANIMATED_TILES) || defined(EMBM_ENABLED) || defined(LIQUID_WAVES)
 uniform float g_Time;
+#endif
+#ifdef ANIMATED_TILES
 uniform int m_NumberOfTiles;
 uniform int m_Speed;
+#endif
+#ifdef LIQUID_WAVES
+uniform float m_LiquidWaveLevel;
+uniform float m_LiquidWaveFrequency;
+attribute vec2 inTexCoord2;
 #endif
 #ifdef AMBIENT_MAP
 uniform sampler2D m_AmbientMap;
 uniform vec2 m_AmbientMapSize;
+#endif
+#ifdef EMBM_ENABLED
+varying vec2 liquidTexCoord;
+varying vec2 embmEnvironmentTexCoord;
 #endif
 // Every light near the camera, shared by all terrain materials (see
 // SceneLights): texel 0 = (light count, global ambient rgb); then three
@@ -49,11 +60,27 @@ varying vec2 texCoord;
 varying vec3 vVertexColor;
 varying vec3 vOverlay;
 varying vec3 vGlow;
+varying float vSurfaceVisibility;
 
 void main() {
     vec4 modelSpacePos = vec4(inPosition, 1.0);
+    vec3 localNormal = inNormal;
+#ifdef LIQUID_WAVES
+    // The recovered lava field uses a 128-tick phase cycle (30 ticks/second)
+    // and two 0.04-amplitude waves. Enhanced water supplies its own frequency.
+    // TexCoord2 is generated before terrain deformation, so bending shores
+    // cannot alter the wave phase or introduce tile seams.
+    float tick = mod(g_Time * 30.0, 128.0);
+    float phaseX = mod(inTexCoord2.x * m_LiquidWaveFrequency + tick, 128.0) * 0.04908738521;
+    float phaseZ = mod(inTexCoord2.y * m_LiquidWaveFrequency + tick, 128.0) * 0.04908738521;
+    modelSpacePos.y = m_LiquidWaveLevel - 0.04 * (sin(phaseX) + sin(phaseZ));
+    localNormal = normalize(vec3(cos(phaseX), 3.0, cos(phaseZ)));
+#endif
     gl_Position = TransformWorldViewProjection(modelSpacePos);
     texCoord = inTexCoord;
+#ifdef EMBM_ENABLED
+    liquidTexCoord = inTexCoord;
+#endif
 #ifdef ANIMATED_TILES
     float tiles = float(m_NumberOfTiles);
     float selectedTile = floor(g_Time * float(m_Speed));
@@ -61,7 +88,21 @@ void main() {
 #endif
 
     vec3 worldPos = TransformWorld(modelSpacePos).xyz;
-    vec3 worldNormal = normalize(TransformWorldNormal(inNormal));
+    vec3 worldNormal = normalize(TransformWorldNormal(localNormal));
+
+#ifdef EMBM_ENABLED
+    // The original G400 path perturbs a reflection/environment coordinate.
+    // Sphere mapping is the best-supported approximation until a native
+    // same-camera capture is available for coordinate-level comparison.
+    vec3 viewPosition = (g_ViewMatrix * vec4(worldPos, 1.0)).xyz;
+    vec3 viewNormal = normalize((g_ViewMatrix * vec4(worldNormal, 0.0)).xyz);
+    vec3 viewReflection = reflect(normalize(viewPosition), viewNormal);
+    float sphereDenominator = 2.0 * sqrt(dot(viewReflection.xy, viewReflection.xy)
+            + (viewReflection.z + 1.0) * (viewReflection.z + 1.0));
+    embmEnvironmentTexCoord = sphereDenominator > 0.0001
+            ? viewReflection.xy / sphereDenominator + vec2(0.5)
+            : vec2(0.5);
+#endif
 
 #ifdef AMBIENT_MAP
     // Texel centres sit at tile + 0.5, so linear filtering blends the
@@ -137,6 +178,7 @@ void main() {
     // m_MinLight is 0 for solid terrain: explored rock and walls that no
     // light reaches stay black, like fog of war
     vec3 lit = dkSoftClampFloor(sum, explored * m_MinLight);
+    vSurfaceVisibility = explored;
     lit = max(lit, vec3(m_RockFloor * explored));
 
     // Tile highlight, as in the original game: the

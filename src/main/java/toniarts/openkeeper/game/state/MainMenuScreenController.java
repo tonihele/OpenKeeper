@@ -298,6 +298,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         DropDown aa = screen.findNiftyControl("antialiasing", DropDown.class);
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
+        CheckBox enhancedLiquids = screen.findNiftyControl("enhancedLiquids", CheckBox.class);
         CheckBox gamma = screen.findNiftyControl("gammaCorrection", CheckBox.class);
         DisplayMode mdm = (DisplayMode) res.getSelection();
 
@@ -312,10 +313,17 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         settings.getAppSettings().setSamples((Integer) aa.getSelection());
         settings.setSetting(Settings.Setting.ANISOTROPY, af.getSelection());
         settings.setSetting(Settings.Setting.SSAO, ssao.isChecked());
+        settings.setSetting(Settings.Setting.ENHANCED_LIQUIDS, enhancedLiquids.isChecked());
         settings.getAppSettings().setGammaCorrection(gamma.isChecked());
 
         // This fails and crashes on invalid settings
         if (needToRestart) {
+            try {
+                settings.save();
+            } catch (java.io.IOException ex) {
+                System.getLogger(MainMenuScreenController.class.getName()).log(
+                        System.Logger.Level.WARNING, "Could not save graphics settings.", ex);
+            }
             state.restart();
             nifty.resolutionChanged();
         }
@@ -850,6 +858,9 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         // SSAO
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
         ssao.setChecked(Main.getUserSettings().getBoolean(Settings.Setting.SSAO));
+
+        CheckBox enhancedLiquids = screen.findNiftyControl("enhancedLiquids", CheckBox.class);
+        enhancedLiquids.setChecked(Main.getUserSettings().getBoolean(Settings.Setting.ENHANCED_LIQUIDS));
 
         // Gamma correction
         CheckBox gamma = screen.findNiftyControl("gammaCorrection", CheckBox.class);

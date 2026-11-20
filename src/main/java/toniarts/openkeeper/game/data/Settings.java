@@ -80,6 +80,9 @@ public final class Settings {
         SSAO_INTENSITY(Float.class, 3.92f, SettingCategory.GRAPHICS),
         SSAO_SCALE(Float.class, 0.33f, SettingCategory.GRAPHICS),
         SSAO_BIAS(Float.class, 0.1f, SettingCategory.GRAPHICS),
+        // Uses the original DKII EMBM texture set when it is available.
+        // Classic is the compatibility default and remains available at runtime.
+        ENHANCED_LIQUIDS(Boolean.class, false, SettingCategory.GRAPHICS),
         // Lighting
         AMBIENT_LIGHT(Float.class, 0f, SettingCategory.GRAPHICS),
         CHEAP_LIGHTING(Boolean.class, false, SettingCategory.GRAPHICS),

@@ -25,7 +25,13 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -73,12 +79,20 @@ public final class ConvertTextures extends ConversionTask {
             convertTextures(dungeonKeeperFolder, destination);
         } finally {
             executorService.shutdown();
-            try {
-                executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-            } catch (InterruptedException ex) {
-                logger.log(Level.ERROR, "Failed to wait textures conversion complete!", ex);
+            boolean interrupted = false;
+            while (!executorService.isTerminated()) {
+                try {
+                    executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+                } catch (InterruptedException ex) {
+                    logger.log(Level.ERROR, "Interrupted while waiting for texture extraction to finish!", ex);
+                    interrupted = true;
+                }
+            }
+            if (interrupted) {
+                Thread.currentThread().interrupt();
             }
         }
+        copyEnhancedLiquidTextures(dungeonKeeperFolder, destination);
     }
 
     /**
@@ -114,6 +128,63 @@ public final class ConvertTextures extends ConversionTask {
         executorService.submit(() -> {
             extractTextureContainer(progress, total, engineTextures, destination);
         });
+    }
+
+    /**
+     * Some DKII releases ship the G400 liquid textures as loose files beside
+     * the texture cache. Copy only this known set into the converted asset
+     * directory; all other textures continue through the normal WAD/cache path.
+     */
+    private static void copyEnhancedLiquidTextures(String dungeonKeeperFolder, String destination) {
+        final Path source;
+        try {
+            source = Paths.get(PathUtils.getRealFileName(PathUtils.fixFilePath(dungeonKeeperFolder),
+                    PathUtils.DKII_DATA_FOLDER.concat("EngineTextures")));
+        } catch (IOException ex) {
+            logger.log(Level.INFO, "No loose DKII enhanced-liquid texture directory found.");
+            return;
+        }
+        copyEnhancedLiquidTextures(source, Paths.get(destination));
+    }
+
+    static void copyEnhancedLiquidTextures(Path source, Path destination) {
+        if (!Files.isDirectory(source)) {
+            return;
+        }
+
+        Map<String, Path> sourceFiles = new HashMap<>();
+        try (var paths = Files.list(source)) {
+            paths.filter(Files::isRegularFile).forEach(path ->
+                    sourceFiles.put(path.getFileName().toString().toLowerCase(Locale.ROOT), path));
+        } catch (IOException ex) {
+            logger.log(Level.WARNING, "Failed to list DKII enhanced-liquid textures from " + source + ".", ex);
+            return;
+        }
+
+        List<String> names = new ArrayList<>(List.of(
+                "BumpLava0.png", "BumpLavaBumpmap0.png", "BumpLavaEnvMap0.png",
+                "BumpWater0.png", "BumpWaterEnvMap0.png"));
+        for (int frame = 0; frame < 32; frame++) {
+            names.add("BumpWaterBumpmap" + frame + ".png");
+        }
+
+        int copied = 0;
+        for (String name : names) {
+            Path input = sourceFiles.get(name.toLowerCase(Locale.ROOT));
+            if (input == null) {
+                continue;
+            }
+            try {
+                Files.createDirectories(destination);
+                Files.copy(input, destination.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+                copied++;
+            } catch (IOException ex) {
+                logger.log(Level.WARNING, "Failed to copy enhanced-liquid texture " + input + ".", ex);
+            }
+        }
+        if (copied > 0) {
+            logger.log(Level.INFO, "Copied {0} DKII enhanced-liquid textures to {1}.", copied, destination);
+        }
     }
 
     /**

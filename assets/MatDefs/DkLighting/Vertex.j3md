@@ -70,6 +70,30 @@ MaterialDef DK Terrain Lighting {
         // equally wide frames, stepped Speed times a second. Unset = static.
         Int NumberOfTiles
         Int Speed
+
+        // G400-style DKII liquid rendering. Only Water attaches these values;
+        // the regular terrain shader and its lighting/fog path stay shared.
+        Texture2D EmbmBaseMap
+        Texture2D EmbmBumpMap
+        TextureArray EmbmBumpFrames
+        Texture2D EmbmEnvironmentMap
+        Vector4 EmbmBumpMatrix
+        Float EmbmReflectionIntensity
+        Float EmbmBumpAnimationSpeed
+        Int EmbmBumpFrameCount
+        Float EmbmLuminanceScale
+        Float EmbmLuminanceOffset
+        Float EmbmBaseAlpha
+        Float EmbmBaseColorMix
+        Boolean EmbmUseLuminance
+        Boolean EmbmUseSphereEnvironmentUv
+        Boolean EmbmEnabled
+
+        // Native lava waves are evaluated from stable map-grid coordinates on
+        // the GPU. TexCoord2 carries those coordinates through terrain bending.
+        Boolean LiquidWavesEnabled
+        Float LiquidWaveLevel
+        Float LiquidWaveFrequency
     }
 
     Technique {
@@ -80,6 +104,7 @@ MaterialDef DK Terrain Lighting {
             WorldViewProjectionMatrix
             WorldMatrix
             WorldNormalMatrix
+            ViewMatrix
             Time
         }
 
@@ -90,6 +115,10 @@ MaterialDef DK Terrain Lighting {
             LIGHT_DATA : LightData
             IGNORE_OBJECT_LIGHTS : IgnoreObjectLights
             MESH_CENTER : MeshCenter
+            EMBM_ENABLED : EmbmEnabled
+            EMBM_BUMP_MAP : EmbmBumpMap
+            EMBM_BUMP_FRAMES : EmbmBumpFrames
+            LIQUID_WAVES : LiquidWavesEnabled
         }
     }
 }

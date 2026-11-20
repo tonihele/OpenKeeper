@@ -28,6 +28,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.game.map.WallSection;
 import toniarts.openkeeper.view.map.TerrainDeformer;
+import toniarts.openkeeper.view.control.LiquidSurfaceControl;
 
 /**
  * A base class for constructing different kind of rooms. FIXME: Basically
@@ -151,6 +152,13 @@ public abstract class RoomConstructor {
             @Override
             public void visit(Spatial spatial) {
                 if (!(spatial instanceof Geometry geometry) || geometry.isBatched()) {
+                    return;
+                }
+                // Liquid materials already use the shared vertex lighting shader,
+                // and their control owns live Classic/Enhanced switching. Keep
+                // them separate from this room's static floor batch.
+                if (geometry.getControl(LiquidSurfaceControl.class) != null) {
+                    outMaterials.add(geometry.getMaterial());
                     return;
                 }
                 Material vertex = AssetUtils.createVertexMaterial(assetManager, geometry.getMaterial(), ambient);
