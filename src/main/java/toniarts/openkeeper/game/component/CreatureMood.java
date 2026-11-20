@@ -34,6 +34,9 @@ public final class CreatureMood implements EntityComponent {
     public static final int REASON_OTHER = 5;
     public static final int MAX_ANGER = 65533;
 
+    /** Script-controlled freeze; stored with the counters for every creature. */
+    public boolean frozen;
+
     public int general;
     public int noFood;
     public int noLair;
@@ -62,6 +65,9 @@ public final class CreatureMood implements EntityComponent {
      * @return updated component
      */
     public CreatureMood add(int reason, int value) {
+        if (frozen) {
+            return this;
+        }
         int[] values = toArray();
         values[reason] = (int) Math.max(0, Math.min(MAX_ANGER, (long) values[reason] + value));
         return fromArray(values);
@@ -74,9 +80,33 @@ public final class CreatureMood implements EntityComponent {
      * @return updated component
      */
     public CreatureMood clear(int reason) {
+        if (frozen) {
+            return this;
+        }
         int[] values = toArray();
         values[reason] = 0;
         return fromArray(values);
+    }
+
+    /** Copies the counters while changing only their script-controlled freeze. */
+    public CreatureMood withFrozen(boolean frozen) {
+        if (this.frozen == frozen) {
+            return this;
+        }
+        CreatureMood result = fromArray(toArray());
+        result.frozen = frozen;
+        return result;
+    }
+
+    /** Clears all anger unless the script has frozen mood changes. */
+    public CreatureMood clearAll() {
+        return frozen ? this : new CreatureMood();
+    }
+
+    /** Maximizes all anger unless the script has frozen mood changes. */
+    public CreatureMood maximize() {
+        return frozen ? this : new CreatureMood(MAX_ANGER, MAX_ANGER, MAX_ANGER,
+                MAX_ANGER, MAX_ANGER, MAX_ANGER);
     }
 
     /**

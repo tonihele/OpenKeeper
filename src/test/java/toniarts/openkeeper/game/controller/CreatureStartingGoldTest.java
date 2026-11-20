@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureGoldFixtures;
@@ -32,6 +33,9 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The gold a creature carries when it is created. In the original a new
@@ -82,6 +86,25 @@ class CreatureStartingGoldTest {
         controller.levelUpCreature(hero, 2, 0);
 
         assertEquals(MAX_GOLD / 4, carriedGold(hero));
+    }
+
+    @Test
+    void creaturesCreatedWhileMoodsAreDisabledRemainFrozenUntilEnabled() {
+        controller.setCreatureMoodsEnabled(false);
+        EntityId id = controller.spawnCreature(IMP_ID, Player.KEEPER1_ID, 1,
+                new Vector2f(5, 5), ICreaturesController.SpawnType.ENTRANCE);
+        CreatureMood frozen = entityData.getComponent(id, CreatureMood.class);
+        assertTrue(frozen.frozen);
+        assertSame(frozen, frozen.add(CreatureMood.REASON_OTHER, 100));
+        controller.levelUpCreature(id, 2, 0);
+        assertSame(frozen, entityData.getComponent(id, CreatureMood.class));
+        controller.setCreatureMoodsEnabled(true);
+        CreatureMood enabled = entityData.getComponent(id, CreatureMood.class);
+        assertFalse(enabled.frozen);
+        assertEquals(100, enabled.add(CreatureMood.REASON_OTHER, 100).other);
+        EntityId later = controller.spawnCreature(KNIGHT_ID, Player.GOOD_PLAYER_ID, 1,
+                new Vector2f(5, 5), ICreaturesController.SpawnType.ENTRANCE);
+        assertFalse(entityData.getComponent(later, CreatureMood.class).frozen);
     }
 
     private int carriedGold(EntityId entityId) {
