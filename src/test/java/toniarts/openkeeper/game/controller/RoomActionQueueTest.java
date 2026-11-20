@@ -119,6 +119,72 @@ class RoomActionQueueTest {
         assertEquals(List.of(List.of(p(1, 1))), trace);
     }
 
+    @Test
+    void fiveByFiveSelectionCompletesOnceAfterAllNineWaves() {
+        RoomActionQueue queue = new RoomActionQueue();
+        List<List<Point>> waves = new ArrayList<>();
+        List<String> events = new ArrayList<>();
+        queue.add(p(0, 0), p(4, 4), () -> diagonal -> {
+            waves.add(diagonal);
+            events.add("wave");
+        }, () -> events.add("complete"));
+        for (int i = 0; i < 8; i++) queue.processTick();
+        assertEquals(8, events.size());
+        assertFalse(events.contains("complete"));
+        queue.processTick();
+        assertEquals(9, waves.size());
+        assertEquals(25, waves.stream().mapToInt(List::size).sum());
+        assertEquals(List.of("wave", "complete"), events.subList(8, 10));
+        queue.processTick();
+        assertEquals(10, events.size(), "A finished selection cannot complete twice");
+    }
+
+    @Test
+    void skippedFinalTileStillCompletesAfterTheFinalWave() {
+        RoomActionQueue queue = new RoomActionQueue();
+        List<Point> changed = new ArrayList<>();
+        List<List<Point>> completed = new ArrayList<>();
+        queue.add(p(0, 0), p(2, 2), () -> diagonal -> diagonal.stream()
+                .filter(tile -> !tile.equals(p(0, 0))).forEach(changed::add),
+                () -> completed.add(List.copyOf(changed)));
+        for (int i = 0; i < 4; i++) queue.processTick();
+        assertTrue(completed.isEmpty());
+        queue.processTick();
+        assertEquals(1, completed.size());
+        assertEquals(8, completed.getFirst().size());
+        assertFalse(completed.getFirst().contains(p(0, 0)));
+    }
+
+    @Test
+    void rejectedAndClearedSelectionsNeverComplete() {
+        RoomActionQueue queue = new RoomActionQueue();
+        AtomicInteger completed = new AtomicInteger();
+        queue.add(p(0, 0), p(1, 1), () -> null, completed::incrementAndGet);
+        queue.add(p(0, 0), p(2, 2), () -> diagonal -> { }, completed::incrementAndGet);
+        queue.processTick();
+        queue.add(p(3, 3), p(3, 3), () -> diagonal -> { }, completed::incrementAndGet);
+        queue.clear();
+        for (int i = 0; i < 6; i++) queue.processTick();
+        assertEquals(0, completed.get());
+    }
+
+    @Test
+    void independentSelectionsCompleteSeparatelyAndNewRequestsWaitForNextTick() {
+        RoomActionQueue queue = new RoomActionQueue();
+        List<String> completed = new ArrayList<>();
+        queue.add(p(0, 0), p(1, 0), () -> diagonal -> { }, () -> completed.add("line"));
+        queue.add(p(2, 2), p(2, 2), () -> diagonal -> { }, () -> {
+            completed.add("single");
+            queue.add(p(3, 3), p(3, 3), () -> diagonal -> { }, () -> completed.add("later"));
+        });
+        queue.processTick();
+        assertEquals(List.of("single"), completed);
+        queue.processTick();
+        assertEquals(List.of("single", "line", "later"), completed);
+        queue.processTick();
+        assertEquals(3, completed.size());
+    }
+
     private static void assertTrace(int sx, int sy, int ex, int ey, List<List<Point>> expected) {
         RoomActionQueue queue = new RoomActionQueue();
         List<List<Point>> actual = new ArrayList<>();

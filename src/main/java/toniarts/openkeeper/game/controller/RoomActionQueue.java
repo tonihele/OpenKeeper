@@ -35,7 +35,11 @@ final class RoomActionQueue {
     private final List<Selection> active = new ArrayList<>();
 
     void add(Point start, Point end, Supplier<Consumer<List<Point>>> prepare) {
-        incoming.add(new Selection(new Point(start.x, start.y), new Point(end.x, end.y), prepare));
+        add(start, end, prepare, () -> { });
+    }
+
+    void add(Point start, Point end, Supplier<Consumer<List<Point>>> prepare, Runnable complete) {
+        incoming.add(new Selection(new Point(start.x, start.y), new Point(end.x, end.y), prepare, complete));
     }
 
     void processTick() {
@@ -56,6 +60,7 @@ final class RoomActionQueue {
             selection.apply.accept(selection.nextWave());
             if (selection.wave > selection.width + selection.height) {
                 iterator.remove();
+                selection.complete.run();
             }
         }
     }
@@ -71,15 +76,17 @@ final class RoomActionQueue {
         private final int width;
         private final int height;
         private final Supplier<Consumer<List<Point>>> prepare;
+        private final Runnable complete;
         private Consumer<List<Point>> apply;
         private int wave;
 
-        private Selection(Point start, Point end, Supplier<Consumer<List<Point>>> prepare) {
+        private Selection(Point start, Point end, Supplier<Consumer<List<Point>>> prepare, Runnable complete) {
             this.start = start;
             this.end = end;
             width = Math.abs(start.x - end.x);
             height = Math.abs(start.y - end.y);
             this.prepare = prepare;
+            this.complete = complete;
         }
 
         private List<Point> nextWave() {
