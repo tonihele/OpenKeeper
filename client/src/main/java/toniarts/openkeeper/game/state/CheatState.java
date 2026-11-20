@@ -1,0 +1,141 @@
+/*
+ * Copyright (C) 2014-2015 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package toniarts.openkeeper.game.state;
+
+import com.jme3.app.Application;
+import com.jme3.input.RawInputListener;
+import com.jme3.input.event.JoyAxisEvent;
+import com.jme3.input.event.JoyButtonEvent;
+import com.jme3.input.event.KeyInputEvent;
+import com.jme3.input.event.MouseButtonEvent;
+import com.jme3.input.event.MouseMotionEvent;
+import com.jme3.input.event.TouchEvent;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import javax.annotation.Nonnull;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.GlobalType;
+import toniarts.openkeeper.game.sound.SoundManager;
+
+/**
+ * State for handling cheats
+ *
+ * @author ufdada
+ */
+public abstract class CheatState extends AbstractPauseAwareState implements RawInputListener {
+
+    private static final Logger logger = System.getLogger(CheatState.class.getName());
+    
+    private final Application app;
+    private String cheat = "";
+    private boolean success = false;
+
+    public CheatState(final Application app) {
+        this.app = app;
+        super.setEnabled(false);
+    }
+
+    private void playSound(boolean enabled) {
+        SoundManager.playSound(GlobalCategory.OPTIONS,
+                enabled ? GlobalType.OPTIONS_CLICK_1.getId() : GlobalType.OPTIONS_CLICK_2.getId());
+    }
+
+    @Override
+    public boolean isPauseable() {
+        return false;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        this.playSound(enabled);
+        if (enabled) {
+            logger.log(Level.INFO, "Cheat mode activated. Please enter your cheat code");
+            this.app.getInputManager().addRawInputListener(this);
+        } else {
+            this.app.getInputManager().removeRawInputListener(this);
+            if (!this.success) {
+                logger.log(Level.INFO, "Wrong cheat code. You entered {0}", this.cheat);
+            }
+            this.cheat = "";
+        }
+        this.success = false;
+    }
+
+    @Override
+    public void cleanup() {
+        this.app.getInputManager().removeRawInputListener(this);
+        this.cheat = "";
+        this.success = false;
+        super.cleanup();
+    }
+
+    @Override
+    public void onKeyEvent(KeyInputEvent evt) {
+        if (evt.isPressed() && evt.getKeyChar() != 0) {
+            this.cheat += evt.getKeyChar();
+
+            // Leave cheat mode if message was incorrect
+            if (!CheatType.hasCheat(this.cheat)) {
+                this.setEnabled(false);
+            }
+
+            // Check if cheat code is completely entered
+            CheatType cheatCode = CheatType.getCheatType(this.cheat);
+            if (cheatCode != null) {
+                executeCheat(cheatCode);
+                this.success = true;
+                this.setEnabled(false);
+            }
+        }
+    }
+
+    public void executeCheat(@Nonnull CheatType cheatCode) {
+        logger.log(Level.INFO, "Executing cheat {0}", cheatCode.toString());
+        this.onSuccess(cheatCode);
+    }
+
+    public abstract void onSuccess(CheatType cheat);
+
+    @Override
+    public void beginInput() {
+    }
+
+    @Override
+    public void endInput() {
+    }
+
+    @Override
+    public void onJoyAxisEvent(JoyAxisEvent evt) {
+    }
+
+    @Override
+    public void onJoyButtonEvent(JoyButtonEvent evt) {
+    }
+
+    @Override
+    public void onMouseMotionEvent(MouseMotionEvent evt) {
+    }
+
+    @Override
+    public void onMouseButtonEvent(MouseButtonEvent evt) {
+    }
+
+    @Override
+    public void onTouchEvent(TouchEvent evt) {
+    }
+}
