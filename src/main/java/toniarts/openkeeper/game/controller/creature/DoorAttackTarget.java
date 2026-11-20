@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.List;
@@ -27,8 +28,10 @@ import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * An enemy door as a target of an attack. A door that stands in the way of a
@@ -44,9 +47,44 @@ public final class DoorAttackTarget {
     public static final int ADJACENT_DOOR_INDEX = 1;
 
     private static final int[][] NEIGHBOURS = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+    private static final float DOOR_REACH = 0.5f; // Tiles past the melee range
+    private static final float SECRET_DOOR_REACH = 0.75f;
+    private static final float APPROACH_DISTANCE = 0.75f; // Tiles from the door's centre
+    private static final float APPROACH_MARGIN = 0.2f; // Inside the reach, more than the steering's arrival tolerance
 
     private DoorAttackTarget() {
         // Nope
+    }
+
+    /**
+     * How far from a door's centre a creature hits it with its melee attack.
+     * DK II's fight state takes a door in reach at the creature's melee range
+     * and half a tile, a secret door at its melee range and three quarters of
+     * a tile (0x45CB00, the secret flag 0x20 of the door data).
+     *
+     * @param door the door
+     * @param meleeRange the creature's melee range
+     * @return the distance within which the creature hits the door
+     */
+    public static float getMeleeReach(Door door, float meleeRange) {
+        return meleeRange + (door.getFlags().contains(Door.DoorFlag.IS_SECRET) ? SECRET_DOOR_REACH : DOOR_REACH);
+    }
+
+    /**
+     * Where a creature stands to hit a door it can't reach from where it is.
+     * DK II walks it to three quarters of a tile from the door's centre, on
+     * the tile next to the door (0x471D10). A creature with a shorter reach
+     * stops a little inside it.
+     *
+     * @param door the door's tile
+     * @param from the tile next to the door that the creature comes from
+     * @param reach the creature's reach
+     * @return the spot to stand on
+     */
+    public static Vector2f getApproachPoint(Point door, Point from, float reach) {
+        Vector2f doorCentre = WorldUtils.pointToVector2f(door);
+        Vector2f way = WorldUtils.pointToVector2f(from).subtractLocal(doorCentre).normalizeLocal();
+        return way.multLocal(Math.min(APPROACH_DISTANCE, reach - APPROACH_MARGIN)).addLocal(doorCentre);
     }
 
     /**

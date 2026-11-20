@@ -682,7 +682,7 @@ public final class CreatureController extends EntityController implements ICreat
         path.forEach(tile -> tiles.add(tile.getLocation()));
         int doorIndex = DoorAttackTarget.getDoorIndex(tiles, this::isDoorToBreak);
         if (doorIndex == DoorAttackTarget.ADJACENT_DOOR_INDEX) {
-            attackDoor(getBlockingDoor(tiles.get(doorIndex)));
+            breakDoor(getBlockingDoor(tiles.get(doorIndex)));
             return false;
         } else if (doorIndex > DoorAttackTarget.ADJACENT_DOOR_INDEX) {
             path = DoorAttackTarget.stopBefore(path, doorIndex);
@@ -735,7 +735,7 @@ public final class CreatureController extends EntityController implements ICreat
         if (door == null) {
             return false;
         }
-        attackDoor(door);
+        breakDoor(door);
         return true;
     }
 
@@ -760,10 +760,34 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     /**
-     * Hits a door that is next to us with the melee attack, as often as the
-     * attack recharges. The door is a target of the original's fight state
-     * like any other (0x481400), so the creature turns to it before every hit
-     * and the hit is a normal melee hit (0x45F030, 0x498E30).
+     * Breaks a door next to us: hits it when it is in reach, and otherwise
+     * steps up to it first. The door is a target of the original's fight
+     * state like any other (0x481400), in reach at the creature's melee reach
+     * for a door (0x45CB00).
+     *
+     * @param door the door
+     */
+    private void breakDoor(EntityId door) {
+        Vector3f position = getPosition();
+        Vector3f doorPosition = getPosition(entityData, door);
+        float reach = DoorAttackTarget.getMeleeReach(levelInfo.getLevelData().getDoorById(
+                entityData.getComponent(door, DoorComponent.class).doorId), getMeleeRange());
+        if (WorldUtils.vector3fToVector2f(doorPosition).distance(WorldUtils.vector3fToVector2f(position)) < reach) {
+            attackDoor(door);
+            return;
+        }
+
+        Point tile = getCreatureCoordinates();
+        Point doorTile = WorldUtils.vectorToPoint(doorPosition);
+        Vector2f spot = DoorAttackTarget.getApproachPoint(doorTile, tile, reach);
+        entityData.setComponent(entityId, new Navigation(tile, doorTile, new ArrayList<>(List.of(
+                new Vector2(position.x, position.z), new Vector2(spot.x, spot.y)))));
+    }
+
+    /**
+     * Hits a door in reach with the melee attack, as often as the attack
+     * recharges. The creature turns to it before every hit and the hit is a
+     * normal melee hit (0x45F030, 0x498E30).
      *
      * @param door the door
      */

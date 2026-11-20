@@ -52,6 +52,7 @@ import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.CombatCreatureFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.DoorFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -68,6 +69,7 @@ class CreatureCombatTest {
     private static final short KEEPER = Player.KEEPER1_ID;
     private static final short HERO = Player.GOOD_PLAYER_ID;
     private static final short WOODEN_DOOR = 1;
+    private static final short SECRET_DOOR = 5;
 
     private EntityData entityData;
     private Map<Short, Creature> creatures;
@@ -205,6 +207,47 @@ class CreatureCombatTest {
         assertNull(entityData.getComponent(us, Navigation.class));
     }
 
+    @Test
+    void creatureOutOfReachOfADoorStepsUpToIt() {
+        EntityId door = createDoor(WOODEN_DOOR, new Point(5, 5));
+
+        // A door is in reach at the melee range and half a tile (0x45CB00), here 0.85 tiles, so from the middle
+        // of the tile next to it the creature steps closer first
+        entityData.setComponent(us, new CreatureMeleeAttack(0, 100, 1, 0.35f));
+        createController(us).attackAdjacentDoor();
+
+        assertNull(entityData.getComponent(door, Damage.class));
+        Navigation navigation = entityData.getComponent(us, Navigation.class);
+        assertEquals(new toniarts.openkeeper.utils.Point(5, 5), navigation.faceTarget);
+        float distance = 5 - navigation.navigationPath.getLast().y;
+        assertTrue(distance > 0.5f && distance < 0.85f, "stops " + distance + " tiles from the door");
+
+        entityData.removeComponent(us, Navigation.class);
+        entityData.setComponent(us, new Position(0, new Vector3f(5, 0, 5 - distance)));
+        createController(us).attackAdjacentDoor();
+
+        assertEquals(100, entityData.getComponent(door, Damage.class).damage);
+    }
+
+    @Test
+    void creatureReachesASecretDoorAQuarterOfATileFurther() {
+        EntityId door = createDoor(SECRET_DOOR, new Point(5, 5));
+
+        // The melee range and three quarters of a tile, 1.1 tiles
+        entityData.setComponent(us, new CreatureMeleeAttack(0, 100, 1, 0.35f));
+        createController(us).attackAdjacentDoor();
+
+        assertEquals(100, entityData.getComponent(door, Damage.class).damage);
+    }
+
+    private EntityId createDoor(short doorId, Point tile) {
+        EntityId door = entityData.createEntity();
+        entityData.setComponents(door, new DoorComponent(doorId, false, false), new Owner(HERO, HERO),
+                new Health(1000, 1000), new Position(0, new Vector3f(tile.x, 0, tile.y)));
+        doors.put(tile, door);
+        return door;
+    }
+
     /**
      * The steering turns the creature from the centre of the navigation's tile
      * to the centre of its face target tile
@@ -332,7 +375,8 @@ class CreatureCombatTest {
         IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
             case "getCreature" -> creatures.get((Short) args[0]);
             case "getCreatureSpellById" -> CombatCreatureFixtures.attackSpell();
-            case "getDoorById" -> DoorFixtures.door(WOODEN_DOOR, 0);
+            case "getDoorById" -> (Integer) args[0] == SECRET_DOOR
+                    ? DoorFixtures.door(SECRET_DOOR, 0, Door.DoorFlag.IS_SECRET) : DoorFixtures.door(WOODEN_DOOR, 0);
             default -> null;
         });
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> switch (name) {
