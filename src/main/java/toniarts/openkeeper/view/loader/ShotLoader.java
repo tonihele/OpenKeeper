@@ -19,6 +19,7 @@ package toniarts.openkeeper.view.loader;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.control.BillboardControl;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.component.ShotViewState;
@@ -26,6 +27,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.view.effect.EffectGeometry;
 import toniarts.openkeeper.view.effect.procedural.ProceduralMeshFactory;
 
 /**
@@ -58,6 +60,8 @@ public final class ShotLoader implements ILoader<ShotViewState> {
                     ProceduralMeshFactory.create(meshResource, assetManager);
                 case MESH, ANIMATING_MESH ->
                     AssetUtils.loadModel(assetManager, meshResource.getName(), meshResource);
+                case ALPHA, ADDITIVE_ALPHA, SPRITE ->
+                    createSprite(assetManager, meshResource);
                 default -> {
                     logger.log(Level.WARNING, "Shot {0} has a mesh of type {1}, which is not supported",
                             shot.getName(), meshResource.getType());
@@ -69,6 +73,28 @@ public final class ShotLoader implements ILoader<ShotViewState> {
         }
 
         return null;
+    }
+
+    /**
+     * A sprite, like the fireball, is a picture facing the camera. Its width
+     * and height are in tiles, it is centered on the shot.
+     */
+    private static Spatial createSprite(AssetManager assetManager, ArtResource meshResource) {
+        float width = meshResource.getData(ArtResource.KEY_WIDTH);
+        float height = meshResource.getData(ArtResource.KEY_HEIGHT);
+        int frames = meshResource.getData(ArtResource.KEY_FRAMES);
+
+        EffectGeometry geometry = new EffectGeometry(meshResource.getName());
+        geometry.setFrames(Math.max(1, frames));
+        geometry.setMaterial(AssetUtils.createParticleMaterial(meshResource, assetManager));
+        geometry.setLocalScale(width, height, 1);
+        geometry.setLocalTranslation(0, -height / 2, 0);
+
+        Node result = new Node(meshResource.getName());
+        result.attachChild(geometry);
+        result.addControl(new BillboardControl());
+
+        return result;
     }
 
 }

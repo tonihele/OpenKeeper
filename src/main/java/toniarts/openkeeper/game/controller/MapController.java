@@ -741,6 +741,20 @@ public final class MapController extends Container implements IMapController {
         notifyTileChange(tile.getLocation());
     }
 
+    @Override
+    public void transferRoom(IRoomController room, short playerId) {
+        short previousOwner = room.getOwnerId();
+        List<Point> roomTiles = room.getRoomInstance().getCoordinates();
+        for (Point p : roomTiles) {
+            getMapData().getTile(p).setOwnerId(playerId);
+        }
+
+        notifyTileChange(roomTiles);
+        room.captured(playerId);
+        notifyOnCapturedByEnemy(previousOwner, room);
+        notifyOnCaptured(playerId, room);
+    }
+
     private float getLevelVariable(Variable.MiscVariable.MiscType variable) {
         return gameSettings.get(variable).getValue();
     }

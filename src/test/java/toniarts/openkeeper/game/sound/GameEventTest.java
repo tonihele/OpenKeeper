@@ -113,6 +113,14 @@ class GameEventTest {
     }
 
     @Test
+    void mentorTellsOfAVampireRisenInTheGraveyard() {
+        GameEvent event = new GameEvent(GameEventType.GRAVEYARD_VAMPIRE_RISEN, null, 0, null, 0, null, null);
+
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.GRAVE001.getId(), null)),
+                GameEventSounds.getSounds(event, null));
+    }
+
+    @Test
     void slappedObjectSquawksOnItsOwnCategory() {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> method.getName().equals("getObject") ? SoundFixtures.object("OBJECT_CHICKEN") : null);
@@ -135,6 +143,14 @@ class GameEventTest {
     }
 
     @Test
+    void mentorTellsOfAPrisonerRisenAsASkeleton() {
+        GameEvent event = new GameEvent(GameEventType.PRISON_SKELETON_RISEN, null, 0, null, 0, null, null);
+
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.PRISN004.getId(), null)),
+                GameEventSounds.getSounds(event, null));
+    }
+
+    @Test
     void sacrificeSpeechIsTheMentorsTempleSpeech() {
         assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.MISC075.getId(), null)),
                 GameEventSounds.getSounds(new GameEvent(GameEventType.SACRIFICE_SPEECH, null, 1, null, 0, null, null), null));
@@ -150,6 +166,36 @@ class GameEventTest {
         GameEvent event = new GameEvent(GameEventType.ROOM_SOLD, ThingFlag.ROOM, 3, null, 0, null, new Point(1, 1));
 
         assertTrue(GameEventSounds.getSounds(event, kwdFile).isEmpty());
+    }
+
+    @Test
+    void shockOnTheElectricChairZapsTheChairAndTheVictimCries() {
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getObject" -> SoundFixtures.object("OBJECT_ELECTRIC_CHAIR");
+                    case "getCreature" -> SoundFixtures.creature("CREATURE_TROLL");
+                    default -> null;
+                });
+        GameEvent event = new GameEvent(GameEventType.TORTURE_ELECTROCUTED, ThingFlag.OBJECT, 61, ThingFlag.CREATURE, 10,
+                null, new Point(1, 2));
+
+        assertEquals(List.of(
+                new GameEventSounds.Sound("OBJECT_ELECTRIC_CHAIR", ThingSounds.ELECTRIC_CHAIR_ZAP, new Point(1, 2)),
+                new GameEventSounds.Sound("CREATURE_TROLL", ThingSounds.CREATURE_ELECTROCUTED, new Point(1, 2))),
+                GameEventSounds.getSounds(event, kwdFile));
+    }
+
+    @Test
+    void mentorTellsOfAConversion() {
+        GameEvent event = new GameEvent(GameEventType.TORTURE_CONVERTED, null, 0, null, 0, null, null);
+
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.TORTC004.getId(), null)),
+                GameEventSounds.getSounds(event, null));
+    }
+
+    @Test
+    void victimOnTheTortureWheelIsNotInterrupted() {
+        assertTrue(GameEventSounds.isExclusive(GameEventType.TORTURE_WHEEL));
     }
 
     @Test
