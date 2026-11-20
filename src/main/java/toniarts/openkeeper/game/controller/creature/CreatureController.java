@@ -720,7 +720,9 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean attackVisibleTrap() {
-        if (!TrapAttackTarget.attacksTraps(creature.getFightStyle(), getOwnerId())) {
+        // Ordinary trap selection uses the same willingness gate as creature combat (DK II 0x45A6D0).
+        if (entityData.getComponent(entityId, Peaceful.class) != null
+                || !TrapAttackTarget.attacksTraps(creature.getFightStyle(), getOwnerId())) {
             return false;
         }
         EntityId trap = TrapAttackTarget.findNearest(entityPositionLookup.getSensedEntities(entityId), this::isTrapToAttack,
@@ -744,7 +746,9 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     public boolean attackAdjacentDoor() {
-        if (!DoorAttackTarget.attacksAdjacentWhenIdle(getOwnerId())) {
+        // The native idle door scan checks willingness before looking at adjacent tiles (0x481400).
+        if (entityData.getComponent(entityId, Peaceful.class) != null
+                || !DoorAttackTarget.attacksAdjacentWhenIdle(getOwnerId())) {
             return false;
         }
         Position position = entityData.getComponent(entityId, Position.class);
@@ -988,8 +992,11 @@ public final class CreatureController extends EntityController implements ICreat
             attackTarget = null;
         }
         IEntityController attackTargetController = null;
+
+        // A Horned Reaper picks his prey over the whole map and hunts it down even when it runs (DKII.EXE 0x45E1B0)
         if (attackTarget == null || isIncapacitated(attackTarget.entityId)
-                || isFleeing(attackTarget.entityId) || isCaptive(attackTarget.entityId)
+                || isFleeing(attackTarget.entityId) && !creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)
+                || isCaptive(attackTarget.entityId)
                 || isUnreachable(attackTarget.entityId)) {
 
             // Pick a new target, the nearest enemy already attacking us comes first

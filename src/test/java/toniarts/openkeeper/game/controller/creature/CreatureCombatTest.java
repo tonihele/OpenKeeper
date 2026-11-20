@@ -43,7 +43,9 @@ import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -58,6 +60,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -82,7 +85,8 @@ class CreatureCombatTest {
     void setUp() {
         entityData = new DefaultEntityData();
         creatures = new HashMap<>();
-        creatures.put(FIGHTER, CombatCreatureFixtures.fighter(FIGHTER, Creature.FightStyle.BLOCKER));
+        creatures.put(FIGHTER, CombatCreatureFixtures.withSightDistance(
+                CombatCreatureFixtures.fighter(FIGHTER, Creature.FightStyle.BLOCKER), 10));
         creatures.put(HORNY, CombatCreatureFixtures.fighter(HORNY, Creature.FightStyle.BLITZER, Creature.CreatureFlag.IS_HORNY));
         sensed = new HashMap<>();
         doors = new HashMap<>();
@@ -134,6 +138,84 @@ class CreatureCombatTest {
 
         assertNull(controller.getAttackTarget());
         assertNull(entityData.getComponent(us, AttackTarget.class));
+    }
+
+    @Test
+    void peacefulCreatureLeavesAnEnemyTrapAlone() {
+        EntityId trap = createTrap(new Vector3f(5.5f, 0, 4));
+        entityData.setComponent(us, new Peaceful());
+
+        assertFalse(createController(us).attackVisibleTrap());
+        assertNull(entityData.getComponent(trap, Damage.class));
+        assertNull(entityData.getComponent(us, Navigation.class));
+        assertNull(entityData.getComponent(us, AttackTarget.class));
+    }
+
+    @Test
+    void peacefulCreatureDoesNotNavigateTowardsADistantTrap() {
+        EntityId trap = createTrap(new Vector3f(8, 0, 4));
+        entityData.setComponent(us, new Peaceful());
+
+        assertFalse(createController(us).attackVisibleTrap());
+        assertNull(entityData.getComponent(us, Navigation.class));
+        assertNull(entityData.getComponent(trap, Damage.class));
+    }
+
+    @Test
+    void peacefulWorkerLeavesATrapWithinWorkerReachAlone() {
+        // In front of us, so the creature hits it without turning first
+        EntityId trap = createTrap(new Vector3f(5, 0, 4.5f));
+        entityData.getComponent(us, CreatureComponent.class).worker = true;
+        CreatureController controller = createController(us);
+        controller.setWillFight(false);
+
+        assertFalse(controller.attackVisibleTrap());
+        assertNull(entityData.getComponent(trap, Damage.class));
+
+        controller.setWillFight(true);
+        assertTrue(controller.attackVisibleTrap());
+        assertEquals(100, entityData.getComponent(trap, Damage.class).damage);
+    }
+
+    @Test
+    void fighterAttacksATrapUntilItsFightFlagIsCleared() {
+        // In front of us, so the creature hits it without turning first
+        EntityId trap = createTrap(new Vector3f(5, 0, 4.5f));
+        CreatureController controller = createController(us);
+        assertTrue(controller.attackVisibleTrap());
+        assertEquals(100, entityData.getComponent(trap, Damage.class).damage);
+        entityData.removeComponent(trap, Damage.class);
+
+        controller.setWillFight(false);
+        assertFalse(controller.attackVisibleTrap());
+        assertNull(entityData.getComponent(trap, Damage.class));
+
+        // Changing willingness must not leave a retained combat target behind either.
+        entityData.setComponent(us, new AttackTarget(trap));
+        assertNull(controller.getAttackTarget());
+        assertNull(entityData.getComponent(us, AttackTarget.class));
+    }
+
+    @Test
+    void peacefulCreatureDoesNotStartAnIdleDoorAttack() {
+        EntityId door = createDoor(WOODEN_DOOR, new Point(5, 5));
+        CreatureController controller = createController(us);
+        controller.setWillFight(false);
+
+        assertFalse(controller.attackAdjacentDoor());
+        assertNull(entityData.getComponent(door, Damage.class));
+
+        controller.setWillFight(true);
+        assertTrue(controller.attackAdjacentDoor());
+        assertEquals(100, entityData.getComponent(door, Damage.class).damage);
+    }
+
+    private EntityId createTrap(Vector3f position) {
+        EntityId trap = entityData.createEntity();
+        entityData.setComponents(trap, new TrapViewState((short) 8, false), new Owner(HERO, HERO),
+                new Health(1000, 1000), new Position(0, position));
+        sensed.put(us, Set.of(trap));
+        return trap;
     }
 
     @Test
