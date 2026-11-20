@@ -95,6 +95,7 @@ import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.navigation.steering.CreatureSizing;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
@@ -650,7 +651,7 @@ public final class CreatureController extends EntityController implements ICreat
                 //workNavigationRequired = false;
 
                 Point destination = WorldUtils.vectorToPoint(loc);
-                createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, workPosition);
+                createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, workPosition, false, true);
             }
         }
     }
@@ -660,6 +661,16 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, Vector2f workPosition) {
+        return createNavigation(currentLocation, destination, faceTarget, workPosition, false);
+    }
+
+    private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, Vector2f workPosition,
+            boolean pursuingAttackTarget) {
+        return createNavigation(currentLocation, destination, faceTarget, workPosition, pursuingAttackTarget, false);
+    }
+
+    private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, Vector2f workPosition,
+            boolean pursuingAttackTarget, boolean endInObstacle) {
         GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
             logger.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
@@ -678,14 +689,22 @@ public final class CreatureController extends EntityController implements ICreat
             destination = tiles.get(doorIndex - 1);
             faceTarget = tiles.get(doorIndex);
             workPosition = null;
+            endInObstacle = false;
         }
 
         List<Vector2> navigationPath = SteeringUtils.pathToList(path);
+        Vector3f position = getPosition();
         if (workPosition != null) {
-            Vector3f position = getPosition();
             SteeringUtils.pathToPosition(navigationPath, new Vector2(position.x, position.z), new Vector2(workPosition.x, workPosition.y));
+        } else if (navigationPath.size() > 1) {
+            navigationPath.addFirst(new Vector2(position.x, position.z));
         }
-        entityData.setComponent(entityId, new Navigation(destination, faceTarget, navigationPath));
+        if (navigationPath.size() > 1) {
+            navigationPath = navigationService.smoothPath(navigationPath, CreatureSizing.getBodyRadius(creature), this);
+        }
+        // Task destinations, including beds, can lie inside furniture. Ordinary walks
+        // keep contact through their final leg; native job flags remain to be mapped.
+        entityData.setComponent(entityId, new Navigation(destination, faceTarget, navigationPath, pursuingAttackTarget, endInObstacle));
         return false;
     }
 
@@ -1426,7 +1445,7 @@ public final class CreatureController extends EntityController implements ICreat
             // Just now simply go where the target currently is
             Point ourPosition = getCreatureCoordinates();
             if (destination != null && !destination.equals(ourPosition)) {
-                createNavigation(ourPosition, destination, null);
+                createNavigation(ourPosition, destination, null, null, true);
             }
         }
     }
@@ -1598,7 +1617,9 @@ public final class CreatureController extends EntityController implements ICreat
         Keeper keeper = levelInfo.getPlayer(getOwnerId());
         if (keeper != null && keeper.getDungeonHeartLocation() != null) {
             Point p = keeper.getDungeonHeartLocation();
-            createNavigation(getCreatureCoordinates(), new Point(p.x - 2, p.y - 2), null);
+
+            // The walk may end inside the heart's obstacle (DK II's withdraw 0x4611D0 asks for it with 0x20 / 0x40)
+            createNavigation(getCreatureCoordinates(), new Point(p.x - 2, p.y - 2), null, null, false, true);
         } else {
             navigateToRandomPoint();
         }

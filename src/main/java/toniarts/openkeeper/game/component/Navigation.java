@@ -32,14 +32,36 @@ public final class Navigation implements EntityComponent {
     public Point faceTarget;
     public List<Vector2> navigationPath;
 
+    /**
+     * Chasing an attack target. DK II's chase path slows down for a crowd at
+     * its end too (0x471D10).
+     */
+    public boolean pursuingAttackTarget;
+
+    /**
+     * The end of the walk may be inside an obstacle, like the Dungeon Heart's
+     * or a bed's (DK II's walks with request flag 0x20 or 0x40)
+     */
+    public boolean endInObstacle;
+
     public Navigation() {
         // For serialization
     }
 
     public Navigation(Point target, Point faceTarget, List<Vector2> navigationPath) {
+        this(target, faceTarget, navigationPath, false);
+    }
+
+    public Navigation(Point target, Point faceTarget, List<Vector2> navigationPath, boolean pursuingAttackTarget) {
         this.target = target;
         this.faceTarget = faceTarget;
         this.navigationPath = navigationPath;
+        this.pursuingAttackTarget = pursuingAttackTarget;
+    }
+
+    public Navigation(Point target, Point faceTarget, List<Vector2> navigationPath, boolean pursuingAttackTarget, boolean endInObstacle) {
+        this(target, faceTarget, navigationPath, pursuingAttackTarget);
+        this.endInObstacle = endInObstacle;
     }
 
 }

@@ -184,7 +184,12 @@ public final class MapIndexedGraph implements IndexedGraph<IMapTileInformation> 
 
                 // Get room obstacles
                 IRoomController room = mapController.getRoomControllerByCoordinates(to.getLocation());
-                return room.isTileAccessible(from != null ? from.getLocation() : null, to.getLocation()) ? DEFAULT_COST : null;
+                if (room.isTileAccessible(from != null ? from.getLocation() : null, to.getLocation())) {
+                    return DEFAULT_COST;
+                }
+
+                // The centre of a Dungeon Heart has the lava class (0x4DB700 -> 0x454FD0), for those who walk on lava
+                return from != null && room.isDungeonHeart() && navigable.canWalkOnLava() ? DEFAULT_COST : null;
             } else if (navigable.canFly()) {
                 return DEFAULT_COST;
             } else if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA) && !navigable.canWalkOnLava()) {

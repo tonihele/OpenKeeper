@@ -126,9 +126,14 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     @Override
     public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
 
-        // The center 3x3 is not accessible
+        // The ring round the centre 3x3 holds the gold. For walking DK II's heart tiles are all floor but the centre,
+        // which gets the lava class (0x4DB700): the Dungeon Heart Obstacle, 3 tiles across, keeps creatures off the
+        // middle of the heart as they move (see MovementSystem)
         Point roomPoint = roomInstance.worldCoordinateToLocalCoordinate(toX, toY);
-        return ((roomPoint.x == 0 || roomPoint.x == 4) || (roomPoint.y == 0 || roomPoint.y == 4));
+        if (fromX == null) {
+            return roomPoint.x == 0 || roomPoint.x == 4 || roomPoint.y == 0 || roomPoint.y == 4;
+        }
+        return roomPoint.x != 2 || roomPoint.y != 2;
     }
 
     @Override
