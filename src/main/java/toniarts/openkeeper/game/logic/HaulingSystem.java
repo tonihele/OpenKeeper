@@ -17,6 +17,9 @@
 package toniarts.openkeeper.game.logic;
 
 import com.jme3.math.Vector3f;
+import com.jme3.math.FastMath;
+import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
@@ -60,8 +63,16 @@ public final class HaulingSystem implements IGameLogicUpdatable {
             }
 
             Vector3f newPos = haulerPosition.position.clone();
-            newPos.y = position.position.y;
-            entityData.setComponent(entity.getId(), new Position(position.rotation, newPos));
+            ObjectComponent object = entityData.getComponent(entity.getId(), ObjectComponent.class);
+            // TODO (#1330): extend shared height/opposite facing to crates and
+            // bodies in a separate change. Native runtime measurements:
+            // https://github.com/tonihele/OpenKeeper/issues/1330#issuecomment-7009251810
+            boolean special = object != null && object.objectType == ObjectType.SPECIAL;
+            if (!special) {
+                newPos.y = position.position.y;
+            }
+            float rotation = special ? haulerPosition.rotation + FastMath.PI : position.rotation;
+            entityData.setComponent(entity.getId(), new Position(rotation, newPos));
         }
     }
 

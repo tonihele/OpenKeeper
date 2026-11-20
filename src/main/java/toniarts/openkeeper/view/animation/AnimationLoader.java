@@ -46,19 +46,19 @@ public final class AnimationLoader {
         // No!
     }
 
-    private static void attachResource(final Node root, final AnimationControl animationControl, final ArtResource resource, AssetManager assetManager) {
+    private static void attachResource(final Node root, final AnimationControl animationControl, final ArtResource resource, AssetManager assetManager, boolean preserveTranslations) {
         if (resource != null && (resource.getType() == ArtResource.ArtResourceType.ANIMATING_MESH
                 || resource.getType() == ArtResource.ArtResourceType.MESH
                 || resource.getType() == ArtResource.ArtResourceType.PROCEDURAL_MESH)) {
             try {
 
-                Spatial spat = loadModel(assetManager, resource.getName(), resource, root);
+                Spatial spat = loadModel(assetManager, resource.getName(), resource, root, preserveTranslations);
                 spat.setName(resource.getName());
 
                 // If the animations has end and/or start, it is located in a different file
                 if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
                     String name = resource.getName() + START_ANIM_NODE_NAME;
-                    Spatial spatStart = loadModel(assetManager, name, resource, root);
+                    Spatial spatStart = loadModel(assetManager, name, resource, root, preserveTranslations);
                     spatStart.setName(START_ANIM_NODE_NAME);
 
                     // Create kinda a custom animation control
@@ -70,7 +70,7 @@ public final class AnimationLoader {
                 }
                 if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
                     String name = resource.getName() + END_ANIM_NODE_NAME;
-                    Spatial spatEnd = loadModel(assetManager, name, resource, root);
+                    Spatial spatEnd = loadModel(assetManager, name, resource, root, preserveTranslations);
                     spatEnd.setName(END_ANIM_NODE_NAME);
 
                     // Create kinda a custom animation control
@@ -107,10 +107,12 @@ public final class AnimationLoader {
         return LoopMode.DontLoop;
     }
 
-    private static Spatial loadModel(AssetManager assetManager, String resourceName, ArtResource artResource, Node creatureRoot) {
+    private static Spatial loadModel(AssetManager assetManager, String resourceName, ArtResource artResource, Node creatureRoot, boolean preserveTranslations) {
 
         // Load the model and attach it without the root
-        Spatial model = AssetUtils.loadModel(assetManager, resourceName, artResource);
+        Spatial model = preserveTranslations
+                ? AssetUtils.loadModelWithAuthoredTranslations(assetManager, resourceName, artResource)
+                : AssetUtils.loadModel(assetManager, resourceName, artResource);
         model = ((Node) model).getChild(0);
         model.setCullHint(Spatial.CullHint.Always);
         creatureRoot.attachChild(model);
@@ -126,7 +128,12 @@ public final class AnimationLoader {
      * @param endFrame start from the end frame
      */
     public static void playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager, boolean endFrame) {
+        playAnimation(spatial, anim, assetManager, endFrame, false);
+    }
 
+    /** Play a resource, optionally retaining the model's authored node origins. */
+    public static void playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager,
+            boolean endFrame, boolean preserveTranslations) {
         Node root = (Node) spatial;
 
         // Attach the anim node and get rid of the rest
@@ -136,7 +143,7 @@ public final class AnimationLoader {
             }
             child.removeFromParent();
         }
-        attachResource(root, root.getControl(AnimationControl.class), anim, assetManager);
+        attachResource(root, root.getControl(AnimationControl.class), anim, assetManager, preserveTranslations);
 
         if(anim == null) {
             logger.log(Level.WARNING, "Animation null!");
