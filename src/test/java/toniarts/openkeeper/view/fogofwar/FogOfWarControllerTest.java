@@ -21,31 +21,42 @@ import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Like in DK II, the Dungeon Heart does not explore the terrain around it
- * after the start of the level, the creatures do that by perceiving it.
+ * after the start of the level, the creatures do that by perceiving it. A
+ * scripted reveal of an area with enemies in it is not an enemy sighting.
  */
 class FogOfWarControllerTest {
 
     private static final short VIEWER = Player.KEEPER1_ID;
+    private static final short ENEMY = Player.KEEPER2_ID;
     private static final short FLOOR_ID = 1;
+    private static final short CREATURE_ID = 1;
     private static final short GOLD_ID = 2;
     private static final int MAP_SIZE = 21;
 
@@ -59,6 +70,8 @@ class FogOfWarControllerTest {
      */
     private static final int UPDATES = 100;
 
+    private final List<EntityId> sightings = new ArrayList<>();
+
     private DefaultEntityData entityData;
     private FogOfWarController controller;
 
@@ -66,11 +79,14 @@ class FogOfWarControllerTest {
     void setUp() {
         entityData = new DefaultEntityData();
         Terrain floor = TerrainFixtures.terrain(FLOOR_ID, TerrainFixtures.flags(), 0, 0, 0, FLOOR_ID);
+        Creature creature = CreatureFixtures.seer(CREATURE_ID, 3);
         Terrain gold = TerrainFixtures.terrain(GOLD_ID, TerrainFixtures.flags(Terrain.TerrainFlag.SOLID,
                 Terrain.TerrainFlag.REVEAL_THROUGH_FOG_OF_WAR), 0, 0, 0, GOLD_ID);
         IKwdFile kwdFile = proxy(IKwdFile.class, (proxy, method, args) -> switch (method.getName()) {
             case "getTerrain" ->
                 (short) args[0] == GOLD_ID ? gold : floor;
+            case "getCreature" ->
+                creature;
             case "getThings" ->
                 List.of();
             default ->
@@ -78,8 +94,7 @@ class FogOfWarControllerTest {
         });
         controller = new FogOfWarController(entityData, kwdFile, neutralFloorMap(), VIEWER,
                 points -> {
-                }, entityId -> {
-                });
+                }, sightings::add);
     }
 
     @AfterEach
@@ -100,6 +115,70 @@ class FogOfWarControllerTest {
 
         assertFalse(controller.isExplored(GOLD_TILE), "The gold is not revealed by the heart");
         assertFalse(controller.isVisible(GOLD_TILE), "The gold does not show through the fog");
+    }
+
+    @Test
+    void scriptedRevealDoesNotReportEnemiesInIt() {
+        createCreature(VIEWER, 3, 3);
+        createCreature(ENEMY, 15, 15);
+        controller.start();
+        controller.seedLevelStart();
+
+        controller.revealActionPointTiles(List.of(new Point(14, 14), new Point(15, 14),
+                new Point(14, 15), new Point(15, 15)), true);
+        update(UPDATES);
+
+        assertTrue(controller.isExplored(new Point(15, 15)), "The script revealed the tiles");
+        assertTrue(sightings.isEmpty(), "A scripted reveal, e.g. in the level intro, is not a sighting");
+    }
+
+    @Test
+    void revealAfterTheFirstUpdatesDoesNotReportEnemies() {
+        createCreature(VIEWER, 3, 3);
+        createCreature(ENEMY, 15, 15);
+        controller.start();
+        controller.seedLevelStart();
+        update(UPDATES);
+
+        controller.revealActionPointTiles(List.of(new Point(15, 15)), true);
+        controller.update(0.01f);
+        update(UPDATES);
+
+        assertTrue(sightings.isEmpty());
+    }
+
+    @Test
+    void enemyWalkingIntoSightAfterScriptedRevealIsStillReported() {
+        EntityId own = createCreature(VIEWER, 3, 3);
+        EntityId enemy = createCreature(ENEMY, 15, 15);
+        controller.start();
+        controller.seedLevelStart();
+        controller.revealActionPointTiles(List.of(new Point(15, 15)), true);
+        update(UPDATES);
+        assertTrue(sightings.isEmpty());
+
+        entityData.setComponents(enemy, new Position(0, WorldUtils.pointToVector3f(8, 3)));
+        entityData.setComponents(own, new Position(0, WorldUtils.pointToVector3f(10, 3)));
+        update(UPDATES);
+
+        assertEquals(List.of(enemy), sightings, "Our own creature sees the enemy come close");
+    }
+
+    private void update(int times) {
+        for (int i = 0; i < times; i++) {
+            controller.update(0.2f);
+        }
+    }
+
+    private EntityId createCreature(short ownerId, int x, int y) {
+        EntityId id = entityData.createEntity();
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = CREATURE_ID;
+        entityData.setComponents(id,
+                new Position(0, WorldUtils.pointToVector3f(x, y)),
+                new Owner(ownerId, ownerId),
+                creatureComponent);
+        return id;
     }
 
     private void createHeart(int x, int y) {

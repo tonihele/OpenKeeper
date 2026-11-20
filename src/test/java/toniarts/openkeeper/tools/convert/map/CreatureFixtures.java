@@ -61,4 +61,18 @@ public final class CreatureFixtures {
         return creature;
     }
 
+    /**
+     * A creature that explores the tiles around it
+     *
+     * @param id the creature ID
+     * @param distanceCanSee how far the creature explores, in tiles
+     * @return the creature
+     */
+    public static Creature seer(short id, float distanceCanSee) {
+        Creature creature = new Creature();
+        creature.setCreatureId(id);
+        creature.getAttributes().setDistanceCanSee(distanceCanSee);
+        return creature;
+    }
+
 }
