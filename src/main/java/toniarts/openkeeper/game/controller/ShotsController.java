@@ -76,6 +76,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_ARMOUR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SIGHT_OF_EVIL;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SUMMON_REAPER;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TREMOR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TURNCOAT;
@@ -170,6 +171,13 @@ public final class ShotsController implements IShotsController {
         result.put(CHICKEN, request -> {
             if (request.target() != null && creaturesController.isValidEntity(request.target())) {
                 creaturesController.createController(request.target()).turnIntoChicken(request.shotData1());
+            }
+        });
+        result.put(SIGHT_OF_EVIL, request -> {
+
+            // Shot data 1 is the radius, the shot lifetime (in game ticks) the duration
+            if (request.shotData1() > 0) {
+                mapController.revealSightOfEvil(WorldUtils.vectorToPoint(request.position()), request.shotData1(), request.shot().getHealth(), request.playerId());
             }
         });
         result.put(TREMOR, request -> {
@@ -316,7 +324,11 @@ public final class ShotsController implements IShotsController {
                         continue;
                     }
 
+                    // One picked up this tick is still in the lookup, but not on the map
                     Vector3f position = EntityController.getPosition(entityData, entityId);
+                    if (position == null) {
+                        continue;
+                    }
                     float distance = FastMath.sqrt(FastMath.sqr(position.x - origin.x) + FastMath.sqr(position.z - origin.z));
                     if (distance >= radius) {
                         continue;
@@ -336,9 +348,14 @@ public final class ShotsController implements IShotsController {
         if (owner == null || owner.ownerId == playerId || entityData.getComponent(entityId, Health.class) == null) {
             return false;
         }
-        if (entityData.getComponent(entityId, CreatureComponent.class) != null
-                || entityData.getComponent(entityId, ObjectComponent.class) != null) {
+        if (entityData.getComponent(entityId, CreatureComponent.class) != null) {
             return true;
+        }
+
+        // Of the objects only the damageable ones are hurt, like chickens, not the furniture (0x4B2CE0)
+        ObjectComponent object = entityData.getComponent(entityId, ObjectComponent.class);
+        if (object != null) {
+            return kwdFile.getObject(object.objectId).getFlags().contains(GameObject.ObjectFlag.DAMAGEABLE);
         }
         return !gas && (entityData.getComponent(entityId, DoorComponent.class) != null
                 || entityData.getComponent(entityId, TrapComponent.class) != null);
