@@ -24,6 +24,7 @@ import com.simsilica.es.filter.FieldFilter;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CasinoBigWinner;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -68,6 +69,7 @@ public final class SlapSystem extends GameTimeCounter {
     private final EntitySet objectEntities;
     private final EntityData entityData;
     private final IObjectsController objectsController;
+    private final Consumer<EntityId> onAngry;
     private final int maxSlapDuration;
     private final int maxGoldPile;
     private final Map<Short, PlayerStatsControl> statControls;
@@ -75,9 +77,20 @@ public final class SlapSystem extends GameTimeCounter {
 
     public SlapSystem(EntityData entityData, IKwdFile kwdFile, Collection<IPlayerController> playerControllers,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IObjectsController objectsController) {
+        this(entityData, kwdFile, playerControllers, gameSettings, objectsController, ignored -> { });
+    }
+
+    public SlapSystem(EntityData entityData, IKwdFile kwdFile, Collection<IPlayerController> playerControllers,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, Consumer<EntityId> onAngry) {
+        this(entityData, kwdFile, playerControllers, gameSettings, null, onAngry);
+    }
+
+    public SlapSystem(EntityData entityData, IKwdFile kwdFile, Collection<IPlayerController> playerControllers,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IObjectsController objectsController, Consumer<EntityId> onAngry) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.objectsController = objectsController;
+        this.onAngry = onAngry;
         statControls = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {
             statControls.put(playerController.getKeeper().getId(), playerController.getStatsControl());
@@ -171,7 +184,8 @@ public final class SlapSystem extends GameTimeCounter {
         if (moodChange != 0) {
             CreatureMood mood = entityData.getComponent(entity.getId(), CreatureMood.class);
             if (mood != null) {
-                entityData.setComponent(entity.getId(), applySlapAnger(mood, moodChange));
+                CreatureMoodUpdates.set(entityData, entity.getId(), creature, mood,
+                        applySlapAnger(mood, moodChange), moodChange, onAngry);
             }
         }
 

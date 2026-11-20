@@ -35,6 +35,7 @@ public final class CreatureSleepFixtures {
         creature.setName("Dark Elf");
         creature.setLairObjectId((short) 1);
         creature.setFlags(EnumSet.noneOf(Creature.CreatureFlag.class));
+        creature.setFlags2(EnumSet.noneOf(Creature.CreatureFlag2.class));
         creature.getAttributes().setTimeAwake(20);
         creature.getAttributes().setTimeSleep(timeSleep);
         creature.getAttributes().setUnhappyThreshold((short) 50);

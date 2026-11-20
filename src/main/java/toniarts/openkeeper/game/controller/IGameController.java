@@ -49,6 +49,24 @@ public interface IGameController {
      */
     void createAlliance(short playerOneId, short playerTwoId);
 
+    /** Delivers a transition into full anger to the creature's script immediately. */
+    void onCreatureAngry(EntityId entityId);
+
+    /** Delivers a qualifying fear evaluation to the creature's script immediately. */
+    void onCreatureAfraid(EntityId entityId);
+
+    /** Enqueue an accepted creature hand slap for simulation-thread dispatch. */
+    void onCreatureSlapped(EntityId entityId);
+
+    /** Enqueue an accepted knockdown for simulation-thread script dispatch. */
+    void onCreatureStunned(EntityId entityId);
+
+    /** Enqueue prison admission, including admissions during initial world loading. */
+    void onCreatureImprisoned(EntityId entityId);
+
+    /** Queue a completed torture admission; only the simulation runs scripts. */
+    void onCreatureTortured(EntityId entityId);
+
     GameResult getGameResult();
 
     IPlayerController getPlayerController(short playerId);

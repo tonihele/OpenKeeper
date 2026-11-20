@@ -97,6 +97,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.creature.Torture;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
@@ -209,6 +210,7 @@ public final class CreatureController extends EntityController implements ICreat
     private final ILevelInfo levelInfo;
     private final IShotsController shotsController;
     private final GameEventService gameEventService;
+    private final Consumer<EntityId> onAfraid;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
@@ -217,7 +219,17 @@ public final class CreatureController extends EntityController implements ICreat
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
             ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController, IEntityPositionLookup entityPositionLookup, IMapController mapController,
-            ILevelInfo levelInfo, IObjectsController objectsController, IShotsController shotsController, GameEventService gameEventService) {
+            ILevelInfo levelInfo, IObjectsController objectsController, IShotsController shotsController,
+            GameEventService gameEventService) {
+        this(entityId, entityData, creature, navigationService, taskManager, gameTimer, gameSettings, creaturesController,
+                entityPositionLookup, mapController, levelInfo, objectsController, shotsController, gameEventService, ignored -> { });
+    }
+
+    public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
+            ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            ICreaturesController creaturesController, IEntityPositionLookup entityPositionLookup, IMapController mapController,
+            ILevelInfo levelInfo, IObjectsController objectsController, IShotsController shotsController,
+            GameEventService gameEventService, Consumer<EntityId> onAfraid) {
         super(entityId, entityData, objectsController, mapController);
         this.navigationService = navigationService;
         this.taskManager = taskManager;
@@ -229,6 +241,7 @@ public final class CreatureController extends EntityController implements ICreat
         this.levelInfo = levelInfo;
         this.shotsController = shotsController;
         this.gameEventService = gameEventService;
+        this.onAfraid = onAfraid;
         this.stateMachine = new DefaultStateMachine<>(this) {
             @Override
             public void changeState(CreatureState newState) {
@@ -268,6 +281,11 @@ public final class CreatureController extends EntityController implements ICreat
         // Check fleeing, TODO: Always flee?
         boolean inDHeart = false;
         if (entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter() && isThreatTooHigh()) {
+
+            // Deliver fear before escape, preserving the current combat-pit and fear checks.
+            if (!stateMachine.isInState(CreatureState.FLEE)) {
+                onAfraid.accept(entityId);
+            }
 
             // No longer flee from DHeart
             IRoomController roomController = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
@@ -603,12 +621,19 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void executeAssignedTask() {
         TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
+        if (!isAssignedTaskValid()) {
+            return;
+        }
+        Task task = getAssignedTask();
         if (!taskComponent.taskStarted) {
             entityData.setComponent(entityId, new TaskComponent(taskComponent.taskId, taskComponent.targetEntity, taskComponent.targetLocation, taskComponent.taskType, taskComponent.taskDuration, true));
+            // Native voluntary entry shares the captive event. Assignment, travel,
+            // continued work and restoration of an already started task are silent.
+            if (task instanceof Torture torture && torture.isSelfTorture()) {
+                creaturesController.onTortured(entityId);
+            }
         }
-        if (isAssignedTaskValid()) {
-            getAssignedTask().executeTask(this, taskComponent.taskDuration);
-        }
+        task.executeTask(this, taskComponent.taskDuration);
     }
 
     @Override
@@ -2097,6 +2122,7 @@ public final class CreatureController extends EntityController implements ICreat
         // was down already. That keeps a creature that is struck over and over down
         entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.FALLEN, creature.getId(),
                 entityData.getComponent(entityId, CreatureAi.class).getTargetState()));
+        creaturesController.onStunned(entityId);
     }
 
     private boolean isAlly(EntityId entity) {
@@ -2344,6 +2370,7 @@ public final class CreatureController extends EntityController implements ICreat
         entityData.setComponent(entityId, new Owner(owner.ownerId, playerId));
 
         stateMachine.changeState(CreatureState.IMPRISONED);
+        creaturesController.onImprisoned(entityId);
     }
 
     @Override

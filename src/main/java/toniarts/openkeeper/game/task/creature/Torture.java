@@ -105,6 +105,11 @@ public final class Torture extends AbstractCapacityCriticalRoomTask {
         // Nothing changes, the creature just likes it
     }
 
+    /** Whether the assignee uses the device itself rather than whipping a victim. */
+    public boolean isSelfTorture() {
+        return !whip;
+    }
+
     @Override
     public TaskType getTaskType() {
         return TaskType.TORTURE;

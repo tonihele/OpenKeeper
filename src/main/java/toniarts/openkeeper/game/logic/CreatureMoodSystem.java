@@ -18,12 +18,14 @@ package toniarts.openkeeper.game.logic;
 
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
@@ -51,6 +53,7 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
     private static final int LOG_COUNTER_INTERVAL = 1000;
 
     private final EntityData entityData;
+    private final Consumer<EntityId> onAngry;
     private final IKwdFile kwdFile;
     private final Room lair;
     private final IGameTimer gameTimer;
@@ -61,7 +64,14 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
     public CreatureMoodSystem(EntityData entityData, IKwdFile kwdFile,
             Collection<IPlayerController> playerControllers, IGameTimer gameTimer,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+        this(entityData, kwdFile, playerControllers, gameTimer, gameSettings, ignored -> { });
+    }
+
+    public CreatureMoodSystem(EntityData entityData, IKwdFile kwdFile,
+            Collection<IPlayerController> playerControllers, IGameTimer gameTimer,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, Consumer<EntityId> onAngry) {
         this.entityData = entityData;
+        this.onAngry = onAngry;
         this.kwdFile = kwdFile;
         this.gameTimer = gameTimer;
         angerRecoveryInLairPerSecond = (int) gameSettings.get(
@@ -90,7 +100,7 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
             }
 
             Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
-            if (creature == null) {
+            if (creature == null || creature.getFlags2().contains(Creature.CreatureFlag2.IS_EMOTIONLESS)) {
                 continue;
             }
 
@@ -112,7 +122,7 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
                                 counters(mood), counters(updatedMood)});
                     mood = updatedMood;
                 }
-                applyLairMoodRecovery(entity, mood);
+                applyLairMoodRecovery(entity, mood, creature);
                 continue;
             }
 
@@ -124,7 +134,7 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
             int anger = CreatureMood.toRuntimeValue(creature.getAttributes().getAngerNoLair());
             if (anger != 0) {
                 CreatureMood updatedMood = mood.add(CreatureMood.REASON_NO_LAIR, anger);
-                entityData.setComponent(entity.getId(), updatedMood);
+                CreatureMoodUpdates.set(entityData, entity.getId(), creature, mood, updatedMood, anger, onAngry);
                 int oldState = mood.getState(unhappyThreshold);
                 int newState = updatedMood.getState(unhappyThreshold);
                 if (mood.noLair == 0
@@ -142,7 +152,7 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
         }
     }
 
-    private void applyLairMoodRecovery(Entity entity, CreatureMood mood) {
+    private void applyLairMoodRecovery(Entity entity, CreatureMood mood, Creature creature) {
         CreatureRecuperating recuperating = entityData.getComponent(
                 entity.getId(), CreatureRecuperating.class);
         if (recuperating == null
@@ -154,8 +164,8 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
                 recuperating.startTime, recuperating.healthCheckTime,
                 recuperating.moodCheckTime + 1));
         if (angerRecoveryInLairPerSecond != 0) {
-            entityData.setComponent(entity.getId(), recoverInLair(
-                    mood, angerRecoveryInLairPerSecond));
+            CreatureMoodUpdates.set(entityData, entity.getId(), creature, mood,
+                    recoverInLair(mood, angerRecoveryInLairPerSecond), angerRecoveryInLairPerSecond, onAngry);
         }
     }
 

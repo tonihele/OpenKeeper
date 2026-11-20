@@ -30,6 +30,7 @@ public final class CreatureMoodFixtures {
         Creature creature = new Creature();
         creature.setCreatureId(creatureId);
         creature.setName(name);
+        creature.setFlags2(java.util.EnumSet.noneOf(Creature.CreatureFlag2.class));
         creature.setLairObjectId(lairObjectId);
         creature.getAttributes().setAngerNoLair(angerNoLair);
         creature.getAttributes().setUnhappyThreshold(unhappyThreshold);

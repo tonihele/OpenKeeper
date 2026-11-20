@@ -641,10 +641,10 @@ class CreatureControllerTest {
                 default -> throw new UnsupportedOperationException(method);
             });
             controllers = () -> new CreatureController(entity, data, definition, null, taskManager, () -> time,
-                    settings, null, lookup, map, levelInfo, null, null, eventService);
+                    settings, proxy(toniarts.openkeeper.game.controller.ICreaturesController.class, (method, args) -> null), lookup, map, levelInfo, null, null, eventService, id -> {});
             controller = controllers.get();
             sleepSystem = new CreatureSleepSystem(data, kwd, () -> time);
-            moodSystem = new CreatureMoodSystem(data, kwd, List.of(), () -> time, settings);
+            moodSystem = new CreatureMoodSystem(data, kwd, List.of(), () -> time, settings, id -> {});
             healthSystem = new HealthSystem(data, lookup, settings, null, null, List.of(), map, () -> time, eventService);
         }
 

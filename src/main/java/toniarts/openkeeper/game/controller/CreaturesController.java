@@ -322,8 +322,6 @@ public final class CreaturesController implements ICreaturesController {
 
         setFlagDrivenComponents(entity, creature);
 
-        CreatureState creatureState = setCreatureStateAndPosition(entity, spawnType, x, y, ownerId, creatureId);
-
         // Regeneration
         Regeneration regeneration = new Regeneration();
 
@@ -364,6 +362,8 @@ public final class CreaturesController implements ICreaturesController {
                 creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER),
                 creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA), creatureComponent.speed));
 
+        CreatureState creatureState = setCreatureStateAndPosition(entity, spawnType, x, y, ownerId, creatureId);
+
         setObjectiveAndTrigger(entity, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId);
 
         setInteractionIfApplicable(entity, creature);
@@ -372,6 +372,13 @@ public final class CreaturesController implements ICreaturesController {
         Creature.AnimationType animationType = getStartingAnimation(healthComponent, creatureState);
         entityData.setComponent(entity, new CreatureViewState(creatureId, gameTimer.getGameTime(), animationType));
 
+        if (healthComponent != null) {
+            if (creatureState == CreatureState.IMPRISONED) {
+                onImprisoned(entity);
+            } else if (creatureState == CreatureState.TORTURED) {
+                gameController.onCreatureTortured(entity);
+            }
+        }
         return entity;
     }
 
@@ -418,7 +425,7 @@ public final class CreaturesController implements ICreaturesController {
                 creatureState = CreatureState.IDLE;
             }
             case DROP -> {
-                creatureState = getCreatureStateByMapLocation(WorldUtils.vectorToPoint(x, y), ownerId, entity);
+                creatureState = getCreatureStateByMapLocation(new Vector2f(x, y), ownerId, entity);
             }
             case CONJURE -> {
                 creatureState = null;
@@ -427,7 +434,7 @@ public final class CreaturesController implements ICreaturesController {
             default ->
                 throw new RuntimeException("SpawnType " + spawnType + " not handled!");
         }
-        if (creatureState != null) {
+        if (creatureState != null && creatureState != CreatureState.TORTURED) {
             entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), creatureState, creatureId));
         }
         return creatureState;
@@ -486,25 +493,19 @@ public final class CreaturesController implements ICreaturesController {
         return Creature.AnimationType.IDLE_1;
     }
 
-    private CreatureState getCreatureStateByMapLocation(Point location, short ownerId, EntityId entityId) {
+    private CreatureState getCreatureStateByMapLocation(Vector2f position, short ownerId, EntityId entityId) {
+        Point location = WorldUtils.vectorToPoint(position);
         IRoomController room = mapController.getRoomControllerByCoordinates(location);
-        if (room != null && room.getRoomInstance().getOwnerId() != ownerId) {
-
-            // See if tortured or imprisoned
-            // TODO: Capacities? Or maybe at this point we are just populating stuff and everything is ok like this?
-            if (room instanceof PrisonController prison && prison.isCageTile(location)) {
+        if (room != null) {
+            if (room.getRoomInstance().getOwnerId() != ownerId
+                    && room instanceof PrisonController prison && prison.isCageTile(location)) {
                 room.getObjectControl(AbstractRoomController.ObjectType.PRISONER).addItem(entityId, location);
                 entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
                 return CreatureState.IMPRISONED;
             }
             if (room.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
                 RoomTortureeControl torturees = room.getObjectControl(AbstractRoomController.ObjectType.TORTUREE);
-                EntityId device = torturees.addItem(entityId, location);
-                if (device != null) {
-                    Position devicePosition = entityData.getComponent(device, Position.class);
-                    entityData.setComponent(entityId, new Position(devicePosition.rotation,
-                            new Vector3f(devicePosition.position.x, WorldUtils.FLOOR_HEIGHT, devicePosition.position.z)));
-                    entityData.setComponent(entityId, new CreatureTortured(0, gameTimer.getGameTime(), gameTimer.getGameTime(), device));
+                if (torturees.admit(entityId, position) != null) {
                     return CreatureState.TORTURED;
                 }
             }
@@ -739,6 +740,21 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public void onStunned(EntityId entityId) {
+        gameController.onCreatureStunned(entityId);
+    }
+
+    @Override
+    public void onImprisoned(EntityId entityId) {
+        gameController.onCreatureImprisoned(entityId);
+    }
+
+    @Override
+    public void onTortured(EntityId entityId) {
+        gameController.onCreatureTortured(entityId);
+    }
+
+    @Override
     public ICreatureController createController(EntityId entityId) {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         if (creatureComponent == null) {
@@ -763,7 +779,8 @@ public final class CreaturesController implements ICreaturesController {
                 gameController.getNavigationService(), gameController.getTaskManager(), gameTimer,
                 gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo,
                 gameController.getGameWorldController().getObjectsController(),
-                gameController.getGameWorldController().getShotsController(), gameController.getGameEventService());
+                gameController.getGameWorldController().getShotsController(), gameController.getGameEventService(),
+                gameController::onCreatureAfraid);
     }
 
     @Override
