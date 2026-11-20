@@ -1421,12 +1421,12 @@ public final class CreatureController extends EntityController implements ICreat
             return Optional.empty();
         }
 
-        // Sort in order of preference
+        // Of the attack spells that are ready, the one that was ready first: the smallest last cast plus recharge,
+        // and the earlier slot on a tie (DK II 0x45CB00, 0x48C800). A spell never cast counts as cast at 0
         return creatureSpells
                 .stream()
                 .filter(creatureSpell -> isAttackRecharged(creatureSpell) && isInRange(creatureSpell.range, attackTarget) && levelInfo.getLevelData().getCreatureSpellById(creatureSpell.creatureSpellId).getFlags().contains(CreatureSpellFlag.IS_ATTACKING))
-                .sorted(Comparator.<CreatureSpell>comparingInt(creatureSpell -> levelInfo.getLevelData().getCreatureSpellById(creatureSpell.creatureSpellId).getCombatPoints()).reversed())
-                .findFirst();
+                .min(Comparator.comparingDouble(creatureSpell -> (creatureSpell.attactStartTime != null ? creatureSpell.attactStartTime : 0) + creatureSpell.rechargeTime));
     }
 
     /**

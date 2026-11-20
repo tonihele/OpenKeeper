@@ -22,6 +22,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -30,6 +31,7 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CastShot;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureSpell;
@@ -175,6 +177,55 @@ class CreatureCombatTest {
         sensed.put(us, new LinkedHashSet<>(List.of(target, other)));
 
         assertEquals(target, createController(us).getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void castsTheAttackSpellThatWasReadyFirst() {
+        EntityId target = createCreature(HERO, FIGHTER, new Vector3f(5, 0, 7), 0);
+
+        // At 10 seconds all three are ready: since 7, since 9 and since 8
+        giveAttackSpells(us, castAt((short) 1, 5, 2.0), castAt((short) 2, 1, 8.0), castAt((short) 3, 3, 5.0));
+
+        createController(us).executeAttack(target);
+
+        assertEquals(1, entityData.getComponent(us, CastShot.class).creatureSpellId);
+    }
+
+    @Test
+    void spellNeverCastComesBeforeTheOnesThatWere() {
+        EntityId target = createCreature(HERO, FIGHTER, new Vector3f(5, 0, 7), 0);
+        giveAttackSpells(us, castAt((short) 1, 5, 2.0), castAt((short) 2, 6, null), castAt((short) 3, 6, null));
+
+        createController(us).executeAttack(target);
+
+        // The earlier slot of the two that tie
+        assertEquals(2, entityData.getComponent(us, CastShot.class).creatureSpellId);
+    }
+
+    @Test
+    void spellStillRechargingOrOutOfRangeIsNotCast() {
+        EntityId target = createCreature(HERO, FIGHTER, new Vector3f(5, 0, 7), 0);
+        CreatureSpell shortRanged = new CreatureSpell(new CreatureSpell((short) 2, us, 1, 2), 1.0);
+        giveAttackSpells(us, castAt((short) 1, 5, 6.0), shortRanged, castAt((short) 3, 3, 6.5));
+
+        createController(us).executeAttack(target);
+
+        assertEquals(3, entityData.getComponent(us, CastShot.class).creatureSpellId);
+    }
+
+    private CreatureSpell castAt(short creatureSpellId, float rechargeTime, Double lastCast) {
+        CreatureSpell spell = new CreatureSpell(creatureSpellId, us, rechargeTime, 5);
+        return lastCast != null ? new CreatureSpell(spell, lastCast) : spell;
+    }
+
+    private void giveAttackSpells(EntityId creature, CreatureSpell... creatureSpells) {
+        List<EntityId> spells = new ArrayList<>();
+        for (CreatureSpell creatureSpell : creatureSpells) {
+            EntityId spell = entityData.createEntity();
+            entityData.setComponent(spell, creatureSpell);
+            spells.add(spell);
+        }
+        entityData.setComponent(creature, new CreatureSpells(spells));
     }
 
     private EntityId createCreature(short ownerId, short creatureId, Vector3f position, float rotation) {
