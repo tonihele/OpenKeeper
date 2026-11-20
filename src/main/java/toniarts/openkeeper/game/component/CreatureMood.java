@@ -41,6 +41,12 @@ public final class CreatureMood implements EntityComponent {
     public int noPay;
     public int other;
 
+    /**
+     * Set while the level script has the creature moods switched off. Like in
+     * DKII, the anger counters then can not be changed.
+     */
+    public boolean frozen;
+
     public CreatureMood() {
         // For serialization
     }
@@ -55,28 +61,50 @@ public final class CreatureMood implements EntityComponent {
     }
 
     /**
-     * Adds a signed native anger delta and clamps the selected counter.
+     * Adds a signed native anger delta and clamps the selected counter. Does
+     * nothing when the mood is frozen.
      *
      * @param reason anger reason index
      * @param value signed runtime delta
      * @return updated component
      */
     public CreatureMood add(int reason, int value) {
+        if (frozen) {
+            return this;
+        }
         int[] values = toArray();
         values[reason] = (int) Math.max(0, Math.min(MAX_ANGER, (long) values[reason] + value));
         return fromArray(values);
     }
 
     /**
-     * Clears one anger reason.
+     * Clears one anger reason. Does nothing when the mood is frozen.
      *
      * @param reason anger reason index
      * @return updated component
      */
     public CreatureMood clear(int reason) {
+        if (frozen) {
+            return this;
+        }
         int[] values = toArray();
         values[reason] = 0;
         return fromArray(values);
+    }
+
+    /**
+     * Freezes or thaws the counters.
+     *
+     * @param frozen true to make the counters unchangeable
+     * @return the component with the given frozen state, this if it already is
+     */
+    public CreatureMood withFrozen(boolean frozen) {
+        if (this.frozen == frozen) {
+            return this;
+        }
+        CreatureMood result = fromArray(toArray());
+        result.frozen = frozen;
+        return result;
     }
 
     /**
