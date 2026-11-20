@@ -412,6 +412,10 @@
                         <control name="checkbox" id="gammaCorrection" />
                         <text style="menuTextSmall" text=" Gamma correction" />
                     </panel>
+                    <panel childLayout="horizontal" padding="10px">
+                        <control name="checkbox" id="hdTextures" />
+                        <text style="menuTextSmall" text=" Make HD textures at the next start (needs a Vulkan GPU, about 6 minutes)" />
+                    </panel>
                 </panel>
                 <!--Right side options panel-->
                 <panel childLayout="vertical" align="right" valign="top" padding="10px">

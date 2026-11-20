@@ -107,6 +107,20 @@ public final class KmfModelLoader implements AssetLoader {
      */
     public static final String GROUP_PART_NAME = "GroupPartName";
     /**
+     * User data key prefix on an animation node, followed by the id of one of
+     * the animation's control points (e.g. 5000, over the creature's head).
+     * The value is "geometry index, vertex index" of the vertex the point
+     * follows.
+     */
+    public static final String ANIM_CONTROL_POINT = "AnimControlPoint";
+    /**
+     * User data key on an animation node, "geometry index, vertex index" of
+     * the vertex furthest to the front in the animation's last frame. After a
+     * fall that is where the head lies, also for creatures without a head
+     * control point.
+     */
+    public static final String ANIM_FRONT_POINT = "AnimFrontPoint";
+    /**
      * User data key on an animation node, the vertices DK II draws the speed
      * blur from: runs separated by ';', the points of a run by ',', and each
      * point as the child index of its geometry and the vertex index, separated
@@ -306,13 +320,19 @@ public final class KmfModelLoader implements AssetLoader {
         }
 
         int subMeshIndex = 0;
+        List<Integer> geometryIndices = new ArrayList<>(anim.getSprites().size());
+        float frontY = Float.MAX_VALUE;
+        String frontPoint = null;
         int sprite = -1;
         Map<Integer, Integer> spriteChildren = new HashMap<>();
         for (var subMesh : anim.getSprites()) {
             sprite++;
 
-            if (subMesh.getTriangles().get(0).isEmpty())
+            if (subMesh.getTriangles().get(0).isEmpty()) {
+                geometryIndices.add(-1);
                 continue; // FIXME: LODs are broken so we only take L0
+            }
+            geometryIndices.add(subMeshIndex);
             spriteChildren.put(sprite, subMeshIndex);
 
             // Animation
@@ -363,6 +383,10 @@ public final class KmfModelLoader implements AssetLoader {
                     // Store the frame zero coord
                     if (frame == 0) {
                         baseCoord = coord;
+                    }
+                    if (frame == anim.getFrames() - 1 && coord.y < frontY) {
+                        frontY = coord.y;
+                        frontPoint = subMeshIndex + " " + i;
                     }
 
                     // Create frame info
@@ -513,6 +537,18 @@ public final class KmfModelLoader implements AssetLoader {
         String attackTrailPoints = getTrailPoints(anim.getControls(), spriteChildren, 0);
         if (!attackTrailPoints.isEmpty()) {
             node.setUserData(ATTACK_TRAIL_POINTS, attackTrailPoints);
+        }
+
+        // The control points follow a vertex of a sprite, an id may be listed more than once, the first one counts
+        for (AnimControl control : anim.getControls()) {
+            String key = ANIM_CONTROL_POINT + control.getId();
+            int controlSprite = control.getSprite();
+            if (controlSprite < geometryIndices.size() && geometryIndices.get(controlSprite) >= 0 && node.getUserData(key) == null) {
+                node.setUserData(key, geometryIndices.get(controlSprite) + " " + control.getVertex());
+            }
+        }
+        if (frontPoint != null) {
+            node.setUserData(ANIM_FRONT_POINT, frontPoint);
         }
 
         // Create the animation itself and attach the animation
