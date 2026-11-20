@@ -54,6 +54,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -81,6 +82,7 @@ class ShotsControllerTest {
     private final Map<Short, Shot> shotsById = new HashMap<>();
     private final List<Object[]> loadedObjects = new ArrayList<>();
     private final Set<Point> waterTiles = new HashSet<>();
+    private final List<EntityId> pickedUpThings = new ArrayList<>();
     private final ShotsController shotsController;
     private double gameTime = 0;
 
@@ -124,9 +126,9 @@ class ShotsControllerTest {
         GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null);
 
         IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class},
-                (proxy, method, args) -> entityData.findEntities(null, Position.class).stream()
-                        .filter(entity -> new Point((int) args[0], (int) args[1]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position)))
-                        .toList());
+                (proxy, method, args) -> Stream.concat(entityData.findEntities(null, Position.class).stream()
+                        .filter(entity -> new Point((int) args[0], (int) args[1]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position))),
+                        pickedUpThings.stream()).toList());
         IGameController gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(), new Class<?>[]{IGameController.class},
                 (proxy, method, args) -> method.getName().equals("getEntityLookupService") ? entityPositionLookup : null);
         shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, null, objectsController, null, gameEventService);
@@ -310,6 +312,20 @@ class ShotsControllerTest {
         assertEquals(750, entityData.getComponent(other, Damage.class).damage);
         assertNull(entityData.getComponent(own, Damage.class));
         assertNull(entityData.getComponent(nextTile, Damage.class));
+    }
+
+    @Test
+    void constantDamageShotPassesOverAThingPickedUpThisTick() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        // Still in the position lookup, but picked up so it has no position
+        EntityId pickedUp = entityData.createEntity();
+        entityData.setComponents(pickedUp, new CreatureComponent(), new Owner(ENEMY_ID, ENEMY_ID), new Health(100, 100));
+        pickedUpThings.add(pickedUp);
+
+        shotsController.createShot(SPIKE_ID, 750, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+
+        assertEquals(750, entityData.getComponent(target, Damage.class).damage);
+        assertNull(entityData.getComponent(pickedUp, Damage.class));
     }
 
     @Test
