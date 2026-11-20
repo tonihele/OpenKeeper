@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.tools.convert;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -64,41 +65,42 @@ public final class ByteArrayResourceReader implements ISeekableResourceReader {
 
     @Override
     public byte[] read(int length) throws IOException {
+        ResourceReaderSupport.checkLength(length);
         if (buffer.remaining() < length) {
-            String message = "Error reading byte array. Expect %s bytes and %s given";
-            throw new IOException(String.format(message, length, buffer.remaining()));
+            throw new EOFException("Expected " + length + " bytes, only " + buffer.remaining() + " remain");
         }
 
         byte[] bytes = new byte[length];
         System.arraycopy(buffer.array(), buffer.position(), bytes, 0, length);
-
-        // Advance marker
         skipBytes(length);
-
         return bytes;
     }
 
     @Override
     public void seek(long pos) throws IOException {
+        if (pos < 0 || pos > buffer.capacity()) {
+            throw new IOException("Position outside byte array: " + pos);
+        }
         buffer.position((int) pos);
     }
 
     @Override
     public IResourceChunkReader readChunk(int size) throws IOException {
-        if (buffer.remaining() < size) {
-            String message = "Error reading byte array. Expect %s bytes and %s given";
-            throw new IOException(String.format(message, size, buffer.remaining()));
+        ResourceReaderSupport.checkLength(size);
+        if (size == 0) {
+            return new ResourceChunkReader(ByteBuffer.allocate(0).order(ByteOrder.LITTLE_ENDIAN));
         }
-        byte[] bytes = new byte[size];
-        System.arraycopy(buffer.array(), buffer.position(), bytes, 0, size);
+        if (!buffer.hasRemaining()) {
+            return null;
+        }
 
-        ByteBuffer buf = ByteBuffer.wrap(bytes);
-        buf.order(ByteOrder.LITTLE_ENDIAN);
-
-        // Advance marker
-        skipBytes(size);
-
-        return new ResourceChunkReader(buf);
+        int chunkSize = Math.min(size, buffer.remaining());
+        ByteBuffer chunk = buffer.slice();
+        chunk.limit(chunkSize);
+        chunk = chunk.slice().asReadOnlyBuffer();
+        chunk.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.position(buffer.position() + chunkSize);
+        return new ResourceChunkReader(chunk);
     }
 
     @Override
@@ -108,6 +110,10 @@ public final class ByteArrayResourceReader implements ISeekableResourceReader {
 
     @Override
     public void skipBytes(int size) throws IOException {
+        ResourceReaderSupport.checkLength(size);
+        if (buffer.remaining() < size) {
+            throw new EOFException("Cannot skip " + size + " bytes, only " + buffer.remaining() + " remain");
+        }
         buffer.position(buffer.position() + size);
     }
 
