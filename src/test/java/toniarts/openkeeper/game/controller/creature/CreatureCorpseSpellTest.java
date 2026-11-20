@@ -71,6 +71,7 @@ class CreatureCorpseSpellTest {
     private static final short HERO = Player.GOOD_PLAYER_ID;
     private static final short RAISE_DEAD_SPELL_ID = 20;
     private static final short FIREBALL_SPELL_ID = 1;
+    private static final short IMP_TELEPORT_SPELL_ID = 36;
     private static final float RECHARGE = 17f;
     private static final float RANGE = 3f;
     private static final double GAME_TIME = 100;
@@ -144,6 +145,17 @@ class CreatureCorpseSpellTest {
         assertFalse(createController().shouldFleeOrAttack());
     }
 
+    /**
+     * The Imp's Teleport is a defensive spell with no shot
+     */
+    @Test
+    void aDefensiveSpellWithNoShotIsNotForDeadBodies() {
+        createDeadBody(new Vector3f(6, 0, 5));
+        entityData.setComponent(spell, new CreatureSpell(IMP_TELEPORT_SPELL_ID, us, RECHARGE, RANGE));
+
+        assertFalse(createController().shouldFleeOrAttack());
+    }
+
     @Test
     void fightsAnEnemyFirst() {
         createDeadBody(new Vector3f(6, 0, 5));
@@ -177,12 +189,19 @@ class CreatureCorpseSpellTest {
         Map<Short, Keeper> keepers = Map.of(KEEPER, new Keeper(false, KEEPER), HERO, new Keeper(false, HERO));
         IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
             case "getCreature" -> vampire;
-            case "getCreatureSpellById" -> (Short) args[0] == RAISE_DEAD_SPELL_ID
-                    ? ShotFixtures.creatureSpell(RAISE_DEAD_SPELL_ID, EnumSet.of(CreatureSpellFlag.IS_DEFENSIVE, CreatureSpellFlag.CAST_ON_OTHERS),
-                            AlternativeShot.NONE, ShotFixtures.RAISE_DEAD_ID, 9)
-                    : ShotFixtures.creatureSpell(FIREBALL_SPELL_ID, EnumSet.of(CreatureSpellFlag.IS_ATTACKING, CreatureSpellFlag.CAST_ON_OTHERS),
-                            AlternativeShot.NONE, ShotFixtures.FIREBALL_ID, 100);
-            case "getShotById" -> (Short) args[0] == ShotFixtures.RAISE_DEAD_ID ? raiseDead : fireball;
+            case "getCreatureSpellById" -> switch ((Short) args[0]) {
+                case RAISE_DEAD_SPELL_ID -> ShotFixtures.creatureSpell(RAISE_DEAD_SPELL_ID, EnumSet.of(CreatureSpellFlag.IS_DEFENSIVE, CreatureSpellFlag.CAST_ON_OTHERS),
+                        AlternativeShot.NONE, ShotFixtures.RAISE_DEAD_ID, 9);
+                case IMP_TELEPORT_SPELL_ID -> ShotFixtures.creatureSpell(IMP_TELEPORT_SPELL_ID, EnumSet.of(CreatureSpellFlag.IS_DEFENSIVE,
+                        CreatureSpellFlag.IMP_TELEPORT, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.NONE, (short) 0, 0);
+                default -> ShotFixtures.creatureSpell(FIREBALL_SPELL_ID, EnumSet.of(CreatureSpellFlag.IS_ATTACKING, CreatureSpellFlag.CAST_ON_OTHERS),
+                        AlternativeShot.NONE, ShotFixtures.FIREBALL_ID, 100);
+            };
+            case "getShotById" -> switch ((Short) args[0]) {
+                case 0 -> null;
+                case ShotFixtures.RAISE_DEAD_ID -> raiseDead;
+                default -> fireball;
+            };
             default -> null;
         });
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> switch (name) {

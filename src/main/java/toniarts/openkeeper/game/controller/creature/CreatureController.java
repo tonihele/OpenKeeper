@@ -313,8 +313,13 @@ public final class CreatureController extends EntityController implements ICreat
         for (EntityId creatureSpellEntity : creatureSpells.creatureSpells) {
             CreatureSpell spell = entityData.getComponent(creatureSpellEntity, CreatureSpell.class);
             toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId);
-            if (!isAttackRecharged(spell) || !creatureSpell.getFlags().contains(CreatureSpellFlag.IS_DEFENSIVE)
-                    || levelInfo.getLevelData().getShotById(creatureSpell.getShotTypeId()).getCollideType() != Shot.CollideType.DEAD_BODIES) {
+            if (!isAttackRecharged(spell) || !creatureSpell.getFlags().contains(CreatureSpellFlag.IS_DEFENSIVE)) {
+                continue;
+            }
+
+            // The Imp's Teleport is defensive too, but it has no shot
+            Shot shot = levelInfo.getLevelData().getShotById(creatureSpell.getShotTypeId());
+            if (shot == null || shot.getCollideType() != Shot.CollideType.DEAD_BODIES) {
                 continue;
             }
 
