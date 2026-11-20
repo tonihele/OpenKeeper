@@ -65,6 +65,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SIGHT_OF_EVIL;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SUMMON_REAPER;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TREMOR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TURNCOAT;
@@ -144,6 +145,13 @@ public final class ShotsController implements IShotsController {
         result.put(CHICKEN, request -> {
             if (request.target() != null && creaturesController.isValidEntity(request.target())) {
                 creaturesController.createController(request.target()).turnIntoChicken(request.shotData1());
+            }
+        });
+        result.put(SIGHT_OF_EVIL, request -> {
+
+            // Shot data 1 is the radius, the shot lifetime (in game ticks) the duration
+            if (request.shotData1() > 0) {
+                mapController.revealSightOfEvil(WorldUtils.vectorToPoint(request.position()), request.shotData1(), request.shot().getHealth(), request.playerId());
             }
         });
         result.put(TREMOR, request -> {
