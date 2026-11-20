@@ -69,7 +69,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * levels' speed of 4915 / 4096 tiles a second, 4 ticks a second and a speed
  * to health ratio of 50 a whole boulder rolls 3684 / 4096 tiles a tick.
  * It runs over the creatures it touches and smashes doors, traps and the
- * objects boulders destroy (0x4A0930)
+ * objects boulders destroy (0x4A0930). Lava and water wear it (0x4A10E0)
  */
 class BoulderSystemTest {
 
@@ -88,6 +88,8 @@ class BoulderSystemTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final Set<Point> solidTiles = new HashSet<>();
+    private final Set<Point> lavaTiles = new HashSet<>();
+    private final Set<Point> waterTiles = new HashSet<>();
     private final Map<Point, List<EntityId>> entitiesByTile = new HashMap<>();
     private final List<EntityId> knockedDown = new ArrayList<>();
     private final BoulderSystem system = createSystem();
@@ -285,6 +287,22 @@ class BoulderSystemTest {
         assertEquals(100, entityData.getComponent(boulder, Damage.class).damage);
     }
 
+    @Test
+    void losesASixthOfItsHealthATickOnLavaAndATenthInWater() {
+        lavaTiles.add(new Point(6, 5));
+        waterTiles.add(new Point(5, 9));
+        EntityId onLava = createBoulder(5, 5, 1, 0, HEALTH);
+        EntityId inWater = createBoulder(5, 8, 0, 1, HEALTH / 2);
+        EntityId onDryGround = createBoulder(9, 9, 1, 0, HEALTH);
+
+        system.processTick(TICK);
+
+        // It wears where it stands after its move, by its full health
+        assertEquals(HEALTH / 6, entityData.getComponent(onLava, Damage.class).damage);
+        assertEquals(HEALTH / 10, entityData.getComponent(inWater, Damage.class).damage);
+        assertNull(entityData.getComponent(onDryGround, Damage.class));
+    }
+
     private EntityId place(Point tile, Object... components) {
         EntityId thing = entityData.createEntity();
         for (Object component : components) {
@@ -351,6 +369,8 @@ class BoulderSystemTest {
         IMapController mapController = proxy(IMapController.class, (method, args) -> switch (method) {
             case "getMapData" -> mapData;
             case "isSolid" -> solidTiles.contains((Point) args[0]);
+            case "isLava" -> lavaTiles.contains((Point) args[0]);
+            case "isWater" -> waterTiles.contains((Point) args[0]);
             default -> null;
         });
         IEntityPositionLookup positionLookup = proxy(IEntityPositionLookup.class,

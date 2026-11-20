@@ -41,8 +41,10 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.entity.EntityController;
+import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.PrisonController;
+import toniarts.openkeeper.game.controller.room.TempleController;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -82,6 +84,10 @@ import toniarts.openkeeper.utils.Utils;
  * built trap a quarter of the trap type's health, and an object that boulders
  * destroy, like a bed or a chicken, its type's health. Only its own keeper's
  * Trigger Traps are spared (0x4A0930).
+ * <br>
+ * After its move the ground wears it: each tick it loses a sixth of its full
+ * health on lava, a tenth in water and a third down in the Temple's pool or
+ * the Combat Pit (0x4A10E0).
  */
 public final class BoulderSystem implements IGameLogicUpdatable {
 
@@ -185,6 +191,7 @@ public final class BoulderSystem implements IGameLogicUpdatable {
         private void roll() {
             hitThings();
             move();
+            wearOnTheGround();
 
             entityData.setComponents(entityId,
                     new Boulder((float) directionX / TILE, (float) directionY / TILE, boulder.turnX, boulder.turnY),
@@ -276,6 +283,21 @@ public final class BoulderSystem implements IGameLogicUpdatable {
             float distanceY = thingPosition.position.z - position.position.z;
 
             return distanceX * distanceX + distanceY * distanceY < reach * reach;
+        }
+
+        private void wearOnTheGround() {
+            Point tile = new Point(Math.floorDiv(x, TILE), Math.floorDiv(y, TILE));
+            if (mapController.isLava(tile)) {
+                wear += health / 6;
+            } else if (mapController.isWater(tile)) {
+                wear += health / 10;
+            } else {
+                IRoomController room = mapController.getRoomControllerByCoordinates(tile);
+                if ((room instanceof TempleController temple && temple.isSacrificePool(tile))
+                        || (room instanceof CombatPitController pit && pit.isFightingTile(tile))) {
+                    wear += health / 3;
+                }
+            }
         }
 
         private void move() {
