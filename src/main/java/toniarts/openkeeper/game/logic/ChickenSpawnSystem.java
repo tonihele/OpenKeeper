@@ -28,20 +28,15 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import toniarts.openkeeper.game.component.ChickenGenerator;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Food;
-import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
-import toniarts.openkeeper.game.controller.ObjectsController;
-import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IChickenGenerator;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.RoomListener;
@@ -77,7 +72,6 @@ public final class ChickenSpawnSystem extends GameTimeCounter {
     private final EntitySet freerangeChickens;
     private final Map<Short, Set<EntityId>> freeRangeChickensByPlayer;
     private final Map<EntityId, Short> freeRangeChickenOwners;
-    private final Queue<IChickenGenerator> changedHatcheries = new ConcurrentLinkedQueue<>();
 
     public ChickenSpawnSystem(EntityData entityData, IObjectsController objectsController, Collection<IPlayerController> playerControllers,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
@@ -146,11 +140,6 @@ public final class ChickenSpawnSystem extends GameTimeCounter {
             processChangedChickenEntities(freerangeChickens.getChangedEntities());
         }
 
-        IChickenGenerator changedHatchery;
-        while ((changedHatchery = changedHatcheries.poll()) != null) {
-            adoptChickens(changedHatchery);
-        }
-
         for (IChickenGenerator entrance : entrances.getArray()) {
             evaluateAndSpawnCreature(entrance);
         }
@@ -185,32 +174,6 @@ public final class ChickenSpawnSystem extends GameTimeCounter {
         if (spawned) {
             // Reset spawn time
             entrance.onSpawn(timeElapsed, entityId);
-        }
-    }
-
-    /**
-     * Every chicken standing on a Hatchery belongs to it: when the room is
-     * built, changed or taken over, DK II gives the chickens on its tiles to
-     * the room's owner and puts those that have no room in the room, the
-     * free-range chickens and another keeper's alike (DKII.EXE 0x4DEB70,
-     * called from 0x4DE5D0)
-     *
-     * @param hatchery the hatchery that was built, changed or taken over
-     */
-    private void adoptChickens(IChickenGenerator hatchery) {
-        if (hatchery.isRemoved() || !hatchery.hasObjectControl(ObjectType.FOOD)) {
-            return;
-        }
-        for (Entity entity : freerangeChickens) {
-            ObjectComponent objectComponent = entityData.getComponent(entity.getId(), ObjectComponent.class);
-            Position position = entityData.getComponent(entity.getId(), Position.class);
-            if (objectComponent == null || objectComponent.objectId != ObjectsController.OBJECT_CHICKEN_ID || position == null) {
-                continue;
-            }
-            Point tile = WorldUtils.vectorToPoint(position.position);
-            if (hatchery.getRoomInstance().hasCoordinate(tile)) {
-                hatchery.getObjectControl(ObjectType.FOOD).addItem(entity.getId(), tile);
-            }
         }
     }
 
@@ -339,9 +302,6 @@ public final class ChickenSpawnSystem extends GameTimeCounter {
         @Override
         public void onCaptured(IRoomController room) {
             //addRoom(room);
-            if (room instanceof IChickenGenerator chickenGenerator) {
-                changedHatcheries.add(chickenGenerator);
-            }
         }
 
         @Override
@@ -357,7 +317,6 @@ public final class ChickenSpawnSystem extends GameTimeCounter {
         private void addRoom(IRoomController room) {
             if (room instanceof IChickenGenerator chickenGenerator) {
                 entrances.add(chickenGenerator);
-                changedHatcheries.add(chickenGenerator);
             }
         }
 

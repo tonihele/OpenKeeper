@@ -18,14 +18,20 @@ package toniarts.openkeeper.game.controller.room;
 
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.ChickenGenerator;
+import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomFoodControl;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * The hatchery
@@ -55,6 +61,29 @@ public final class HatcheryController extends NormalRoomController implements IC
                 return roomInstance.getCoordinates().size();
             }
         });
+        takeInChickens();
+    }
+
+    /**
+     * Every chicken standing on a Hatchery belongs to it: when the room's
+     * objects are set up again, on being built, changed or taken over, DK II
+     * gives the chickens on its tiles to the room's owner and puts those that
+     * are in no room in the room, the free-range chickens and another
+     * keeper's alike (DKII.EXE 0x4DEB70, called from 0x4DE5D0)
+     */
+    private void takeInChickens() {
+        for (EntityId chicken : entityData.findEntities(
+                new FieldFilter<>(ObjectComponent.class, "objectId", ObjectsController.OBJECT_CHICKEN_ID),
+                ObjectComponent.class, Position.class)) {
+            Position position = entityData.getComponent(chicken, Position.class);
+            if (position == null || entityData.getComponent(chicken, Stored.class) != null) {
+                continue;
+            }
+            Point tile = WorldUtils.vectorToPoint(position.position);
+            if (roomInstance.hasCoordinate(tile)) {
+                roomFoodControl.addItem(chicken, tile);
+            }
+        }
     }
 
     @Override
@@ -90,6 +119,7 @@ public final class HatcheryController extends NormalRoomController implements IC
     public void captured(short playerId) {
         super.captured(playerId);
         entityData.setComponent(entityId, new ChickenGenerator(gameTimer.getGameTime()));
+        takeInChickens();
     }
 
     @Override

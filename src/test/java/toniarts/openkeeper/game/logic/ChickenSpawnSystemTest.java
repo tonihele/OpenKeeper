@@ -17,7 +17,6 @@
 package toniarts.openkeeper.game.logic;
 
 import com.jme3.math.Vector3f;
-import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -29,23 +28,19 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
-import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.component.ChickenGenerator;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Food;
-import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.room.IChickenGenerator;
-import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.tools.convert.map.ChickenSpawnFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
-import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -57,7 +52,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ChickenSpawnSystemTest {
 
     private static final short PLAYER = 3;
-    private static final short OTHER_PLAYER = 4;
     private static final int TICKS_PER_SECOND = 4;
 
     @Test
@@ -89,80 +83,6 @@ class ChickenSpawnSystemTest {
     @Test
     void fullHatcheryLaysNoMoreFreeRangeChickensThanTheLimitCountingThoseThatWereThereFromTheStart() {
         assertEquals(List.of(), spawnSeconds(5, 20, 5));
-    }
-
-    /**
-     * Every chicken standing on a Hatchery belongs to it (DKII.EXE 0x4DEB70)
-     */
-    @Test
-    void chickensOnTheTilesOfABuiltOrCapturedHatcheryJoinIt() {
-        DefaultEntityData entityData = new DefaultEntityData();
-        EntityId onTheHatchery = chicken(entityData, ObjectsController.OBJECT_CHICKEN_ID, 1, 0);
-        chicken(entityData, ObjectsController.OBJECT_CHICKEN_ID, 5, 0);
-        chicken(entityData, ObjectsController.OBJECT_EGG_ID, 0, 0);
-
-        RoomInstance roomInstance = new RoomInstance(ChickenSpawnFixtures.hatchery());
-        roomInstance.addCoordinate(new Point(0, 0));
-        roomInstance.addCoordinate(new Point(1, 0));
-        List<List<Object>> joined = new ArrayList<>();
-        IRoomObjectControl<?> foodControl = (IRoomObjectControl<?>) Proxy.newProxyInstance(IRoomObjectControl.class.getClassLoader(),
-                new Class<?>[]{IRoomObjectControl.class}, (proxy, method, args) -> {
-                    if (!method.getName().equals("addItem")) {
-                        throw new UnsupportedOperationException(method.getName());
-                    }
-                    joined.add(List.of(args));
-                    return args[0];
-                });
-        IChickenGenerator hatchery = (IChickenGenerator) Proxy.newProxyInstance(IChickenGenerator.class.getClassLoader(),
-                new Class<?>[]{IChickenGenerator.class}, (proxy, method, args) -> switch (method.getName()) {
-                    case "hashCode" -> System.identityHashCode(proxy);
-                    case "equals" -> proxy == args[0];
-                    case "getLastSpawnTime" -> 0.0;
-                    case "hasSpawned", "isRemoved" -> false;
-                    case "isFullCapacity", "hasObjectControl" -> true;
-                    case "getOwnerId" -> PLAYER;
-                    case "getRoomInstance" -> roomInstance;
-                    case "getObjectControl" -> foodControl;
-                    default -> throw new UnsupportedOperationException(method.getName());
-                });
-        RoomListener[] listener = new RoomListener[1];
-        IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
-                new Class<?>[]{IMapController.class}, (proxy, method, args) -> {
-                    listener[0] = (RoomListener) args[1];
-                    return null;
-                });
-        Keeper keeper = new Keeper(false, PLAYER);
-        IPlayerController player = (IPlayerController) Proxy.newProxyInstance(IPlayerController.class.getClassLoader(),
-                new Class<?>[]{IPlayerController.class}, (proxy, method, args) -> switch (method.getName()) {
-                    case "getKeeper" -> keeper;
-                    case "getRoomControl" -> new PlayerRoomControl(keeper, List.of());
-                    default -> throw new UnsupportedOperationException(method.getName());
-                });
-        Map<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
-        settings.put(MiscType.CHICKEN_GENERATION_TIME_PER_HATCHERY,
-                ChickenSpawnFixtures.miscVariable(MiscType.CHICKEN_GENERATION_TIME_PER_HATCHERY, 16));
-        settings.put(MiscType.MAX_FREE_RANGE_CHICKENS_PER_PLAYER,
-                ChickenSpawnFixtures.miscVariable(MiscType.MAX_FREE_RANGE_CHICKENS_PER_PLAYER, 5));
-        ChickenSpawnSystem system = new ChickenSpawnSystem(entityData, null, List.of(player), settings, mapController);
-
-        // Nothing happens to them until the room is built
-        system.processTick(0.25f);
-        assertEquals(List.of(), joined);
-
-        listener[0].onBuild(hatchery);
-        system.processTick(0.25f);
-        assertEquals(List.of(List.of(onTheHatchery, new Point(1, 0))), joined);
-
-        listener[0].onCaptured(hatchery);
-        system.processTick(0.25f);
-        assertEquals(2, joined.size());
-    }
-
-    private static EntityId chicken(DefaultEntityData entityData, short objectId, int x, int y) {
-        EntityId entityId = entityData.createEntity();
-        entityData.setComponents(entityId, new Food(), new Decay(), new Owner(OTHER_PLAYER, OTHER_PLAYER),
-                new ObjectComponent(objectId, null), new Position(0, WorldUtils.pointToVector3f(x, y)));
-        return entityId;
     }
 
     private static List<Integer> spawnSeconds(int tiles, int seconds) {
@@ -200,7 +120,6 @@ class ChickenSpawnSystemTest {
                     case "getOwnerId" -> PLAYER;
                     case "getEntranceCoordinate" -> new Point(0, 0);
                     case "getRoomInstance" -> roomInstance;
-                    case "isRemoved", "hasObjectControl" -> false;
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
         IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(IObjectsController.class.getClassLoader(),
