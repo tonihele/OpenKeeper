@@ -22,6 +22,10 @@ import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.Objects;
+import java.util.Collection;
+import java.util.List;
+import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.component.BlueprintWarning;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.sound.ThingSounds;
@@ -126,11 +130,11 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
         }
         if (current == null || current.blueprint != target.blueprint) {
             if (target.blueprint) {
-                AssetUtils.setBlueprint(assetManager, spatial);
+                setBlueprint(true);
             } else if (current != null) {
 
                 // The door got built
-                AssetUtils.removeBlueprint(spatial);
+                setBlueprint(false);
                 playSound(ThingSounds.MANUFACTURED);
             }
         }
@@ -161,14 +165,10 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
     }
 
     @Override
-    public void onHoverEnd(short playerId) {
-        super.onHoverEnd(playerId);
-
-        // Restore blueprint state
-        if (currentState.blueprint) {
-            AssetUtils.setBlueprint(assetManager, spatial);
-        }
+    protected Collection<Class<? extends EntityComponent>> getWatchedComponents() {
+        return List.of(BlueprintWarning.class);
     }
+
 
     private void unlockDoor() {
         if (lockSpatial != null) {

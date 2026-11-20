@@ -79,6 +79,7 @@ public final class AssetUtils {
     private final static AssetCache ASSET_CACHE = new SimpleAssetCache();
     private final static AssetCache WEAK_ASSET_CACHE = new WeakRefAssetCache();
     private final static ConcurrentMap<String, Boolean> TEXTURE_MAP_CACHE = new ConcurrentHashMap<>();
+    private final static ColorRGBA BLUEPRINT_COLOR = new ColorRGBA(0, 0, 0.8f, 0.4f);
     private final static ColorRGBA FLASH_BASE = new ColorRGBA(1f, 0f, 0f, 1);
     private final static ColorRGBA FLASH_OVERLAY = new ColorRGBA(1f, 64 / 255f, 65 / 255f, 1);
 
@@ -899,7 +900,7 @@ public final class AssetUtils {
                 try {
                     Material mat = new Material(assetManager,
                             "Common/MatDefs/Misc/Unshaded.j3md");
-                    mat.setColor("Color", new ColorRGBA(0, 0, 0.8f, 0.4f));
+                    mat.setColor("Color", BLUEPRINT_COLOR.clone());
                     mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
                     if (spatial.getUserData(USER_DATA_KEY_MATERIAL_BEFORE_BLUEPRINT) == null) {
                         spatial.setUserData(USER_DATA_KEY_MATERIAL_BEFORE_BLUEPRINT, ((Geometry) spatial).getMaterial());
@@ -908,6 +909,16 @@ public final class AssetUtils {
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Failed to set material color!", e);
                 }
+            }
+        });
+    }
+
+    /** Changes only this instance's blueprint materials; original built materials stay saved. */
+    public static void setBlueprintHighlight(Spatial spatial, ColorRGBA highlightColor, boolean enabled) {
+        spatial.depthFirstTraversal(child -> {
+            if (child instanceof Geometry geometry
+                    && child.getUserData(USER_DATA_KEY_MATERIAL_BEFORE_BLUEPRINT) != null) {
+                geometry.getMaterial().setColor("Color", (enabled ? highlightColor : BLUEPRINT_COLOR).clone());
             }
         });
     }

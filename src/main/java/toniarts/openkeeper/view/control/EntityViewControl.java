@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import toniarts.openkeeper.game.component.BlueprintWarning;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.DropValidator;
@@ -69,6 +70,8 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     private static final Collection<Class<? extends EntityComponent>> WATCHED_COMPONENTS = Arrays.asList(Interaction.class, Owner.class);
 
     private boolean active = false;
+    private boolean blueprint;
+    private Boolean blueprintHighlighted;
 
     public EntityViewControl(EntityId entityId, EntityData entityData, T data, S state, AssetManager assetManager, EntityTextParser<T> textParser) {
         this.entityId = entityId;
@@ -118,6 +121,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     @Override
     protected void controlUpdate(float tpf) {
         entity.applyChanges();
+        updateBlueprintHighlight();
     }
 
     @Override
@@ -197,7 +201,33 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     private void setHighlight(final boolean enabled) {
         if (active != enabled) {
             active = enabled;
-            AssetUtils.setModelHighlight(spatial, COLOR_FLASH, enabled);
+            if (blueprint) {
+                updateBlueprintHighlight();
+            } else {
+                AssetUtils.setModelHighlight(spatial, COLOR_FLASH, enabled);
+            }
+        }
+    }
+
+    protected final void setBlueprint(boolean enabled) {
+        blueprint = enabled;
+        blueprintHighlighted = null;
+        if (enabled) {
+            AssetUtils.setBlueprint(assetManager, spatial);
+            updateBlueprintHighlight();
+        } else {
+            AssetUtils.removeBlueprint(spatial);
+            if (active) AssetUtils.setModelHighlight(spatial, COLOR_FLASH, true);
+        }
+    }
+
+    private void updateBlueprintHighlight() {
+        if (!blueprint || spatial == null) return;
+        BlueprintWarning warning = entity.get(BlueprintWarning.class);
+        boolean highlighted = active || (warning != null && warning.highlighted);
+        if (!Objects.equals(blueprintHighlighted, highlighted)) {
+            AssetUtils.setBlueprintHighlight(spatial, COLOR_FLASH, highlighted);
+            blueprintHighlighted = highlighted;
         }
     }
 

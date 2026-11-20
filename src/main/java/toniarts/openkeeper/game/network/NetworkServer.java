@@ -30,6 +30,7 @@ import com.jme3.network.service.rpc.RpcHostedService;
 import com.simsilica.es.base.DefaultEntityData;
 import com.simsilica.es.server.EntityDataHostedService;
 import com.simsilica.ethereal.EtherealHost;
+import toniarts.openkeeper.game.component.BlueprintWarning;
 import toniarts.openkeeper.game.component.Alarm;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
@@ -238,6 +239,7 @@ public final class NetworkServer {
             Serializer.registerClass(Death.class, new FieldSerializer());
             Serializer.registerClass(Decay.class, new FieldSerializer());
             Serializer.registerClass(DoorComponent.class, new FieldSerializer());
+            Serializer.registerClass(BlueprintWarning.class, new FieldSerializer());
             Serializer.registerClass(DoorViewState.class, new FieldSerializer());
             Serializer.registerClass(Fearless.class, new FieldSerializer());
             Serializer.registerClass(FollowTarget.class, new FieldSerializer());
