@@ -18,6 +18,8 @@ package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.EnumMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import javax.vecmath.Vector3f;
@@ -33,59 +35,250 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  */
 public final class Creature implements Comparable<Creature>, ISoundable, IIndexable {
 
-    public static enum AnimationType {
-        WALK,
-        RUN,
-        BACK_OFF,
-        STAND_STILL,
-        STEALTH_WALK,
-        DEATH_POSE,
-        RECOIL_FORWARDS,
-        RECOIL_BACKWARDS,
-        FALLBACK, // FALL_OVER_AND_UP
-        MELEE_ATTACK,
-        CAST_SPELL,
-        GET_UP,
-        IDLE_1,
-        IDLE_2,
-        DIE,
-        HAPPY,
-        ANGRY,
-        STUNNED,
-        IN_HAND,
-        DANCE,
-        DRUNK,
-        ENTRANCE,
-        SLEEPING,
-        EATING,
-        RESEARCHING,
-        MANUFACTURING,
-        TRAINING,
+    /**
+     * Native descriptor IDs, not file offsets, executable addresses or enum
+     * ordinals. The first block is 0x01..0x24; later fields are interleaved with
+     * non-animation data in Creatures.kwd. Slot zero is the native empty record.
+     * Readable field names follow the conventional fighter meanings; they do
+     * not prescribe the action for a worker or a creature-specific special.
+     */
+    public enum AnimationSlot implements IValueEnum {
+        WALK(0x01),
+        RUN(0x02),
+        DRAGGED(0x03),
+        RECOIL_FORWARDS(0x04),
+        MELEE_ATTACK(0x05), // Melee; Imp/Dwarf digging (native action 0x01).
+        CAST_SPELL(0x06),
+        DIE(0x07),
+        HAPPY(0x08),
+        ANGRY(0x09),
+        STUNNED(0x0A),
+        IN_HAND(0x0B),
+        SLEEPING(0x0C), // Sleep; Imp/Dwarf wall work.
+        EATING(0x0D), // Eat; Imp/Dwarf floor claiming; Horny alternate melee.
+        RESEARCHING(0x0E), // Research; Horny alternate melee.
+        NULL_2(0x0F),
+        NULL_1(0x10),
+        TORTURED_WHEEL(0x11),
+        NULL_3(0x12),
+        DRINKING(0x13), // Drink; Imp/Dwarf hauling.
+        IDLE_1(0x14),
+        RECOIL_BACKWARDS(0x15),
+        MANUFACTURING(0x16),
+        PRAYING(0x17), // Pray; Horny gem pickup.
+        FALLBACK(0x18),
+        TORTURED_CHAIR(0x19), // Electric chair; Horny chicken stamping.
+        TORTURED_CHAIR_SKELETON(0x1A),
+        GET_UP(0x1B),
+        DANCE(0x1C),
+        DRUNK(0x1D),
+        ENTRANCE(0x1E),
+        IDLE_2(0x1F),
+        SPECIAL_1(0x20), // Creature-specific special: whip, bat transformation, attention, jump.
+        SPECIAL_2(0x21),
+        DRUNKED_WALK(0x22),
+        ROAR(0x23), // Creature-specific roar, loot, corpse eating, happiness or jump.
+        NULL_4(0x24),
+        DRUNKED_IDLE(0x25),
+        BACK_OFF(0x26),
+        STAND_STILL(0x27),
+        STEALTH_WALK(0x28),
+        DEATH_POSE(0x29),
+        SWIPE(0x2A), // Extra resource: second melee for some creatures, idle for Imp.
+        IDLE_3(0x2B),
+        IDLE_4(0x2C),
+        IDLE_3_1(0x2D),
+        IDLE_4_1(0x2E),
+        DIG(0x2F); // Extra Imp digging resource; not selected by the native action table.
+
+        private final int id;
+
+        AnimationSlot(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+
+        public static AnimationSlot fromId(int id) {
+            for (AnimationSlot slot : values()) {
+                if (slot.id == id) {
+                    return slot;
+                }
+            }
+            throw new IllegalArgumentException("Unknown animation descriptor ID: " + id);
+        }
+
+        /**
+         * One native missing-descriptor substitution (DKII 1.7, 0x494880).
+         * The caller does not recursively resolve the returned slot.
+         * Null means the native empty descriptor, not a gameplay default action.
+         */
+        public AnimationSlot getFallback() {
+            return switch (this) {
+                case RUN, RECOIL_FORWARDS, STUNNED, IDLE_1, RECOIL_BACKWARDS, GET_UP,
+                        DRUNK, SPECIAL_1, SPECIAL_2, DRUNKED_WALK, DRUNKED_IDLE, BACK_OFF,
+                        STAND_STILL, STEALTH_WALK, DEATH_POSE -> WALK;
+                case DRAGGED -> STUNNED;
+                case CAST_SPELL, ANGRY, RESEARCHING, NULL_2, MANUFACTURING -> MELEE_ATTACK;
+                case EATING, PRAYING, DANCE, ROAR -> HAPPY;
+                case NULL_1, TORTURED_WHEEL, NULL_3, DRINKING, TORTURED_CHAIR, TORTURED_CHAIR_SKELETON,
+                        ENTRANCE -> ANGRY;
+                case FALLBACK -> RECOIL_FORWARDS;
+                case IDLE_2, NULL_4 -> IDLE_1;
+                default -> null;
+            };
+        }
+    }
+
+    /**
+     * Playback actions. Existing names/order are retained for saved and replicated
+     * states; historical names describe only some creatures. Use AnimationSlot
+     * for file resources, and the explicit worker actions for gameplay.
+     */
+    public static enum AnimationType implements AnimationAction {
+        WALK(AnimationSlot.WALK),
+        RUN(AnimationSlot.RUN),
+        BACK_OFF(AnimationSlot.BACK_OFF),
+        STAND_STILL(AnimationSlot.STAND_STILL),
+        STEALTH_WALK(AnimationSlot.STEALTH_WALK),
+        DEATH_POSE(AnimationSlot.DEATH_POSE),
+        RECOIL_FORWARDS(AnimationSlot.RECOIL_FORWARDS),
+        RECOIL_BACKWARDS(AnimationSlot.RECOIL_BACKWARDS),
+        FALLBACK(AnimationSlot.FALLBACK), // FALL_OVER_AND_UP
+        MELEE_ATTACK(AnimationSlot.MELEE_ATTACK),
+        CAST_SPELL(AnimationSlot.CAST_SPELL),
+        GET_UP(AnimationSlot.GET_UP),
+        IDLE_1(AnimationSlot.IDLE_1),
+        IDLE_2(AnimationSlot.IDLE_2),
+        DIE(AnimationSlot.DIE),
+        HAPPY(AnimationSlot.HAPPY),
+        ANGRY(AnimationSlot.ANGRY),
+        STUNNED(AnimationSlot.STUNNED),
+        IN_HAND(AnimationSlot.IN_HAND),
+        DANCE(AnimationSlot.DANCE),
+        DRUNK(AnimationSlot.DRUNK),
+        ENTRANCE(AnimationSlot.ENTRANCE),
+        SLEEPING(AnimationSlot.SLEEPING),
+        EATING(AnimationSlot.EATING),
+        RESEARCHING(AnimationSlot.RESEARCHING),
+        MANUFACTURING(AnimationSlot.MANUFACTURING),
+        TRAINING(AnimationSlot.MELEE_ATTACK), // Action only; no separate resource field
         //        IN_PRISON,
-        DRINKING,
-        PRAYING,
+        DRINKING(AnimationSlot.DRINKING),
+        PRAYING(AnimationSlot.PRAYING),
         //        GAMBLING,
-        TORTURED_WHEEL,
-        TORTURED_CHAIR,
-        TORTURED_CHAIR_SKELETON,
-        SPECIAL_1,
-        SPECIAL_2,
-        DRUNKED_WALK,
-        DRUNKED_IDLE,
+        TORTURED_WHEEL(AnimationSlot.TORTURED_WHEEL),
+        TORTURED_CHAIR(AnimationSlot.TORTURED_CHAIR),
+        TORTURED_CHAIR_SKELETON(AnimationSlot.TORTURED_CHAIR_SKELETON),
+        SPECIAL_1(AnimationSlot.SPECIAL_1),
+        SPECIAL_2(AnimationSlot.SPECIAL_2),
+        DRUNKED_WALK(AnimationSlot.DRUNKED_WALK),
+        DRUNKED_IDLE(AnimationSlot.DRUNKED_IDLE),
         //        FIGHT_VICTORY,
         //        FIGHT_IDLE,
-        DRAGGED,
-        DIG, // Imp
-        SWIPE,
-        IDLE_3, // Imp
-        IDLE_4, // Imp
-        IDLE_3_1, // same as IDLE_3
-        IDLE_4_1, // same as IDLE_4
-        ROAR, // ROAR in Horny, LOOT in Rogue
-        NULL_1, // always null
-        NULL_2, // always null
-        NULL_3, // always null
-        NULL_4, // always null
+        DRAGGED(AnimationSlot.DRAGGED),
+        DIG(AnimationSlot.DIG), // Legacy extra Imp resource, not the dig task
+        SWIPE(AnimationSlot.SWIPE),
+        IDLE_3(AnimationSlot.IDLE_3), // Imp
+        IDLE_4(AnimationSlot.IDLE_4), // Imp
+        IDLE_3_1(AnimationSlot.IDLE_3_1), // same as IDLE_3
+        IDLE_4_1(AnimationSlot.IDLE_4_1), // same as IDLE_4
+        ROAR(AnimationSlot.ROAR), // ROAR in Horny, LOOT in Rogue
+        NULL_1(AnimationSlot.NULL_1), // always null
+        NULL_2(AnimationSlot.NULL_2), // always null
+        NULL_3(AnimationSlot.NULL_3), // always null
+        NULL_4(AnimationSlot.NULL_4), // always null
+
+        // Append only: do not change the serialized ordinals above.
+        CLAIM_FLOOR(AnimationSlot.EATING),
+        REINFORCE_WALL(AnimationSlot.SLEEPING),
+        DIGGING(AnimationSlot.MELEE_ATTACK),
+        HAUL(AnimationSlot.DRINKING),
+        TORTURE_VICTIM(AnimationSlot.SPECIAL_1);
+
+        private final AnimationSlot slot;
+
+        AnimationType(AnimationSlot slot) {
+            this.slot = slot;
+        }
+
+        @Override
+        public AnimationSlot getSlot() {
+            return slot;
+        }
+
+        @Override
+        public AnimationType getAnimationType() {
+            return this;
+        }
+    }
+
+    /** An action maps to a shared resource slot and an existing replicated state. */
+    public interface AnimationAction {
+
+        AnimationType getAnimationType();
+
+        default AnimationSlot getSlot() {
+            return getAnimationType().getSlot();
+        }
+    }
+
+    /**
+     * Worker actions, independent of the conventional names of file fields.
+     * Workers can also use fighter actions (notably the Dwarf's melee attack).
+     */
+    public enum WorkerAnimation implements AnimationAction {
+        WALK(AnimationType.WALK),
+        RUN(AnimationType.RUN),
+        STAND_STILL(AnimationType.STAND_STILL),
+        DIG(AnimationType.DIGGING),
+        CLAIM_FLOOR(AnimationType.CLAIM_FLOOR),
+        REINFORCE_WALL(AnimationType.REINFORCE_WALL),
+        HAUL(AnimationType.HAUL);
+
+        private final AnimationType animationType;
+
+        WorkerAnimation(AnimationType animationType) {
+            this.animationType = animationType;
+        }
+
+        @Override
+        public AnimationType getAnimationType() {
+            return animationType;
+        }
+    }
+
+    /**
+     * Fighter actions over the same file slots. These are action vocabularies,
+     * not mutually exclusive creature classes or checks of job availability.
+     */
+    public enum FighterAnimation implements AnimationAction {
+        WALK(AnimationType.WALK),
+        RUN(AnimationType.RUN),
+        STAND_STILL(AnimationType.STAND_STILL),
+        MELEE_ATTACK(AnimationType.MELEE_ATTACK),
+        CAST_SPELL(AnimationType.CAST_SPELL),
+        SLEEP(AnimationType.SLEEPING),
+        EAT(AnimationType.EATING),
+        DRINK(AnimationType.DRINKING),
+        RESEARCH(AnimationType.RESEARCHING),
+        MANUFACTURE(AnimationType.MANUFACTURING),
+        TRAIN(AnimationType.TRAINING),
+        PRAY(AnimationType.PRAYING);
+
+        private final AnimationType animationType;
+
+        FighterAnimation(AnimationType animationType) {
+            this.animationType = animationType;
+        }
+
+        @Override
+        public AnimationType getAnimationType() {
+            return animationType;
+        }
     }
 
     public static enum OffsetType {
@@ -480,7 +673,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
 
     private String name; // 0
     private byte[] unknown1Resource;
-    private final Map<AnimationType, ArtResource> animation = HashMap.newHashMap(48);
+    private final Map<AnimationSlot, ArtResource> animation = new EnumMap<>(AnimationSlot.class);
     private final Attributes attributes = new Attributes();
     private ArtResource icon1Resource;
     private ArtResource icon2Resource;
@@ -595,15 +788,60 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
     }
 
     protected void setAnimation(AnimationType type, ArtResource resource) {
-        animation.put(type, resource);
+        setAnimation(type.getSlot(), resource);
     }
 
+    /** Raw resource for an action's slot, without fallback (availability check). */
     public ArtResource getAnimation(AnimationType type) {
-        return animation.get(type);
+        return type == null ? null : getAnimation(type.getSlot());
     }
 
+    /** Raw file resources, without native fallback. */
+    protected void setAnimation(AnimationSlot slot, ArtResource resource) {
+        animation.put(slot, resource);
+    }
+
+    public ArtResource getAnimation(AnimationSlot slot) {
+        return animation.get(slot);
+    }
+
+    public Map<AnimationSlot, ArtResource> getAnimationSlots() {
+        return Collections.unmodifiableMap(animation);
+    }
+
+    /** Resolve a playback action separately from raw resource availability. */
+    public ArtResource getAnimationForAction(AnimationAction action) {
+        if (action == null) {
+            return null;
+        }
+        AnimationSlot slot = action.getSlot();
+        ArtResource resource = getAnimation(slot);
+        if (isAnimationPresent(resource)) {
+            return resource;
+        }
+        AnimationSlot fallback = slot.getFallback();
+        resource = fallback == null ? null : getAnimation(fallback);
+        return isAnimationPresent(resource) ? resource : null;
+    }
+
+    private static boolean isAnimationPresent(ArtResource resource) {
+        return resource != null && resource.getType() != ArtResource.ArtResourceType.NONE;
+    }
+
+    /**
+     * Legacy snapshot. Resource storage is keyed only by native slots; semantic
+     * aliases do not create additional entries in the resource registry.
+     */
+    @Deprecated
     public Map<AnimationType, ArtResource> getAnimations() {
-        return animation;
+        Map<AnimationType, ArtResource> result = new EnumMap<>(AnimationType.class);
+        for (AnimationType type : AnimationType.values()) {
+            if (type.ordinal() < AnimationType.CLAIM_FLOOR.ordinal() && type != AnimationType.TRAINING
+                    && animation.containsKey(type.getSlot())) {
+                result.put(type, getAnimation(type));
+            }
+        }
+        return Collections.unmodifiableMap(result);
     }
 
     public Attributes getAttributes() {
@@ -616,7 +854,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimWalkResource() {
-        return animation.get(AnimationType.WALK);
+        return getAnimation(AnimationType.WALK);
     }
 
     /**
@@ -625,7 +863,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimDraggedPoseResource() {
-        return animation.get(AnimationType.DRAGGED);
+        return getAnimation(AnimationType.DRAGGED);
     }
 
     /**
@@ -634,7 +872,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimMelee1Resource() {
-        return animation.get(AnimationType.MELEE_ATTACK);
+        return getAnimation(AnimationType.MELEE_ATTACK);
     }
 
     /**
@@ -643,7 +881,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimMagicResource() {
-        return animation.get(AnimationType.CAST_SPELL);
+        return getAnimation(AnimationType.CAST_SPELL);
     }
 
     /**
@@ -652,7 +890,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimDieResource() {
-        return animation.get(AnimationType.DIE);
+        return getAnimation(AnimationType.DIE);
     }
 
     /**
@@ -661,7 +899,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimInHandResource() {
-        return animation.get(AnimationType.IN_HAND);
+        return getAnimation(AnimationType.IN_HAND);
     }
 
     /**
@@ -670,7 +908,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimSleepResource() {
-        return animation.get(AnimationType.SLEEPING);
+        return getAnimation(AnimationType.SLEEPING);
     }
 
     /**
@@ -679,7 +917,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimEatResource() {
-        return animation.get(AnimationType.EATING);
+        return getAnimation(AnimationType.EATING);
     }
 
     /**
@@ -688,7 +926,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimResearchResource() {
-        return animation.get(AnimationType.RESEARCHING);
+        return getAnimation(AnimationType.RESEARCHING);
     }
 
     /**
@@ -697,7 +935,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimIdle1Resource() {
-        return animation.get(AnimationType.IDLE_1);
+        return getAnimation(AnimationType.IDLE_1);
     }
 
     /**
@@ -706,7 +944,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimFallbackResource() {
-        return animation.get(AnimationType.FALLBACK);
+        return getAnimation(AnimationType.FALLBACK);
     }
 
     /**
@@ -715,7 +953,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimGetUpResource() {
-        return animation.get(AnimationType.GET_UP);
+        return getAnimation(AnimationType.GET_UP);
     }
 
     /**
@@ -724,7 +962,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimEntranceResource() {
-        return animation.get(AnimationType.ENTRANCE);
+        return getAnimation(AnimationType.ENTRANCE);
     }
 
     /**
@@ -733,7 +971,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimIdle2Resource() {
-        return animation.get(AnimationType.IDLE_2);
+        return getAnimation(AnimationType.IDLE_2);
     }
 
     /**
@@ -742,7 +980,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimMelee2Resource() {
-        return animation.get(AnimationType.SWIPE);
+        return getAnimation(AnimationType.SWIPE);
     }
 
     /**
@@ -751,7 +989,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getDrunkIdle() {
-        return animation.get(AnimationType.DRUNKED_IDLE);
+        return getAnimation(AnimationType.DRUNKED_IDLE);
     }
 
     /**
@@ -760,7 +998,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimWalkbackResource() {
-        return animation.get(AnimationType.BACK_OFF);
+        return getAnimation(AnimationType.BACK_OFF);
     }
 
     /**
@@ -769,7 +1007,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimPoseFrameResource() {
-        return animation.get(AnimationType.STAND_STILL);
+        return getAnimation(AnimationType.STAND_STILL);
     }
 
     /**
@@ -778,7 +1016,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimWalk2Resource() {
-        return animation.get(AnimationType.STEALTH_WALK);
+        return getAnimation(AnimationType.STEALTH_WALK);
     }
 
     /**
@@ -787,7 +1025,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      */
     @Deprecated
     public ArtResource getAnimDiePoseResource() {
-        return animation.get(AnimationType.DEATH_POSE);
+        return getAnimation(AnimationType.DEATH_POSE);
     }
 
     public ArtResource getIcon1Resource() {

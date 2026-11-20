@@ -57,18 +57,8 @@ public final class FootstepSounds {
 
         // The slots follow the order of the animations in Creatures.kwd, but start from 1
         return switch (animation) {
-            case WALK ->
-                1;
-            case RUN ->
-                2;
-            case RECOIL_FORWARDS ->
-                4;
-            case ANGRY ->
-                9;
-            case BACK_OFF ->
-                38;
-            default ->
-                -1;
+            case WALK, RUN, RECOIL_FORWARDS, ANGRY, BACK_OFF -> animation.getSlot().getValue();
+            default -> -1;
         };
     }
 

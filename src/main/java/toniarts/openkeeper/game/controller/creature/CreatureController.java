@@ -2397,7 +2397,7 @@ public final class CreatureController extends EntityController implements ICreat
 
     private static double getAnimationTime(Creature creature, Creature.AnimationType animation) {
         // TODO: we could cache and calculate these for all centrally, also include the starting and ending animation
-        ArtResource animationResource = creature.getAnimation(animation);
+        ArtResource animationResource = creature.getAnimationForAction(animation);
         if (animationResource == null) {
             return 0;
         }

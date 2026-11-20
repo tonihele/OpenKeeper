@@ -23,7 +23,7 @@ import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
-import toniarts.openkeeper.tools.convert.map.Creature.AnimationType;
+import toniarts.openkeeper.tools.convert.map.Creature.AnimationSlot;
 import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
 import toniarts.openkeeper.tools.convert.map.Creature.JobAlternative;
 import toniarts.openkeeper.tools.convert.map.Creature.OffsetType;
@@ -1283,42 +1283,42 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             creature.setName(reader.readString(32).trim());
             // 39 ArtResources (with IMPs these are not 100% same)
             creature.setUnknown1Resource(reader.read(84));  // all 0: Maiden Of The Nest, Prince Balder, Horny. Other the same
-            creature.setAnimation(AnimationType.WALK, readArtResource(reader));
-            creature.setAnimation(AnimationType.RUN, readArtResource(reader));
-            creature.setAnimation(AnimationType.DRAGGED, readArtResource(reader));
-            creature.setAnimation(AnimationType.RECOIL_FORWARDS, readArtResource(reader));
-            creature.setAnimation(AnimationType.MELEE_ATTACK, readArtResource(reader));
-            creature.setAnimation(AnimationType.CAST_SPELL, readArtResource(reader));
-            creature.setAnimation(AnimationType.DIE, readArtResource(reader));
-            creature.setAnimation(AnimationType.HAPPY, readArtResource(reader));
-            creature.setAnimation(AnimationType.ANGRY, readArtResource(reader));
-            creature.setAnimation(AnimationType.STUNNED, readArtResource(reader));
-            creature.setAnimation(AnimationType.IN_HAND, readArtResource(reader));
-            creature.setAnimation(AnimationType.SLEEPING, readArtResource(reader));
-            creature.setAnimation(AnimationType.EATING, readArtResource(reader));
-            creature.setAnimation(AnimationType.RESEARCHING, readArtResource(reader));
-            creature.setAnimation(AnimationType.NULL_2, readArtResource(reader));
-            creature.setAnimation(AnimationType.NULL_1, readArtResource(reader));
-            creature.setAnimation(AnimationType.TORTURED_WHEEL, readArtResource(reader));
-            creature.setAnimation(AnimationType.NULL_3, readArtResource(reader));
-            creature.setAnimation(AnimationType.DRINKING, readArtResource(reader));
-            creature.setAnimation(AnimationType.IDLE_1, readArtResource(reader));
-            creature.setAnimation(AnimationType.RECOIL_BACKWARDS, readArtResource(reader));
-            creature.setAnimation(AnimationType.MANUFACTURING, readArtResource(reader));
-            creature.setAnimation(AnimationType.PRAYING, readArtResource(reader));
-            creature.setAnimation(AnimationType.FALLBACK, readArtResource(reader));
-            creature.setAnimation(AnimationType.TORTURED_CHAIR, readArtResource(reader));
-            creature.setAnimation(AnimationType.TORTURED_CHAIR_SKELETON, readArtResource(reader));
-            creature.setAnimation(AnimationType.GET_UP, readArtResource(reader));
-            creature.setAnimation(AnimationType.DANCE, readArtResource(reader));
-            creature.setAnimation(AnimationType.DRUNK, readArtResource(reader));
-            creature.setAnimation(AnimationType.ENTRANCE, readArtResource(reader));
-            creature.setAnimation(AnimationType.IDLE_2, readArtResource(reader));
-            creature.setAnimation(AnimationType.SPECIAL_1, readArtResource(reader));
-            creature.setAnimation(AnimationType.SPECIAL_2, readArtResource(reader));
-            creature.setAnimation(AnimationType.DRUNKED_WALK, readArtResource(reader));
-            creature.setAnimation(AnimationType.ROAR, readArtResource(reader)); // FIXME
-            creature.setAnimation(AnimationType.NULL_4, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.WALK, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.RUN, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.DRAGGED, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.RECOIL_FORWARDS, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.MELEE_ATTACK, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.CAST_SPELL, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.DIE, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.HAPPY, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.ANGRY, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.STUNNED, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.IN_HAND, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.SLEEPING, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.EATING, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.RESEARCHING, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.NULL_2, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.NULL_1, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.TORTURED_WHEEL, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.NULL_3, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.DRINKING, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.IDLE_1, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.RECOIL_BACKWARDS, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.MANUFACTURING, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.PRAYING, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.FALLBACK, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.TORTURED_CHAIR, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.TORTURED_CHAIR_SKELETON, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.GET_UP, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.DANCE, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.DRUNK, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.ENTRANCE, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.IDLE_2, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.SPECIAL_1, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.SPECIAL_2, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.DRUNKED_WALK, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.ROAR, readArtResource(reader)); // FIXME
+            creature.setAnimation(AnimationSlot.NULL_4, readArtResource(reader));
 
             creature.setIcon1Resource(readArtResource(reader));
             creature.setIcon2Resource(readArtResource(reader));
@@ -1516,19 +1516,19 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             creature.setFirstPersonFilterResource(readArtResource(reader));
             creature.setUnkfcb(reader.readUnsignedShort());
             creature.setUnk4(reader.readIntegerAsFloat());
-            creature.setAnimation(AnimationType.DRUNKED_IDLE, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.DRUNKED_IDLE, readArtResource(reader));
             creature.setSpecial1Swipe(reader.readByteAsEnum(Creature.Swipe.class));
             creature.setSpecial2Swipe(reader.readByteAsEnum(Creature.Swipe.class));
             creature.setFirstPersonMeleeResource(readArtResource(reader));
             creature.setUnk6(reader.readUnsignedInteger());
             creature.getAttributes().setTortureHpChange(reader.readShort());
             creature.getAttributes().setTortureMoodChange(reader.readShort());
-            creature.setAnimation(AnimationType.SWIPE, readArtResource(reader));
-            creature.setAnimation(AnimationType.IDLE_3, readArtResource(reader));
-            creature.setAnimation(AnimationType.IDLE_4, readArtResource(reader));
-            creature.setAnimation(AnimationType.IDLE_3_1, readArtResource(reader));
-            creature.setAnimation(AnimationType.IDLE_4_1, readArtResource(reader));
-            creature.setAnimation(AnimationType.DIG, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.SWIPE, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.IDLE_3, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.IDLE_4, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.IDLE_3_1, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.IDLE_4_1, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.DIG, readArtResource(reader));
 
             OffsetType[] offsetTypes = new OffsetType[]{OffsetType.FALL_BACK_GET_UP,
                     OffsetType.PRAYING, OffsetType.CORPSE, OffsetType.OFFSET_5,
@@ -1540,7 +1540,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                         reader.readIntegerAsFloat()
                 );
             }
-            creature.setAnimation(AnimationType.BACK_OFF, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.BACK_OFF, readArtResource(reader));
             Footstep[] footstepFrames = new Footstep[48];
             for (int x = 0; x < footstepFrames.length; x++) {
                 var footstep = new Footstep();
@@ -1549,9 +1549,9 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                 footstepFrames[x] = footstep;
             }
             creature.setFootstepFrames(footstepFrames);
-            creature.setAnimation(AnimationType.STAND_STILL, readArtResource(reader));
-            creature.setAnimation(AnimationType.STEALTH_WALK, readArtResource(reader));
-            creature.setAnimation(AnimationType.DEATH_POSE, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.STAND_STILL, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.STEALTH_WALK, readArtResource(reader));
+            creature.setAnimation(AnimationSlot.DEATH_POSE, readArtResource(reader));
             creature.setUniqueNameTextId(reader.readUnsignedShort());
             int[] x14e1 = new int[2];
             for (int x = 0; x < x14e1.length; x++) {
