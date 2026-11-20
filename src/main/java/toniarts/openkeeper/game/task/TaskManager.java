@@ -143,6 +143,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private static final Logger logger = System.getLogger(TaskManager.class.getName());
+    private static final short GRAVEYARD_ROOM_ID = 14;
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
@@ -462,8 +463,41 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             for (Short playerId : taskQueues.keySet()) {
                 addTask(playerId, new FetchCorpseTask(navigationService, mapController, entityData, this, entity.getId(), playerId));
+                tellGraveyardMissing(playerId, entity.getId());
             }
         }
+    }
+
+    /**
+     * A body on the keeper's land that can't be cleared is told to the keeper
+     * (DKII.EXE 0x46CF40 and 0x46D3C0): with no Graveyard, and only when the
+     * keeper can build one, that a Graveyard is needed (message 0x29), and
+     * with no Graveyard that has room, that it is too small (message 0x2A)
+     *
+     * @param playerId the keeper
+     * @param corpse the body
+     */
+    private void tellGraveyardMissing(short playerId, EntityId corpse) {
+        RoomAttackMessages messages = gameWorldController.getRoomAttackMessages();
+        IMapTileInformation tile = mapController.getMapData().getTile(WorldUtils.vectorToPoint(entityData.getComponent(corpse, Position.class).position));
+        if (messages == null || tile == null || tile.getOwnerId() != playerId) {
+            return;
+        }
+        List<IRoomController> graveyards = mapController.getRoomsByFunction(ObjectType.CORPSE, playerId);
+        if (graveyards.isEmpty()) {
+            for (Room room : playerControllers.get(playerId).getRoomControl().getTypesAvailable()) {
+                if (room.getRoomId() == GRAVEYARD_ROOM_ID) {
+                    messages.roomNeeded(playerId, room);
+                }
+            }
+            return;
+        }
+        for (IRoomController graveyard : graveyards) {
+            if (!graveyard.isFullCapacity()) {
+                return;
+            }
+        }
+        messages.roomTooSmall(playerId, graveyards.get(0).getRoom());
     }
 
     private void processDeletedCorpseEntities(Set<Entity> entities) {

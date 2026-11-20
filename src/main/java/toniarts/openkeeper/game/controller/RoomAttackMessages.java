@@ -148,7 +148,15 @@ public final class RoomAttackMessages {
         TOO_SMALL(300, 213, Map.ofEntries(Map.entry(1, 198), Map.entry(2, 199), Map.entry(4, 200), Map.entry(6, 210),
                 Map.entry(7, 201), Map.entry(9, 211), Map.entry(10, 204), Map.entry(11, 209), Map.entry(12, 208),
                 Map.entry(13, 203), Map.entry(14, 206), Map.entry(15, 205), Map.entry(16, 202)),
-                Map.of(1, 240, 2, 90, 4, 240), 300);
+                Map.of(1, 240, 2, 90, 4, 240), 300),
+        /**
+         * "You need a Graveyard", message 0x29. A room type without an entry
+         * of its own has no speech and isn't told
+         */
+        NEEDED(300, 0, Map.ofEntries(Map.entry(1, 1307), Map.entry(2, 1308), Map.entry(4, 1309), Map.entry(6, 1506),
+                Map.entry(7, 1509), Map.entry(9, 1512), Map.entry(10, 1507), Map.entry(11, 1312), Map.entry(12, 1311),
+                Map.entry(13, 1511), Map.entry(14, 1310), Map.entry(15, 1508), Map.entry(16, 1510)),
+                Map.of(1, 420, 2, 180, 4, 180, 11, 600, 14, 600), 300);
 
         private final double duration;
         private final int defaultSpeechId;
@@ -329,6 +337,16 @@ public final class RoomAttackMessages {
     }
 
     /**
+     * The keeper has no room of a type that there is work for
+     *
+     * @param ownerId the keeper
+     * @param room the room type
+     */
+    public void roomNeeded(short ownerId, Room room) {
+        show(Message.NEEDED, ownerId, room.getRoomId(), null);
+    }
+
+    /**
      * The room lost a tile. The keeper hears of it if he has fewer rooms of the
      * type than before
      *
@@ -349,7 +367,7 @@ public final class RoomAttackMessages {
     }
 
     private void show(Message message, short ownerId, short roomId, Point tile, int speechId, short namedPlayerId) {
-        if (playerService == null) {
+        if (playerService == null || speechId == 0) {
             return;
         }
         double now = gameTimer.getGameTime();
