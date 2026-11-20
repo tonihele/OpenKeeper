@@ -231,7 +231,7 @@
                                    imageMode="resize:0,112,0,0,0,112,0,110,0,112,0,0" filter="true">
                             <!-- Query pointer -->
                             <panel x="0" y="0" width="64px" height="64px" visibleToMouse="true">
-                                <interact onClick="playButtonSound(GUI_BUTTON_DEFAULT)"/>
+                                <interact onClick="select(query,0)"/>
                                 <effect>
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-00.png" post="true"/>
                                     <onClick name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-00.png" post="true"/>

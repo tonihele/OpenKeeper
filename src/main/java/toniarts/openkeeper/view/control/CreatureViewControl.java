@@ -135,11 +135,29 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public String getTooltip(short playerId) {
+        return getText(playerId, "2841");
+    }
+
+    /**
+     * The text the Query Tool shows of the creature, DK II's 0x48D340. Own
+     * creatures show their name, blood group, wage and the gold they hold
+     *
+     * @param playerId the player asking
+     * @return the text, empty for another keeper's creature
+     */
+    public String getQueryText(short playerId) {
+        return getText(playerId, "2409");
+    }
+
+    private String getText(short playerId, String ownCreatureTextId) {
 
         // Like DK II, only own creatures, heroes and neutral creatures have a tooltip, other keepers' creatures have none
         String tooltip;
         if (getOwnerId() == playerId) {
-            tooltip = Utils.getMainTextResourceBundle().getString("2841");
+
+            // The Horned Reaper has a text of its own (0x48D880, 0x48D340)
+            tooltip = Utils.getMainTextResourceBundle().getString(
+                    getDataObject().getFlags().contains(Creature.CreatureFlag.IS_HORNY) ? "2793" : ownCreatureTextId);
         } else if (getOwnerId() == Player.GOOD_PLAYER_ID) {
             tooltip = Utils.getMainTextResourceBundle().getString("2412");
         } else if (getOwnerId() == Player.NEUTRAL_PLAYER_ID) {

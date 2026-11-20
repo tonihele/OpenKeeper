@@ -211,6 +211,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
             this.playButtonSound(GlobalCategory.GUI_BUTTON_TAB_SPELLS);
         } else if (type == Type.TRAP || type == Type.DOOR) {
             this.playButtonSound(GlobalCategory.GUI_BUTTON_TAB_WORKSHOP);
+        } else if (type == Type.QUERY) {
+            this.playButtonSound(GlobalCategory.GUI_BUTTON_DEFAULT);
         }
         state.interactionState.setInteractionState(type, Integer.parseInt(id));
     }
