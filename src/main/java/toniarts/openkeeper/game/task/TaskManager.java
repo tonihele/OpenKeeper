@@ -772,17 +772,21 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         Point currentPosition = creature.getCreatureCoordinates();
 
         // Get all the rooms of the given type
+        // A room without creatures of the other side in it comes before a nearer room with them (0x4C6AE0)
         List<IRoomController> rooms = mapController.getRoomsByFunction(objectType, creature.getOwnerId());
         Map<Integer, IRoomController> distancesToRooms = new TreeMap<>();
+        Map<Integer, IRoomController> distancesToRoomsWithHatedCompany = new TreeMap<>();
         for (IRoomController room : rooms) {
             if (!spots.apply(room).isEmpty()) {
-                distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])), room
-                );
+                (hasHatedCompany(creature, objectType, room) ? distancesToRoomsWithHatedCompany : distancesToRooms)
+                        .put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])), room);
             }
         }
+        List<IRoomController> roomsInOrder = new ArrayList<>(distancesToRooms.values());
+        roomsInOrder.addAll(distancesToRoomsWithHatedCompany.values());
 
         // See that are they really accessible starting from the least distance one
-        for (IRoomController room : distancesToRooms.values()) {
+        for (IRoomController room : roomsInOrder) {
 
             // FIXME: if we are to have more capacity than one per tile, we need to refactor
             // The whole rooms are always accessible, take a random point from the room like DK II seems to do
@@ -867,6 +871,38 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
         }
         return distance;
+    }
+
+    /**
+     * Tells whether a creature of the other side has a job in the room: an
+     * evil creature for a good one, a good creature for any other. DK II's
+     * finders of the Library, Training Room, Temple and Guard Room prefer a
+     * room without such company even when it is further away (DKII.EXE
+     * 0x4C6AE0, 0x4E2500, 0x4F3560, 0x4F1A20, with 0x45C640 for the company).
+     * The Torture Chamber's finder doesn't care
+     *
+     * @param creature the creature looking for a room
+     * @param objectType the job it is looking for
+     * @param room the room
+     * @return true if the creature would rather work elsewhere
+     */
+    private boolean hasHatedCompany(ICreatureController creature, ObjectType objectType, IRoomController room) {
+        Map<Point, AbstractCapacityCriticalRoomTask> tasks = roomTasks.get(room);
+        if (tasks == null || creature.getCreature() == null || !(objectType == ObjectType.RESEARCHER
+                || objectType == ObjectType.TRAINEE || objectType == ObjectType.WORSHIPPER || objectType == ObjectType.GUARD)) {
+            return false;
+        }
+        Creature.CreatureFlag hated = creature.getCreature().getFlags().contains(Creature.CreatureFlag.IS_GOOD)
+                ? Creature.CreatureFlag.IS_EVIL : Creature.CreatureFlag.IS_GOOD;
+        for (AbstractCapacityCriticalRoomTask task : tasks.values()) {
+            for (ICreatureController other : task.getAssignees()) {
+                if (other.getCreature() != null && other.getCreature().getFlags().contains(hated)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private AbstractTask getRoomTask(ObjectType objectType, Point target, EntityId targetEntity, ICreatureController creature, IRoomController room) {

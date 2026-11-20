@@ -47,6 +47,7 @@ import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.TrapFiringFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
 
@@ -129,6 +130,55 @@ class TaskManagerGuardTest {
 
         assertNull(assigned.get());
         assertNull(entityData.getComponent(creatureId, GuardedRoom.class));
+    }
+
+    @Test
+    void prefersAGuardRoomWithoutCreaturesOfTheOtherSideEvenWhenItIsFurtherAway() {
+        IRoomController near = guardRoom(false, 6, 7);
+        IRoomController far = guardRoom(false, 12, 13);
+        TaskManager taskManager = taskManager(List.of(far, near));
+        AtomicReference<Task> evilsTask = new AtomicReference<>();
+        AtomicReference<Task> goodsTask = new AtomicReference<>();
+        AtomicReference<Task> otherEvilsTask = new AtomicReference<>();
+
+        // The first one takes the nearest room, a good creature then stays away from it and an evil one joins it
+        assertTrue(taskManager.assignTask(guard(Creature.CreatureFlag.IS_EVIL, evilsTask), Creature.JobType.GUARD));
+        assertTrue(taskManager.assignTask(guard(Creature.CreatureFlag.IS_GOOD, goodsTask), Creature.JobType.GUARD));
+        assertTrue(taskManager.assignTask(guard(Creature.CreatureFlag.IS_EVIL, otherEvilsTask), Creature.JobType.GUARD));
+
+        assertTrue(near.getRoomInstance().hasCoordinate(evilsTask.get().getTaskLocation()));
+        assertTrue(far.getRoomInstance().hasCoordinate(goodsTask.get().getTaskLocation()));
+        assertTrue(near.getRoomInstance().hasCoordinate(otherEvilsTask.get().getTaskLocation()));
+    }
+
+    @Test
+    void sharesARoomWithTheOtherSideWhenThereIsNoOther() {
+        IRoomController only = guardRoom(false, 6, 7);
+        TaskManager taskManager = taskManager(List.of(only));
+        AtomicReference<Task> goodsTask = new AtomicReference<>();
+
+        assertTrue(taskManager.assignTask(guard(Creature.CreatureFlag.IS_EVIL, new AtomicReference<>()), Creature.JobType.GUARD));
+        assertTrue(taskManager.assignTask(guard(Creature.CreatureFlag.IS_GOOD, goodsTask), Creature.JobType.GUARD));
+
+        assertTrue(only.getRoomInstance().hasCoordinate(goodsTask.get().getTaskLocation()));
+    }
+
+    private ICreatureController guard(Creature.CreatureFlag side, AtomicReference<Task> task) {
+        EntityId id = entityData.createEntity();
+        Creature type = TrapFiringFixtures.creature((short) 1, side);
+        return stub(ICreatureController.class, (proxy, method, args) -> switch (method.getName()) {
+            case "getCreatureCoordinates" -> new Point(0, 2);
+            case "getOwnerId" -> KEEPER;
+            case "getEntityId" -> id;
+            case "getCreature" -> type;
+            case "setAssignedTask" -> {
+                task.set((Task) args[0]);
+                yield null;
+            }
+            case "hashCode" -> System.identityHashCode(proxy);
+            case "equals" -> proxy == args[0];
+            default -> null;
+        });
     }
 
     /**
