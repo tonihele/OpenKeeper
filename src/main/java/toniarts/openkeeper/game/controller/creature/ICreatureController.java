@@ -106,6 +106,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean dropGoldToTreasury();
 
+    /**
+     * A worker walking to its work claims the floor that digging has left when
+     * it is on such a tile, as in the original (DKII.EXE 0x464170)
+     *
+     * @return true if the worker now claims the tile it is on
+     */
+    public boolean claimDugFloorOnTheWay();
+
     public boolean isStopped();
 
     public void navigateToAssignedTask();

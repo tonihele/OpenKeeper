@@ -37,8 +37,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A worker nearer to a tile takes its claim over from the one assigned to it
- * (0x46AB50). The floor that digging has left is claimed first, once no tile
- * around it is tagged for digging anymore (0x469600)
+ * (0x46AB50). The floor that digging has left is claimed by a worker walking
+ * over it, once no tile around it is tagged for digging anymore (0x469600)
  */
 class ClaimTileTaskTest {
 
@@ -92,7 +92,7 @@ class ClaimTileTaskTest {
     }
 
     @Test
-    void floorLeftByDiggingIsClaimedFirst() {
+    void onlyFloorLeftByDiggingIsClaimedOnTheWay() {
         assertTrue(dugFloor().isDugFloorToClaim());
         assertFalse(task.isDugFloorToClaim(), "Other floor is claimed in its turn");
     }

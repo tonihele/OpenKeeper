@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task;
 
+import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
@@ -32,7 +33,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.ClaimingFloor;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
@@ -49,8 +52,12 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.task.worker.ClaimTileTask;
 import toniarts.openkeeper.utils.Point;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Handing out tasks to idle workers (#671). Finding the spot to work from
@@ -66,6 +73,23 @@ class WorkerTaskAssignmentTest {
     private final AtomicInteger targetLookups = new AtomicInteger();
     private final AtomicInteger reachabilityChecks = new AtomicInteger();
     private final Set<Point> land = new HashSet<>();
+
+    // No tiles to scan for tasks at the start, but every tile can be looked up
+    private final IMapDataInformation<?> map = stub(IMapDataInformation.class, (name, args) -> switch (name) {
+        case "getWidth", "getHeight" -> 0;
+        case "getTile" -> args.length == 1 ? tile((Point) args[0]) : tile(new Point((int) args[0], (int) args[1]));
+        default -> null;
+    });
+    private final IMapController mapController = stub(IMapController.class, (name, args) -> switch (name) {
+        case "getMapData" -> map;
+        case "isClaimableTile" -> true;
+        default -> null;
+    });
+    private final INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
+        case "isAccessible" -> land.contains(((IMapTileInformation) args[1]).getLocation());
+        case "findPath" -> new DefaultGraphPath<>();
+        default -> null;
+    });
 
     @Test
     void choosingTasksDoesNotPathFindToEveryTask() {
@@ -206,6 +230,49 @@ class WorkerTaskAssignmentTest {
         assertEquals(1, handler.assignees.get());
     }
 
+    @Test
+    void workerOnItsWayClaimsTheFloorThatDiggingHasLeft() {
+
+        // An imp walking to its digging steps on dug floor: it claims it there and lets go of the digging, which
+        // another imp can take (DKII.EXE 0x464170, 0x469600)
+        addLand(0, 20, 10);
+        TaskManager taskManager = taskManager();
+        ClaimTileTask dugFloor = new ClaimTileTask(navigationService, mapController, new Point(5, 10), PLAYER_ID, true);
+        taskManager.addTask(PLAYER_ID, dugFloor);
+        AtomicReference<Task> work = new AtomicReference<>(work(TaskType.DIG_TILE, new Point(12, 10)));
+        ICreatureController imp = walkingImp(new Point(5, 10), work);
+
+        assertTrue(taskManager.assignDugFloorOnTheWay(imp));
+        assertEquals(dugFloor, work.get());
+        assertEquals(1, dugFloor.getAssigneeCount());
+        assertNotNull(entityData.getComponent(imp.getEntityId(), ClaimingFloor.class), "It carries on claiming");
+    }
+
+    @Test
+    void dugFloorWithinTwoTilesOfTheWorkIsLeftForLater() {
+        addLand(0, 20, 10);
+        TaskManager taskManager = taskManager();
+        taskManager.addTask(PLAYER_ID, new ClaimTileTask(navigationService, mapController, new Point(5, 10), PLAYER_ID, true));
+
+        assertFalse(taskManager.assignDugFloorOnTheWay(walkingImp(new Point(5, 10),
+                new AtomicReference<>(work(TaskType.DIG_TILE, new Point(7, 9))))));
+        assertTrue(taskManager.assignDugFloorOnTheWay(walkingImp(new Point(5, 10),
+                new AtomicReference<>(work(TaskType.CLAIM_WALL, new Point(8, 9))))));
+    }
+
+    @Test
+    void onlyDugFloorIsClaimedOnTheWayAndOnlyToDiggingClaimingWallsOrGold() {
+        addLand(0, 20, 10);
+        TaskManager taskManager = taskManager();
+        taskManager.addTask(PLAYER_ID, new ClaimTileTask(navigationService, mapController, new Point(5, 10), PLAYER_ID, false));
+        taskManager.addTask(PLAYER_ID, new ClaimTileTask(navigationService, mapController, new Point(6, 10), PLAYER_ID, true));
+
+        assertFalse(taskManager.assignDugFloorOnTheWay(walkingImp(new Point(5, 10),
+                new AtomicReference<>(work(TaskType.DIG_TILE, new Point(12, 10))))), "Other floor is claimed in its turn");
+        assertFalse(taskManager.assignDugFloorOnTheWay(walkingImp(new Point(6, 10),
+                new AtomicReference<>(work(TaskType.FETCH_TRAP_CRATE, new Point(12, 10))))), "Not on the way to a crate");
+    }
+
     private void addLand(int fromX, int toX, int y) {
         for (int x = fromX; x <= toX; x++) {
             land.add(new Point(x, y));
@@ -221,20 +288,6 @@ class WorkerTaskAssignmentTest {
     }
 
     private TaskManager taskManager() {
-        // No tiles to scan for tasks at the start, but every tile can be looked up
-        IMapDataInformation<?> map = stub(IMapDataInformation.class, (name, args) -> switch (name) {
-            case "getWidth", "getHeight" -> 0;
-            case "getTile" -> args.length == 1 ? tile((Point) args[0]) : tile(new Point((int) args[0], (int) args[1]));
-            default -> null;
-        });
-        IMapController mapController = stub(IMapController.class, (name, args) -> switch (name) {
-            case "getMapData" -> map;
-            default -> null;
-        });
-        INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
-            case "isAccessible" -> land.contains(((IMapTileInformation) args[1]).getLocation());
-            default -> null;
-        });
         Keeper keeper = new Keeper(false, PLAYER_ID);
         IPlayerController player = stub(IPlayerController.class, (name, args) -> switch (name) {
             case "getKeeper" -> keeper;
@@ -257,6 +310,8 @@ class WorkerTaskAssignmentTest {
             case "getLocation" -> location;
             case "getX" -> location.x;
             case "getY" -> location.y;
+            case "isSelected" -> false;
+            case "getGold" -> 0;
             default -> null;
         });
     }
@@ -267,6 +322,33 @@ class WorkerTaskAssignmentTest {
             case "getCreatureCoordinates" -> location;
             case "getOwnerId" -> PLAYER_ID;
             case "getEntityId" -> entityId;
+            default -> null;
+        });
+    }
+
+    /**
+     * An imp on its way to its work, that takes the task it is given
+     */
+    private ICreatureController walkingImp(Point location, AtomicReference<Task> work) {
+        var entityId = entityData.createEntity();
+        return stub(ICreatureController.class, (name, args) -> switch (name) {
+            case "getCreatureCoordinates" -> location;
+            case "getPosition" -> new Vector3f(location.x + 0.3f, 0, location.y);
+            case "getOwnerId" -> PLAYER_ID;
+            case "getEntityId" -> entityId;
+            case "getAssignedTask" -> work.get();
+            case "setAssignedTask" -> {
+                work.set((Task) args[0]);
+                yield null;
+            }
+            default -> null;
+        });
+    }
+
+    private static Task work(TaskType type, Point location) {
+        return stub(Task.class, (name, args) -> switch (name) {
+            case "getTaskType" -> type;
+            case "getTaskLocation" -> location;
             default -> null;
         });
     }

@@ -756,6 +756,48 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     @Override
+    public boolean assignDugFloorOnTheWay(ICreatureController creature) {
+
+        // Only on the way to digging, claiming, wall work or loose gold, more than 2 tiles from it (DKII.EXE 0x464170,
+        // the flag at 0x6986B8 for each kind of job)
+        Task work = creature.getAssignedTask();
+        Set<Task> tasks = taskQueues.get(creature.getOwnerId());
+        if (work == null || tasks == null || !isClaimingOnTheWay(work)) {
+            return false;
+        }
+        Point tile = creature.getCreatureCoordinates();
+        if (Math.max(Math.abs(tile.x - work.getTaskLocation().x), Math.abs(tile.y - work.getTaskLocation().y)) <= 2
+                || !mapController.isClaimableTile(tile, creature.getOwnerId())) {
+            return false;
+        }
+
+        // The floor that digging has left, once no digging is tagged around it. A worker on its way to it gives it up
+        // to this nearer one (0x469600)
+        for (Task task : tasks) {
+            if (task instanceof ClaimTileTask claim && tile.equals(claim.getTaskLocation())) {
+                if (!claim.isDugFloorToClaim() || (claim.isFull() && !claim.makeRoomFor(creature)) || !claim.canAssign(creature)) {
+                    return false;
+                }
+                claim.assign(creature, true);
+                setCurrentWork(creature, TaskType.CLAIM_TILE);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isClaimingOnTheWay(Task task) {
+        return switch (task.getTaskType()) {
+            case DIG_TILE, CLAIM_TILE, CLAIM_ROOM, CLAIM_WALL, REPAIR_WALL ->
+                true;
+            case FETCH_OBJECT ->
+                task instanceof FetchObjectTask fetch && fetch.isGold();
+            default ->
+                false;
+        };
+    }
+
+    @Override
     public boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId target) {
         return assignClosestRoomTask(creature, objectType, target, true);
     }

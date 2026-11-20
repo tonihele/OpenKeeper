@@ -151,19 +151,20 @@ class WorkerTaskOrderTest {
     }
 
     @Test
-    void floorLeftByDiggingIsClaimedBeforeTheOtherUsualWork() {
+    void cratesForTheBlueprintsComeAfterTheSameWorkAndDugFloorIsClaimedInItsTurn() {
 
-        // The first job on the original's work list (DKII.EXE 0x469600, list at 0x698658): before the crates for the
-        // blueprints that come next on it, digging and the other claiming, however near they are. An imp that is
-        // digging still digs on first (0x463DF0)
+        // On the original's work list (DKII.EXE 0x698658) the crates for the blueprints come before digging and
+        // claiming, however near those are. An imp that is digging digs on first (0x463DF0). The floor that digging
+        // has left heads the list, but the list never hands it out (0x468520 has no case for it), so it is claimed
+        // like the other floor here. Workers walking over it claim it (0x464170)
         TaskManager.TaskWorkerPriority dugFloor = new TaskManager.TaskWorkerPriority(dugFloorTask(), null, 108, Integer.MAX_VALUE, false, null);
         TaskManager.TaskWorkerPriority dig = pair(TaskType.DIG_TILE, 0, 11);
         TaskManager.TaskWorkerPriority claim = pair(TaskType.CLAIM_TILE, 0, 101);
-        TaskManager.TaskWorkerPriority crate = pair(TaskType.FETCH_OBJECT, 0, 101);
-        TaskManager.TaskWorkerPriority trapCrate = pair(TaskType.FETCH_TRAP_CRATE, 0, 5);
-        TaskManager.TaskWorkerPriority nextDig = sameWorkPair(TaskType.DIG_TILE, 0, 30);
+        TaskManager.TaskWorkerPriority crate = pair(TaskType.FETCH_OBJECT, 0, 110);
+        TaskManager.TaskWorkerPriority trapCrate = pair(TaskType.FETCH_TRAP_CRATE, 0, 120);
+        TaskManager.TaskWorkerPriority nextDig = sameWorkPair(TaskType.DIG_TILE, 0, 130);
 
-        assertEquals(List.of(nextDig, dugFloor, trapCrate, dig, claim, crate), sorted(claim, crate, trapCrate, dig, dugFloor, nextDig));
+        assertEquals(List.of(nextDig, trapCrate, dig, claim, dugFloor, crate), sorted(claim, crate, trapCrate, dig, dugFloor, nextDig));
     }
 
     private static Task dugFloorTask() {

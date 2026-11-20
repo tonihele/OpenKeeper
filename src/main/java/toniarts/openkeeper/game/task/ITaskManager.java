@@ -50,6 +50,17 @@ public interface ITaskManager {
     boolean assignGoldToTreasuryTask(ICreatureController creature);
 
     /**
+     * A worker on its way to digging, claiming, wall work or loose gold claims
+     * the floor that digging has left when it walks over it, more than 2 tiles
+     * from its work and with no digging tagged around it (DKII.EXE 0x464170,
+     * 0x469600). It lets go of its work and claims the tile instead
+     *
+     * @param creature the walking worker
+     * @return true if the worker got the claim of the tile it is on
+     */
+    boolean assignDugFloorOnTheWay(ICreatureController creature);
+
+    /**
      * Assign a task according to the creature's objectives
      *
      * @param creature the creature

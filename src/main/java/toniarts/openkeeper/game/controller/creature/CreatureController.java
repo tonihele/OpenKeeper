@@ -621,6 +621,19 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public boolean claimDugFloorOnTheWay() {
+        if (taskManager.assignDugFloorOnTheWay(this)) {
+
+            // It is still on its way to its old work
+            stopCreature();
+            navigateToAssignedTask();
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
     public boolean isStopped() {
         return entityData.getComponent(entityId, Navigation.class) == null;
     }
