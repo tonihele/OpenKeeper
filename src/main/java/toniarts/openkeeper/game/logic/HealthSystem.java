@@ -422,9 +422,10 @@ public final class HealthSystem extends GameTimeCounter {
         entity = torturedEntities.getEntity(entityId);
         if (entity != null) {
             CreatureTortured tortured = entity.get(CreatureTortured.class);
-            if (elapsedTime - tortured.healthCheckTime >= 1) {
+            double interval = CreatureTorturingSystem.getTortureInterval(levelInfo.getLevelData().getGameLevel().getTicksPerSec());
+            if (elapsedTime - tortured.healthCheckTime >= interval) {
                 int tortureHealthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();
-                entityData.setComponent(entity.getId(), new CreatureTortured(tortured.timeTortured, tortured.tortureCheckTime, tortured.healthCheckTime + 1, tortured.device));
+                entityData.setComponent(entity.getId(), new CreatureTortured(tortured.timeTortured, tortured.tortureCheckTime, tortured.healthCheckTime + interval, tortured.device));
                 delta += tortureHealthRegeneratePerSecond;
 
                 return delta; // Assume no other states can be
