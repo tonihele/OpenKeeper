@@ -369,7 +369,7 @@
                     <panel width="128px" height="100%" valign="center" align="right" childLayout="vertical">
                         <panel height="64px" childLayout="horizontal">
                             <!-- place for fight or call to arm -->
-                            <control name="fight" visible="false" />
+                            <control name="fight" id="battleButton" visible="false" />
                             <!-- Call to Arms banner raised, as in the original: click to take it down, right-click to zoom -->
                             <image id="callToArms" filename="Textures/GUI/Spells/call_to_arms-kill.png" valign="center"
                                    visible="false" visibleToMouse="true">
