@@ -24,6 +24,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.IPartyController;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
+import toniarts.openkeeper.game.state.session.PlayerService;
 
 /**
  *
@@ -34,10 +35,10 @@ public final class PartyTriggerLogicController implements IGameLogicUpdatable {
     private final SafeArrayList<PartyTriggerControl> partyControllers = new SafeArrayList<>(PartyTriggerControl.class);
 
     public PartyTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
-            final ICreaturesController creaturesController) {
+            final ICreaturesController creaturesController, final PlayerService playerService) {
         for (IPartyController partyController : creaturesController.getParties()) {
             if (partyController.getTriggerId() != 0) {
-                partyControllers.add(new PartyTriggerControl(gameController, levelInfo, gameTimer, mapController, creaturesController, partyController.getTriggerId(), partyController));
+                partyControllers.add(new PartyTriggerControl(gameController, levelInfo, gameTimer, mapController, creaturesController, partyController.getTriggerId(), partyController, playerService));
             }
         }
 

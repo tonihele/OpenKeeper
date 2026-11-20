@@ -258,6 +258,11 @@ public final class MapLoaderAppState extends AbstractAppState {
         }
 
         @Override
+        public void setSystemMessagesEnabled(boolean enabled) {
+            // The model viewer has no system messages
+        }
+
+        @Override
         public void showUnitFlower(EntityId entityId, int interval, short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }

@@ -39,7 +39,7 @@ class EffectGeneratorTriggerTest {
             calls.add(List.of(a));
             return null;
         });
-        var control = new TriggerControl(game, level, null, null, null, 1);
+        var control = new TriggerControl(game, level, null, null, null, null, 1);
         for (short available : new short[]{0, 1, 2}) {
             var action = new TriggerActionData(2, null, ActionType.TOGGLE_EFFECT_GENERATOR);
             action.setUserData("generatorId", (short) 7);
@@ -53,7 +53,7 @@ class EffectGeneratorTriggerTest {
     void unsupportedNativeMusicActionIsAnExplicitNoOp() {
         var kwd = proxy(IKwdFile.class, (p, m, a) -> Map.of(1, new TriggerGeneric(null)));
         var level = proxy(ILevelInfo.class, (p, m, a) -> kwd);
-        var control = new TriggerControl(null, level, null, null, null, 1);
+        var control = new TriggerControl(null, level, null, null, null, null, 1);
         assertDoesNotThrow(() -> control.doAction(new TriggerActionData(2, null, ActionType.SET_MUSIC_LEVEL)));
     }
 
