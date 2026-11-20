@@ -66,4 +66,13 @@ public interface IShotsController {
      */
     public void hit(EntityId shot, EntityId thing);
 
+    /**
+     * A flying shot does its damage to a thing, as to a shut door that stops
+     * it
+     *
+     * @param shot the shot entity
+     * @param thing the thing hit
+     */
+    public void dealDamage(EntityId shot, EntityId thing);
+
 }

@@ -71,6 +71,7 @@ class ShotSystemTest {
     private final List<EntityId> creatures = new ArrayList<>();
     private final Set<Point> solidTiles = new HashSet<>();
     private final List<EntityId[]> hits = new ArrayList<>();
+    private final List<EntityId[]> damages = new ArrayList<>();
     private final List<Object[]> effects = new ArrayList<>();
     private ShotSystem shotSystem;
 
@@ -90,6 +91,10 @@ class ShotSystemTest {
                 new Class<?>[]{IShotsController.class}, (proxy, method, args) -> {
                     if (method.getName().equals("hit")) {
                         hits.add(new EntityId[]{(EntityId) args[0], (EntityId) args[1]});
+                        return null;
+                    }
+                    if (method.getName().equals("dealDamage")) {
+                        damages.add(new EntityId[]{(EntityId) args[0], (EntityId) args[1]});
                         return null;
                     }
                     throw new UnsupportedOperationException(method.getName());
@@ -186,12 +191,63 @@ class ShotSystemTest {
     void shotFliesThroughAnOpenDoorAndABarricade() {
         createDoor(WOODEN_DOOR, ENEMY_ID, new Vector3f(2, 1, 1), true);
         createDoor(BARRICADE, ENEMY_ID, new Vector3f(5, 1, 1), false);
-        createShot(new Vector3f(1.9f, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
-        createShot(new Vector3f(4.9f, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
+        EntityId throughDoor = createShot(new Vector3f(1.1f, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
+        EntityId overBarricade = createShot(new Vector3f(4.1f, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
 
         shotSystem.processTick(0.25f);
 
         assertTrue(hits.isEmpty());
+        assertTrue(damages.isEmpty());
+        assertEquals(2, positionOf(throughDoor).x, DELTA);
+        assertEquals(5, positionOf(overBarricade).x, DELTA);
+    }
+
+    @Test
+    void shotStopsAtAShutDoorItFliesIntoAndDamagesIt() {
+        EntityId door = createDoor(WOODEN_DOOR, ENEMY_ID, new Vector3f(2, 1, 1), false);
+        EntityId shot = createShot(new Vector3f(1, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        // The door stops the move as a wall does, the shot does its damage to it and dies there (0x4B2030)
+        shotSystem.processTick(0.25f);
+
+        assertNull(positionOf(shot));
+        assertEquals(1, damages.size());
+        assertEquals(door, damages.get(0)[1]);
+    }
+
+    @Test
+    void shotThatDoesNotDieAtSolidsStaysInFrontOfTheShutDoor() {
+        fireball.getFlags().remove(Shot.ShotFlag.DIE_WHEN_HIT_SOLID);
+        createDoor(WOODEN_DOOR, ENEMY_ID, new Vector3f(2, 1, 1), false);
+        EntityId shot = createShot(new Vector3f(1, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+        shotSystem.processTick(0.25f);
+
+        assertTrue(positionOf(shot).x < 1.5f);
+        assertEquals(new Vector3f(), entityData.getComponent(shot, ShotFlight.class).velocity);
+        assertEquals(1, damages.size());
+    }
+
+    @Test
+    void bouncingShotDoesNoDamageToTheShutDoor() {
+        fireball.getFlags().add(Shot.ShotFlag.BOUNCE);
+        createDoor(WOODEN_DOOR, ENEMY_ID, new Vector3f(2, 1, 1), false);
+        createShot(new Vector3f(1, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertTrue(damages.isEmpty());
+    }
+
+    @Test
+    void shotFiredInsideAShutDoorFliesOutOfIt() {
+        createDoor(WOODEN_DOOR, ENEMY_ID, new Vector3f(2, 1, 1), false);
+        EntityId shot = createShot(new Vector3f(2.3f, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertEquals(3.2f, positionOf(shot).x, DELTA);
     }
 
     @Test

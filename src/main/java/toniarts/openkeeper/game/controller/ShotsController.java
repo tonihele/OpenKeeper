@@ -325,16 +325,27 @@ public final class ShotsController implements IShotsController {
         ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
         Shot shot = kwdFile.getShotById(flight.shotId);
 
+        // A shot that hits things does its damage to the thing it hits (0x4ABD60)
+        if (shot.getDamageType() == Shot.DamageType.HIT_THING) {
+            dealDamage(shotEntity, thing);
+        }
+
+        process(new ShotRequest(shot, flight.shotData1, flight.shotData2, flight.ownerId,
+                EntityController.getPosition(entityData, shotEntity), thing));
+    }
+
+    @Override
+    public void dealDamage(EntityId shotEntity, EntityId thing) {
+        ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
+        Shot shot = kwdFile.getShotById(flight.shotId);
+
         // The shot's data 1 is its damage (0x4AC420), which a door of the shot's own side doesn't take
-        if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0 && !isOwnDoor(thing, flight.ownerId)) {
+        if (flight.shotData1 > 0 && !isOwnDoor(thing, flight.ownerId)) {
             if (shot.getAttackCategory() == Shot.AttackCategory.FIRE) {
                 setAlight(thing);
             }
             EntityController.setDamage(entityData, thing, flight.shotData1);
         }
-
-        process(new ShotRequest(shot, flight.shotData1, flight.shotData2, flight.ownerId,
-                EntityController.getPosition(entityData, shotEntity), thing));
     }
 
     private boolean isOwnDoor(EntityId thing, short ownerId) {
