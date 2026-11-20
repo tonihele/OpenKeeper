@@ -284,6 +284,26 @@ class CreatureCombatTest {
         assertEquals(100, entityData.getComponent(door, Damage.class).damage);
     }
 
+    @Test
+    void creatureThatWentForADoorInMeleeKeepsHittingIt() {
+        EntityId door = createDoor(WOODEN_DOOR, new Point(5, 5));
+        giveAttackSpells(us, castAt((short) 1, 5, 8.0));
+
+        // Its spell recharging, it goes for the door in melee
+        createController(us).attackAdjacentDoor();
+
+        assertEquals(100, entityData.getComponent(door, Damage.class).damage);
+
+        // In melee DK II's fight state doesn't pick the attack again (0x45F030), so it keeps hitting the door
+        // when its spell is ready again
+        giveAttackSpells(us, castAt((short) 1, 5, 2.0));
+        entityData.setComponent(us, new CreatureMeleeAttack(0, 100, 1, 1.5f));
+        createController(us).attackAdjacentDoor();
+
+        assertNull(entityData.getComponent(us, CastShot.class));
+        assertEquals(200, entityData.getComponent(door, Damage.class).damage);
+    }
+
     private EntityId createDoor(short doorId, Point tile) {
         EntityId door = entityData.createEntity();
         entityData.setComponents(door, new DoorComponent(doorId, false, false), new Owner(HERO, HERO),

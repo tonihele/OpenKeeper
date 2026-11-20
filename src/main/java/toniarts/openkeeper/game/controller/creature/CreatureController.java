@@ -50,6 +50,7 @@ import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.DoorTarget;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
@@ -704,6 +705,8 @@ public final class CreatureController extends EntityController implements ICreat
             destination = tiles.get(stop);
             faceTarget = tiles.get(doorIndex);
             workPosition = null;
+        } else {
+            entityData.removeComponent(entityId, DoorTarget.class);
         }
 
         List<Vector2> navigationPath = SteeringUtils.pathToList(path);
@@ -748,6 +751,7 @@ public final class CreatureController extends EntityController implements ICreat
         Point tile = position != null ? WorldUtils.vectorToPoint(position.position) : null;
         EntityId door = DoorAttackTarget.findAdjacent(tile, this::getBlockingDoor, this::canBreakDoor);
         if (door == null) {
+            entityData.removeComponent(entityId, DoorTarget.class);
             return false;
         }
         breakDoor(door);
@@ -777,11 +781,18 @@ public final class CreatureController extends EntityController implements ICreat
     /**
      * Breaks a door in our way: attacks it when it is in reach, and otherwise
      * steps up to it first, the door then being next to us. The door is a
-     * target of the original's fight state like any other (0x481400).
+     * target of the original's fight state like any other (0x481400), and we
+     * keep it with the attack we go for it with.
      *
      * @param door the door
      */
     private void breakDoor(EntityId door) {
+        DoorTarget doorTarget = entityData.getComponent(entityId, DoorTarget.class);
+        boolean melee = getDoorAttackSpell(door).isEmpty();
+        if (doorTarget == null || !door.equals(doorTarget.door) || doorTarget.melee != melee) {
+            entityData.setComponent(entityId, new DoorTarget(door, melee));
+        }
+
         Vector3f position = getPosition();
         if (isDoorInReach(door, WorldUtils.vector3fToVector2f(position))) {
             attackDoor(door);
@@ -817,7 +828,7 @@ public final class CreatureController extends EntityController implements ICreat
      * @return the reach
      */
     private float getDoorReach(EntityId door) {
-        Optional<CreatureSpell> spell = getDoorAttackSpell();
+        Optional<CreatureSpell> spell = getDoorAttackSpell(door);
         return spell.isPresent() ? spell.get().range : DoorAttackTarget.getMeleeReach(levelInfo.getLevelData().getDoorById(
                 entityData.getComponent(door, DoorComponent.class).doorId), getMeleeRange());
     }
@@ -828,11 +839,18 @@ public final class CreatureController extends EntityController implements ICreat
      * only work on creatures, and a support creature also takes one that
      * still recharges and waits for it (0x45CB00, 0x45F030). A door is a
      * target given to the creature, so DK II doesn't look at its distance
-     * here: the spell is cast even from right next to the door.
+     * here: the spell is cast even from right next to the door. Once the
+     * creature goes for the door in melee it doesn't pick again (0x45F030).
      *
+     * @param door the door
      * @return the spell, empty to hit the door in melee
      */
-    private Optional<CreatureSpell> getDoorAttackSpell() {
+    private Optional<CreatureSpell> getDoorAttackSpell(EntityId door) {
+        DoorTarget doorTarget = entityData.getComponent(entityId, DoorTarget.class);
+        if (doorTarget != null && doorTarget.melee && door.equals(doorTarget.door)) {
+            return Optional.empty();
+        }
+
         boolean support = creature.getFightStyle() == Creature.FightStyle.SUPPORT;
         return getCreatureSpells()
                 .stream()
@@ -856,7 +874,7 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
 
-        Optional<CreatureSpell> spell = getDoorAttackSpell();
+        Optional<CreatureSpell> spell = getDoorAttackSpell(door);
         CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
         if (spell.isPresent()) {
             if (isAttackRecharged(spell.get())) {
