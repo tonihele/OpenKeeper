@@ -110,6 +110,22 @@ class ChickenDodgeTest {
     }
 
     @Test
+    void aCreatureThatLeftTheMapThisTickIsNotThere() {
+        placeChicken(4, 4);
+
+        // Picked up or removed earlier in the tick: the position lookup lists it until it updates
+        ICreatureController gone = proxy(ICreatureController.class, (method, args) -> switch (method) {
+            case "getPosition" -> null;
+            default -> false;
+        });
+        creatures.put(new Point(4, 3), List.of(gone));
+        creatures.put(new Point(5, 4), List.of(gone, creature(5, 4, false, false)));
+
+        assertTrue(chicken.dodgeCreature());
+        assertEquals(new Vector2(3.5f, 4), entityData.getComponent(chickenId, Navigation.class).navigationPath.get(1));
+    }
+
+    @Test
     void aChickenOfTheHatcheryStaysWhereItIs() {
         placeChicken(4, 4);
         creatures.put(new Point(5, 4), List.of(creature(5, 4, false, false)));

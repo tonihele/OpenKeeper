@@ -122,14 +122,16 @@ public final class ChickenController extends EntityController implements IChicke
                 continue;
             }
 
-            // DK II looks at the first creature of a tile only
-            List<ICreatureController> creatures = entityPositionLookup.getEntityTypesInLocation(p, ICreatureController.class);
-            if (creatures.isEmpty() || creatures.get(0).canFly() || creatures.get(0).isWorker()) {
+            // DK II looks at the first creature of a tile only. One picked up or removed earlier in this tick has no
+            // position but stays in the lookup until it updates, so it is not on the tile any more
+            ICreatureController creature = entityPositionLookup.getEntityTypesInLocation(p, ICreatureController.class).stream()
+                    .filter(c -> c.getPosition() != null).findFirst().orElse(null);
+            if (creature == null || creature.canFly() || creature.isWorker()) {
                 continue;
             }
 
             // Half a tile straight away from the creature, north when it stands right on the chicken
-            Vector3f away = position.position.subtract(creatures.get(0).getPosition()).setY(0);
+            Vector3f away = position.position.subtract(creature.getPosition()).setY(0);
             away = away.lengthSquared() == 0 ? new Vector3f(0, 0, -1) : away.normalizeLocal();
             Vector3f target = position.position.add(away.multLocal(WorldUtils.TILE_WIDTH / 2));
             Point targetTile = WorldUtils.vectorToPoint(target);
