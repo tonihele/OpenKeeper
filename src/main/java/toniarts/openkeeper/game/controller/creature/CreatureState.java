@@ -599,6 +599,10 @@ public enum CreatureState implements State<ICreatureController> {
 
                 // Set free, say when the Prison was lost
                 entity.getStateMachine().changeState(IDLE);
+            } else {
+
+                // In a jail break the prisoner walks out through the door of the Prison (DK II state 0x79, 0x4739E0)
+                entity.escapePrison();
             }
         }
 
@@ -1022,6 +1026,30 @@ public enum CreatureState implements State<ICreatureController> {
                     entity.wanderOnOwnLand();
                 }
             }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, JAIL_BREAK {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.unassingCurrentTask();
+            entity.stopCreature();
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // A hero goes to the door of the Prison and lets its friends out (DK II state 0x7A, 0x473C60)
+            entity.freePrisoners();
         }
 
         @Override

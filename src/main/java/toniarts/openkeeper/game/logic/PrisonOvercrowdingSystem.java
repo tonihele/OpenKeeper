@@ -34,7 +34,8 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  * a Prison takes in prisoners over its safe capacity, and each one taken in
  * over it rolls for a jail break: the chance is the number of prisoners over
  * the safe capacity times OVERCROWDING_JAIL_BREAK_PERCENTAGE_PER_EXTRA_CREATURE.
- * The jail break frees every prisoner of the Prison (0x4E2E70).
+ * In the jail break every prisoner of the Prison sets off for its door
+ * (0x4E2E60, 0x4E2E70).
  */
 public final class PrisonOvercrowdingSystem implements IGameLogicUpdatable {
 
@@ -66,7 +67,7 @@ public final class PrisonOvercrowdingSystem implements IGameLogicUpdatable {
         }
         int extraPrisoners = prison.getCurrentCapacity() - prison.getMaxCapacity();
         if (extraPrisoners > 0 && FastMath.rand.nextInt(100) < extraPrisoners * jailBreakPercentagePerExtraPrisoner) {
-            prison.releasePrisoners();
+            prison.breakOut(prisoner -> true);
         }
     }
 

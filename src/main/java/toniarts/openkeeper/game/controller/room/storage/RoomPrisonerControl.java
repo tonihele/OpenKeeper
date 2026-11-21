@@ -24,6 +24,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.PrisonEscape;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -82,21 +83,30 @@ public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<Enti
     }
 
     /**
-     * Sets the first prisoner that is still imprisoned and accepted by the
-     * filter free
+     * A jail break: the prisoners still imprisoned here that the filter
+     * accepts set off for the door of the Prison (DKII.EXE 0x4E2E70). Each is
+     * free once it is through the door
      *
-     * @param filter tells which prisoners may be freed
-     * @return the freed prisoner, or {@code null} if there was none
+     * @param filter tells which prisoners break out
      */
-    public EntityId releaseFirst(Predicate<EntityId> filter) {
+    public void breakOut(Predicate<EntityId> filter) {
         for (EntityId prisoner : getItems()) {
             if (entityData.getComponent(prisoner, CreatureImprisoned.class) != null && filter.test(prisoner)) {
-                removeItem(prisoner);
-                release(prisoner);
-                return prisoner;
+                entityData.setComponent(prisoner, new PrisonEscape());
             }
         }
-        return null;
+    }
+
+    /**
+     * Sets a prisoner held here free
+     *
+     * @param prisoner the prisoner
+     */
+    public void free(EntityId prisoner) {
+        if (getItems().contains(prisoner)) {
+            removeItem(prisoner);
+            release(prisoner);
+        }
     }
 
     /**
@@ -117,6 +127,7 @@ public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<Enti
             return;
         }
         entityData.removeComponent(prisoner, CreatureImprisoned.class);
+        entityData.removeComponent(prisoner, PrisonEscape.class);
 
         // Back to the control of the real owner
         Owner owner = entityData.getComponent(prisoner, Owner.class);

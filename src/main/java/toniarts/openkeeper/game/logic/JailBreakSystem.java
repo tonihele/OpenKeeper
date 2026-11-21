@@ -20,6 +20,7 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureTortured;
@@ -27,9 +28,11 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.JailBreaker;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.PrisonEscape;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
@@ -46,10 +49,10 @@ import toniarts.openkeeper.utils.WorldUtils;
  * <p>
  * DKII has no timer for this. 0x4E8660 puts the hero into its jail break state
  * (id 0x7a, tick handler 0x473C60), which walks the hero to the door of the
- * Prison, opens the door on one tick and frees the prisoners on the next one
- * (0x4E2E70). The delay is a couple of logic ticks, not a number of seconds.
- * Here the hero is not sent to the door, and the prisoners are freed on the
- * tick the hero is in the Prison.
+ * Prison, opens the door on one tick and on the next one sends the prisoners
+ * on their way out through the door (0x4E2E70, their state 0x79). This system
+ * asks for that state, {@link CreatureState#JAIL_BREAK}, which the hero takes
+ * up when it is next idle.
  * <p>
  * Not from DKII: an unconscious hero does nothing, and the prisoners of the
  * hero's allies are freed too (0x4E2E70 frees the ones with the hero's owner).
@@ -78,10 +81,11 @@ public final class JailBreakSystem implements IGameLogicUpdatable {
     public void processTick(float tpf) {
         heroes.applyChanges();
         for (Entity hero : heroes) {
-            if (canBreakOut(hero)) {
-                while (freeFriend(hero) != null) {
-                    // Free all the friends
-                }
+            CreatureAi ai = entityData.getComponent(hero.getId(), CreatureAi.class);
+            if (ai != null && ai.getCreatureState() != CreatureState.JAIL_BREAK
+                    && ai.getTargetState() != CreatureState.JAIL_BREAK && canBreakOut(hero) && hasFriendToFree(hero)) {
+                entityData.setComponent(hero.getId(), new CreatureAi(ai.stateStartTime, ai.getCreatureState(),
+                        ai.creatureId, CreatureState.JAIL_BREAK, ai.stateDuration));
             }
         }
     }
@@ -93,23 +97,30 @@ public final class JailBreakSystem implements IGameLogicUpdatable {
                 && entityData.getComponent(hero.getId(), Unconscious.class) == null;
     }
 
-    private EntityId freeFriend(Entity hero) {
+    private boolean hasFriendToFree(Entity hero) {
         IRoomController room = mapController.getRoomControllerByCoordinates(
                 WorldUtils.vectorToPoint(hero.get(Position.class).position));
         if (room == null || !room.hasObjectControl(ObjectType.PRISONER)) {
-            return null;
+            return false;
         }
         Keeper keeper = levelInfo.getPlayer(hero.get(Owner.class).ownerId);
         IRoomObjectControl<?> control = room.getObjectControl(ObjectType.PRISONER);
         if (keeper == null || !keeper.isEnemy(room.getOwnerId()) || !(control instanceof RoomPrisonerControl prison)) {
-            return null;
+            return false;
         }
-        return prison.releaseFirst(prisoner -> isFriend(keeper, prisoner));
+        for (EntityId prisoner : prison.getItems()) {
+            if (isFriendHeldInside(keeper, prisoner)) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    private boolean isFriend(Keeper keeper, EntityId prisoner) {
+    private boolean isFriendHeldInside(Keeper keeper, EntityId prisoner) {
         Owner owner = entityData.getComponent(prisoner, Owner.class);
-        return owner != null && keeper.isAlly(owner.ownerId);
+        return owner != null && keeper.isAlly(owner.ownerId)
+                && entityData.getComponent(prisoner, CreatureImprisoned.class) != null
+                && entityData.getComponent(prisoner, PrisonEscape.class) == null;
     }
 
     @Override

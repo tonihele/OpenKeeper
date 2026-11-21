@@ -33,6 +33,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.JailBreaker;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.PrisonEscape;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -50,8 +51,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * A hero that frees its friends on a jail break frees the friendly prisoners
- * when it stands in an enemy Prison.
+ * A hero that frees its friends on a jail break is sent to do so when it
+ * stands in an enemy Prison that holds friends of the hero.
  */
 class JailBreakSystemTest {
 
@@ -76,39 +77,39 @@ class JailBreakSystemTest {
     }
 
     @Test
-    void heroInEnemyPrisonFreesFriendlyPrisoners() {
+    void heroInEnemyPrisonStartsTheJailBreak() {
         EntityId hero = createHero(GOOD, TILE);
-        EntityId first = imprison(GOOD);
-        EntityId second = imprison(GOOD);
+        EntityId prisoner = imprison(GOOD);
 
         tick(0.25f);
 
-        assertNull(entityData.getComponent(first, Stored.class));
-        assertNull(entityData.getComponent(first, CreatureImprisoned.class));
-        assertEquals(GOOD, entityData.getComponent(first, Owner.class).controlId);
-        assertNull(entityData.getComponent(second, Stored.class));
-        assertNotNull(entityData.getComponent(hero, JailBreaker.class));
+        assertEquals(CreatureState.JAIL_BREAK, entityData.getComponent(hero, CreatureAi.class).getTargetState());
+        assertEquals(CreatureState.WANDER, entityData.getComponent(hero, CreatureAi.class).getCreatureState());
+
+        // The prisoners are let out by the hero, from the door
+        assertNotNull(entityData.getComponent(prisoner, Stored.class));
+        assertNotNull(entityData.getComponent(prisoner, CreatureImprisoned.class));
     }
 
     @Test
     void enemyPrisonersAreLeftInside() {
-        createHero(GOOD, TILE);
-        EntityId prisoner = imprison(OTHER_KEEPER);
+        EntityId hero = createHero(GOOD, TILE);
+        imprison(OTHER_KEEPER);
 
         tick(0.25f);
 
-        assertNotNull(entityData.getComponent(prisoner, Stored.class));
+        assertNoJailBreak(hero);
     }
 
     @Test
     void heroWithoutTheFlagDoesNothing() {
         EntityId hero = createHero(GOOD, TILE);
         entityData.removeComponent(hero, JailBreaker.class);
-        EntityId prisoner = imprison(GOOD);
+        imprison(GOOD);
 
         tick(0.25f);
 
-        assertNotNull(entityData.getComponent(prisoner, Stored.class));
+        assertNoJailBreak(hero);
     }
 
     @Test
@@ -117,116 +118,125 @@ class JailBreakSystemTest {
         CreatureComponent worker = entityData.getComponent(hero, CreatureComponent.class);
         worker.worker = true;
         entityData.setComponent(hero, worker);
-        EntityId prisoner = imprison(GOOD);
+        imprison(GOOD);
 
         tick(0.25f);
 
-        assertNotNull(entityData.getComponent(prisoner, Stored.class));
+        assertNoJailBreak(hero);
     }
 
     @Test
     void heroOutsideThePrisonDoesNothing() {
-        createHero(GOOD, new Point(9, 9));
-        EntityId prisoner = imprison(GOOD);
+        EntityId hero = createHero(GOOD, new Point(9, 9));
+        imprison(GOOD);
 
         tick(0.25f);
 
-        assertNotNull(entityData.getComponent(prisoner, Stored.class));
+        assertNoJailBreak(hero);
     }
 
     @Test
     void heroInItsOwnPrisonDoesNothing() {
         prisonOwner = GOOD;
-        createHero(GOOD, TILE);
-        EntityId prisoner = imprison(GOOD);
+        EntityId hero = createHero(GOOD, TILE);
+        imprison(GOOD);
 
         tick(0.25f);
 
-        assertNotNull(entityData.getComponent(prisoner, Stored.class));
+        assertNoJailBreak(hero);
     }
 
     @Test
     void imprisonedHeroDoesNothing() {
         EntityId hero = createHero(GOOD, TILE);
         entityData.setComponent(hero, new CreatureImprisoned(0, 0));
-        EntityId prisoner = imprison(GOOD);
+        imprison(GOOD);
 
         tick(0.25f);
 
-        assertNotNull(entityData.getComponent(prisoner, Stored.class));
+        assertNoJailBreak(hero);
     }
 
     @Test
     void torturedHeroDoesNothing() {
         EntityId hero = createHero(GOOD, TILE);
         entityData.setComponent(hero, new CreatureTortured(0, 0, 0));
-        EntityId prisoner = imprison(GOOD);
+        imprison(GOOD);
 
         tick(0.25f);
 
-        assertNotNull(entityData.getComponent(prisoner, Stored.class));
+        assertNoJailBreak(hero);
     }
 
     @Test
     void unconsciousHeroDoesNothing() {
         EntityId hero = createHero(GOOD, TILE);
         entityData.setComponent(hero, new Unconscious(0));
-        EntityId prisoner = imprison(GOOD);
+        imprison(GOOD);
 
         tick(0.25f);
 
-        assertNotNull(entityData.getComponent(prisoner, Stored.class));
+        assertNoJailBreak(hero);
     }
 
     @Test
-    void friendBehindAnEnemyPrisonerIsFreed() {
-        createHero(GOOD, TILE);
-        EntityId enemy = imprison(OTHER_KEEPER);
-        EntityId friend = imprison(GOOD);
+    void friendBehindAnEnemyPrisonerStartsTheJailBreak() {
+        EntityId hero = createHero(GOOD, TILE);
+        imprison(OTHER_KEEPER);
+        imprison(GOOD);
 
         tick(0.25f);
 
-        assertNotNull(entityData.getComponent(enemy, Stored.class));
-        assertNull(entityData.getComponent(friend, Stored.class));
+        assertEquals(CreatureState.JAIL_BREAK, entityData.getComponent(hero, CreatureAi.class).getTargetState());
     }
 
     @Test
-    void prisonerOfAnAllyIsFreed() {
-        createHero(GOOD, TILE);
-        EntityId prisoner = imprison(ALLY);
+    void prisonerOfAnAllyStartsTheJailBreak() {
+        EntityId hero = createHero(GOOD, TILE);
+        imprison(ALLY);
 
         tick(0.25f);
 
-        assertNull(entityData.getComponent(prisoner, Stored.class));
+        assertEquals(CreatureState.JAIL_BREAK, entityData.getComponent(hero, CreatureAi.class).getTargetState());
     }
 
     @Test
     void prisonerThatIsNoLongerImprisonedIsSkipped() {
-        createHero(GOOD, TILE);
+        EntityId hero = createHero(GOOD, TILE);
         EntityId released = imprison(GOOD);
         entityData.removeComponent(released, CreatureImprisoned.class);
-        EntityId prisoner = imprison(GOOD);
 
         tick(0.25f);
 
-        assertNotNull(entityData.getComponent(released, Stored.class));
-        assertNull(entityData.getComponent(prisoner, Stored.class));
+        assertNoJailBreak(hero);
     }
 
     @Test
-    void allFriendlyPrisonersAreFreedOnTheSameTick() {
-        createHero(GOOD, TILE);
-        EntityId first = imprison(GOOD);
-        EntityId enemy = imprison(OTHER_KEEPER);
-        EntityId second = imprison(GOOD);
+    void friendAlreadyOnItsWayOutIsSkipped() {
+        EntityId hero = createHero(GOOD, TILE);
+        EntityId escaping = imprison(GOOD);
+        entityData.setComponent(escaping, new PrisonEscape());
 
         tick(0.25f);
 
-        assertNull(entityData.getComponent(first, Stored.class));
-        assertNotNull(entityData.getComponent(enemy, Stored.class));
-        assertNull(entityData.getComponent(second, Stored.class));
+        assertNoJailBreak(hero);
     }
 
+    @Test
+    void heroBusyWithTheJailBreakIsNotAskedAgain() {
+        EntityId hero = createHero(GOOD, TILE);
+        entityData.setComponent(hero, new CreatureAi(3, CreatureState.JAIL_BREAK, (short) 5));
+        imprison(GOOD);
+
+        tick(0.25f);
+
+        assertNoJailBreak(hero);
+        assertEquals(3, entityData.getComponent(hero, CreatureAi.class).stateStartTime);
+    }
+
+    private void assertNoJailBreak(EntityId hero) {
+        assertNull(entityData.getComponent(hero, CreatureAi.class).getTargetState());
+    }
 
     private void tick(float tpf) {
         system.processTick(tpf);
@@ -239,6 +249,7 @@ class JailBreakSystemTest {
         entityData.setComponent(hero, new Health(100, 100));
         entityData.setComponent(hero, new CreatureComponent());
         entityData.setComponent(hero, new JailBreaker());
+        entityData.setComponent(hero, new CreatureAi(0, CreatureState.WANDER, (short) 5));
         return hero;
     }
 
