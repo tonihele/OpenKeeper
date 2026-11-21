@@ -23,6 +23,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -36,9 +37,12 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -163,6 +167,35 @@ class TaskManagerGuardTest {
         assertTrue(only.getRoomInstance().hasCoordinate(goodsTask.get().getTaskLocation()));
     }
 
+    @Test
+    void aResearcherLeavesTheLibraryItSharesWithTheOtherSideForOneWithout() {
+
+        // The room stub serves any job, here the rooms are Libraries
+        List<IRoomController> libraries = new ArrayList<>(List.of(guardRoom(false, 6, 7)));
+        TaskManager taskManager = taskManager(libraries);
+        AtomicReference<Task> evilsTask = new AtomicReference<>();
+        AtomicReference<Task> goodsTask = new AtomicReference<>();
+        ICreatureController evil = guard(Creature.CreatureFlag.IS_EVIL, evilsTask);
+        ICreatureController good = guard(Creature.CreatureFlag.IS_GOOD, goodsTask);
+        assertTrue(taskManager.assignTask(evil, Creature.JobType.RESEARCH));
+        assertTrue(taskManager.assignTask(good, Creature.JobType.RESEARCH));
+
+        // With nowhere else to go they stay, a full Library is nowhere to go
+        assertTrue(goodsTask.get().isValid(good));
+        libraries.add(guardRoom(true, 12, 13));
+        assertTrue(goodsTask.get().isValid(good));
+
+        // The first one to look leaves for the new Library, the other then has the old one to itself
+        libraries.add(guardRoom(false, 20, 21));
+        assertFalse(evilsTask.get().isValid(evil));
+        assertFalse(goodsTask.get().isValid(good));
+        goodsTask.get().unassign(good);
+        assertTrue(evilsTask.get().isValid(evil));
+        assertTrue(taskManager.assignTask(good, Creature.JobType.RESEARCH));
+        assertTrue(libraries.get(2).getRoomInstance().hasCoordinate(goodsTask.get().getTaskLocation()));
+        assertTrue(goodsTask.get().isValid(good));
+    }
+
     private ICreatureController guard(Creature.CreatureFlag side, AtomicReference<Task> task) {
         EntityId id = entityData.createEntity();
         Creature type = TrapFiringFixtures.creature((short) 1, side);
@@ -209,7 +242,13 @@ class TaskManagerGuardTest {
 
     private TaskManager taskManager(List<IRoomController> rooms) {
         Keeper keeper = new Keeper(false, KEEPER);
-        IPlayerController player = stub(IPlayerController.class, (proxy, method, args) -> "getKeeper".equals(method.getName()) ? keeper : null);
+        keeper.setCurrentResearch(new ResearchableEntity((short) 1, ResearchableType.DOOR));
+        PlayerResearchControl researchControl = new PlayerResearchControl(keeper, null);
+        IPlayerController player = stub(IPlayerController.class, (proxy, method, args) -> switch (method.getName()) {
+            case "getKeeper" -> keeper;
+            case "getResearchControl" -> researchControl;
+            default -> null;
+        });
         IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (proxy, method, args) -> null);
         IMapController mapController = stub(IMapController.class, (proxy, method, args) -> switch (method.getName()) {
             case "getMapData" -> mapData;

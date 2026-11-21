@@ -910,6 +910,37 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         return false;
     }
 
+    /**
+     * Tells whether a researcher would rather be in another Library: it
+     * shares its own with a creature of the other side, and its keeper has
+     * another one it can get to, with room for it and without such company.
+     * DK II asks this when the researcher picks its next spot in the Library,
+     * and the researcher leaves when its room finder comes back with another
+     * room (DKII.EXE 0x475E70, 0x476060, with 0x4E85F0 for the company and
+     * 0x4C6AE0 for the room)
+     *
+     * @param creature the researcher
+     * @param library the Library it works in
+     * @return true if it should leave for the other Library
+     */
+    public boolean isLibraryWithoutHatedCompanyInReach(ICreatureController creature, IRoomController library) {
+        if (!hasHatedCompany(creature, ObjectType.RESEARCHER, library)) {
+            return false;
+        }
+        for (IRoomController room : mapController.getRoomsByFunction(ObjectType.RESEARCHER, creature.getOwnerId())) {
+            if (room != library && !room.getObjectControl(ObjectType.RESEARCHER).isFullCapacity()
+                    && !hasHatedCompany(creature, ObjectType.RESEARCHER, room)) {
+                Collection<Point> spots = room.getObjectControl(ObjectType.RESEARCHER).getAvailableCoordinates();
+                Point spot = spots.stream().filter(p -> room.isTileAccessible(null, p)).findFirst().orElse(null);
+                if (spot != null && navigationService.findPath(creature.getCreatureCoordinates(), spot, creature) != null) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private AbstractTask getRoomTask(ObjectType objectType, Point target, EntityId targetEntity, ICreatureController creature, IRoomController room) {
         switch (objectType) {
             case GOLD -> {
