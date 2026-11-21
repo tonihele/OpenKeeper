@@ -595,7 +595,11 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
+            if (!entity.isImprisoned()) {
 
+                // Set free, say when the Prison was lost
+                entity.getStateMachine().changeState(IDLE);
+            }
         }
 
         @Override
