@@ -57,6 +57,7 @@ class TaskManagerJobRoomMessageTest {
     private final List<IRoomController> libraries = new ArrayList<>();
     private final Room library = room("Library", (short) 6);
     private final Room temple = room("Temple", (short) 13);
+    private final Room casino = room("Casino", (short) 15);
     private final Keeper keeper = new Keeper(false, Player.KEEPER1_ID);
     private List<Room> buildable = List.of();
     private final ICreatureController creature = RoomTileWorld.stub(ICreatureController.class, (proxy, method, args) -> switch (method.getName()) {
@@ -115,6 +116,19 @@ class TaskManagerJobRoomMessageTest {
     }
 
     @Test
+    void aCreatureThatWantsToGambleAsksForACasino() {
+
+        // DK II's Casino finder 0x4D75F0: speech 1508 with none, 205 with every Casino full
+        buildable = List.of(casino);
+        assertFalse(createTaskManager().assignTask(creature, Creature.JobType.DRINK));
+        assertEquals(List.of(1508), speeches);
+
+        libraries.add(jobRoom(casino, true));
+        assertFalse(createTaskManager().assignTask(creature, Creature.JobType.DRINK));
+        assertEquals(List.of(1508, 205), speeches);
+    }
+
+    @Test
     void otherJobsTellNothing() {
         assertFalse(createTaskManager().assignTask(creature, Creature.JobType.MANUFACTURE));
         assertEquals(List.of(), speeches);
@@ -127,6 +141,10 @@ class TaskManagerJobRoomMessageTest {
     }
 
     private IRoomController library(boolean full) {
+        return jobRoom(library, full);
+    }
+
+    private IRoomController jobRoom(Room type, boolean full) {
         IRoomObjectControl<?> bookCases = RoomTileWorld.stub(IRoomObjectControl.class, (proxy, method, args) -> switch (method.getName()) {
             case "isFullCapacity" ->
                 full;
@@ -137,7 +155,7 @@ class TaskManagerJobRoomMessageTest {
         });
         return RoomTileWorld.stub(IRoomController.class, (proxy, method, args) -> switch (method.getName()) {
             case "getRoom" ->
-                library;
+                type;
             case "getObjectControl" ->
                 bookCases;
             default ->

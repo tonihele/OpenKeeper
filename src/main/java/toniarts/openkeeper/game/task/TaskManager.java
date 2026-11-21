@@ -147,11 +147,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private static final short COMBAT_PIT_ROOM_ID = 16;
 
     /**
-     * The rooms of the jobs, the Library, Training Room, Torture Chamber and
-     * Temple. DK II asks for them by number
+     * The rooms of the jobs, the Library, Training Room, Torture Chamber,
+     * Temple and Casino. DK II asks for them by number
      */
     private static final Map<Creature.JobType, Short> JOB_ROOM_IDS = Map.of(Creature.JobType.RESEARCH, (short) 6,
-            Creature.JobType.TRAIN, (short) 7, Creature.JobType.TORTURE, (short) 12, Creature.JobType.PRAY, (short) 13);
+            Creature.JobType.TRAIN, (short) 7, Creature.JobType.TORTURE, (short) 12, Creature.JobType.PRAY, (short) 13,
+            Creature.JobType.DRINK, (short) 15);
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
@@ -1133,9 +1134,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     /**
-     * A creature that wants to research, train, torture or pray and finds no
-     * room for it tells its keeper why (DKII.EXE 0x4E0470, 0x4F3560, 0x4F2B80
-     * and 0x4D8510): with no room of the type, and only when the keeper can
+     * A creature that wants to research, train, torture, pray or gamble and
+     * finds no room for it tells its keeper why (DKII.EXE 0x4E0470, 0x4F3560,
+     * 0x4F2B80, 0x4D8510 and, for the Casino, 0x4D75F0): with no room of the type, and only when the keeper can
      * build one, that the room is needed (message 0x29), and with every room
      * of the type full, that it is too small (message 0x2A). DK II's two other
      * reasons, a room that can't be reached (0x2B) and one that doesn't work
@@ -1151,6 +1152,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case TRAIN -> ObjectType.TRAINEE;
             case TORTURE -> ObjectType.TORTUREE;
             case PRAY -> ObjectType.WORSHIPPER;
+            case DRINK -> ObjectType.GAMBLER;
             default -> null;
         };
         if (messages == null || objectType == null || !playerControllers.containsKey(playerId)) {
