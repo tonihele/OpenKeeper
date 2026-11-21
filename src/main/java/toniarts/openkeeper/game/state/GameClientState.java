@@ -472,7 +472,8 @@ public final class GameClientState extends AbstractPauseAwareState {
                         gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
                         getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES),
                         getGuardPostTrapIds(),
-                        getLevelVariable(Variable.MiscVariable.MiscType.GUARD_POST_REPORTING_DISTANCE_TILES));
+                        getLevelVariable(Variable.MiscVariable.MiscType.GUARD_POST_REPORTING_DISTANCE_TILES),
+                        getLevelVariable(Variable.MiscVariable.MiscType.GUARD_ROOM_REPORTING_DISTANCE_TILES));
                 effectManagerState = new EffectManagerState(kwdFile, app.getAssetManager());
 
                 // Attach the states

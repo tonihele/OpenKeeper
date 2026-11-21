@@ -21,13 +21,19 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.map.MapColourClass;
 import toniarts.openkeeper.game.map.PlayerNumbers;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -37,7 +43,7 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 
 /**
  * The marker overlay drawn into the raster after the tile colours, before
- * upload. Owns the creature/door/trap/in-hand {@code EntitySet}s for the life of
+ * upload. Owns the creature/door/trap/room/in-hand {@code EntitySet}s for the life of
  * the session ({@link #update()} must be called once a frame before
  * {@link #paint}; {@link #dispose()} releases them).
  */
@@ -58,10 +64,13 @@ public final class MinimapMarkerPainter {
     private final short viewerId;
     private final Set<Short> guardPostTrapIds;
     private final float guardPostReportingDistanceTiles;
+    private final IMapDataInformation<? extends IMapTileInformation> mapData;
+    private final int guardRoomReportingDistanceTiles;
 
     private final EntitySet creatures;
     private final EntitySet doors;
     private final EntitySet traps;
+    private final EntitySet rooms;
     private final EntitySet inHand;
 
     /**
@@ -72,16 +81,25 @@ public final class MinimapMarkerPainter {
      * @param guardPostReportingDistanceTiles
      * {@code GUARD_POST_REPORTING_DISTANCE_TILES}, the radius of the ring
      * drawn around the viewer's own guard posts
+     * @param mapData the map tiles, to find the tiles of the viewer's own
+     * Guard Rooms
+     * @param guardRoomReportingDistanceTiles
+     * {@code GUARD_ROOM_REPORTING_DISTANCE_TILES}, how far the outline drawn
+     * around the viewer's own Guard Rooms is widened
      */
     public MinimapMarkerPainter(EntityData entityData, MinimapPalette palette, short viewerId,
-            Set<Short> guardPostTrapIds, float guardPostReportingDistanceTiles) {
+            Set<Short> guardPostTrapIds, float guardPostReportingDistanceTiles,
+            IMapDataInformation<? extends IMapTileInformation> mapData, float guardRoomReportingDistanceTiles) {
         this.palette = palette;
         this.viewerId = viewerId;
         this.guardPostTrapIds = guardPostTrapIds;
         this.guardPostReportingDistanceTiles = guardPostReportingDistanceTiles;
+        this.mapData = mapData;
+        this.guardRoomReportingDistanceTiles = (int) guardRoomReportingDistanceTiles;
         creatures = entityData.getEntities(Position.class, Owner.class, CreatureComponent.class);
         doors = entityData.getEntities(Position.class, Owner.class, DoorComponent.class);
         traps = entityData.getEntities(Position.class, Owner.class, TrapViewState.class);
+        rooms = entityData.getEntities(RoomComponent.class, Owner.class);
         inHand = entityData.getEntities(InHand.class);
     }
 
@@ -92,6 +110,7 @@ public final class MinimapMarkerPainter {
         creatures.applyChanges();
         doors.applyChanges();
         traps.applyChanges();
+        rooms.applyChanges();
         inHand.applyChanges();
     }
 
@@ -99,6 +118,7 @@ public final class MinimapMarkerPainter {
         creatures.release();
         doors.release();
         traps.release();
+        rooms.release();
         inHand.release();
     }
 
@@ -134,6 +154,7 @@ public final class MinimapMarkerPainter {
 
         paintOwnHeartRing(raster, dungeonHeartTile, fit, fitGeometry, cameraTileX, cameraTileY, pixelsPerTile,
                 dungeonHeartReportingDistanceTiles);
+        paintOwnGuardRooms(raster, mapWidth, mapHeight, fit, fitGeometry, cameraTileX, cameraTileY, pixelsPerTile);
         paintCreatures(raster, fit, fitGeometry, cameraTileX, cameraTileY, pixelsPerTile, fogOfWarInformation,
                 blinkParity, rotationPhase, dungeonHeartReportingDistanceTiles * 1.5f, possessedCreature);
         paintTraps(raster, fit, fitGeometry, cameraTileX, cameraTileY, pixelsPerTile, fogOfWarInformation, blinkParity);
@@ -155,6 +176,52 @@ public final class MinimapMarkerPainter {
         float py = toPixelY(dungeonHeartTile.y, fit, fitGeometry, cameraTileY, pixelsPerTile);
         int radius = Math.round(dungeonHeartReportingDistanceTiles * pixelsPerTileScale);
         MinimapMarkers.circleOutline(raster, Math.round(px), Math.round(py), radius, OWN_HEART_RING_COLOUR);
+    }
+
+    /*
+     * Own Guard Rooms: the room's bounds widened by the guard room reporting
+     * distance, in the Dungeon Heart ring's colour, like DK II.
+     */
+    private void paintOwnGuardRooms(byte[] raster, int mapWidth, int mapHeight, boolean fit,
+            MinimapRasteriser.FitGeometry fitGeometry, float cameraTileX, float cameraTileY, int pixelsPerTile) {
+        Map<EntityId, int[]> bounds = new HashMap<>();
+        for (Entity e : rooms) {
+            RoomComponent room = e.get(RoomComponent.class);
+            if (e.get(Owner.class).ownerId == viewerId && !room.destroyed
+                    && room.defaultStorageType == ObjectType.GUARD) {
+                bounds.put(e.getId(), new int[]{Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE});
+            }
+        }
+        if (bounds.isEmpty()) {
+            return;
+        }
+        for (int y = 0; y < mapHeight; y++) {
+            for (int x = 0; x < mapWidth; x++) {
+                IMapTileInformation tile = mapData.getTile(x, y);
+                int[] b = tile != null && tile.getRoomId() != null ? bounds.get(tile.getRoomId()) : null;
+                if (b != null) {
+                    b[0] = Math.min(b[0], x);
+                    b[1] = Math.max(b[1], x);
+                    b[2] = Math.min(b[2], y);
+                    b[3] = Math.max(b[3], y);
+                }
+            }
+        }
+        for (int[] b : bounds.values()) {
+            if (b[0] > b[1]) {
+                continue; // none of its tiles are on the map yet
+            }
+            int x0 = Math.clamp(b[0] - guardRoomReportingDistanceTiles, 1, mapWidth - 1);
+            int x1 = Math.clamp(b[1] + guardRoomReportingDistanceTiles, 1, mapWidth - 1);
+            int y0 = Math.clamp(b[2] - guardRoomReportingDistanceTiles, 1, mapHeight - 1);
+            int y1 = Math.clamp(b[3] + guardRoomReportingDistanceTiles, 1, mapHeight - 1);
+            MinimapMarkers.rectOutline(raster,
+                    Math.round(toPixelX(x0, fit, fitGeometry, cameraTileX, pixelsPerTile)),
+                    Math.round(toPixelY(y0, fit, fitGeometry, cameraTileY, pixelsPerTile)),
+                    Math.round(toPixelX(x1, fit, fitGeometry, cameraTileX, pixelsPerTile)),
+                    Math.round(toPixelY(y1, fit, fitGeometry, cameraTileY, pixelsPerTile)),
+                    OWN_HEART_RING_COLOUR);
+        }
     }
 
     /*
