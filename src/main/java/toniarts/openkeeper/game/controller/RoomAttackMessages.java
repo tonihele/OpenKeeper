@@ -224,7 +224,17 @@ public final class RoomAttackMessages {
          * message 0x4D, when the keeper has less gold than the big winner is
          * owed (0x457560)
          */
-        JACKPOT_UNPAID(50, 373, Map.of());
+        JACKPOT_UNPAID(50, 373, Map.of()),
+        /**
+         * "Your creatures have been blessed with experience" and the rest,
+         * message 0x31, told by each special when it is used (0x4A3FC0 and
+         * its handlers). DK II gives each special a variant of its own, here
+         * the speech goes by the special's object. Posted even while another
+         * one is held
+         */
+        SPECIAL(20, 0, Map.ofEntries(Map.entry(117, 490), Map.entry(118, 492), Map.entry(119, 493), Map.entry(120, 494),
+                Map.entry(121, 495), Map.entry(122, 496), Map.entry(123, 497), Map.entry(124, 498), Map.entry(125, 499),
+                Map.entry(126, 500), Map.entry(127, 501), Map.entry(128, 503), Map.entry(129, 502)), true, INFO_TAB);
 
         private final double duration;
         private final int defaultSpeechId;
@@ -430,6 +440,16 @@ public final class RoomAttackMessages {
      */
     public void cannotAffordTraining(short ownerId) {
         show(Message.CANNOT_AFFORD, ownerId, (short) 5, null);
+    }
+
+    /**
+     * The keeper used a special
+     *
+     * @param ownerId the keeper
+     * @param objectId the special's object
+     */
+    public void specialUsed(short ownerId, short objectId) {
+        show(Message.SPECIAL, ownerId, objectId, null);
     }
 
     /**

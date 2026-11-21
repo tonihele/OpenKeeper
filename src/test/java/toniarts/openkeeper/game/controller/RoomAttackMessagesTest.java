@@ -305,6 +305,18 @@ class RoomAttackMessagesTest {
     }
 
     @Test
+    void eachSpecialTellsWhatItDidEvenWhileTheLastIsHeld() {
+        roomAttackMessages.specialUsed(KEEPER, (short) 117);
+        roomAttackMessages.specialUsed(KEEPER, (short) 117);
+        roomAttackMessages.specialUsed(KEEPER, (short) 123);
+        roomAttackMessages.specialUsed(KEEPER, (short) 129);
+
+        // Message 0x31, flag 0x4000: "...blessed with experience" twice, "Enemy Imps have been stunned", "A hidden realm..."
+        assertEquals(List.of("490@null>p" + KEEPER, "490@null>p" + KEEPER, "497@null>p" + KEEPER, "502@null>p" + KEEPER), messages);
+        assertEquals(List.of(20f, 20f, 20f, 20f), seconds);
+    }
+
+    @Test
     void lowManaWarningsAreHeldEachOnItsOwn() {
         roomAttackMessages.lowManaWarning(KEEPER, 3);
         gameTime += 10;

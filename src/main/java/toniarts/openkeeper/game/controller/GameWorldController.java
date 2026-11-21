@@ -1097,6 +1097,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 return false;
             }
         }
+
+        // Every special tells the keeper what it did (DKII.EXE 0x4A3FC0, message 0x31)
+        if (roomAttackMessages != null) {
+            roomAttackMessages.specialUsed(playerId, objectId);
+        }
         return true;
     }
 
