@@ -19,12 +19,15 @@ package toniarts.openkeeper.game.logic;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -73,7 +76,9 @@ class GuardPostSystemTest {
     private static final Point FAR_GUARD_ROOM = new Point(40, 20);
     private static final Point ENEMY_TILE = new Point(25, 20);
 
-    private final EntityData entityData = new DefaultEntityData();
+    private final List<EntitySet> entitySets = new ArrayList<>();
+    private final Set<EntitySet> setsThatTookChanges = new HashSet<>();
+    private final EntityData entityData = takingNoteOfEntitySets(new DefaultEntityData());
     private final Map<Point, List<EntityId>> entitiesByTile = new HashMap<>();
     private final List<EntityId> sent = new ArrayList<>();
     private final Map<Point, IRoomController> guardRooms = new HashMap<>();
@@ -171,6 +176,43 @@ class GuardPostSystemTest {
             }
         }
         assertEquals(8, reports);
+    }
+
+    @Test
+    void takesTheChangesOfItsEntitySetsOnATickWithNoEnemyInSight() {
+
+        // Until a set takes its changes they stay queued in it: every task change of the game, for as long as no post sees an enemy
+        createPost(GUARD_POST_ID, false);
+        GuardPostSystem system = createSystem();
+
+        gameTime = 8 / 4.0;
+        system.processTick(0.25f);
+
+        assertEquals(new HashSet<>(entitySets), setsThatTookChanges);
+    }
+
+    private EntityData takingNoteOfEntitySets(EntityData store) {
+        return (EntityData) Proxy.newProxyInstance(EntityData.class.getClassLoader(), new Class<?>[]{EntityData.class}, (proxy, method, args) -> {
+            Object result = method.invoke(store, args);
+            if (!(result instanceof EntitySet set)) {
+                return result;
+            }
+            EntitySet noted = (EntitySet) Proxy.newProxyInstance(EntitySet.class.getClassLoader(), new Class<?>[]{EntitySet.class},
+                    (setProxy, setMethod, setArgs) -> switch (setMethod.getName()) {
+                case "hashCode" ->
+                    System.identityHashCode(setProxy);
+                case "equals" ->
+                    setProxy == setArgs[0];
+                default -> {
+                    if (setMethod.getName().equals("applyChanges")) {
+                        setsThatTookChanges.add((EntitySet) setProxy);
+                    }
+                    yield setMethod.invoke(set, setArgs);
+                }
+            });
+            entitySets.add(noted);
+            return noted;
+        });
     }
 
     private void tick() {

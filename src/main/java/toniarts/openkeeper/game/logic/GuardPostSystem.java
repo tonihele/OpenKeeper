@@ -110,6 +110,9 @@ public final class GuardPostSystem implements IGameLogicUpdatable {
     public void processTick(float tpf) {
         posts.applyChanges();
 
+        // Every tick, enemy or not: a set keeps the changes it hasn't taken, here every task change of the game
+        guards.applyChanges();
+
         // The posts take turns by their id, eight ticks on and eight off
         long tick = Math.round(gameTimer.getGameTime() * levelInfo.getLevelData().getGameLevel().getTicksPerSec());
         for (Entity post : posts) {
@@ -137,7 +140,6 @@ public final class GuardPostSystem implements IGameLogicUpdatable {
             return;
         }
 
-        guards.applyChanges();
         for (Entity guard : guards) {
             TaskComponent task = guard.get(TaskComponent.class);
             Owner owner = guard.get(Owner.class);
