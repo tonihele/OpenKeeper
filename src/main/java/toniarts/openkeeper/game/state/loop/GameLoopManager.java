@@ -180,7 +180,7 @@ public final class GameLoopManager {
                 new TrapSystem(entityData, level, gameController.getGameTimer(), positionSystem, playerControllers,
                         gameWorldController.getShotsController(), gameEventService),
                 new BoulderSystem(entityData, level, gameSettings, gameWorldController.getMapController(), positionSystem,
-                        gameWorldController.getCreaturesController()),
+                        gameWorldController.getCreaturesController(), playerControllers),
                 new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
                 new ShotSystem(entityData, level, gameEventService, gameWorldController.getShotsController(), positionSystem,
                         gameWorldController.getMapController(), playerControllers),

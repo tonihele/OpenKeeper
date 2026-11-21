@@ -33,11 +33,13 @@ import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.entity.EntityController;
@@ -88,6 +90,11 @@ import toniarts.openkeeper.utils.Utils;
  * After its move the ground wears it: each tick it loses a sixth of its full
  * health on lava, a tenth in water and a third down in the Temple's pool or
  * the Combat Pit (0x4A10E0).
+ * <br>
+ * It scares its keeper's enemies: after its move the level's boulder fear
+ * amount, by the health it has left, is split between the enemy creatures
+ * that are within the boulder fear range and in its line of sight, and those
+ * a tile nearer than that get their share as a threat (0x4A0E30, 0x4B32A0).
  */
 public final class BoulderSystem implements IGameLogicUpdatable {
 
@@ -103,6 +110,9 @@ public final class BoulderSystem implements IGameLogicUpdatable {
     private final IMapController mapController;
     private final IEntityPositionLookup entityPositionLookup;
     private final ICreaturesController creaturesController;
+    private final Map<Short, IPlayerController> playerControllers;
+    private final int fearAmount;
+    private final int fearRange;
     private final int speed;
     private final int speedToHealthRatio;
     private final int creatureDamagePercentage;
@@ -118,14 +128,19 @@ public final class BoulderSystem implements IGameLogicUpdatable {
      * @param mapController the map, for what blocks a boulder
      * @param entityPositionLookup finds the things on a tile
      * @param creaturesController knocks the creatures down
+     * @param playerControllers the players, for their enemies
      */
     public BoulderSystem(EntityData entityData, IKwdFile kwdFile, Map<MiscType, Variable.MiscVariable> gameSettings,
-            IMapController mapController, IEntityPositionLookup entityPositionLookup, ICreaturesController creaturesController) {
+            IMapController mapController, IEntityPositionLookup entityPositionLookup, ICreaturesController creaturesController,
+            Map<Short, IPlayerController> playerControllers) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.mapController = mapController;
         this.entityPositionLookup = entityPositionLookup;
         this.creaturesController = creaturesController;
+        this.playerControllers = playerControllers;
+        fearAmount = (int) gameSettings.get(MiscType.BOULDER_FEAR_AMOUNT).getValue();
+        fearRange = (int) gameSettings.get(MiscType.BOULDER_FEAR_RANGE).getValue();
         speed = (int) (gameSettings.get(MiscType.BOULDER_SPEED_TILES_PER_SECOND).getValue() * TILE)
                 / kwdFile.getGameLevel().getTicksPerSec();
         speedToHealthRatio = (int) gameSettings.get(MiscType.BOULDER_SPEED_TO_HEALTH_RATIO).getValue();
@@ -191,6 +206,7 @@ public final class BoulderSystem implements IGameLogicUpdatable {
         private void roll() {
             hitThings();
             move();
+            scare();
             wearOnTheGround();
 
             entityData.setComponents(entityId,
@@ -283,6 +299,48 @@ public final class BoulderSystem implements IGameLogicUpdatable {
             float distanceY = thingPosition.position.z - position.position.z;
 
             return distanceX * distanceX + distanceY * distanceY < reach * reach;
+        }
+
+        private void scare() {
+            Owner owner = entityData.getComponent(entityId, Owner.class);
+            IPlayerController player = owner != null ? playerControllers.get(owner.ownerId) : null;
+            Vector3f middle = new Vector3f((float) (x - HALF_TILE) / TILE, position.position.y, (float) (y - HALF_TILE) / TILE);
+            int tileX = Math.floorDiv(x, TILE);
+            int tileY = Math.floorDiv(y, TILE);
+            int enemies = 0;
+            for (int tileOffsetX = -fearRange; player != null && tileOffsetX <= fearRange; tileOffsetX++) {
+                for (int tileOffsetY = -fearRange; tileOffsetY <= fearRange; tileOffsetY++) {
+                    for (EntityId thing : entityPositionLookup.getEntitiesInLocation(new Point(tileX + tileOffsetX, tileY + tileOffsetY))) {
+                        if (isEnemyInSight(thing, player, middle)) {
+                            enemies++;
+                        }
+                    }
+                }
+            }
+
+            // A boulder with no health left scares with the whole amount, as DK II's does
+            int left = healthLeft - wear;
+            int fear = enemies > 0 ? (left > 0 ? fearAmount * left / health : fearAmount) / enemies : 0;
+            Threat threat = entityData.getComponent(entityId, Threat.class);
+            if (fear == 0 && threat != null) {
+                entityData.removeComponent(entityId, Threat.class);
+            } else if (fear > 0 && (threat == null || threat.threat != fear)) {
+                entityData.setComponent(entityId, new Threat(fear, Math.max(1, fearRange - 1)));
+            }
+        }
+
+        private boolean isEnemyInSight(EntityId thing, IPlayerController player, Vector3f middle) {
+            Owner thingOwner = entityData.getComponent(thing, Owner.class);
+            Position thingPosition = entityData.getComponent(thing, Position.class);
+            if (entityData.getComponent(thing, CreatureComponent.class) == null || thingOwner == null || thingPosition == null
+                    || !player.getKeeper().isEnemy(thingOwner.ownerId)) {
+                return false;
+            }
+            float distanceX = thingPosition.position.x - middle.x;
+            float distanceY = thingPosition.position.z - middle.z;
+
+            return distanceX * distanceX + distanceY * distanceY < fearRange * fearRange
+                    && entityPositionLookup.hasLineOfSight(middle, thingPosition.position);
         }
 
         private void wearOnTheGround() {

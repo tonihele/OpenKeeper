@@ -38,13 +38,16 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -69,7 +72,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * levels' speed of 4915 / 4096 tiles a second, 4 ticks a second and a speed
  * to health ratio of 50 a whole boulder rolls 3684 / 4096 tiles a tick.
  * It runs over the creatures it touches and smashes doors, traps and the
- * objects boulders destroy (0x4A0930). Lava and water wear it (0x4A10E0)
+ * objects boulders destroy (0x4A0930). Lava and water wear it (0x4A10E0).
+ * It scares the enemies that see it (0x4B32A0)
  */
 class BoulderSystemTest {
 
@@ -303,6 +307,42 @@ class BoulderSystemTest {
         assertNull(entityData.getComponent(onDryGround, Damage.class));
     }
 
+    @Test
+    void scaresTheEnemiesInSightAndSplitsTheFearBetweenThem() {
+        EntityId boulder = createBoulder(5, 5, 0, 0, HEALTH);
+        entityData.setComponent(createCreature(7, 5, new Health(100, 100)), new Owner(ENEMY, ENEMY));
+        entityData.setComponent(createCreature(5, 8.5f, new Health(100, 100)), new Owner(ENEMY, ENEMY));
+
+        // Not its own keeper's creatures, nor an enemy 4 tiles away or behind a wall
+        entityData.setComponent(createCreature(6, 6, new Health(100, 100)), new Owner(KEEPER, KEEPER));
+        entityData.setComponent(createCreature(1, 5, new Health(100, 100)), new Owner(ENEMY, ENEMY));
+        solidTiles.add(new Point(5, 4));
+        entityData.setComponent(createCreature(5, 3, new Health(100, 100)), new Owner(ENEMY, ENEMY));
+
+        system.processTick(TICK);
+
+        // The level's 701 between the two, to those a tile nearer than the range of 4
+        Threat threat = entityData.getComponent(boulder, Threat.class);
+        assertEquals(350, threat.threat);
+        assertEquals(3, threat.range, DELTA);
+    }
+
+    @Test
+    void scaresLessWhenWornOutAndNobodyWhenNoEnemySeesIt() {
+        EntityId boulder = createBoulder(5, 5, 0, 0, HEALTH / 4);
+        EntityId enemy = createCreature(7, 5, new Health(100, 100));
+        entityData.setComponent(enemy, new Owner(ENEMY, ENEMY));
+
+        system.processTick(TICK);
+
+        assertEquals(175, entityData.getComponent(boulder, Threat.class).threat);
+
+        entitiesByTile.clear();
+        system.processTick(TICK);
+
+        assertNull(entityData.getComponent(boulder, Threat.class));
+    }
+
     private EntityId place(Point tile, Object... components) {
         EntityId thing = entityData.createEntity();
         for (Object component : components) {
@@ -373,8 +413,16 @@ class BoulderSystemTest {
             case "isWater" -> waterTiles.contains((Point) args[0]);
             default -> null;
         });
-        IEntityPositionLookup positionLookup = proxy(IEntityPositionLookup.class,
-                (method, args) -> entitiesByTile.getOrDefault((Point) args[0], List.of()));
+        IEntityPositionLookup positionLookup = proxy(IEntityPositionLookup.class, (method, args) -> {
+            if (!method.equals("hasLineOfSight")) {
+                return entitiesByTile.getOrDefault((Point) args[0], List.of());
+            }
+
+            // No solid tile half way
+            Vector3f middle = ((Vector3f) args[0]).add((Vector3f) args[1]).mult(0.5f);
+            return !solidTiles.contains(new Point(Math.round(middle.x), Math.round(middle.z)));
+        });
+        IPlayerController playerController = proxy(IPlayerController.class, (method, args) -> new Keeper(false, KEEPER));
 
         ICreaturesController creaturesController = proxy(ICreaturesController.class,
                 (method, args) -> proxy(ICreatureController.class, (controllerMethod, controllerArgs) -> {
@@ -387,8 +435,10 @@ class BoulderSystemTest {
         return new BoulderSystem(entityData, kwdFile,
                 Map.of(MiscType.BOULDER_SPEED_TILES_PER_SECOND, VariableFixtures.miscVariable(MiscType.BOULDER_SPEED_TILES_PER_SECOND, 4915),
                         MiscType.BOULDER_SPEED_TO_HEALTH_RATIO, VariableFixtures.miscVariable(MiscType.BOULDER_SPEED_TO_HEALTH_RATIO, 50),
-                        MiscType.BOULDER_TO_CREATURE_DAMAGE_PERCENTAGE, VariableFixtures.miscVariable(MiscType.BOULDER_TO_CREATURE_DAMAGE_PERCENTAGE, 50)),
-                mapController, positionLookup, creaturesController);
+                        MiscType.BOULDER_TO_CREATURE_DAMAGE_PERCENTAGE, VariableFixtures.miscVariable(MiscType.BOULDER_TO_CREATURE_DAMAGE_PERCENTAGE, 50),
+                        MiscType.BOULDER_FEAR_AMOUNT, VariableFixtures.miscVariable(MiscType.BOULDER_FEAR_AMOUNT, 701),
+                        MiscType.BOULDER_FEAR_RANGE, VariableFixtures.miscVariable(MiscType.BOULDER_FEAR_RANGE, 4)),
+                mapController, positionLookup, creaturesController, Map.of(KEEPER, playerController));
     }
 
     @SuppressWarnings("unchecked")
