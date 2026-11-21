@@ -68,6 +68,7 @@ import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.ReturnToHeroLair;
@@ -106,6 +107,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
+import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -341,21 +343,30 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void checkSurroundings() {
 
-        // Scan for neutral creatures to claim
-        short ownerId = getOwnerId();
-        if (ownerId == Player.NEUTRAL_PLAYER_ID || ownerId == Player.GOOD_PLAYER_ID) {
+        // A neutral creature looks for a creature of a keeper, not the heroes, within its sight
+        // range on both axes and with nothing in between: walls and every door but a Barricade
+        // block the sight. It joins the first one's keeper. An imprisoned one joins nobody
+        // (DKII.EXE 0x4790A0, line of sight 0x4512F0 and 0x4511A0)
+        Senses senses = entityData.getComponent(entityId, Senses.class);
+        if (getOwnerId() != Player.NEUTRAL_PLAYER_ID || senses == null || isImprisoned()) {
             return;
         }
 
-        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
-            Owner owner = entityData.getComponent(entity, Owner.class);
-
-            // We sense through doors, but the creature behind an enemy or a locked door
-            // is not ours before we get there. The neutral creature is the one that changes sides, as in DK II
-            // (DKII.EXE 0x4790A0)
-            if (owner != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID && entityData.getComponent(entity, CreatureComponent.class) != null
-                    && !entityPositionLookup.isBehindBlockingDoor(entityId, entity)) {
-                creaturesController.createController(entity).convertCreature(ownerId);
+        Point tile = getCreatureCoordinates();
+        int range = (int) senses.distanceCanSee;
+        for (int x = tile.x - range + 1; x < tile.x + range; x++) {
+            for (int y = tile.y - range + 1; y < tile.y + range; y++) {
+                for (EntityId entity : entityPositionLookup.getEntitiesInLocation(x, y)) {
+                    Owner owner = entityData.getComponent(entity, Owner.class);
+                    Position position = entityData.getComponent(entity, Position.class);
+                    if (owner != null && owner.ownerId != Player.NEUTRAL_PLAYER_ID && owner.ownerId != Player.GOOD_PLAYER_ID
+                            && position != null && entityData.getComponent(entity, CreatureComponent.class) != null
+                            && entityPositionLookup.hasLineOfSight(getPosition(), position.position,
+                                    door -> !levelInfo.getLevelData().getDoorById(door.doorId).getFlags().contains(Door.DoorFlag.IS_BARRICADE))) {
+                        convertCreature(owner.ownerId);
+                        return;
+                    }
+                }
             }
         }
     }

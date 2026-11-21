@@ -21,6 +21,8 @@ import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 
@@ -143,17 +145,6 @@ public interface IEntityPositionLookup {
     Set<EntityId> getSensedEntities(EntityId entityId);
 
     /**
-     * Checks if an entity you sense is behind a door that blocks you, like an
-     * enemy or a locked door. You sense through doors, but you can't walk
-     * there
-     *
-     * @param entityId you, the entity
-     * @param sensedEntityId the entity you sense
-     * @return true if blocking doors stand between you and the sensed entity
-     */
-    boolean isBehindBlockingDoor(EntityId entityId, EntityId sensedEntityId);
-
-    /**
      * Checks if there is a straight line of sight between two points on the
      * map, with no tile that blocks the senses in between. The tiles the
      * points are on don't count
@@ -162,6 +153,20 @@ public interface IEntityPositionLookup {
      * @param to the point to look at
      * @return true if nothing blocks the sight
      */
-    boolean hasLineOfSight(Vector3f from, Vector3f to);
+    default boolean hasLineOfSight(Vector3f from, Vector3f to) {
+        return hasLineOfSight(from, to, door -> false);
+    }
+
+    /**
+     * Checks if there is a straight line of sight between two points on the
+     * map, with no tile that blocks the senses and no door that blocks the
+     * sight in between. The tiles the points are on don't count
+     *
+     * @param from the point to look from
+     * @param to the point to look at
+     * @param doorBlocksSight tells if a door on the way blocks the sight
+     * @return true if nothing blocks the sight
+     */
+    boolean hasLineOfSight(Vector3f from, Vector3f to, Predicate<DoorComponent> doorBlocksSight);
 
 }

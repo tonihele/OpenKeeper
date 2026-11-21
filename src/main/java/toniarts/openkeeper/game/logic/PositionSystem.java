@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
@@ -372,7 +373,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
             // TODO: Every creature has hearing & vision 4, so I can just cheat this in, but should fix eventually
             // https://github.com/tonihele/OpenKeeper/issues/261
             if (tile != null) {
-                addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), null, sensedEntities);
+                addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), sensedEntities);
             }
 
             // Remove us, the caller
@@ -382,32 +383,14 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         });
     }
 
-    @Override
-    public boolean isBehindBlockingDoor(EntityId entityId, EntityId sensedEntityId) {
-        Senses senses = entityData.getComponent(entityId, Senses.class);
-        Owner owner = entityData.getComponent(entityId, Owner.class);
-        IMapTileInformation tile = getEntityLocation(entityId);
-        if (senses == null || owner == null || tile == null) {
-            return false;
-        }
-
-        // Sense again, but stop at the doors that block us
-        Set<EntityId> sensedEntities = new HashSet<>();
-        addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), owner.ownerId, sensedEntities);
-
-        return !sensedEntities.contains(sensedEntityId);
-    }
-
     /**
      * Adds the entities around the tile to the sensed ones
      *
      * @param startTile the tile to sense from
      * @param range how many tiles further to sense
-     * @param playerId the player whose blocking doors stop the senses,
-     * {@code null} to sense through all doors
      * @param sensedEntities the sensed entities
      */
-    private void addSensedEntities(IMapTileInformation startTile, int range, Short playerId, Set<EntityId> sensedEntities) {
+    private void addSensedEntities(IMapTileInformation startTile, int range, Set<EntityId> sensedEntities) {
 
         // Go out one step at a time, so each tile is looked at only once
         Set<IMapTileInformation> visitedTiles = new HashSet<>();
@@ -415,7 +398,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         for (int distance = 0; distance <= range && !tiles.isEmpty(); distance++) {
             List<IMapTileInformation> nextTiles = new ArrayList<>();
             for (IMapTileInformation tile : tiles) {
-                if (!visitedTiles.add(tile) || blocksSenses(tile) || (playerId != null && isTileBlocked(tile, playerId))) {
+                if (!visitedTiles.add(tile) || blocksSenses(tile)) {
                     continue;
                 }
 
@@ -435,7 +418,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
     }
 
     @Override
-    public boolean hasLineOfSight(Vector3f from, Vector3f to) {
+    public boolean hasLineOfSight(Vector3f from, Vector3f to, Predicate<DoorComponent> doorBlocksSight) {
         Point startTile = WorldUtils.vectorToPoint(from);
         Point endTile = WorldUtils.vectorToPoint(to);
         float dx = to.x - from.x;
@@ -444,7 +427,8 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         for (int i = 1; i < steps; i++) {
             float progress = (float) i / steps;
             Point tile = WorldUtils.vectorToPoint(from.x + dx * progress, from.z + dz * progress);
-            if (!tile.equals(startTile) && !tile.equals(endTile) && blocksSenses(mapController.getMapData().getTile(tile))) {
+            if (!tile.equals(startTile) && !tile.equals(endTile) && (blocksSenses(mapController.getMapData().getTile(tile))
+                    || obstaclesByMapTile[tile.x][tile.y].stream().anyMatch(door -> doorBlocksSight.test(entityData.getComponent(door, DoorComponent.class))))) {
                 return false;
             }
         }

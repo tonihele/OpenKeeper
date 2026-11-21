@@ -43,8 +43,7 @@ import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.OWNABLE;
 import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.SOLID;
 
 /**
- * Creatures sense through doors, but what stands behind a door that blocks
- * them is out of their reach
+ * Creatures sense through doors, but a door can stop their line of sight
  */
 class SensingBehindDoorsTest {
 
@@ -90,29 +89,19 @@ class SensingBehindDoorsTest {
     }
 
     @Test
-    void creatureBehindAnEnemyDoorIsBehindABlockingDoor() {
-        door(ENEMY, false);
-
-        assertTrue(positionSystem().isBehindBlockingDoor(creature, neutralCreature));
-    }
-
-    @Test
-    void creatureBehindALockedDoorIsBehindABlockingDoor() {
-        door(PLAYER, true);
-
-        assertTrue(positionSystem().isBehindBlockingDoor(creature, neutralCreature));
-    }
-
-    @Test
-    void creatureBehindOurOwnDoorIsNotBehindABlockingDoor() {
+    void aDoorThatBlocksTheSightStopsTheLineOfSight() {
         door(PLAYER, false);
 
-        assertFalse(positionSystem().isBehindBlockingDoor(creature, neutralCreature));
+        assertFalse(positionSystem().hasLineOfSight(WorldUtils.pointToVector3f(CREATURE.x, CREATURE.y),
+                WorldUtils.pointToVector3f(NEUTRAL_CREATURE.x, NEUTRAL_CREATURE.y), door -> true));
     }
 
     @Test
-    void creatureWithoutADoorInBetweenIsNotBehindABlockingDoor() {
-        assertFalse(positionSystem().isBehindBlockingDoor(creature, neutralCreature));
+    void aDoorThatLetsTheSightThroughLeavesTheLineOfSightClear() {
+        door(PLAYER, false);
+
+        assertTrue(positionSystem().hasLineOfSight(WorldUtils.pointToVector3f(CREATURE.x, CREATURE.y),
+                WorldUtils.pointToVector3f(NEUTRAL_CREATURE.x, NEUTRAL_CREATURE.y), door -> false));
     }
 
     private EntityId entity(Point p, short ownerId) {

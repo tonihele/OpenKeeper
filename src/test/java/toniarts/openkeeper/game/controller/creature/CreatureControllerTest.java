@@ -44,6 +44,7 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
@@ -300,21 +301,40 @@ class CreatureControllerTest {
     }
 
     @Test
-    void theNeutralCreatureItSeesJoinsTheKeeperAndItKeepsItsOwnLair() {
+    void theNeutralCreatureJoinsTheKeeperOfACreatureItSeesAndThatOneKeepsItsLair() {
         try (Fixture f = new Fixture(9)) {
-            EntityId neutral = f.data.createEntity();
-            CreatureComponent component = new CreatureComponent();
-            component.creatureId = 6;
-            f.data.setComponents(neutral, component, new Health(1000, 1000), new Owner(Player.NEUTRAL_PLAYER_ID, Player.NEUTRAL_PLAYER_ID),
-                    new Position(0, new Vector3f(5, WorldUtils.FLOOR_HEIGHT, 4)), new CreatureAi(0, CreatureState.IDLE, (short) 6), new Fearless(), new Gold(0, 100),
-                    new CreatureMood(0, 0, 0, 0, 0, 0));
-            f.sensed.add(neutral);
+            EntityId neutral = f.neutral(5);
 
-            f.controller.checkSurroundings();
+            f.creatures.createController(neutral).checkSurroundings();
 
             assertEquals(3, f.data.getComponent(neutral, Owner.class).ownerId);
             assertEquals(3, f.data.getComponent(f.entity, Owner.class).ownerId);
             assertEquals(f.bed, f.sleep().lairObjectId);
+        }
+    }
+
+    @Test
+    void theNeutralCreatureOnlySeesInsideItsSightRange() {
+        try (Fixture f = new Fixture(9)) {
+
+            // Sight 4 from x = 7 reaches x = 4 at the most, the keeper's creature stands at x = 3
+            EntityId neutral = f.neutral(7);
+
+            f.creatures.createController(neutral).checkSurroundings();
+
+            assertEquals(Player.NEUTRAL_PLAYER_ID, f.data.getComponent(neutral, Owner.class).ownerId);
+        }
+    }
+
+    @Test
+    void theNeutralCreatureNeedsAClearLineOfSight() {
+        try (Fixture f = new Fixture(9)) {
+            EntityId neutral = f.neutral(5);
+            f.clearSight = false;
+
+            f.creatures.createController(neutral).checkSurroundings();
+
+            assertEquals(Player.NEUTRAL_PLAYER_ID, f.data.getComponent(neutral, Owner.class).ownerId);
         }
     }
 
@@ -568,6 +588,8 @@ class CreatureControllerTest {
         final CreatureFallSystem fall;
         final List<GameEventType> events = new java.util.ArrayList<>();
         final Set<EntityId> sensed = new java.util.HashSet<>();
+        final ICreaturesController creatures;
+        boolean clearSight = true;
         final GameEventService eventService = proxy(GameEventService.class, (method, args) -> {
             events.add((GameEventType) args[0]);
             return null;
@@ -647,7 +669,9 @@ class CreatureControllerTest {
                     CreatureSleepFixtures.variable(MiscType.CANNOT_SLEEP_MODIFY_CREATURE_HEALTH_PER_SECOND, 0));
             IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, (method, args) -> switch (method) {
                 case "getSensedEntities" -> sensed;
-                case "isBehindBlockingDoor" -> false;
+                case "getEntitiesInLocation" -> sensed.stream().filter(e -> WorldUtils.vectorToPoint(data.getComponent(e, Position.class).position)
+                        .equals(new Point((int) args[0], (int) args[1]))).toList();
+                case "hasLineOfSight" -> clearSight;
                 case "getEntityLocation" -> null; // Not on a Hero Lair
                 case "getBlockingDoor" -> null;
                 default -> throw new UnsupportedOperationException(method);
@@ -671,6 +695,7 @@ class CreatureControllerTest {
                 case "isValidEntity" -> data.getComponent((EntityId) args[0], CreatureComponent.class) != null;
                 default -> null;
             });
+            creatures = creaturesController[0];
             controllers = () -> new CreatureController(entity, data, definition, null, taskManager, () -> time,
                     settings, creaturesController[0], lookup, map, levelInfo, null, null, eventService);
             controller = controllers.get();
@@ -715,6 +740,21 @@ class CreatureControllerTest {
 
         int health() { return data.getComponent(entity, Health.class).health; }
         CreatureSleep sleep() { return data.getComponent(entity, CreatureSleep.class); }
+
+        /**
+         * A neutral creature with sight 4 on the keeper's creature's row, that
+         * finds the keeper's creature when it looks around
+         */
+        EntityId neutral(int x) {
+            EntityId neutral = data.createEntity();
+            CreatureComponent component = new CreatureComponent();
+            component.creatureId = 6;
+            data.setComponents(neutral, component, new Health(1000, 1000), new Owner(Player.NEUTRAL_PLAYER_ID, Player.NEUTRAL_PLAYER_ID),
+                    new Position(0, new Vector3f(x, WorldUtils.FLOOR_HEIGHT, 4)), new CreatureAi(0, CreatureState.IDLE, (short) 6), new Fearless(),
+                    new Gold(0, 100), new CreatureMood(0, 0, 0, 0, 0, 0), new Senses(4, 4));
+            sensed.add(entity);
+            return neutral;
+        }
         CreatureState state() { return controller.getStateMachine().getCurrentState(); }
 
         @Override public void close() {
