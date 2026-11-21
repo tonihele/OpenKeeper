@@ -203,7 +203,13 @@ public final class RoomAttackMessages {
          * The hints for a keeper whose creatures are not fighting, message
          * 0x58 variants 1 to 8 (0x4B9740)
          */
-        QUIET_HINT(20, 0, Map.of(1, 509, 2, 510, 3, 511, 4, 512, 5, 513, 6, 514, 7, 515, 8, 516), true, INFO_TAB);
+        QUIET_HINT(20, 0, Map.of(1, 509, 2, 510, 3, 511, 4, 512, 5, 513, 6, 514, 7, 515, 8, 516), true, INFO_TAB),
+        /**
+         * "You cannot afford to train creatures", message 0x37 variant 5,
+         * held for 240 seconds (0x47B2D0). Variants 1 to 4 of the message
+         * are for rooms, traps, doors and the rest
+         */
+        CANNOT_AFFORD(20, 0, Map.of(5, 1343), Map.of(5, 240), 20);
 
         private final double duration;
         private final int defaultSpeechId;
@@ -400,6 +406,15 @@ public final class RoomAttackMessages {
      */
     public void quietHint(short ownerId, int variant) {
         show(Message.QUIET_HINT, ownerId, (short) variant, null);
+    }
+
+    /**
+     * A creature that would train found that the keeper can't pay for it
+     *
+     * @param ownerId the keeper
+     */
+    public void cannotAffordTraining(short ownerId) {
+        show(Message.CANNOT_AFFORD, ownerId, (short) 5, null);
     }
 
     /**

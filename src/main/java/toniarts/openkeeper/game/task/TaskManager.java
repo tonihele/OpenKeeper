@@ -832,6 +832,33 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     /**
+     * A creature that would train in a Training Room with room for it, while
+     * its keeper has less gold than a second of training costs, tells its
+     * keeper that training can't be afforded (DKII.EXE 0x47B2D0, message 0x37
+     * variant 5). In DK II the creature finds that out on its training spot,
+     * here before it sets out
+     *
+     * @param creature the creature
+     */
+    private void tellTrainingUnaffordable(ICreatureController creature) {
+        RoomAttackMessages messages = gameWorldController.getRoomAttackMessages();
+        short playerId = creature.getOwnerId();
+        IPlayerController player = playerControllers.get(playerId);
+        if (messages == null || player == null
+                || creature.getLevel() >= gameSettings.get(Variable.MiscVariable.MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL).getValue()) {
+            return;
+        }
+        for (IRoomController room : mapController.getRoomsByFunction(ObjectType.TRAINEE, playerId)) {
+            if (!room.getObjectControl(ObjectType.TRAINEE).isFullCapacity()) {
+                if (player.getGoldControl().getGold() < Math.abs(gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_PLAYER_GOLD_WHILE_TRAINING_PER_SECOND).getValue())) {
+                    messages.cannotAffordTraining(playerId);
+                }
+                return;
+            }
+        }
+    }
+
+    /**
      * A creature that comes to make its bed and finds no free spot in the Lair
      * tells its keeper that the Lair is too small (DKII.EXE 0x46F4F0, message
      * 0x2A for the Lair). A keeper without a Lair isn't told here
@@ -1186,6 +1213,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                     return true;
                 }
                 tellCombatPitNeeded(creature);
+                tellTrainingUnaffordable(creature);
                 return false;
             }
             case TORTURE: {

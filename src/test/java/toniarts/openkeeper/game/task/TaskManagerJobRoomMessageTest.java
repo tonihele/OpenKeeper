@@ -22,12 +22,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
@@ -36,9 +39,12 @@ import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.task.hero.RoomTileWorld;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.DestroyRoomsFixtures;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -58,8 +64,10 @@ class TaskManagerJobRoomMessageTest {
     private final Room library = room("Library", (short) 6);
     private final Room temple = room("Temple", (short) 13);
     private final Room casino = room("Casino", (short) 15);
+    private final Room trainingRoom = room("Training Room", (short) 7);
     private final Keeper keeper = new Keeper(false, Player.KEEPER1_ID);
     private List<Room> buildable = List.of();
+    private Map<MiscType, MiscVariable> settings = Map.of();
     private final ICreatureController creature = RoomTileWorld.stub(ICreatureController.class, (proxy, method, args) -> switch (method.getName()) {
         case "getOwnerId" ->
             Player.KEEPER1_ID;
@@ -129,6 +137,44 @@ class TaskManagerJobRoomMessageTest {
     }
 
     @Test
+    void aKeeperWithTooLittleGoldForTrainingIsToldItCanNotAffordIt() {
+
+        // DK II's training state 0x47B2D0: message 0x37 variant 5, speech 1343, held 240 seconds
+        TaskManager taskManager = trainingTaskManager(99);
+
+        assertFalse(taskManager.assignTask(creature, Creature.JobType.TRAIN));
+        assertEquals(List.of(1343), speeches);
+        gameTime = 239;
+        taskManager.assignTask(creature, Creature.JobType.TRAIN);
+        assertEquals(List.of(1343), speeches);
+        gameTime = 240;
+        taskManager.assignTask(creature, Creature.JobType.TRAIN);
+        assertEquals(List.of(1343, 1343), speeches);
+    }
+
+    @Test
+    void aKeeperThatCanPayForTrainingOrHasNoRoomForItIsNotToldItCanNotAffordIt() {
+        assertFalse(trainingTaskManager(100).assignTask(creature, Creature.JobType.TRAIN));
+        assertEquals(List.of(), speeches);
+
+        // With the Training Room full the keeper hears that it is too small instead
+        libraries.clear();
+        libraries.add(jobRoom(trainingRoom, true));
+        assertFalse(trainingTaskManager(0).assignTask(creature, Creature.JobType.TRAIN));
+        assertEquals(List.of(201), speeches);
+    }
+
+    private TaskManager trainingTaskManager(int gold) {
+        settings = Map.of(MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL, CreatureSleepFixtures.variable(MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL, 4),
+                MiscType.MODIFY_PLAYER_GOLD_WHILE_TRAINING_PER_SECOND, CreatureSleepFixtures.variable(MiscType.MODIFY_PLAYER_GOLD_WHILE_TRAINING_PER_SECOND, -100));
+        if (libraries.isEmpty()) {
+            libraries.add(jobRoom(trainingRoom, false));
+        }
+        entityData.setComponents(entityData.createEntity(), new KeeperComponent(Player.KEEPER1_ID), new Gold(gold, Integer.MAX_VALUE));
+        return createTaskManager();
+    }
+
+    @Test
     void otherJobsTellNothing() {
         assertFalse(createTaskManager().assignTask(creature, Creature.JobType.MANUFACTURE));
         assertEquals(List.of(), speeches);
@@ -191,11 +237,13 @@ class TaskManagerJobRoomMessageTest {
                 keeper;
             case "getRoomControl" ->
                 roomControl;
+            case "getGoldControl" ->
+                new PlayerGoldControl(keeper, entityData);
             default ->
                 RoomTileWorld.defaultValue(proxy, method);
         });
         return new TaskManager(entityData, gameWorldController, mapController, null, null, null, List.of(player),
-                RoomTileWorld.stub(ILevelInfo.class, (proxy, method, args) -> RoomTileWorld.defaultValue(proxy, method)), null, Map.of());
+                RoomTileWorld.stub(ILevelInfo.class, (proxy, method, args) -> RoomTileWorld.defaultValue(proxy, method)), null, settings);
     }
 
 }
