@@ -140,6 +140,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<Short, Keeper> players;
     private final IGameTimer gameTimer;
+    private RoomAttackMessages roomAttackMessages;
     private final GameEventService gameEventService;
 
     private IMapController mapController;
@@ -299,8 +300,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         synchronized (GOLD_LOCK) {
 
             // See if the player has any gold even
-            Keeper keeper = players.get(playerId);
-            if (keeper.getGold() == 0) {
+            if (playerControllers.get(playerId).getGoldControl().getGold() == 0) {
                 return amount;
             }
 
@@ -379,7 +379,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         RoomPlacementValidator.Result placement = RoomPlacementValidator.validate(
                 kwdFile, mapController, this::isConstructionBlocked, start, end,
-                playerId, roomId, player.getGold());
+                playerId, roomId, playerControllers.get(playerId).getGoldControl().getGold());
         if (!placement.isValid()) {
             return;
         }
@@ -501,7 +501,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // skipcq: JAVA-E1061
         synchronized (GOLD_LOCK) {
             int cost = plotCount * room.getCost();
-            if (cost > players.get(playerId).getGold()) {
+            if (cost > playerControllers.get(playerId).getGoldControl().getGold()) {
                 return false;
             }
             substractGold(cost, playerId);
@@ -518,6 +518,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             IMapTileController tile = mapController.getMapData().getTile(p);
             tile.setOwnerId(playerId);
             tile.setTerrainId(room.getTerrainId());
+            setHealthFromTerrain(tile, kwdFile.getTerrain(room.getTerrainId()));
             if (!room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
 
                 // A bridge tile gives its owner mana, a room keeps what the land under it gives (DKII.EXE 0x455B90)
@@ -530,6 +531,19 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             }
             buildTiles.add(tile.getLocation());
         }
+    }
+
+    /**
+     * Give the tile the health of its terrain, a room tile has the health of
+     * the room terrain (10000 for a Lair), not of the claimed path it was built
+     * on
+     *
+     * @param tile the tile
+     * @param terrain its new terrain
+     */
+    private void setHealthFromTerrain(IMapTileController tile, Terrain terrain) {
+        tile.setMaxHealth(terrain.getMaxHealth());
+        tile.setHealth(terrain.getStartingHealth());
     }
 
     private Set<EntityId> findAdjacentRoomInstances(Set<Point> buildPlots, Room room, short playerId) {
@@ -666,17 +680,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (tile == null) {
             return;
         }
-        entityData.removeComponent(tile.getEntityId(), WoodenBridgeDecay.class);
         sale.soldTiles.add(tile.getLocation());
 
-        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
         Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
         gameEventService.emit(GameEventType.ROOM_SOLD, ThingFlag.ROOM, room.getRoomId(), p);
-        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
-            tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
-        } else {
-            removeBridge(tile);
-        }
+        removeRoomFromTile(tile, room);
 
         int saleValue = (int) (room.getCost()
                 * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100));
@@ -790,15 +798,26 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
         destroyedTilesByOwner.computeIfAbsent(tile.getOwnerId(), ignored -> new ArrayList<>()).add(tile.getLocation());
         destroyedInstances.add(tile.getRoomId());
-        entityData.removeComponent(tile.getEntityId(), WoodenBridgeDecay.class);
+        removeRoomFromTile(tile, room);
+        updatableTiles.addAll(Arrays.asList(
+                WorldUtils.getSurroundingTiles(mapController.getMapData(), point, true)));
+    }
 
+    /**
+     * Turn a sold or destroyed room tile into the terrain it becomes, with the
+     * health of that terrain
+     *
+     * @param tile the tile
+     * @param room the room the tile belongs to
+     */
+    private void removeRoomFromTile(IMapTileController tile, Room room) {
+        entityData.removeComponent(tile.getEntityId(), WoodenBridgeDecay.class);
         if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
-            tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
+            tile.setTerrainId(kwdFile.getTerrain(tile.getTerrainId()).getDestroyedTypeTerrainId());
         } else {
             removeBridge(tile);
         }
-        updatableTiles.addAll(Arrays.asList(
-                WorldUtils.getSurroundingTiles(mapController.getMapData(), point, true)));
+        setHealthFromTerrain(tile, kwdFile.getTerrain(tile.getTerrainId()));
     }
 
     /**
@@ -1077,6 +1096,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 logger.log(Level.WARNING, "Unknown special, objectId: {0}", objectId);
                 return false;
             }
+        }
+
+        // Every special tells the keeper what it did (DKII.EXE 0x4A3FC0, message 0x31)
+        if (roomAttackMessages != null) {
+            roomAttackMessages.specialUsed(playerId, objectId);
         }
         return true;
     }
@@ -1357,6 +1381,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Position devicePosition = null;
 
         CreatureState targetState = null;
+
+        // A worker dropped onto the middle tile of a Dungeon Heart is turned back into mana
+        KeeperSpell createImp = kwdFile.getKeeperSpellById(SacrificeController.CREATE_IMP_SPELL_ID);
+        if (createImp != null && sacrificeController.returnWorkerToHeart(roomController, entity, tile, createImp.getManaCost())) {
+            return;
+        }
 
         // Creatures dropped into a temple's pool are sacrificed
         if (roomController instanceof TempleController temple && temple.isSacrificePool(tile)) {
@@ -1724,7 +1754,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         // Deduct the mana
-        playerControllers.get(playerId).getManaControl().addMana(-manaCost);
+        playerControllers.get(playerId).getManaControl().spendMana(manaCost);
 
         // Start the recharge
         EntityId lastCast = KeeperSpellCastValidator.findLastCast(entityData, playerId, keeperSpellId);
@@ -1770,7 +1800,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         // Validate
-        if (DoorPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, door, player.getGold())
+        if (DoorPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, door, playerControllers.get(playerId).getGoldControl().getGold())
                 != DoorPlacementValidator.Failure.NONE) {
             return;
         }
@@ -1788,7 +1818,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // skipcq: JAVA-E1061
         synchronized (GOLD_LOCK) {
             int cost = door.getGoldCost();
-            if (cost > players.get(playerId).getGold()) {
+            if (cost > playerControllers.get(playerId).getGoldControl().getGold()) {
                 return false;
             }
             substractGold(cost, playerId);
@@ -1826,7 +1856,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean hasWorkshop = playerControllers.get(playerId).getRoomControl()
                 .getTypeCount(kwdFile.getRoomById(TrapPlacementValidator.WORKSHOP_ROOM_ID)) > 0;
         if (TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, trap, hasWorkshop,
-                player.getGold()) != TrapPlacementValidator.Failure.NONE) {
+                playerControllers.get(playerId).getGoldControl().getGold()) != TrapPlacementValidator.Failure.NONE) {
             return;
         }
 
@@ -1843,7 +1873,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // skipcq: JAVA-E1061
         synchronized (GOLD_LOCK) {
             int cost = trap.getGoldCost();
-            if (cost > players.get(playerId).getGold()) {
+            if (cost > playerControllers.get(playerId).getGoldControl().getGold()) {
                 return false;
             }
             substractGold(cost, playerId);
@@ -1895,5 +1925,20 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     public void setEntityPositionLookup(IEntityPositionLookup entityPositionLookup) {
         this.entityPositionLookup = entityPositionLookup;
+    }
+
+    @Override
+    public RoomAttackMessages getRoomAttackMessages() {
+        return roomAttackMessages;
+    }
+
+    /**
+     * Set the messages that tell the keepers of their rooms under attack and
+     * lost
+     *
+     * @param roomAttackMessages the room attack messages
+     */
+    public void setRoomAttackMessages(RoomAttackMessages roomAttackMessages) {
+        this.roomAttackMessages = roomAttackMessages;
     }
 }

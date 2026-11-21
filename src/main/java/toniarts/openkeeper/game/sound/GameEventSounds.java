@@ -133,6 +133,8 @@ public final class GameEventSounds {
                             RoomCaptureSpeech.forRoom(kwdFile.getRoomById(event.subjectId)).getId(), null);
                 }
             }
+            case NO_MANA ->
+                add(sounds, subject, ThingSounds.ROOM_NO_MANA, null);
             case TERRAIN_DESTROYED ->
                 add(sounds, subject, ThingSounds.DESTROYED, event.position);
             case CASINO_JACKPOT_ANNOUNCED ->

@@ -36,4 +36,16 @@ public final class CreatureMoodFixtures {
         return creature;
     }
 
+    /**
+     * A creature type with the first of its unhappy and of its angry mentor
+     * speeches
+     */
+    public static Creature creature(short creatureId, String name, short lairObjectId,
+            short angerNoLair, short unhappyThreshold, int unhappySpeechId, int angrySpeechId) {
+        Creature creature = creature(creatureId, name, lairObjectId, angerNoLair, unhappyThreshold);
+        creature.setAngerStringIdLair(unhappySpeechId);
+        creature.setAngerStringIdFood(angrySpeechId);
+        return creature;
+    }
+
 }

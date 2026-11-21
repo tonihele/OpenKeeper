@@ -202,7 +202,7 @@ class HeroLairTest {
                 ? tile(args[0].equals(heroElsewhere) ? PATH_TERRAIN : HERO_LAIR_TERRAIN, Player.GOOD_PLAYER_ID) : null);
         IKwdFile kwd = stub(IKwdFile.class, (method, args) -> method.equals("getTerrain") && (Short) args[0] == HERO_LAIR_TERRAIN ? heroLair : null);
         ILevelInfo levelInfo = stub(ILevelInfo.class, (method, args) -> method.equals("getLevelData") ? kwd : null);
-        HealthSystem healthSystem = new HealthSystem(data, lookup, settings(), null, levelInfo, List.of(), null, () -> 0, null);
+        HealthSystem healthSystem = new HealthSystem(data, lookup, settings(), null, null, levelInfo, List.of(), null, () -> 0, null);
 
         healthSystem.processTick(0.25f);
         healthSystem.processTick(0.25f);

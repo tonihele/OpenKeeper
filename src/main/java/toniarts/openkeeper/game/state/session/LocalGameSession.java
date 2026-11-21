@@ -222,6 +222,15 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void showMentorMessage(int speechId, Vector3f position, short namedPlayerId, short playerId, float seconds, float tabSeconds, int graphic) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onShowMentorMessage(speechId, position, namedPlayerId, seconds, tabSeconds, graphic);
+            }
+        }
+    }
+
+    @Override
     public void zoomViewToPoint(Vector3f point, short playerId) {
         if (playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {
@@ -501,13 +510,6 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     @Override
     public void removeGameSessionServiceListener(GameSessionServiceListener l) {
         serverListeners.remove(l);
-    }
-
-    @Override
-    public void onGoldChange(short keeperId, int gold) {
-        for (GameSessionListener listener : listeners.getArray()) {
-            listener.onGoldChange(keeperId, gold);
-        }
     }
 
     @Override

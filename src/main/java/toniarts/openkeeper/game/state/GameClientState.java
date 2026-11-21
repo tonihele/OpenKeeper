@@ -40,12 +40,14 @@ import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
+import toniarts.openkeeper.game.sound.MentorType;
 import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
+import toniarts.openkeeper.gui.nifty.message.SystemMessageTarget;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -441,7 +443,8 @@ public final class GameClientState extends AbstractPauseAwareState {
                             app.enqueue(() -> {
                                 SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
                                 if (systemMessageState != null) {
-                                    systemMessageState.addMessage(SystemMessageState.MessageType.FIGHT, "Enemy creature sighted!");
+                                    systemMessageState.addMessage(SystemMessageState.MessageType.FIGHT, "Enemy creature sighted!",
+                                            SystemMessageTarget.ofEntity(entityId));
                                 }
                             });
                         }) {
@@ -595,18 +598,6 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
-        public void onGoldChange(short keeperId, int gold) {
-            getPlayer(keeperId).setGold(gold);
-
-            // FIXME: See in what thread we are
-            if (playerState != null && playerState.getPlayerId() == keeperId) {
-                app.enqueue(() -> {
-                    playerState.onGoldChange(keeperId, gold);
-                });
-            }
-        }
-
-        @Override
         public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
             Keeper keeper = getPlayer(keeperId);
             keeper.setMana(mana);
@@ -736,6 +727,30 @@ public final class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onShowMessage(int textId) {
             playerState.showMessage(textId);
+        }
+
+        @Override
+        public void onShowMentorMessage(int speechId, Vector3f position, short namedPlayerId, float seconds, float tabSeconds, int graphic) {
+            app.enqueue(() -> {
+                SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
+                if (systemMessageState == null || !systemMessageState.isEnabled()) {
+                    return;
+                }
+
+                // The speech texts show a keeper's name as %3, e.g. "%3 has been defeated"
+                Keeper namedPlayer = players.get(namedPlayerId);
+                String text = namedPlayer == null ? String.format("${speech.%d}", speechId - 1)
+                        : Main.getResourceBundle("Interface/Texts/Speech").getString(Integer.toString(speechId - 1))
+                                .replace("%3", getPlayerName(namedPlayer));
+                systemMessageState.addMessage(SystemMessageState.MessageType.ofGraphic(graphic), text, SystemMessageTarget.ofPosition(position),
+                        seconds, tabSeconds);
+                for (MentorType speech : MentorType.values()) {
+                    if (speech.getId() == speechId) {
+                        stateManager.getState(SoundState.class).attachMentorSpeech(speech, null);
+                        break;
+                    }
+                }
+            });
         }
 
         @Override

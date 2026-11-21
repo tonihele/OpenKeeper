@@ -41,11 +41,11 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     private boolean ai;
     private AIType aiType = AIType.MASTER_KEEPER;
 
-    private int gold;
     private int goldMined;
     private int mana;
     private int manaGain;
     private int manaLoose;
+    private int manaUpkeep;
     private int maxMana;
     private int attractedCreatures;
     private int portalCreatureCapacity;
@@ -114,6 +114,26 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     public int getManaLoose() {
         return manaLoose;
+    }
+
+    /**
+     * Sets the imp and trap upkeep of the last mana update, the part of the
+     * loose that is paid after the gain limit (DKII.EXE CPlayer +0x10d2 and
+     * +0x10d6)
+     *
+     * @param manaUpkeep the imp and trap upkeep per second
+     */
+    public void setManaUpkeep(int manaUpkeep) {
+        this.manaUpkeep = manaUpkeep;
+    }
+
+    /**
+     * Gets the imp and trap upkeep of the last mana update
+     *
+     * @return the imp and trap upkeep per second
+     */
+    public int getManaUpkeep() {
+        return manaUpkeep;
     }
 
     public void setPlayer(Player player) {
@@ -232,16 +252,8 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         allies.remove(playerId);
     }
 
-    public int getGold() {
-        return gold;
-    }
-
     public int getMana() {
         return mana;
-    }
-
-    public void setGold(int gold) {
-        this.gold = gold;
     }
 
     public void setMana(int mana) {
@@ -337,11 +349,11 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         out.write(id, "playerId", Integer.valueOf(0).shortValue());
         out.write(ai, "ai", false);
         out.write(aiType, "aiType", null);
-        out.write(gold, "gold", 0);
         out.write(goldMined, "goldMined", 0);
         out.write(mana, "mana", 0);
         out.write(manaGain, "manaGain", 0);
         out.write(manaLoose, "manaLoose", 0);
+        out.write(manaUpkeep, "manaUpkeep", 0);
         out.write(maxMana, "maxMana", 0);
         out.write(dungeonHeartLocation != null ? dungeonHeartLocation.x : 0, "dungeonHeartLocationX", 0);
         out.write(dungeonHeartLocation != null ? dungeonHeartLocation.y : 0, "dungeonHeartLocationY", 0);
@@ -361,11 +373,11 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         id = in.readShort("playerId", id);
         ai = in.readBoolean("ai", ai);
         aiType = in.readEnum("aiType", AIType.class, aiType);
-        gold = in.readInt("gold", gold);
         goldMined = in.readInt("goldMined", goldMined);
         mana = in.readInt("mana", mana);
         manaGain = in.readInt("manaGain", manaGain);
         manaLoose = in.readInt("manaLoose", manaLoose);
+        manaUpkeep = in.readInt("manaUpkeep", manaUpkeep);
         maxMana = in.readInt("maxMana", maxMana);
         int x = in.readInt("dungeonHeartLocationX", 0);
         int y = in.readInt("dungeonHeartLocationY", 0);

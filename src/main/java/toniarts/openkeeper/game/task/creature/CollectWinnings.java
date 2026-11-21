@@ -20,6 +20,7 @@ import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
 import toniarts.openkeeper.game.component.CasinoBigWinner;
 import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -73,6 +74,12 @@ public final class CollectWinnings extends AbstractRoomTask {
         int kept = Math.min(paid, creature.getMaxGold() - creature.getGold());
         if (kept > 0) {
             creature.addGold(kept);
+        }
+
+        // With less gold than the winnings the keeper is told (DKII.EXE 0x457560, message 0x4D)
+        RoomAttackMessages messages = gameWorldController.getRoomAttackMessages();
+        if (paid < bigWinner.winnings && messages != null) {
+            messages.jackpotUnpaid(playerId);
         }
 
         // Once it has all of its winnings, it is no longer the big winner

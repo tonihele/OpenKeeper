@@ -54,7 +54,7 @@ class TrapHealthGainTest {
                 MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, VariableFixtures.miscVariable(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, 10),
                 MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, VariableFixtures.miscVariable(MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, 0),
                 MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, VariableFixtures.miscVariable(MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, 0)),
-                null, null, List.of(), null, () -> gameTime, (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(),
+                null, null, null, List.of(), null, () -> gameTime, (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(),
                         new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null));
         trap = entityData.createEntity();
         entityData.setComponents(trap, new Health(80, MAX_HEALTH), new HealthGain(HEALTH_GAIN, null));

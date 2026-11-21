@@ -724,7 +724,9 @@ class TrapSystemTest {
 
     private Map<Short, IPlayerController> playerControllers() {
         PlayerManaControl manaControl = new PlayerManaControl(keeper, Map.of(Variable.MiscVariable.MiscType.MAXIMUM_MANA_THRESHOLD,
-                TrapFiringFixtures.miscVariable(Variable.MiscVariable.MiscType.MAXIMUM_MANA_THRESHOLD, 200000)));
+                TrapFiringFixtures.miscVariable(Variable.MiscVariable.MiscType.MAXIMUM_MANA_THRESHOLD, 200000),
+                Variable.MiscVariable.MiscType.MAXIMUM_MANA_GAIN_PER_SECOND,
+                TrapFiringFixtures.miscVariable(Variable.MiscVariable.MiscType.MAXIMUM_MANA_GAIN_PER_SECOND, 200000)));
         IPlayerController playerController = (IPlayerController) Proxy.newProxyInstance(IPlayerController.class.getClassLoader(),
                 new Class<?>[]{IPlayerController.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getKeeper" ->

@@ -33,6 +33,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -70,6 +71,7 @@ public final class PayDaySystem implements IGameLogicUpdatable {
     private final double timeBeforeFirstPayDay;
     private final double payDayFrequency;
     private final double payDayCutOffTime;
+    private final RoomAttackMessages messages;
     private final EntitySet creatureEntities;
 
     /**
@@ -80,10 +82,13 @@ public final class PayDaySystem implements IGameLogicUpdatable {
      * @param gameTimer the game time
      * @param playerControllers the players, only the keepers have pay days
      * @param gameSettings the level variables
+     * @param messages tells the keeper of the creatures that turn unhappy or
+     * angry, may be {@code null}
      */
     public PayDaySystem(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer,
-            Collection<IPlayerController> playerControllers, Map<MiscType, MiscVariable> gameSettings) {
+            Collection<IPlayerController> playerControllers, Map<MiscType, MiscVariable> gameSettings, RoomAttackMessages messages) {
         this.entityData = entityData;
+        this.messages = messages;
         this.kwdFile = kwdFile;
         this.gameTimer = gameTimer;
         for (IPlayerController playerController : playerControllers) {
@@ -201,7 +206,11 @@ public final class PayDaySystem implements IGameLogicUpdatable {
         Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
         int anger = creature != null ? CreatureMood.toRuntimeValue(creature.getAttributes().getAngerNoPay()) : 0;
         if (anger != 0 && !isTorturingItself(entity.getId())) {
-            entityData.setComponent(entity.getId(), mood.add(CreatureMood.REASON_NO_PAY, anger));
+            CreatureMood updatedMood = mood.add(CreatureMood.REASON_NO_PAY, anger);
+            entityData.setComponent(entity.getId(), updatedMood);
+            if (messages != null) {
+                messages.creatureMoodWorsened(entity.getId(), entity.get(Owner.class).ownerId, creature, mood, updatedMood, RoomAttackMessages.MOOD_REASON_NO_PAY);
+            }
         }
     }
 

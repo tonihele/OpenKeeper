@@ -71,6 +71,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.controller.TrapDeliveries;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
@@ -102,6 +103,7 @@ import toniarts.openkeeper.game.task.creature.Pray;
 import toniarts.openkeeper.game.task.creature.Research;
 import toniarts.openkeeper.game.task.creature.Torture;
 import toniarts.openkeeper.game.task.creature.Train;
+import toniarts.openkeeper.game.task.hero.DestroyRoomTile;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
 import toniarts.openkeeper.game.task.objective.KillCreatures;
 import toniarts.openkeeper.game.task.objective.KillPlayer;
@@ -141,6 +143,16 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private static final Logger logger = System.getLogger(TaskManager.class.getName());
+    private static final short GRAVEYARD_ROOM_ID = 14;
+    private static final short COMBAT_PIT_ROOM_ID = 16;
+
+    /**
+     * The rooms of the jobs, the Library, Training Room, Torture Chamber,
+     * Temple and Casino. DK II asks for them by number
+     */
+    private static final Map<Creature.JobType, Short> JOB_ROOM_IDS = Map.of(Creature.JobType.RESEARCH, (short) 6,
+            Creature.JobType.TRAIN, (short) 7, Creature.JobType.TORTURE, (short) 12, Creature.JobType.PRAY, (short) 13,
+            Creature.JobType.DRINK, (short) 15);
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
@@ -460,8 +472,41 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             for (Short playerId : taskQueues.keySet()) {
                 addTask(playerId, new FetchCorpseTask(navigationService, mapController, entityData, this, entity.getId(), playerId));
+                tellGraveyardMissing(playerId, entity.getId());
             }
         }
+    }
+
+    /**
+     * A body on the keeper's land that can't be cleared is told to the keeper
+     * (DKII.EXE 0x46CF40 and 0x46D3C0): with no Graveyard, and only when the
+     * keeper can build one, that a Graveyard is needed (message 0x29), and
+     * with no Graveyard that has room, that it is too small (message 0x2A)
+     *
+     * @param playerId the keeper
+     * @param corpse the body
+     */
+    private void tellGraveyardMissing(short playerId, EntityId corpse) {
+        RoomAttackMessages messages = gameWorldController.getRoomAttackMessages();
+        IMapTileInformation tile = mapController.getMapData().getTile(WorldUtils.vectorToPoint(entityData.getComponent(corpse, Position.class).position));
+        if (messages == null || tile == null || tile.getOwnerId() != playerId) {
+            return;
+        }
+        List<IRoomController> graveyards = mapController.getRoomsByFunction(ObjectType.CORPSE, playerId);
+        if (graveyards.isEmpty()) {
+            for (Room room : playerControllers.get(playerId).getRoomControl().getTypesAvailable()) {
+                if (room.getRoomId() == GRAVEYARD_ROOM_ID) {
+                    messages.roomNeeded(playerId, room);
+                }
+            }
+            return;
+        }
+        for (IRoomController graveyard : graveyards) {
+            if (!graveyard.isFullCapacity()) {
+                return;
+            }
+        }
+        messages.roomTooSmall(playerId, graveyards.get(0).getRoom());
     }
 
     private void processDeletedCorpseEntities(Set<Entity> entities) {
@@ -700,7 +745,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             addTask(playerId, new RepairWallTileTask(navigationService, mapController, tile, playerId));
         } // Claim room
         else if (mapController.isClaimableRoom(mapTile, terrain, playerId)) {
-            addTask(playerId, new ClaimRoomTask(navigationService, mapController, tile, playerId));
+            addTask(playerId, new ClaimRoomTask(navigationService, mapController, gameWorldController, tile, playerId));
         }
     }
 
@@ -749,7 +794,92 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     @Override
     public boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId target) {
-        return assignClosestRoomTask(creature, objectType, target, true);
+        boolean assigned = assignClosestRoomTask(creature, objectType, target, true);
+        if (!assigned && objectType == ObjectType.LAIR) {
+            tellLairTooSmall(creature.getOwnerId());
+        }
+        return assigned;
+    }
+
+    /**
+     * A creature that would train but is too experienced for the Training
+     * Room, and not yet at the Combat Pit's top level, looks for a Combat Pit
+     * only to have its keeper told about it: it doesn't go there by itself
+     * (DKII.EXE 0x485240 calls the pit finder 0x4D8870 and drops the result).
+     * Told here is that a Combat Pit is needed (message 0x29), when the keeper
+     * has none and can build one
+     *
+     * @param creature the creature
+     */
+    private void tellCombatPitNeeded(ICreatureController creature) {
+        RoomAttackMessages messages = gameWorldController.getRoomAttackMessages();
+        short playerId = creature.getOwnerId();
+        if (messages == null || playerId < Player.KEEPER1_ID
+                || creature.getLevel() < gameSettings.get(Variable.MiscVariable.MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL).getValue()
+                || creature.getLevel() >= gameSettings.get(Variable.MiscVariable.MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL).getValue()) {
+            return;
+        }
+        for (IRoomController room : mapController.getRoomControllers()) {
+            if (room.getOwnerId() == playerId && room.getRoom().getRoomId() == COMBAT_PIT_ROOM_ID) {
+                return;
+            }
+        }
+        for (Room room : playerControllers.get(playerId).getRoomControl().getTypesAvailable()) {
+            if (room.getRoomId() == COMBAT_PIT_ROOM_ID) {
+                messages.roomNeeded(playerId, room);
+            }
+        }
+    }
+
+    /**
+     * A creature that would train in a Training Room with room for it, while
+     * its keeper has less gold than a second of training costs, tells its
+     * keeper that training can't be afforded (DKII.EXE 0x47B2D0, message 0x37
+     * variant 5). In DK II the creature finds that out on its training spot,
+     * here before it sets out
+     *
+     * @param creature the creature
+     */
+    private void tellTrainingUnaffordable(ICreatureController creature) {
+        RoomAttackMessages messages = gameWorldController.getRoomAttackMessages();
+        short playerId = creature.getOwnerId();
+        IPlayerController player = playerControllers.get(playerId);
+        if (messages == null || player == null
+                || creature.getLevel() >= gameSettings.get(Variable.MiscVariable.MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL).getValue()) {
+            return;
+        }
+        for (IRoomController room : mapController.getRoomsByFunction(ObjectType.TRAINEE, playerId)) {
+            if (!room.getObjectControl(ObjectType.TRAINEE).isFullCapacity()) {
+                if (player.getGoldControl().getGold() < Math.abs(gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_PLAYER_GOLD_WHILE_TRAINING_PER_SECOND).getValue())) {
+                    messages.cannotAffordTraining(playerId);
+                }
+                return;
+            }
+        }
+    }
+
+    /**
+     * A creature that comes to make its bed and finds no free spot in the Lair
+     * tells its keeper that the Lair is too small (DKII.EXE 0x46F4F0, message
+     * 0x2A for the Lair). When a Lair has a free spot but the creature found
+     * none, it can't get there, and the keeper is told that (0x4E0470,
+     * message 0x2B for the Lair). A keeper without a Lair isn't told here
+     *
+     * @param playerId the keeper
+     */
+    private void tellLairTooSmall(short playerId) {
+        RoomAttackMessages messages = gameWorldController.getRoomAttackMessages();
+        List<IRoomController> lairs = mapController.getRoomsByFunction(ObjectType.LAIR, playerId);
+        if (messages == null || lairs.isEmpty()) {
+            return;
+        }
+        for (IRoomController lair : lairs) {
+            if (!lair.getObjectControl(ObjectType.LAIR).isFullCapacity()) {
+                messages.roomUnreachable(playerId, lair.getRoom());
+                return;
+            }
+        }
+        messages.roomTooSmall(playerId, lairs.get(0).getRoom());
     }
 
     /**
@@ -1026,7 +1156,54 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     @Override
     public boolean assignTask(ICreatureController creature, Creature.JobType jobType) {
-        return assignTask(creature, jobType, true);
+        boolean assigned = assignTask(creature, jobType, true);
+        if (!assigned) {
+            tellJobRoomMissing(creature.getOwnerId(), jobType);
+        }
+        return assigned;
+    }
+
+    /**
+     * A creature that wants to research, train, torture, pray or gamble and
+     * finds no room for it tells its keeper why (DKII.EXE 0x4E0470, 0x4F3560,
+     * 0x4F2B80, 0x4D8510 and, for the Casino, 0x4D75F0): with no room of the type, and only when the keeper can
+     * build one, that the room is needed (message 0x29), and with every room
+     * of the type full, that it is too small (message 0x2A). DK II's two other
+     * reasons, a room that can't be reached (0x2B) and one that doesn't work
+     * yet (0x2C), are not told
+     *
+     * @param playerId the keeper
+     * @param jobType the job the creature wanted
+     */
+    private void tellJobRoomMissing(short playerId, Creature.JobType jobType) {
+        RoomAttackMessages messages = gameWorldController.getRoomAttackMessages();
+        ObjectType objectType = switch (jobType) {
+            case RESEARCH -> ObjectType.RESEARCHER;
+            case TRAIN -> ObjectType.TRAINEE;
+            case TORTURE -> ObjectType.TORTUREE;
+            case PRAY -> ObjectType.WORSHIPPER;
+            case DRINK -> ObjectType.GAMBLER;
+            default -> null;
+        };
+        if (messages == null || objectType == null || !playerControllers.containsKey(playerId)) {
+            return;
+        }
+        List<IRoomController> rooms = mapController.getRoomsByFunction(objectType, playerId);
+        if (rooms.isEmpty()) {
+            short roomId = JOB_ROOM_IDS.get(jobType);
+            for (Room room : playerControllers.get(playerId).getRoomControl().getTypesAvailable()) {
+                if (room.getRoomId() == roomId) {
+                    messages.roomNeeded(playerId, room);
+                }
+            }
+            return;
+        }
+        for (IRoomController room : rooms) {
+            if (!room.getObjectControl(objectType).isFullCapacity()) {
+                return;
+            }
+        }
+        messages.roomTooSmall(playerId, rooms.get(0).getRoom());
     }
 
     private boolean assignTask(ICreatureController creature, Creature.JobType jobType, boolean assign) {
@@ -1035,7 +1212,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return assignClosestRoomTask(creature, ObjectType.RESEARCHER, null, assign);
             }
             case TRAIN: {
-                return assignClosestRoomTask(creature, ObjectType.TRAINEE, null, assign);
+                if (assignClosestRoomTask(creature, ObjectType.TRAINEE, null, assign)) {
+                    return true;
+                }
+                tellCombatPitNeeded(creature);
+                tellTrainingUnaffordable(creature);
+                return false;
             }
             case TORTURE: {
 
@@ -1064,6 +1246,25 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     public boolean assignSleepTask(ICreatureController creature) {
         GoToSleep task = new GoToSleep(navigationService, mapController, creature);
         if (task.isReachable(creature)) {
+            task.assign(creature, true);
+            tasksByIds.put(task.getId(), task);
+            return true;
+        }
+
+        // A creature that can't get to the room of its bed tells its keeper (DKII.EXE 0x46F440, message 0x2B)
+        RoomAttackMessages messages = gameWorldController.getRoomAttackMessages();
+        IRoomController lair = creature.hasLair() ? mapController.getRoomControllerByCoordinates(creature.getLairLocation()) : null;
+        if (messages != null && lair != null) {
+            messages.roomUnreachable(creature.getOwnerId(), lair.getRoom());
+        }
+        return false;
+    }
+
+    @Override
+    public boolean assignDestroyRoomTask(ICreatureController creature, Point tile) {
+        DestroyRoomTile task = new DestroyRoomTile(navigationService, mapController, gameWorldController, gameSettings,
+                levelInfo.getLevelData().getGameLevel().getTicksPerSec(), tile, creature.getOwnerId());
+        if (task.isValid(creature)) {
             task.assign(creature, true);
             tasksByIds.put(task.getId(), task);
             return true;

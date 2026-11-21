@@ -143,6 +143,16 @@ class GameEventTest {
     }
 
     @Test
+    void noManaAlertIsTheHeartsAndNotPositional() {
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> method.getName().equals("getRoomById") ? SoundFixtures.room("ROOM_DUNGEON_HEART") : null);
+        GameEvent event = new GameEvent(GameEventType.NO_MANA, ThingFlag.ROOM, 5, null, 0, null, null);
+
+        assertEquals(List.of(new GameEventSounds.Sound("ROOM_DUNGEON_HEART", ThingSounds.ROOM_NO_MANA, null)),
+                GameEventSounds.getSounds(event, kwdFile));
+    }
+
+    @Test
     void mentorTellsOfAPrisonerRisenAsASkeleton() {
         GameEvent event = new GameEvent(GameEventType.PRISON_SKELETON_RISEN, null, 0, null, 0, null, null);
 

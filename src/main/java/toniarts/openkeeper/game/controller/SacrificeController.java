@@ -26,11 +26,15 @@ import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
+import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.SacrificeHistory;
 import toniarts.openkeeper.game.controller.room.TempleController;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.convert.map.Variable.SacrificeType;
 import toniarts.openkeeper.utils.Point;
@@ -48,10 +52,19 @@ import toniarts.openkeeper.utils.WorldUtils;
  * Rewards appear on a random floor tile of the temple, in the room's first
  * effect. The creature cries out as it goes, and the mentor tells the owner
  * the recipe's speech, or that the sacrifice completed nothing.
+ * <p>
+ * A keeper's worker dropped onto the middle tile of a Dungeon Heart goes the
+ * same way, for mana.
  */
 public final class SacrificeController {
 
     private static final Logger logger = System.getLogger(SacrificeController.class.getName());
+
+    /**
+     * The Create Imp spell, DK II names it by number for the mana a worker
+     * gives back in the Dungeon Heart (DKII.EXE 0x459180)
+     */
+    public static final short CREATE_IMP_SPELL_ID = 4;
 
     private final EntityData entityData;
     private final List<Variable.Sacrifice> recipes;
@@ -72,6 +85,38 @@ public final class SacrificeController {
         this.gameWorldController = gameWorldController;
         this.playerControllers = playerControllers;
         this.gameEventService = gameEventService;
+    }
+
+    /**
+     * A keeper's worker dropped onto the middle tile of a Dungeon Heart that
+     * still has its heart goes into the heart: it is gone for good, with the
+     * gold it carried, and the heart's keeper gets the Create Imp spell's
+     * base mana cost back for it (DKII.EXE 0x46EAB0, 0x459180). The middle
+     * tile is the only one of the 5 x 5 with tile code 0x40 (0x4EFC60, table
+     * 0x66DC48)
+     *
+     * @param room the room on the tile, can be {@code null}
+     * @param creature the dropped creature
+     * @param tile the tile it was dropped on
+     * @param mana the base mana cost of the Create Imp spell
+     * @return true if the creature went into the heart
+     */
+    public boolean returnWorkerToHeart(IRoomController room, EntityId creature, Point tile, int mana) {
+        if (room == null || !room.isDungeonHeart() || room.isDestroyed()
+                || !entityData.getComponent(creature, CreatureComponent.class).worker
+                || entityData.getComponent(creature, Owner.class).ownerId < Player.KEEPER1_ID) {
+            return false;
+        }
+        Point roomTile = room.getRoomInstance().worldCoordinateToLocalCoordinate(tile.x, tile.y);
+        if (roomTile.x != 2 || roomTile.y != 2) {
+            return false;
+        }
+
+        entityData.removeComponent(creature, Gold.class);
+        creaturesController.createController(creature).remove();
+        playerControllers.get(room.getOwnerId()).getManaControl().addMana(mana);
+
+        return true;
     }
 
     /**

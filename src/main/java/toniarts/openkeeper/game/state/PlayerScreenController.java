@@ -717,6 +717,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     @Override
+    public Vector3f getEntityPosition(EntityId entityId) {
+        return state.getEntityPosition(entityId);
+    }
+
+    @Override
     public void pickUpEntity(EntityId entityId) {
         state.pickUpEntity(entityId);
     }
@@ -1081,10 +1086,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         hud.findNiftyControl("manaGet", Label.class).setText(Integer.toString(state.getPlayer().getManaGain()));
         hud.findNiftyControl("manaLose", Label.class).setText(Integer.toString(state.getPlayer().getManaLoose()));
 
-        if (state.getGoldControl() != null) {
-            // state.getGoldControl().addListener(hud.findNiftyControl("gold", Label.class));
-        }
-        hud.findNiftyControl("gold", Label.class).setText(Integer.toString(state.getPlayer().getGold()));
+        hud.findNiftyControl("gold", Label.class).setText(Integer.toString(state.getGold()));
 
         // Player creatures
         Element creatureTab = hud.findElementById("tab-creature");
@@ -1204,7 +1206,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         hud.findNiftyControl("mana", Label.class).setText(Integer.toString(mana));
         hud.findNiftyControl("manaGet", Label.class).setText(Integer.toString(manaGain));
         hud.findNiftyControl("manaLose", Label.class).setText(Integer.toString(manaLoose));
-        updateSpellAffordability(mana - manaLoose);
+        updateSpellAffordability(mana);
     }
 
     /**
@@ -1460,7 +1462,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             }
         }
         unaffordableSpells.clear();
-        updateSpellAffordability(state.getPlayer().getMana() - state.getPlayer().getManaLoose());
+        updateSpellAffordability(state.getPlayer().getMana());
     }
 
     /**
@@ -1475,7 +1477,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             setResearchEffect(room, element);
         }
         unaffordableRooms.clear();
-        updateRoomAffordability(state.getPlayer().getGold());
+        updateRoomAffordability(state.getGold());
     }
 
     /**

@@ -45,6 +45,7 @@ public final class CreatureComponent implements EntityComponent {
     public boolean tool; // A Hero Toolbox creature, "I am a tool"
     public short creatureId;
     public boolean diesInstantly;
+    public boolean destroysRooms;
 
     public CreatureComponent() {
 
@@ -71,6 +72,7 @@ public final class CreatureComponent implements EntityComponent {
         this.tool = creatureComponent.tool;
         this.creatureId = creatureComponent.creatureId;
         this.diesInstantly = creatureComponent.diesInstantly;
+        this.destroysRooms = creatureComponent.destroysRooms;
     }
 
 }

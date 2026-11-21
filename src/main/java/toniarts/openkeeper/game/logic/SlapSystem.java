@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
@@ -71,11 +72,14 @@ public final class SlapSystem extends GameTimeCounter {
     private final int maxSlapDuration;
     private final int maxGoldPile;
     private final Map<Short, PlayerStatsControl> statControls;
+    private final RoomAttackMessages messages;
     private final Map<EntityId, Double> slapStartTimesByEntityId = new HashMap<>();
 
     public SlapSystem(EntityData entityData, IKwdFile kwdFile, Collection<IPlayerController> playerControllers,
-            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IObjectsController objectsController) {
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IObjectsController objectsController,
+            RoomAttackMessages messages) {
         this.kwdFile = kwdFile;
+        this.messages = messages;
         this.entityData = entityData;
         this.objectsController = objectsController;
         statControls = HashMap.newHashMap(playerControllers.size());
@@ -171,7 +175,11 @@ public final class SlapSystem extends GameTimeCounter {
         if (moodChange != 0) {
             CreatureMood mood = entityData.getComponent(entity.getId(), CreatureMood.class);
             if (mood != null) {
-                entityData.setComponent(entity.getId(), applySlapAnger(mood, moodChange));
+                CreatureMood updatedMood = applySlapAnger(mood, moodChange);
+                entityData.setComponent(entity.getId(), updatedMood);
+                if (messages != null) {
+                    messages.creatureMoodWorsened(entity.getId(), ownerId, creature, mood, updatedMood, RoomAttackMessages.MOOD_REASON_SLAPPED);
+                }
             }
         }
 

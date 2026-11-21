@@ -120,4 +120,10 @@ public final class ShotFixtures {
         return keeperSpell;
     }
 
+    public static KeeperSpell createImp(int manaCost) {
+        KeeperSpell keeperSpell = keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.NONE, manaCost);
+        keeperSpell.setFlags(EnumSet.of(KeeperSpell.KeeperSpellFlag.CREATE_WORKER));
+        return keeperSpell;
+    }
+
 }

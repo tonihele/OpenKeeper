@@ -29,7 +29,9 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.GameEnded;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.GameWorldController;
@@ -53,8 +55,9 @@ import toniarts.openkeeper.utils.Point;
  * Watches the Dungeon Hearts. A keeper whose heart is destroyed is defeated:
  * he is marked destroyed, loses the game, his heart room is left in ruins,
  * his land goes back to nobody and his imps die.
- * In a skirmish or multiplayer game the last keeper standing wins. In the
- * campaign, a level can have the last enemy heart leave a Portal Gem.
+ * In a skirmish or multiplayer game the last keeper standing wins, and when a
+ * keeper wins, by the level script too, every keeper who is not his ally
+ * loses. In the campaign, a level can have the last enemy heart leave a Portal Gem.
  */
 public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
@@ -67,6 +70,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
     private final IObjectsController objectsController;
     private final boolean lastKeeperWins;
     private final EntitySet hearts;
+    private final EntitySet endedGames;
     private final Map<EntityId, Short> heartOwners = new HashMap<>();
 
     /**
@@ -92,20 +96,41 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
         hearts = entityData.getEntities(new FieldFilter(ObjectComponent.class, "objectId", FiveByFiveRotatedController.OBJECT_HEART_ID),
                 ObjectComponent.class, Owner.class, Health.class);
         processAddedHearts(hearts);
+        endedGames = entityData.getEntities(KeeperComponent.class, GameEnded.class);
     }
 
     @Override
     public void processTick(float tpf) {
-        if (!hearts.applyChanges()) {
-            return;
+        if (hearts.applyChanges()) {
+            processAddedHearts(hearts.getAddedEntities());
+            processChangedHearts(hearts.getChangedEntities());
+
+            // A removed entity has no components left, so we remember the owners
+            for (Entity heart : hearts.getRemovedEntities()) {
+                heartDestroyed(heart.getId());
+            }
         }
+        if (endedGames.applyChanges() && lastKeeperWins) {
+            for (Entity player : endedGames.getAddedEntities()) {
+                if (player.get(GameEnded.class).won) {
+                    rivalsLose(levelInfo.getPlayer(player.get(KeeperComponent.class).playerId));
+                }
+            }
+        }
+    }
 
-        processAddedHearts(hearts.getAddedEntities());
-        processChangedHearts(hearts.getChangedEntities());
-
-        // A removed entity has no components left, so we remember the owners
-        for (Entity heart : hearts.getRemovedEntities()) {
-            heartDestroyed(heart.getId());
+    /**
+     * When a keeper wins a skirmish or multiplayer game, every other keeper
+     * loses unless the two are allies of each other. The winner's allies don't
+     * win from it (0x4BE630)
+     *
+     * @param winner the keeper who won
+     */
+    private void rivalsLose(Keeper winner) {
+        for (Keeper keeper : getKeepersStanding()) {
+            if (keeper != winner && (winner.isEnemy(keeper.getId()) || keeper.isEnemy(winner.getId()))) {
+                gameController.endGame(keeper.getId(), false);
+            }
         }
     }
 
@@ -302,6 +327,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         hearts.release();
+        endedGames.release();
         heartOwners.clear();
     }
 

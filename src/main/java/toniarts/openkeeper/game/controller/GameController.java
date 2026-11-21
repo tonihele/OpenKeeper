@@ -20,6 +20,10 @@ import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
+import toniarts.openkeeper.game.component.GameEnded;
+import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.GameResult;
@@ -126,6 +130,8 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                 gameWorldController.getCreaturesController(), gameWorldController.getDoorsController(),
                 gameWorldController.getObjectsController());
         gameWorldController.setEntityPositionLookup(positionSystem);
+        gameWorldController.setRoomAttackMessages(new RoomAttackMessages(entityData, playerService, gameTimer,
+                levelInfo.kwdFile.getGameLevel().getTicksPerSec()));
 
         // Navigation
         navigationService = new NavigationService(gameWorldController.getMapController(), positionSystem);
@@ -181,6 +187,9 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
             // Init
             if (keeper != null) {
+
+                // The player's own entity, the player's state is kept in its components
+                entityData.setComponents(entityData.createEntity(), new KeeperComponent(keeper.getId()), new Gold(0, 0));
                 PlayerController playerController = new PlayerController(levelInfo.kwdFile, keeper, levelInfo.kwdFile.getImp(), entityData, gameSettings);
                 playerControllers.put(entry.getKey(), playerController);
 
@@ -341,6 +350,15 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         Keeper keeper = levelInfo.getPlayer(playerId);
         if (keeper != null && !keeper.claimResult()) {
             return;
+        }
+
+        // The player hears its own win or loss, then gets no more messages
+        if (gameWorldController.getRoomAttackMessages() != null) {
+            gameWorldController.getRoomAttackMessages().gameEnded(playerId, win);
+        }
+        EntityId playerEntity = entityData.findEntity(new FieldFilter<>(KeeperComponent.class, "playerId", playerId), KeeperComponent.class);
+        if (playerEntity != null) {
+            entityData.setComponent(playerEntity, new GameEnded(win));
         }
 
         // Determine what happens to the game & players

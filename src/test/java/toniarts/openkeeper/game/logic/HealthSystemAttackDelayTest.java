@@ -53,7 +53,7 @@ class HealthSystemAttackDelayTest {
         entityData.setComponent(hurt, new CreatureSpells(List.of(spell)));
 
         // Two seconds at 4 ticks a second
-        HealthSystem healthSystem = new HealthSystem(entityData, null, settings(), null, null, List.of(), null, () -> 0, null);
+        HealthSystem healthSystem = new HealthSystem(entityData, null, settings(), null, null, null, List.of(), null, () -> 0, null);
         for (int tick = 0; tick < 8; tick++) {
             healthSystem.processTick(0.25f);
         }

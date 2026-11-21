@@ -21,6 +21,7 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CombatPitFighter;
@@ -55,19 +56,25 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.creature.DungeonHeartTarget;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -94,6 +101,7 @@ public final class HealthSystem extends GameTimeCounter {
     private final SafeArrayList<EntityId> entityIds;
     private final IEntityPositionLookup entityPositionLookup;
     private final ICreaturesController creaturesController;
+    private final RoomAttackMessages roomAttackMessages;
     private final int timeToDeath;
     private final int healthRegeneratePerSecond;
     private final int healthRegeneratePerSecondImprisoned;
@@ -112,7 +120,7 @@ public final class HealthSystem extends GameTimeCounter {
 
     public HealthSystem(EntityData entityData, IEntityPositionLookup entityPositionLookup,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            ICreaturesController creaturesController, ILevelInfo levelInfo,
+            ICreaturesController creaturesController, RoomAttackMessages roomAttackMessages, ILevelInfo levelInfo,
             Collection<IPlayerController> playerControllers, IMapController mapController,
             IGameTimer gameTimer, GameEventService gameEventService) {
 
@@ -120,6 +128,7 @@ public final class HealthSystem extends GameTimeCounter {
         this.gameTimer = gameTimer;
         this.entityPositionLookup = entityPositionLookup;
         this.creaturesController = creaturesController;
+        this.roomAttackMessages = roomAttackMessages;
         this.levelInfo = levelInfo;
         this.mapController = mapController;
         this.gameEventService = gameEventService;
@@ -207,7 +216,14 @@ public final class HealthSystem extends GameTimeCounter {
             if (health.health + healthChange <= 0) {
                 processHealthDepleted(entityId, health);
             } else {
-                entityData.setComponent(entityId, new Health(Math.min(health.health + healthChange, health.maxHealth), health.maxHealth));
+                int newHealth = Math.min(health.health + healthChange, health.maxHealth);
+                entityData.setComponent(entityId, new Health(newHealth, health.maxHealth));
+                if (roomAttackMessages != null && DungeonHeartTarget.isDungeonHeart(entityData, entityId)) {
+                    Owner owner = entityData.getComponent(entityId, Owner.class);
+                    if (owner != null) {
+                        roomAttackMessages.heartHealthChanged(owner.ownerId, newHealth, health.maxHealth);
+                    }
+                }
             }
         }
     }
@@ -245,6 +261,10 @@ public final class HealthSystem extends GameTimeCounter {
     private void processHealthDepleted(EntityId entityId, Health health) {
 
         // Death or destruction!!!!
+        if (roomAttackMessages != null && DungeonHeartTarget.isDungeonHeart(entityData, entityId)) {
+            processHeartDestroyed(entityId);
+        }
+
         // No body, just vanish from the world
         if (!isLeaveDeadBody(entityId)) {
             shatter(entityId);
@@ -282,6 +302,29 @@ public final class HealthSystem extends GameTimeCounter {
 
         // Leave the entity incapacitaded and waiting for death... or rescue
         processUnconscious(entityId, health);
+    }
+
+    private void processHeartDestroyed(EntityId heart) {
+        Owner owner = entityData.getComponent(heart, Owner.class);
+        if (owner == null) {
+            return;
+        }
+
+        // The one attacking the heart destroyed it
+        short destroyerId = 0;
+        for (EntityId attacker : entityData.findEntities(new FieldFilter(AttackTarget.class, "entityId", heart), AttackTarget.class, Owner.class)) {
+            Owner attackerOwner = entityData.getComponent(attacker, Owner.class);
+            if (attackerOwner.ownerId != owner.ownerId) {
+                destroyerId = attackerOwner.ownerId;
+                break;
+            }
+        }
+
+        // In a skirmish or multiplayer game (DK II game types 2 and 3) every other player hears of it too (0x4DA560)
+        EnumSet<GameLevel.LevFlag> levelFlags = levelInfo.getLevelData().getGameLevel().getLvlFlags();
+        roomAttackMessages.heartDestroyed(owner.ownerId, destroyerId,
+                levelFlags.contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL) || levelFlags.contains(GameLevel.LevFlag.IS_MULTIPLAYER_LEVEL)
+                ? levelInfo.getPlayers().keySet() : List.of());
     }
 
     private boolean isDiesInstantly(EntityId entityId) {
@@ -329,9 +372,18 @@ public final class HealthSystem extends GameTimeCounter {
 
         // A knocked out pit fighter is out of the fight and waits to be carried to its lair.
         // One that was held in the pit is not held anymore, the imps may take it to the Prison again
-        if (entityData.removeComponent(entityId, CombatPitFighter.class)) {
+        CombatPitFighter pitFighter = entityData.getComponent(entityId, CombatPitFighter.class);
+        if (pitFighter != null) {
+            entityData.removeComponent(entityId, CombatPitFighter.class);
             Owner owner = entityData.getComponent(entityId, Owner.class);
             entityData.setComponent(entityId, new Owner(owner.ownerId, owner.ownerId));
+
+            // With one fighter left standing over it the fight is over, and the
+            // mentor tells the keeper of the pit (DKII.EXE 0x4D7A60, message 9)
+            if (roomAttackMessages != null && entityData.findEntities(
+                    new FieldFilter(CombatPitFighter.class, "pit", pitFighter.pit), CombatPitFighter.class).size() == 1) {
+                roomAttackMessages.combatPitOver(mapController.getRoomController(pitFighter.pit).getOwnerId());
+            }
         }
         entityData.setComponent(entityId, new Health(0, health.maxHealth));
         entityData.setComponent(entityId, new Unconscious(timeElapsed));
@@ -404,6 +456,15 @@ public final class HealthSystem extends GameTimeCounter {
 
             // Remove the damage
             entityData.removeComponent(entityId, Damage.class);
+
+            // The keeper hears of the damage to his Dungeon Heart
+            if (damage.damage > 0 && roomAttackMessages != null && DungeonHeartTarget.isDungeonHeart(entityData, entityId)) {
+                Owner owner = entityData.getComponent(entityId, Owner.class);
+                Position position = entityData.getComponent(entityId, Position.class);
+                if (owner != null && position != null) {
+                    roomAttackMessages.heartAttacked(owner.ownerId, WorldUtils.vectorToPoint(position.position));
+                }
+            }
         }
 
         // Imprisonment
