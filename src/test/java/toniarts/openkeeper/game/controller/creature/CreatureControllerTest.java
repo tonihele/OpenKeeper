@@ -48,11 +48,13 @@ import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
@@ -294,6 +296,25 @@ class CreatureControllerTest {
             assertEquals(CreatureState.SLEEPING, f.state());
             assertEquals(1, f.sleepAssignments);
             assertNull(f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
+        }
+    }
+
+    @Test
+    void theNeutralCreatureItSeesJoinsTheKeeperAndItKeepsItsOwnLair() {
+        try (Fixture f = new Fixture(9)) {
+            EntityId neutral = f.data.createEntity();
+            CreatureComponent component = new CreatureComponent();
+            component.creatureId = 6;
+            f.data.setComponents(neutral, component, new Health(1000, 1000), new Owner(Player.NEUTRAL_PLAYER_ID, Player.NEUTRAL_PLAYER_ID),
+                    new Position(0, new Vector3f(5, WorldUtils.FLOOR_HEIGHT, 4)), new CreatureAi(0, CreatureState.IDLE, (short) 6), new Fearless(), new Gold(0, 100),
+                    new CreatureMood(0, 0, 0, 0, 0, 0));
+            f.sensed.add(neutral);
+
+            f.controller.checkSurroundings();
+
+            assertEquals(3, f.data.getComponent(neutral, Owner.class).ownerId);
+            assertEquals(3, f.data.getComponent(f.entity, Owner.class).ownerId);
+            assertEquals(f.bed, f.sleep().lairObjectId);
         }
     }
 
@@ -546,6 +567,7 @@ class CreatureControllerTest {
         final HealthSystem healthSystem;
         final CreatureFallSystem fall;
         final List<GameEventType> events = new java.util.ArrayList<>();
+        final Set<EntityId> sensed = new java.util.HashSet<>();
         final GameEventService eventService = proxy(GameEventService.class, (method, args) -> {
             events.add((GameEventType) args[0]);
             return null;
@@ -624,7 +646,8 @@ class CreatureControllerTest {
             settings.put(MiscType.CANNOT_SLEEP_MODIFY_CREATURE_HEALTH_PER_SECOND,
                     CreatureSleepFixtures.variable(MiscType.CANNOT_SLEEP_MODIFY_CREATURE_HEALTH_PER_SECOND, 0));
             IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, (method, args) -> switch (method) {
-                case "getSensedEntities" -> Set.of();
+                case "getSensedEntities" -> sensed;
+                case "isBehindBlockingDoor" -> false;
                 case "getEntityLocation" -> null; // Not on a Hero Lair
                 case "getBlockingDoor" -> null;
                 default -> throw new UnsupportedOperationException(method);
@@ -638,10 +661,18 @@ class CreatureControllerTest {
             });
             ILevelInfo levelInfo = proxy(ILevelInfo.class, (method, args) -> switch (method) {
                 case "getLevelData" -> kwd;
+                case "getPlayer" -> new Keeper(false, (short) args[0]);
                 default -> throw new UnsupportedOperationException(method);
             });
+            ICreaturesController[] creaturesController = new ICreaturesController[1];
+            creaturesController[0] = proxy(ICreaturesController.class, (method, args) -> switch (method) {
+                case "createController" -> new CreatureController((EntityId) args[0], data, definition, null, taskManager, () -> time,
+                        settings, creaturesController[0], lookup, map, levelInfo, null, null, eventService);
+                case "isValidEntity" -> data.getComponent((EntityId) args[0], CreatureComponent.class) != null;
+                default -> null;
+            });
             controllers = () -> new CreatureController(entity, data, definition, null, taskManager, () -> time,
-                    settings, null, lookup, map, levelInfo, null, null, eventService);
+                    settings, creaturesController[0], lookup, map, levelInfo, null, null, eventService);
             controller = controllers.get();
             sleepSystem = new CreatureSleepSystem(data, kwd, () -> time);
             moodSystem = new CreatureMoodSystem(data, kwd, List.of(), () -> time, settings);

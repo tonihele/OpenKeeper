@@ -351,10 +351,11 @@ public final class CreatureController extends EntityController implements ICreat
             Owner owner = entityData.getComponent(entity, Owner.class);
 
             // We sense through doors, but the creature behind an enemy or a locked door
-            // is not ours before we get there
-            if (owner != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID
+            // is not ours before we get there. The neutral creature is the one that changes sides, as in DK II
+            // (DKII.EXE 0x4790A0)
+            if (owner != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID && entityData.getComponent(entity, CreatureComponent.class) != null
                     && !entityPositionLookup.isBehindBlockingDoor(entityId, entity)) {
-                convertCreature(entity, ownerId);
+                creaturesController.createController(entity).convertCreature(ownerId);
             }
         }
     }
@@ -3066,7 +3067,19 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void convertCreature(short playerId) {
-        convertCreature(entityId, playerId);
+        removeFromRoomStrorage();
+
+        // Remove our lair from the last player
+        removeLair();
+
+        // Set new owner
+        entityData.setComponent(entityId, new Owner(playerId, playerId));
+
+        // Remove good player stuff
+        entityData.removeComponent(entityId, Objective.class);
+
+        // Reset AI
+        getStateMachine().changeState(CreatureState.IDLE);
     }
 
     @Override
@@ -3076,22 +3089,6 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         entityData.setComponent(entityId, new Turncoat(playerId, gameTimer.getGameTime() + duration));
-    }
-
-    private void convertCreature(EntityId entity, short playerId) {
-        removeFromRoomStrorage();
-
-        // Remove our lair from the last player
-        removeLair();
-
-        // Set new owner
-        entityData.setComponent(entity, new Owner(playerId, playerId));
-
-        // Remove good player stuff
-        entityData.removeComponent(entity, Objective.class);
-
-        // Reset AI
-        getStateMachine().changeState(CreatureState.IDLE);
     }
 
     @Override
