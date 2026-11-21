@@ -200,11 +200,10 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     void angerEnemyCreatures(short playerId);
 
     /**
-     * Stuns all of the given player's imps, the "Stun enemy imps" special. Stunned creatures are simply
-     * knocked unconscious, same as being knocked out in a fight - they get back up when rescued, or die if
-     * left too long
+     * Stuns all of the given player's workers, the "Stun Imps" special. A stunned creature lies down for its
+     * stun time and then gets up again
      *
-     * @param playerId whose imps to stun
+     * @param playerId whose workers to stun
      */
     void stunImps(short playerId);
 

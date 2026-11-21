@@ -51,6 +51,7 @@ import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
+import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
@@ -2372,8 +2373,14 @@ public final class CreatureController extends EntityController implements ICreat
 
         switch (stateMachine.getCurrentState()) {
             case STUNNED -> {
-                // Hmm, this might actually be the level variable, the stun seems to be the time fallen when dropped
-                stateTargetTime = entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
+
+                // A frozen creature stands stunned until it thaws. Otherwise the creature plays its stunned animation
+                // and then lies there for its stun time, which an Imp doesn't have (DKII.EXE 0x481020, 0x4810E0)
+                if (entityData.getComponent(entityId, Frozen.class) != null) {
+                    return false;
+                }
+                stateTargetTime = getAnimationTime(creature, Creature.AnimationType.STUNNED)
+                        + entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
             }
             case FALLEN -> {
 

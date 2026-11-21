@@ -38,6 +38,7 @@ import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Fearless;
+import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Navigation;
@@ -294,6 +295,33 @@ class CreatureControllerTest {
             assertEquals(CreatureState.SLEEPING, f.state());
             assertEquals(1, f.sleepAssignments);
             assertNull(f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
+        }
+    }
+
+    @Test
+    void stunnedCreatureGetsUpAfterItsStunTime() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.getComponent(f.entity, CreatureComponent.class).stunDuration = .5f;
+            f.controller.getStateMachine().changeState(CreatureState.STUNNED);
+            f.controller.processTick(0);
+            f.tick();
+            f.tick();
+            assertEquals(CreatureState.STUNNED, f.state());
+            f.tick();
+            assertEquals(CreatureState.GETTING_UP, f.state());
+        }
+    }
+
+    @Test
+    void frozenCreatureStaysStunnedUntilItThaws() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new Frozen(0, 10));
+            f.controller.getStateMachine().changeState(CreatureState.STUNNED);
+            f.controller.processTick(0);
+            for (int i = 0; i < 8; i++) {
+                f.tick();
+            }
+            assertEquals(CreatureState.STUNNED, f.state());
         }
     }
 
