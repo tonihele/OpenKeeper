@@ -37,8 +37,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 /**
  * The Graveyard. Imps bring dead bodies here, one body per tile whose eight
  * neighbours are all graveyard. The room has a crypt for every ten tiles, each
- * on such a tile and with no other crypt next to it. A crypt tile can't hold a
- * body.
+ * on such a tile whose eight neighbours are such tiles too, and with no other
+ * crypt next to it. A crypt tile can't hold a body.
  */
 public final class GraveyardController extends NormalRoomController {
 
@@ -69,7 +69,7 @@ public final class GraveyardController extends NormalRoomController {
             protected Collection<Point> getCoordinates() {
                 Collection<Point> coordinates = super.getCoordinates();
                 // Bodies lie only on the tiles surrounded by the graveyard, like in DK II
-                coordinates.removeIf(p -> cryptTiles.contains(p) || !isCryptTile(map, List.of(), p.x - start.x, p.y - start.y));
+                coordinates.removeIf(p -> cryptTiles.contains(p) || !isInsideTile(map, p.x - start.x, p.y - start.y));
                 return coordinates;
             }
 
@@ -116,9 +116,11 @@ public final class GraveyardController extends NormalRoomController {
     }
 
     /**
-     * Picks the crypt tiles at random. A crypt needs all its eight neighbours
-     * to be graveyard, and the tile and the neighbours must be free of other
-     * crypts. When no tile qualifies, the rest of the crypts are left out.
+     * Picks the crypt tiles at random. Like in DK II (DKII.EXE 0x4DD9B0) a
+     * crypt needs an inside tile whose eight neighbours are inside tiles too,
+     * so a 5x5 block of graveyard, and a tile with a crypt doesn't count as
+     * an inside tile. When no tile qualifies, the rest of the crypts are left
+     * out.
      *
      * @param map the room tiles
      * @param count the number of crypts wanted
@@ -147,7 +149,18 @@ public final class GraveyardController extends NormalRoomController {
     private static boolean isCryptTile(boolean[][] map, List<Point> crypts, int x, int y) {
         for (int dx = -1; dx <= 1; dx++) {
             for (int dy = -1; dy <= 1; dy++) {
-                if (!hasSameTile(map, x + dx, y + dy) || crypts.contains(new Point(x + dx, y + dy))) {
+                if (!isInsideTile(map, x + dx, y + dy) || crypts.contains(new Point(x + dx, y + dy))) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static boolean isInsideTile(boolean[][] map, int x, int y) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                if (!hasSameTile(map, x + dx, y + dy)) {
                     return false;
                 }
             }
