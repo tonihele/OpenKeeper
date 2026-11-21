@@ -170,6 +170,7 @@ public final class AiFixtures {
             jobs[i].setJobType(jobTypes[i]);
         }
         creature.setHappyJobs(jobs);
+        creature.getAttributes().setUnhappyThreshold((short) 1);
         return creature;
     }
 
@@ -222,6 +223,23 @@ public final class AiFixtures {
      */
     public static AI withPrisonerFate(AI ai, AI.ImprisonedCreatureFatePolicy fate) {
         ai.setFateOfImprisonedCreatures(fate);
+        return ai;
+    }
+
+    /**
+     * Sets how the computer player looks after its unhappy and angry
+     * creatures
+     *
+     * @param ai the computer player settings
+     * @param unhappy whether it tries to make the unhappy ones happy
+     * @param angry whether it tries to make the angry ones happy
+     * @param dispose whether it gets rid of the angry ones
+     * @return the same settings
+     */
+    public static AI withMoodCare(AI ai, boolean unhappy, boolean angry, boolean dispose) {
+        ai.setTryToMakeUnhappyOnesHappy(unhappy);
+        ai.setTryToMakeAngryOnesHappy(angry);
+        ai.setDisposeOfAngryCreatures(dispose);
         return ai;
     }
 

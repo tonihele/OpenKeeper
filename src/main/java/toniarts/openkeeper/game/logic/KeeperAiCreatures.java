@@ -16,10 +16,13 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,9 +31,11 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.KeeperAi;
+import toniarts.openkeeper.game.component.KeeperAiMood;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
@@ -38,9 +43,11 @@ import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.TempleController;
+import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -58,8 +65,10 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 final class KeeperAiCreatures {
 
+    private static final short ROOM_TREASURY = 1;
     private static final short ROOM_LAIR = 2;
     private static final short ROOM_PORTAL = 3;
+    private static final short ROOM_HATCHERY = 4;
     private static final short ROOM_LIBRARY = 6;
     private static final short ROOM_TRAINING_ROOM = 7;
     private static final short ROOM_WORKSHOP = 10;
@@ -311,6 +320,120 @@ final class KeeperAiCreatures {
         }
 
         return false;
+    }
+
+    /**
+     * Sees to each of its creatures whose mood has just turned for the
+     * worse, once, as DK II's computer player does when the message about
+     * it comes in. An unhappy creature is made happy when its settings say
+     * so, and so is an angry one. None of it takes an action.
+     *
+     * @param keeperAi the computer player
+     * @param playerController its player
+     * @param ai its settings
+     */
+    void answerMoods(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
+        for (Entity creature : battles.getCreatures(keeperAi.playerId)) {
+            CreatureMood mood = entityData.getComponent(creature.getId(), CreatureMood.class);
+            if (mood == null) {
+                continue;
+            }
+
+            int state = mood.getState(CreatureMood.toRuntimeThreshold(
+                    kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId).getAttributes().getUnhappyThreshold()));
+            KeeperAiMood seen = entityData.getComponent(creature.getId(), KeeperAiMood.class);
+            int seenState = seen != null ? seen.state : 0;
+            if (state == seenState) {
+                continue;
+            }
+            if (state == 0) {
+                entityData.removeComponent(creature.getId(), KeeperAiMood.class);
+            } else {
+                entityData.setComponent(creature.getId(), new KeeperAiMood(state));
+            }
+
+            // A creature that calms down is no news
+            if (state < seenState) {
+                continue;
+            }
+            if (state == 2 ? ai.isTryToMakeAngryOnesHappy() : ai.isTryToMakeUnhappyOnesHappy()) {
+                makeHappy(keeperAi, playerController, creature, mood.getDominantReason());
+            }
+        }
+    }
+
+    /**
+     * Answers the biggest complaint of a creature: its pay in gold from the
+     * Treasury or a chicken from the Hatchery dropped on it, the creature
+     * itself dropped in the Lair, or in the first room for one of its jobs
+     * unless the hand dropped it a short while ago
+     */
+    private void makeHappy(KeeperAi keeperAi, IPlayerController playerController, Entity creature, int reason) {
+        EntityId creatureId = creature.getId();
+        EntityId held = playerController.getHandControl().peek();
+        switch (reason) {
+            case CreatureMood.REASON_NO_FOOD -> {
+                IRoomController hatchery = getRoom(playerController, ROOM_HATCHERY);
+                EntityId chicken = null;
+                if (hatchery != null && hatchery.hasObjectControl(ObjectType.FOOD)) {
+                    IRoomObjectControl<?> food = hatchery.getObjectControl(ObjectType.FOOD);
+                    for (Point tile : hatchery.getRoomInstance().getCoordinates()) {
+                        Collection<EntityId> items = food.getItems(tile);
+                        if (items != null && !items.isEmpty()) {
+                            chicken = items.iterator().next();
+                            break;
+                        }
+                    }
+                }
+                if (chicken == null) {
+                    return;
+                }
+                gameWorldController.pickUp(chicken, keeperAi.playerId);
+            }
+            case CreatureMood.REASON_NO_LAIR -> {
+                IRoomController lair = getRoom(playerController, ROOM_LAIR);
+                if (lair != null) {
+                    Point tile = lair.getRoomInstance().getCenter();
+                    decisionLog.log(keeperAi, "carry creature " + creatureId.getId() + " to the Lair", tile, "unhappy without a lair");
+                    battles.carry(creatureId, tile, playerController);
+                }
+                return;
+            }
+            case CreatureMood.REASON_NO_WORK -> {
+                Creature.JobPreference[] jobs = kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId).getHappyJobs();
+                if (jobs == null || battles.isLeftAlone(creature)) {
+                    return;
+                }
+                for (Creature.JobPreference job : jobs) {
+                    Short roomId = JOB_ROOMS.get(job.getJobType());
+                    IRoomController room = roomId != null ? getRoom(playerController, roomId) : null;
+                    if (room != null) {
+                        Point tile = room.getRoomInstance().getCenter();
+                        decisionLog.log(keeperAi, "carry creature " + creatureId.getId() + " to room " + roomId, tile,
+                                "unhappy without work, it likes to " + job.getJobType().name().toLowerCase());
+                        battles.carry(creatureId, tile, playerController);
+                        return;
+                    }
+                }
+                return;
+            }
+            default -> {
+                if (getRoom(playerController, ROOM_TREASURY) == null) {
+                    return;
+                }
+                gameWorldController.getGold(creature.get(CreatureComponent.class).pay, keeperAi.playerId);
+            }
+        }
+
+        // The gold or the chicken the hand has taken is dropped on the creature
+        EntityId gift = playerController.getHandControl().peek();
+        if (gift != null && !gift.equals(held)) {
+            Vector3f position = creature.get(Position.class).position;
+            Point tile = WorldUtils.vectorToPoint(position);
+            decisionLog.log(keeperAi, "drop " + (reason == CreatureMood.REASON_NO_FOOD ? "a chicken" : "its pay")
+                    + " on creature " + creatureId.getId(), tile, "unhappy");
+            gameWorldController.drop(gift, tile, new Vector2f(position.x, position.z), creatureId, keeperAi.playerId);
+        }
     }
 
     /**

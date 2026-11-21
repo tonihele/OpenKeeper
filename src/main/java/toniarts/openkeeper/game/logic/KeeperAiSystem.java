@@ -337,6 +337,9 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 keeperAi.failedTargetTicks[i]--;
             }
         }
+        // Its creatures that have turned unhappy or angry are seen to as the news comes in
+        creatures.answerMoods(keeperAi, playerController, ai);
+
         // An attack to answer takes the whole turn
         if (keeperAi.attackLookTicks > 0) {
             keeperAi.attackLookTicks--;
