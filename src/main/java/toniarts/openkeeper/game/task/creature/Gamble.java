@@ -147,6 +147,23 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
         return true;
     }
 
+    /**
+     * The Alcove Barrels, when that is the place of this task: there the
+     * creature drinks instead of playing (DKII.EXE 0x456690, 0x456B70)
+     *
+     * @return the barrels, or {@code null} at a machine or a table
+     */
+    @Override
+    public EntityId getTaskTarget() {
+        for (IObjectController object : entityPositionLookup.getEntityTypesInLocation(getTaskLocation(), IObjectController.class)) {
+            ObjectComponent objectComponent = entityData.getComponent(object.getEntityId(), ObjectComponent.class);
+            if (objectComponent != null && objectComponent.objectId == CasinoController.ALCOVE_BARRELS_OBJECT_ID) {
+                return object.getEntityId();
+            }
+        }
+        return null;
+    }
+
     @Override
     protected ObjectType getRoomObjectType() {
         return ObjectType.GAMBLER;

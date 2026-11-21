@@ -268,6 +268,17 @@ class GambleTest {
         assertFalse(isSpinning(otherTable));
     }
 
+    @Test
+    void theAlcoveBarrelsAreTheTargetOfAGamblerStandingAtThem() {
+        rouletteWheel(5, 5.49f);
+        assertNull(gamble(PayOut.SMILES, NO_JACKPOT).getTaskTarget());
+
+        EntityId barrels = entityData.createEntity();
+        entityData.setComponents(barrels, new ObjectComponent(CasinoController.ALCOVE_BARRELS_OBJECT_ID, null),
+                new Position(0, new Vector3f(5, 1, 4.6f)));
+        assertEquals(barrels, gamble(PayOut.SMILES, NO_JACKPOT).getTaskTarget());
+    }
+
     private EntityId rouletteWheel(float x, float z) {
         EntityId wheel = entityData.createEntity();
         entityData.setComponents(wheel, new ObjectComponent(CasinoController.ROULETTE_WHEEL_OBJECT_ID, null),

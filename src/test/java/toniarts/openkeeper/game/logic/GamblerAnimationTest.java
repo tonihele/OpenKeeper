@@ -26,6 +26,8 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.Drunk;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -36,6 +38,9 @@ import toniarts.openkeeper.tools.convert.map.Creature.AnimationType;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Gamblers in the Casino and the big winner animate as in the original. The
@@ -81,6 +86,54 @@ class GamblerAnimationTest {
     }
 
     @Test
+    void creatureAtTheAlcoveBarrelsDrinksOrSwaysDrunk() {
+        drinker(AnimationType.IDLE_1, AnimationType.HAPPY, AnimationType.RESEARCHING, AnimationType.DRINKING,
+                AnimationType.DRUNKED_IDLE);
+
+        assertEquals(EnumSet.of(AnimationType.DRINKING, AnimationType.DRUNKED_IDLE), playedAnimations(400));
+
+        // It has no drunk walk animation, so the drinks never make it drunk
+        assertNull(entityData.getComponent(creatureId, Drunk.class));
+    }
+
+    @Test
+    void creatureWithoutADrunkIdleAnimationOnlyDrinks() {
+        drinker(AnimationType.IDLE_1, AnimationType.HAPPY, AnimationType.DRINKING);
+
+        assertEquals(EnumSet.of(AnimationType.DRINKING), playedAnimations(100));
+    }
+
+    @Test
+    void drinksMakeACreatureWithADrunkWalkDrunkForFortyFiveSeconds() {
+        drinker(AnimationType.DRINKING, AnimationType.DRUNKED_WALK);
+
+        // One drink in four does it, each drink is three seconds long
+        double time = 0;
+        while (entityData.getComponent(creatureId, Drunk.class) == null && time < 1200) {
+            system.processTick(TICK);
+            time += TICK;
+        }
+        Drunk drunk = entityData.getComponent(creatureId, Drunk.class);
+        assertNotNull(drunk);
+        assertEquals(time + 45, drunk.endTime, 0.001);
+        assertEquals(AnimationType.DRINKING, entityData.getComponent(creatureId, CreatureViewState.class).state);
+    }
+
+    @Test
+    void drunkCreatureWalksWithItsDrunkWalkUntilItHasSoberedUp() {
+        creature(AnimationType.WALK, AnimationType.DRUNKED_WALK);
+        entityData.setComponents(creatureId, new Navigation(), new Drunk(2));
+
+        system.processTick(TICK);
+        assertEquals(AnimationType.DRUNKED_WALK, entityData.getComponent(creatureId, CreatureViewState.class).state);
+
+        tick(2 / TICK);
+        assertEquals(AnimationType.WALK, entityData.getComponent(creatureId, CreatureViewState.class).state);
+        assertNull(entityData.getComponent(creatureId, Drunk.class));
+        assertTrue(entityData.getComponent(creatureId, Navigation.class) != null);
+    }
+
+    @Test
     void bigWinnerDancesOnceThenCheers() {
         celebrating(AnimationType.DANCE, AnimationType.HAPPY);
 
@@ -105,6 +158,15 @@ class GamblerAnimationTest {
     private void gambler(AnimationType... animations) {
         creature(animations);
         entityData.setComponent(creatureId, new TaskComponent(1, null, null, TaskType.GAMBLE, 0, true));
+    }
+
+    /**
+     * A gambler whose place in the Casino is the Alcove Barrels, the target of
+     * its task
+     */
+    private void drinker(AnimationType... animations) {
+        creature(animations);
+        entityData.setComponent(creatureId, new TaskComponent(1, entityData.createEntity(), null, TaskType.GAMBLE, 0, true));
     }
 
     private void celebrating(AnimationType... animations) {
