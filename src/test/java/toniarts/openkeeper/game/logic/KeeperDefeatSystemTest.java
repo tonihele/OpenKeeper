@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.logic;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import com.simsilica.es.filter.FieldFilter;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.GameEnded;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.KeeperComponent;
@@ -317,6 +319,41 @@ class KeeperDefeatSystemTest {
         entityData.removeEntity(hearts.get(OTHER_RIVAL));
         system.processTick(0.25f);
 
+        assertTrue(endings.isEmpty());
+    }
+
+    @Test
+    void keeperWhoWinsTheSkirmishMakesEveryKeeperButHisAlliesLose() {
+        KeeperDefeatSystem system = skirmish(HUMAN, RIVAL, OTHER_RIVAL, FOURTH_RIVAL);
+        keepers.get(HUMAN).createAlliance(RIVAL);
+        keepers.get(RIVAL).createAlliance(HUMAN);
+        keepers.get(HUMAN).createAlliance(OTHER_RIVAL); // one sided, so not an ally
+
+        // The level script or a cheat ends the human's game with a win
+        entityData.setComponent(entityData.findEntity(new FieldFilter<>(KeeperComponent.class, "playerId", HUMAN), KeeperComponent.class),
+                new GameEnded(true));
+        system.processTick(0.25f);
+
+        // The ally doesn't win from it
+        assertEquals(Set.of(OTHER_RIVAL + " lost", FOURTH_RIVAL + " lost"), new HashSet<>(endings));
+        assertEquals(2, endings.size());
+    }
+
+    @Test
+    void keeperWhoLosesTheSkirmishEndsNobodyElsesGame() {
+        KeeperDefeatSystem system = skirmish(HUMAN, RIVAL);
+        entityData.setComponent(entityData.findEntity(new FieldFilter<>(KeeperComponent.class, "playerId", HUMAN), KeeperComponent.class),
+                new GameEnded(false));
+        system.processTick(0.25f);
+        assertTrue(endings.isEmpty());
+    }
+
+    @Test
+    void keeperWhoWinsTheCampaignLevelEndsNobodyElsesGame() {
+        KeeperDefeatSystem system = campaign(HUMAN, RIVAL);
+        entityData.setComponent(entityData.findEntity(new FieldFilter<>(KeeperComponent.class, "playerId", HUMAN), KeeperComponent.class),
+                new GameEnded(true));
+        system.processTick(0.25f);
         assertTrue(endings.isEmpty());
     }
 
