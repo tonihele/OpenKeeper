@@ -60,6 +60,7 @@ import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
@@ -183,6 +184,18 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private static final int PRISONER_ANIMATION_ROLL = 10;
     private static final int PRISONER_MOVE_ROLL = 20;
+    /**
+     * The Prison objects a prisoner kicks, on every tenth tick: the Skull, the Bone and the Lavatory (DKII.EXE 0x473350)
+     */
+    private static final short PRISONER_KICKS_FIRST_OBJECT = 49;
+    private static final short PRISONER_KICKS_LAST_OBJECT = 51;
+    private static final int PRISONER_KICK_INTERVAL_TICKS = 10;
+    /**
+     * A kicked object gets a push of 0x1000, which moves it 1/16 tile a tick with no friction, and its state stops it
+     * on the fifth tick, turned 448/2048 of a circle to a random side (0x4A1A60, 0x4B2030)
+     */
+    private static final float PRISONER_KICK_DISTANCE = 0.25f;
+    private static final float PRISONER_KICK_TURN = 448 / 2048f * FastMath.TWO_PI;
     private static final Point[] NEIGHBOUR_TILES = {new Point(0, -1), new Point(1, 0), new Point(0, 1), new Point(-1, 0)};
     /**
      * How long an idle hero does nothing before it tries its objective again, as in DK II (DKII.EXE 0x477850)
@@ -488,6 +501,9 @@ public final class CreatureController extends EntityController implements ICreat
         if (ai != null && gameTime < ai.stateStartTime + ai.stateDuration) {
             return;
         }
+        if (kickPrisonObject(prison, tile, ai == null ? 0 : gameTime - ai.stateStartTime)) {
+            return;
+        }
         int roll = Utils.getRandom().nextInt(100);
         ArtResource angry = creature.getAnimation(Creature.AnimationType.ANGRY);
         if (roll < PRISONER_ANIMATION_ROLL && ai != null && angry != null && angry.getType() != ArtResource.ArtResourceType.NONE) {
@@ -512,6 +528,42 @@ public final class CreatureController extends EntityController implements ICreat
                 return;
             }
         }
+    }
+
+    /**
+     * Like in DK II (DKII.EXE 0x473350), on every tenth tick of its idling a
+     * prisoner that stands on the tile of a Skull, a Bone or the Lavatory of
+     * its Prison turns to it and kicks it away, the way the prisoner then
+     * faces. DK II slides the object there over four ticks, here it is moved
+     * in one step
+     *
+     * @param prison the Prison the prisoner is in
+     * @param tile the tile the prisoner stands on
+     * @param idleTime how long the prisoner has been idle, in seconds
+     * @return true if the prisoner kicked something
+     */
+    private boolean kickPrisonObject(IRoomController prison, Point tile, double idleTime) {
+        for (EntityId thing : entityPositionLookup.getEntitiesInLocation(tile)) {
+            ObjectComponent object = entityData.getComponent(thing, ObjectComponent.class);
+            if (object == null || object.objectId < PRISONER_KICKS_FIRST_OBJECT || object.objectId > PRISONER_KICKS_LAST_OBJECT
+                    || !prison.getFloorFurniture().contains(thing)) {
+                continue;
+            }
+            if (Math.round(idleTime * levelInfo.getLevelData().getGameLevel().getTicksPerSec()) % PRISONER_KICK_INTERVAL_TICKS != 0) {
+                return false;
+            }
+            Position position = entityData.getComponent(entityId, Position.class);
+            Position objectPosition = entityData.getComponent(thing, Position.class);
+            float dx = objectPosition.position.x - position.position.x;
+            float dz = objectPosition.position.z - position.position.z;
+            float rotation = dx == 0 && dz == 0 ? position.rotation : FastMath.atan2(dx, dz);
+            entityData.setComponent(entityId, new Position(rotation, position.position));
+            entityData.setComponent(thing, new Position(
+                    objectPosition.rotation + (Utils.getRandom().nextBoolean() ? PRISONER_KICK_TURN : -PRISONER_KICK_TURN),
+                    objectPosition.position.add(FastMath.sin(rotation) * PRISONER_KICK_DISTANCE, 0, FastMath.cos(rotation) * PRISONER_KICK_DISTANCE)));
+            return true;
+        }
+        return false;
     }
 
     private void huntFoodInPrison(IRoomController prison, Point tile) {

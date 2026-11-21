@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -37,6 +38,7 @@ import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.FoodHunt;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -53,6 +55,7 @@ import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -77,6 +80,7 @@ class PrisonerIdleTest {
     private final Set<Point> cageTiles = new HashSet<>();
     private final Map<Point, List<EntityId>> thingsByTile = new HashMap<>();
     private final List<EntityId> eaten = new ArrayList<>();
+    private final Set<EntityId> prisonFurniture = new HashSet<>();
     private boolean hasAngryAnimation = true;
     private double now = 0;
 
@@ -261,6 +265,69 @@ class PrisonerIdleTest {
         assertFalse(entityData.getComponent(prisoner, CreatureHunger.class).lastEatAttemptTime < 0);
     }
 
+    @Test
+    void kicksTheSkullOnItsTileAQuarterOfATileAwayOnEveryTenthTick() {
+        hasAngryAnimation = false;
+        CreatureController controller = createController();
+        cageTiles.removeIf(tile -> !tile.equals(new Point(12, 11)));
+        EntityId skull = placePrisonObject((short) 49, new Vector3f(12.1f, 0, 11));
+        entityData.setComponents(prisoner, new Position(0, new Vector3f(12, 1, 11)), new CreatureAi(now, CreatureState.IMPRISONED, (short) 6));
+
+        // Tick 0 of its idling: it turns to the skull, east of it, and kicks it on east
+        controller.idleInPrison();
+
+        Position kicked = entityData.getComponent(skull, Position.class);
+        assertEquals(12.35f, kicked.position.x, 0.0001f);
+        assertEquals(11f, kicked.position.z, 0.0001f);
+        assertEquals(448 / 2048f * FastMath.TWO_PI, Math.abs(kicked.rotation), 0.0001f);
+        assertEquals(FastMath.HALF_PI, entityData.getComponent(prisoner, Position.class).rotation, 0.0001f);
+
+        // Not again before the tenth tick
+        for (int tick = 1; tick < 10; tick++) {
+            now += 0.25;
+            controller.idleInPrison();
+            assertEquals(12.35f, entityData.getComponent(skull, Position.class).position.x, 0.0001f);
+        }
+        now += 0.25;
+        controller.idleInPrison();
+        assertEquals(12.6f, entityData.getComponent(skull, Position.class).position.x, 0.0001f);
+    }
+
+    @Test
+    void kicksAnObjectUnderItsFeetTheWayItFaces() {
+        CreatureController controller = createController();
+        EntityId bone = placePrisonObject((short) 50, new Vector3f(11, 0, 11));
+        entityData.setComponents(prisoner, new Position(FastMath.PI, new Vector3f(11, 1, 11)), new CreatureAi(now, CreatureState.IMPRISONED, (short) 6));
+
+        controller.idleInPrison();
+
+        Position kicked = entityData.getComponent(bone, Position.class);
+        assertEquals(11f, kicked.position.x, 0.0001f);
+        assertEquals(10.75f, kicked.position.z, 0.0001f);
+    }
+
+    @Test
+    void leavesOtherThingsAndTheFurnitureOfAnotherRoomAlone() {
+        CreatureController controller = createController();
+        EntityId torch = placePrisonObject((short) 48, new Vector3f(11, 0, 11));
+        EntityId stray = placePrisonObject((short) 49, new Vector3f(11, 0, 11));
+        prisonFurniture.remove(stray);
+        entityData.setComponents(prisoner, new Position(0, new Vector3f(11, 1, 11)), new CreatureAi(now, CreatureState.IMPRISONED, (short) 6));
+
+        controller.idleInPrison();
+
+        assertEquals(11f, entityData.getComponent(torch, Position.class).position.z, 0.0001f);
+        assertEquals(11f, entityData.getComponent(stray, Position.class).position.z, 0.0001f);
+    }
+
+    private EntityId placePrisonObject(short objectId, Vector3f position) {
+        EntityId object = entityData.createEntity();
+        entityData.setComponents(object, new ObjectComponent(objectId, null), new Position(0, position));
+        thingsByTile.computeIfAbsent(WorldUtils.vectorToPoint(position), key -> new ArrayList<>()).add(object);
+        prisonFurniture.add(object);
+        return object;
+    }
+
     private EntityId placeChicken(Point tile) {
         EntityId chicken = entityData.createEntity();
         entityData.setComponent(chicken, new Food());
@@ -293,6 +360,7 @@ class PrisonerIdleTest {
         IRoomController prison = proxy(IRoomController.class, (method, args) -> switch (method) {
             case "isTileAccessible" -> cageTiles.contains((Point) args[0]) == cageTiles.contains((Point) args[1]);
             case "getRoomInstance" -> roomInstance;
+            case "getFloorFurniture" -> prisonFurniture;
             default -> null;
         });
         IMapController mapController = proxy(IMapController.class, (method, args) -> method.equals("getRoomControllerByCoordinates")
