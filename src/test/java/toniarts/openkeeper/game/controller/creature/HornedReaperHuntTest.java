@@ -49,6 +49,8 @@ import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.PayDayFixtures;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.SummonReaperFixtures;
 import toniarts.openkeeper.utils.Point;
@@ -76,6 +78,7 @@ class HornedReaperHuntTest {
     private final Set<Point> unreachableTiles = new HashSet<>();
     private final EntityId reaper = entityData.createEntity();
     private final EntityId enemy = entityData.createEntity();
+    private double now;
 
     HornedReaperHuntTest() {
         Keeper keeper = new Keeper(false, PLAYER_ID);
@@ -105,6 +108,27 @@ class HornedReaperHuntTest {
 
         assertEquals(CreatureState.FIGHT, controller.getStateMachine().getCurrentState());
         assertEquals(nearest, entityData.getComponent(reaper, AttackTarget.class).entityId);
+    }
+
+    @Test
+    void arrivingReaperStandsForTwentyTicksAndRoarsBeforeItHunts() {
+        CreatureController controller = summonedReaper();
+        controller.getStateMachine().changeState(CreatureState.REAPER_ARRIVE);
+        entityData.setComponent(reaper, new CreatureAi(now, CreatureState.REAPER_ARRIVE, (short) 27));
+
+        // 12 ticks of waiting and 8 of fading in, at 4 ticks a second
+        now = 5;
+        controller.getStateMachine().update();
+        assertEquals(CreatureState.REAPER_ARRIVE, controller.getStateMachine().getCurrentState());
+        now = 5.25;
+        controller.getStateMachine().update();
+        assertEquals(CreatureState.REAPER_ROAR, controller.getStateMachine().getCurrentState());
+        entityData.setComponent(reaper, new CreatureAi(now, CreatureState.REAPER_ROAR, (short) 27));
+
+        // The roar here has no animation, so it is over at once
+        now = 5.5;
+        controller.getStateMachine().update();
+        assertEquals(CreatureState.REAPER_HUNT, controller.getStateMachine().getCurrentState());
     }
 
     @Test
@@ -254,6 +278,10 @@ class HornedReaperHuntTest {
         ILevelInfo levelInfo = proxy(ILevelInfo.class, (method, args) -> switch (method) {
             case "getPlayer" -> keepers.get((Short) args[0]);
             case "getPlayers" -> keepers;
+            case "getLevelData" -> proxy(IKwdFile.class, (kwdMethod, kwdArgs) -> switch (kwdMethod) {
+                case "getGameLevel" -> PayDayFixtures.gameLevel(4);
+                default -> throw new UnsupportedOperationException(kwdMethod);
+            });
             default -> throw new UnsupportedOperationException(method);
         });
         IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, (method, args) -> switch (method) {
@@ -285,7 +313,7 @@ class HornedReaperHuntTest {
             default -> throw new UnsupportedOperationException(method);
         });
 
-        return new CreatureController(reaper, entityData, reaperDefinition, navigationService, null, () -> 0,
+        return new CreatureController(reaper, entityData, reaperDefinition, navigationService, null, () -> now,
                 Map.of(), creaturesController, lookup, null, levelInfo, null, null,
                 proxy(GameEventService.class, (method, args) -> null));
     }

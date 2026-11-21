@@ -1117,5 +1117,56 @@ public enum CreatureState implements State<ICreatureController> {
         public boolean onMessage(ICreatureController entity, Telegram telegram) {
             return true;
         }
+    }, REAPER_ARRIVE {
+
+        @Override
+        public void enter(ICreatureController entity) {
+
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // A summoned Reaper stands for 12 ticks and takes 8 more to fade in (DK II states 0xEB and 0xEC,
+            // 0x474740 and 0x4747E0), then it roars
+            if (entity.isStateTimeExceeded()) {
+                entity.getStateMachine().changeState(REAPER_ROAR);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, REAPER_ROAR {
+
+        @Override
+        public void enter(ICreatureController entity) {
+
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Once the roar is over the hunt starts (DK II state 0xED, 0x474850)
+            if (entity.isStateTimeExceeded()) {
+                entity.getStateMachine().changeState(REAPER_HUNT);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
     }
 }

@@ -103,16 +103,17 @@ class SummonedReaperSystemTest {
     }
 
     @Test
-    void leavingReaperIsGoneAfterSixSeconds() {
+    void leavingReaperIsGoneAfterSixSecondsAndTheEightTicksOfItsFade() {
         keeper.setMana(0);
         EntityId reaper = addReaper(0, MANA_DRAIN);
         SummonedReaperSystem system = system();
         tickAt(system, 50);
         tickAt(system, 51);
 
-        tickAt(system, 56.9);
+        // The ticks here are a quarter of a second
+        tickAt(system, 58.9);
         assertTrue(removedCreatures.isEmpty());
-        tickAt(system, 57);
+        tickAt(system, 59);
 
         assertEquals(List.of(reaper), removedCreatures);
     }

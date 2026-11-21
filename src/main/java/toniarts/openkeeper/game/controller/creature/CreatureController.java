@@ -172,6 +172,12 @@ public final class CreatureController extends EntityController implements ICreat
      * How long the big winner of the Casino celebrates its jackpot, as in DK II (DKII.EXE 0x456EC0)
      */
     private static final float BIG_WINNER_CELEBRATION_SECONDS = 10f;
+
+    /**
+     * The game ticks a summoned Horned Reaper stands before it roars: DK II
+     * waits 12 ticks and fades it in over 8 more (0x474740, 0x4747E0)
+     */
+    private static final int REAPER_ARRIVE_TICKS = 20;
     private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
     /**
      * How long an idle hero does nothing before it tries its objective again, as in DK II (DKII.EXE 0x477850)
@@ -2438,6 +2444,12 @@ public final class CreatureController extends EntityController implements ICreat
             }
             case CELEBRATING -> {
                 stateTargetTime = BIG_WINNER_CELEBRATION_SECONDS;
+            }
+            case REAPER_ARRIVE -> {
+                stateTargetTime = (double) REAPER_ARRIVE_TICKS / levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+            }
+            case REAPER_ROAR -> {
+                stateTargetTime = getAnimationTime(creature, Creature.AnimationType.ROAR);
             }
             case CHICKEN -> {
                 stateTargetTime = entityData.getComponent(entityId, CreatureAi.class).stateDuration;

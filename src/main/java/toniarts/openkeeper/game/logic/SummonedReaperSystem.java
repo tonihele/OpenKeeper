@@ -42,7 +42,8 @@ import toniarts.openkeeper.game.data.Keeper;
  * keeper has less mana than that, the Reaper leaves. A Reaper summoned for a
  * set time leaves when the time is up, and costs nothing. Slapping the Reaper
  * sends him back too, and so does running out of things to destroy. A leaving
- * Reaper stops what he is doing and is gone six seconds later.
+ * Reaper stops what he is doing, and after six seconds takes eight more game
+ * ticks to fade away (DKII.EXE 0x474CC0).
  */
 public final class SummonedReaperSystem implements IGameLogicUpdatable {
 
@@ -52,9 +53,15 @@ public final class SummonedReaperSystem implements IGameLogicUpdatable {
     public static final double UPKEEP_DELAY_SECONDS = 50;
 
     /**
-     * How long the Reaper takes to leave
+     * How long the leaving Reaper stands before he fades away
      */
     public static final double LEAVE_DURATION_SECONDS = 6;
+
+    /**
+     * The game ticks the fade takes: DK II takes 32 off an opacity of 255 on
+     * each tick
+     */
+    public static final int LEAVE_FADE_TICKS = 8;
 
     private static final double MANA_CHECK_INTERVAL_SECONDS = 1;
 
@@ -89,7 +96,7 @@ public final class SummonedReaperSystem implements IGameLogicUpdatable {
             short ownerId = entity.get(Owner.class).ownerId;
 
             if (summonedReaper.isLeaving()) {
-                if (gameTime >= summonedReaper.leaveTime + LEAVE_DURATION_SECONDS) {
+                if (gameTime >= summonedReaper.leaveTime + LEAVE_DURATION_SECONDS + LEAVE_FADE_TICKS * tpf) {
                     creaturesController.createController(entityId).remove();
                 }
             } else if (isDismissed(entityId, ownerId, summonedReaper, gameTime) || hasNothingLeftToAttack(entityId)) {
