@@ -57,6 +57,7 @@ public class TaskManagerEatTaskTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private Task assignedTask;
+    private EntityId unknownToLookup;
     private final ICreatureController creature = stub(ICreatureController.class, (name, args) -> switch (name) {
         case "getOwnerId" -> PLAYER_ID;
         case "getCreatureCoordinates" -> new Point(1, 1);
@@ -76,6 +77,18 @@ public class TaskManagerEatTaskTest {
     }
 
     @Test
+    public void findsFoodTheLookupHasNotSeenYet() {
+        createFood(PLAYER_ID, 9, 1);
+
+        // Made earlier in this tick: the position lookup only learns of it on its next update
+        unknownToLookup = createFood(PLAYER_ID, 5, 1);
+
+        assertTrue(createTaskManager().assignEatTask(creature));
+
+        assertEquals(new Vector2f(5, 1), assignedTask.getTarget(creature));
+    }
+
+    @Test
     public void leavesTheFoodOfOtherKeepers() {
         createFood(OTHER_PLAYER_ID, 2, 1);
 
@@ -84,16 +97,17 @@ public class TaskManagerEatTaskTest {
         assertNull(assignedTask);
     }
 
-    private void createFood(short ownerId, int x, int y) {
-        entityData.setComponents(entityData.createEntity(), new Food(), new Owner(ownerId, ownerId),
-                new Position(0, WorldUtils.pointToVector3f(x, y)));
+    private EntityId createFood(short ownerId, int x, int y) {
+        EntityId food = entityData.createEntity();
+        entityData.setComponents(food, new Food(), new Owner(ownerId, ownerId), new Position(0, WorldUtils.pointToVector3f(x, y)));
+        return food;
     }
 
     private TaskManager createTaskManager() {
         Keeper keeper = new Keeper(false, PLAYER_ID);
         IPlayerController player = stub(IPlayerController.class, (name, args) -> "getKeeper".equals(name) ? keeper : null);
         IEntityPositionLookup entityPositionLookup = stub(IEntityPositionLookup.class, (name, args) -> {
-            if (!"getEntityLocation".equals(name)) {
+            if (!"getEntityLocation".equals(name) || args[0].equals(unknownToLookup)) {
                 return null;
             }
             Point location = WorldUtils.vectorToPoint(entityData.getComponent((EntityId) args[0], Position.class).position);
