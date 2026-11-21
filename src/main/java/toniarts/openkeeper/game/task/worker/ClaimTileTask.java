@@ -104,16 +104,7 @@ public class ClaimTileTask extends AbstractTileTask {
                 return false;
             }
         }
-        if (!isValid(creature) || !isReachable(creature)) {
-            return false;
-        }
-        for (ICreatureController assignee : getAssignees()) {
-            unassign(assignee);
-            if (this.equals(assignee.getAssignedTask())) {
-                assignee.unassingCurrentTask();
-            }
-        }
-        return true;
+        return takeOver(creature);
     }
 
     private static float getDistanceSquared(ICreatureController creature, Vector2f tile) {

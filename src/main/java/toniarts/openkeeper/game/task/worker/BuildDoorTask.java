@@ -102,6 +102,17 @@ public final class BuildDoorTask extends AbstractTask {
         return doorComponent == null || !doorComponent.blueprint;
     }
 
+    /**
+     * A worker takes the job over from one still on its way to the crate,
+     * whatever the distance. Not from one in the keeper's hand, which can't be
+     * told to look for work (0x464A80). The task manager only asks when no
+     * blueprint job is free
+     */
+    @Override
+    public boolean makeRoomFor(ICreatureController creature) {
+        return getAssignees().stream().allMatch(assignee -> assignee.getPosition() != null) && takeOver(creature);
+    }
+
     @Override
     public boolean isValid(ICreatureController creature) {
         return !isRemovable() && entityData.getComponent(crate, HauledBy.class) == null;

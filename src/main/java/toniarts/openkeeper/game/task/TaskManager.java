@@ -1317,7 +1317,8 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
                 // See if the task is full or the worker is not unemployed anymore or that the task can't actually be handled by this creature
                 if (!unemployedWorkers.containsKey(taskWorkerPriority.creature)
-                        || taskWorkerPriority.task.isFull() && !taskWorkerPriority.task.makeRoomFor(taskWorkerPriority.creature)
+                        || taskWorkerPriority.task.isFull() && (isFreeBlueprintJobLeft(priorizedTasks, taskWorkerPriority)
+                        || !taskWorkerPriority.task.makeRoomFor(taskWorkerPriority.creature))
                         || !taskWorkerPriority.task.canAssign(taskWorkerPriority.creature)) {
                     iter.remove();
                     continue;
@@ -1389,6 +1390,23 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
      */
     static boolean isDigging(Task task) {
         return task.getTaskType() == TaskType.DIG_TILE;
+    }
+
+    /**
+     * A worker takes a trap or door blueprint job away from another one only
+     * when no blueprint job is free for it (DKII.EXE 0x464A80)
+     *
+     * @param tasks the tasks left to hand out
+     * @param taken the full task the worker wants
+     * @return true if the worker should take a free blueprint job instead
+     */
+    private static boolean isFreeBlueprintJobLeft(List<TaskWorkerPriority> tasks, TaskWorkerPriority taken) {
+        return isBlueprintJob(taken.task) && tasks.stream().anyMatch(other -> other.creature == taken.creature
+                && isBlueprintJob(other.task) && !other.task.isFull());
+    }
+
+    private static boolean isBlueprintJob(Task task) {
+        return task.getTaskType() == TaskType.FETCH_TRAP_CRATE || task.getTaskType() == TaskType.FETCH_DOOR_CRATE;
     }
 
     /**

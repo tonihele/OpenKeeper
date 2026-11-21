@@ -231,6 +231,29 @@ class WorkerTaskAssignmentTest {
     }
 
     @Test
+    void blueprintJobIsTakenFromAnotherWorkerOnlyWhenNoneIsFree() {
+        addLand(0, 20, 10);
+        TaskManager taskManager = taskManager();
+        Task held = task(new Point(5, 10), creature -> true);
+        TestTask heldHandler = (TestTask) Proxy.getInvocationHandler(held);
+        heldHandler.assignees.set(3);
+        heldHandler.makesRoom = true;
+        heldHandler.taskType = TaskType.FETCH_TRAP_CRATE;
+        Task free = task(new Point(15, 10), creature -> true);
+        ((TestTask) Proxy.getInvocationHandler(free)).taskType = TaskType.FETCH_DOOR_CRATE;
+        taskManager.addTask(PLAYER_ID, held);
+        taskManager.addTask(PLAYER_ID, free);
+        taskManager.addToUnemployedWorkerQueue(imp(new Point(4, 10)), result -> {
+        });
+
+        taskManager.processUnemployedWorkerQueue();
+
+        // DK II looks for a free blueprint job first, however far (0x464A80)
+        assertEquals(3, heldHandler.assignees.get());
+        assertEquals(1, free.getAssigneeCount());
+    }
+
+    @Test
     void workerOnItsWayClaimsTheFloorThatDiggingHasLeft() {
 
         // An imp walking to its digging steps on dug floor: it claims it there and lets go of the digging, which
@@ -380,6 +403,7 @@ class WorkerTaskAssignmentTest {
         private final Instant created = Instant.now();
         private final AtomicInteger assignees = new AtomicInteger();
         private boolean makesRoom;
+        private TaskType taskType = TaskType.DIG_TILE;
 
         private TestTask(Point location, Predicate<ICreatureController> reachable) {
             this.location = location;
@@ -413,7 +437,7 @@ class WorkerTaskAssignmentTest {
                     assignees.incrementAndGet();
                     yield null;
                 }
-                case "getTaskType" -> TaskType.DIG_TILE;
+                case "getTaskType" -> taskType;
                 case "equals" -> proxy == args[0];
                 case "hashCode" -> Long.hashCode(id);
                 case "toString" -> "Test task at " + location;
