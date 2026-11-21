@@ -50,6 +50,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.game.component.Casino;
+import toniarts.openkeeper.game.component.CasinoBigWinner;
 import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
@@ -1211,10 +1212,14 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     @Override
     public boolean assignCollectWinningsTask(ICreatureController creature) {
 
-        // The keeper's gold is in the Treasuries and the Dungeon Heart, go to the nearest one we can reach
+        // The keeper's gold is in the Treasuries and the Dungeon Heart. Go to the nearest one we can reach that holds more
+        // gold than the winnings, and only when there is none to the nearest one we can reach (DKII.EXE 0x457010)
         Point currentLocation = creature.getCreatureCoordinates();
-        List<IRoomController> rooms = mapController.getRoomsByFunction(ObjectType.GOLD, creature.getOwnerId());
-        rooms.sort(Comparator.comparing(room -> getShortestDistance(currentLocation, room.getRoomInstance().getCoordinates().toArray(new Point[0]))));
+        CasinoBigWinner bigWinner = entityData.getComponent(creature.getEntityId(), CasinoBigWinner.class);
+        int winnings = bigWinner != null ? bigWinner.winnings : 0;
+        List<IRoomController> rooms = new ArrayList<>(mapController.getRoomsByFunction(ObjectType.GOLD, creature.getOwnerId()));
+        rooms.sort(Comparator.comparing((IRoomController room) -> room.getObjectControl(ObjectType.GOLD).getCurrentCapacity() <= winnings)
+                .thenComparing(room -> getShortestDistance(currentLocation, room.getRoomInstance().getCoordinates().toArray(new Point[0]))));
         for (IRoomController room : rooms) {
             List<Point> coordinates = new ArrayList<>(room.getRoomInstance().getCoordinates());
             coordinates.removeIf(p -> !room.isTileAccessible(null, p));
