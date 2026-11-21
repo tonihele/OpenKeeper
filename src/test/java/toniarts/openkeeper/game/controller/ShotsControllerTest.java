@@ -191,6 +191,18 @@ class ShotsControllerTest {
     }
 
     @Test
+    void healingDoesNothingToAHornedReaper() {
+        EntityId reaper = createCreature(PLAYER_ID, 10, 10);
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = REAPER_ID;
+        entityData.setComponent(reaper, creatureComponent);
+
+        shotsController.createShot(HEAL_ID, 50, 0, PLAYER_ID, new Vector3f(10, 1, 10), reaper, null);
+
+        assertNull(entityData.getComponent(reaper, Damage.class));
+    }
+
+    @Test
     void objectShotCreatesTheObjectForThePlayer() {
         Vector3f position = new Vector3f(1.5f, 1f, 2.5f);
 
