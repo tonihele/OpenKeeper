@@ -297,7 +297,8 @@ public enum CreatureState implements State<ICreatureController> {
             Task task = entity.getAssignedTask();
             if (task != null && (task.getTaskType() == TaskType.TRAIN
                     || task.getTaskType() == TaskType.RESEARCH
-                    || task.getTaskType() == TaskType.GAMBLE)
+                    || task.getTaskType() == TaskType.GAMBLE
+                    || task.getTaskType() == TaskType.WATCH_COMBAT_PIT)
                     && ((entity.isHungry() && entity.goToEat())
                     || (entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()))) {
                 // setAssignedTask released the previous job. Keep WORK so its exit cannot
@@ -922,7 +923,7 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void enter(ICreatureController entity) {
             entity.unassingCurrentTask();
-            entity.navigateToRandomPoint();
+            entity.navigateAsChicken();
         }
 
         @Override
@@ -934,9 +935,9 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            // Just peck about
+            // Off to the Hatchery, again and again
             if (entity.isStopped()) {
-                entity.navigateToRandomPoint();
+                entity.navigateAsChicken();
             }
         }
 

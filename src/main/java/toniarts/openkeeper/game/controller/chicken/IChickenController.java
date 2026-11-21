@@ -49,4 +49,13 @@ public interface IChickenController extends IGameLogicUpdatable, INavigable, IEn
 
     public void growIntoChicken();
 
+    /**
+     * Makes a free-range chicken run half a tile straight away from a
+     * creature on its own tile or one of the eight around it. Workers and
+     * creatures in the air don't scare it (DKII.EXE 0x49CEC0)
+     *
+     * @return {@code true} if the chicken ran
+     */
+    public boolean dodgeCreature();
+
 }

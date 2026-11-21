@@ -45,8 +45,16 @@ class GraveyardControllerTest {
     @Test
     void cryptTakesAnInsideTile() {
 
-        // A 4x4 graveyard has four inside tiles, one of them with the crypt
-        assertEquals(3, buildGraveyard(4).getMaxCapacity(ObjectType.CORPSE));
+        // A 5x5 graveyard has nine inside tiles, the one in the middle with the crypt
+        assertEquals(8, buildGraveyard(5).getMaxCapacity(ObjectType.CORPSE));
+    }
+
+    @Test
+    void graveyardWithoutAFiveByFiveBlockHasNoCrypt() {
+
+        // A 4x4 graveyard wants a crypt, but no inside tile has inside tiles all round it
+        assertEquals(4, buildGraveyard(4).getMaxCapacity(ObjectType.CORPSE));
+        assertTrue(GraveyardController.chooseCryptTiles(room(4, 4), 1, random).isEmpty());
     }
 
     @Test
@@ -88,11 +96,11 @@ class GraveyardControllerTest {
 
     @Test
     void aSingleCentreTileTakesTheOnlyCrypt() {
-        boolean[][] map = room(3, 3);
+        boolean[][] map = room(5, 5);
 
         List<Point> crypts = GraveyardController.chooseCryptTiles(map, 2, random);
 
-        assertEquals(List.of(new Point(1, 1)), crypts);
+        assertEquals(List.of(new Point(2, 2)), crypts);
     }
 
     private static boolean[][] room(int width, int height) {

@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.map;
 
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.utils.Point;
 
@@ -105,6 +106,15 @@ public interface IRoomInformation {
     int getUsedCapacity(AbstractRoomController.ObjectType objectType);
 
     AbstractRoomController.ObjectType getDefaultStorageType();
+
+    /**
+     * How the Casino pays out
+     *
+     * @return the pay out, {@code null} if the room isn't a Casino
+     */
+    default Casino.PayOut getCasinoPayOut() {
+        return null;
+    }
 
     /**
      * Checks if the room have been removed from the plain of existence.

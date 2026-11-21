@@ -26,6 +26,7 @@ import com.simsilica.es.EntitySet;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
+import toniarts.openkeeper.game.component.CombatPitSpectator;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
@@ -33,6 +34,7 @@ import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.Drunk;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
@@ -70,6 +72,13 @@ public final class CreatureViewSystem extends GameTimeCounter {
     private static final int GAMBLE_PLAYS = 3;
     private static final Set<Creature.AnimationType> GAMBLE_ANIMATIONS = EnumSet.of(Creature.AnimationType.RESEARCHING,
             Creature.AnimationType.HAPPY, Creature.AnimationType.IDLE_1);
+    private static final Set<Creature.AnimationType> DRINK_ANIMATIONS = EnumSet.of(Creature.AnimationType.DRINKING,
+            Creature.AnimationType.DRUNKED_IDLE, Creature.AnimationType.IDLE_1);
+    /**
+     * How long a creature stays drunk, in seconds. DK II has this number in
+     * its code (0x456B70), it doesn't read the level's drunken duration
+     */
+    private static final int DRUNK_SECONDS = 45;
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
@@ -106,7 +115,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
             if (entityData.getComponent(entityId, CreatureFall.class) != null) {
                 targetState = Creature.AnimationType.FALLBACK;
             } else if (entityData.getComponent(entityId, Navigation.class) != null) {
-                targetState = Creature.AnimationType.WALK;
+                targetState = getWalkAnimation(entityId);
             } else if (entityData.getComponent(entityId, Death.class) != null) {
                 targetState = Creature.AnimationType.DEATH_POSE;
             } else if (entityData.getComponent(entityId, Unconscious.class) != null) {
@@ -117,11 +126,20 @@ public final class CreatureViewSystem extends GameTimeCounter {
                 TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
                 if (taskComponent != null && taskComponent.taskType == TaskType.GAMBLE) {
 
-                    // A gambler plays an animation three times, then picks the next one, which can be the same
-                    restart = !GAMBLE_ANIMATIONS.contains(currentState) || !isPlaying(state, GAMBLE_PLAYS);
+                    // A gambler plays an animation three times, then picks the next one, which can be the same.
+                    // The target of its task is the Alcove Barrels when it stands at them, there it drinks
+                    boolean drinking = taskComponent.targetEntity != null;
+                    restart = !(drinking ? DRINK_ANIMATIONS : GAMBLE_ANIMATIONS).contains(currentState)
+                            || !isPlaying(state, GAMBLE_PLAYS);
                     if (restart) {
-                        targetState = getGambleAnimation(kwdFile.getCreature(state.creatureId));
+                        Creature creature = kwdFile.getCreature(state.creatureId);
+                        targetState = drinking ? getDrinkAnimation(entityId, creature) : getGambleAnimation(creature);
                     }
+                } else if (taskComponent != null && taskComponent.taskType == TaskType.WATCH_COMBAT_PIT) {
+
+                    // The spectator cheers or idles, as its task tells
+                    CombatPitSpectator spectator = entityData.getComponent(entityId, CombatPitSpectator.class);
+                    targetState = spectator != null ? spectator.animation : Creature.AnimationType.STAND_STILL;
                 } else if (taskComponent != null && taskComponent.taskType == TaskType.TORTURE) {
                     targetState = getTorturerAnimation(taskComponent.targetEntity, state);
                 } else if (taskComponent != null) {
@@ -315,6 +333,40 @@ public final class CreatureViewSystem extends GameTimeCounter {
             return Creature.AnimationType.HAPPY;
         }
         return Creature.AnimationType.IDLE_1;
+    }
+
+    /**
+     * At the Alcove Barrels the original (0x456B70) lets the creature sway
+     * with its drunk idle animation one time out of four, if it has one.
+     * Otherwise it drinks, and one drink out of four makes a creature that has
+     * a drunk walk animation drunk for 45 seconds, starting over if it is
+     * drunk already.
+     */
+    private Creature.AnimationType getDrinkAnimation(EntityId entityId, Creature creature) {
+        if (FastMath.rand.nextInt(100) >= 75 && hasAnimation(creature, Creature.AnimationType.DRUNKED_IDLE)) {
+            return Creature.AnimationType.DRUNKED_IDLE;
+        }
+        if (FastMath.rand.nextInt(100) < 25 && hasAnimation(creature, Creature.AnimationType.DRUNKED_WALK)) {
+            entityData.setComponent(entityId, new Drunk(timeElapsed + DRUNK_SECONDS));
+        }
+        return hasAnimation(creature, Creature.AnimationType.DRINKING)
+                ? Creature.AnimationType.DRINKING : Creature.AnimationType.IDLE_1;
+    }
+
+    /**
+     * A drunk creature walks with its drunk walk animation until it has
+     * sobered up, nothing else about it changes (0x48BE50)
+     */
+    private Creature.AnimationType getWalkAnimation(EntityId entityId) {
+        Drunk drunk = entityData.getComponent(entityId, Drunk.class);
+        if (drunk == null) {
+            return Creature.AnimationType.WALK;
+        }
+        if (timeElapsed < drunk.endTime) {
+            return Creature.AnimationType.DRUNKED_WALK;
+        }
+        entityData.removeComponent(entityId, Drunk.class);
+        return Creature.AnimationType.WALK;
     }
 
     /**

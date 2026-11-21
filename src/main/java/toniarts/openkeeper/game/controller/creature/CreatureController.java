@@ -194,6 +194,12 @@ public final class CreatureController extends EntityController implements ICreat
             CreatureState.CHICKEN);
 
     /**
+     * The steps of a creature under the Chicken spell that has no Hatchery to
+     * go to, in DK II's order (0x463BE0)
+     */
+    private static final int[][] CHICKEN_STEPS = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+
+    /**
      * The states a meal interrupts. Like in DK II, a creature busy with
      * something else, say fighting, sleeping or held in prison, gets the food
      * of a chicken it is given without stopping to eat it
@@ -435,6 +441,40 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public void navigateAsChicken() {
+        if (entityData.getComponent(entityId, Position.class) == null) {
+            return;
+        }
+        Point start = getCreatureCoordinates();
+
+        // The nearest Hatchery of our keeper that we can get to, measured to its middle as in DK II (0x4C6750)
+        List<IRoomController> hatcheries = new ArrayList<>(mapController.getRoomsByFunction(AbstractRoomController.ObjectType.FOOD, getOwnerId()));
+        hatcheries.sort(Comparator.comparingInt(hatchery -> {
+            Point middle = hatchery.getRoomInstance().getCenter();
+            return (middle.x - start.x) * (middle.x - start.x) + (middle.y - start.y) * (middle.y - start.y);
+        }));
+        for (IRoomController hatchery : hatcheries) {
+            List<Point> coordinates = new ArrayList<>(hatchery.getRoomInstance().getCoordinates());
+            coordinates.removeIf(p -> !hatchery.isTileAccessible(null, p));
+            Point destination = Utils.getRandomItem(coordinates);
+            if (destination != null && !createNavigation(start, destination, null)) {
+                return;
+            }
+        }
+
+        // No Hatchery, a step east, west, south or north, starting from a random one of them
+        int first = Utils.getRandom().nextInt(CHICKEN_STEPS.length);
+        for (int i = 0; i < CHICKEN_STEPS.length; i++) {
+            int[] step = CHICKEN_STEPS[(first + i) % CHICKEN_STEPS.length];
+            Point p = new Point(start.x + step[0], start.y + step[1]);
+            if (mapController.getMapData().getTile(p) != null && !mapController.isSolid(p) && !mapController.isWater(p) && !mapController.isLava(p)) {
+                createNavigation(start, p, null);
+                return;
+            }
+        }
+    }
+
+    @Override
     public void navigateToRandomPointInCombatPit() {
         CombatPitFighter pitFighter = entityData.getComponent(entityId, CombatPitFighter.class);
         if (pitFighter != null && mapController.getRoomController(pitFighter.pit) instanceof CombatPitController pit) {
@@ -569,10 +609,17 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
 
-        // With none of its own jobs to start, the creature trains, like in DK II. The Casino comes after this
+        // With none of its own jobs to start, the creature trains, like in DK II (0x478680)
         if (!creature.getFlags().contains(Creature.CreatureFlag.NOT_TRAIN_WHEN_IDLE)
                 && taskManager.isTaskAvailable(this, Creature.JobType.TRAIN)
                 && taskManager.assignTask(this, Creature.JobType.TRAIN)) {
+            workResult.accept(true);
+            return;
+        }
+
+        // Then it watches a fight in the Combat Pit. The Casino comes after this
+        if (taskManager.isTaskAvailable(this, Creature.JobType.COMBAT_PIT_SPECTATE)
+                && taskManager.assignTask(this, Creature.JobType.COMBAT_PIT_SPECTATE)) {
             workResult.accept(true);
             return;
         }

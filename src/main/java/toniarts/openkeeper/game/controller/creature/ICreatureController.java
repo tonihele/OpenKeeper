@@ -68,6 +68,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void navigateToRandomPoint();
 
     /**
+     * The walk of a creature under the Chicken spell: to a random spot in the
+     * nearest Hatchery of its keeper that it can get to, and with no such
+     * Hatchery a step to a neighbouring tile that is not solid, water or lava
+     * (DKII.EXE 0x463BE0)
+     */
+    public void navigateAsChicken();
+
+    /**
      * Walks to a random tile in the Combat Pit we fight in, off its edge
      */
     public void navigateToRandomPointInCombatPit();
