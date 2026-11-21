@@ -2374,13 +2374,13 @@ public final class CreatureController extends EntityController implements ICreat
         switch (stateMachine.getCurrentState()) {
             case STUNNED -> {
 
-                // A frozen creature stands stunned until it thaws. Otherwise the creature plays its stunned animation
-                // and then lies there for its stun time, which an Imp doesn't have (DKII.EXE 0x481020, 0x4810E0)
+                // A frozen creature stands stunned until it thaws. Otherwise the creature lies there for its stun
+                // time, an Imp has none, and then gets up, cutting its stunned animation short (DKII.EXE 0x481020,
+                // 0x4810E0: the stunned instance 0x34 can be interrupted)
                 if (entityData.getComponent(entityId, Frozen.class) != null) {
                     return false;
                 }
-                stateTargetTime = getAnimationTime(creature, Creature.AnimationType.STUNNED)
-                        + entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
+                stateTargetTime = entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
             }
             case FALLEN -> {
 
