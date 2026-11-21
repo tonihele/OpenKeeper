@@ -226,6 +226,11 @@ public final class RoomAttackMessages {
          */
         JACKPOT_UNPAID(50, 373, Map.of()),
         /**
+         * The keeper's own win and loss, messages 0x32 and 0x33 (0x4BE630)
+         */
+        GAME_WON(50, 1160, Map.of()),
+        GAME_LOST(50, 1161, Map.of()),
+        /**
          * "Your creatures have been blessed with experience" and the rest,
          * message 0x31, told by each special when it is used (0x4A3FC0 and
          * its handlers). DK II gives each special a variant of its own, here
@@ -460,6 +465,18 @@ public final class RoomAttackMessages {
      */
     public void jackpotUnpaid(short ownerId) {
         show(Message.JACKPOT_UNPAID, ownerId, (short) 0, null);
+    }
+
+    /**
+     * The keeper's game has ended. DK II posts the win or loss message only
+     * after it marks the game ended, so its queue turns them away and they are
+     * never heard (0x4BE630, 0x4C4600). Here they come first, as meant
+     *
+     * @param ownerId the keeper
+     * @param won whether the keeper won
+     */
+    public void gameEnded(short ownerId, boolean won) {
+        show(won ? Message.GAME_WON : Message.GAME_LOST, ownerId, (short) 0, null);
     }
 
     /**

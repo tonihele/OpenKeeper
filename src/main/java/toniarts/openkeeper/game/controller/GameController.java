@@ -352,7 +352,10 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
             return;
         }
 
-        // From here on the player gets no more messages
+        // The player hears its own win or loss, then gets no more messages
+        if (gameWorldController.getRoomAttackMessages() != null) {
+            gameWorldController.getRoomAttackMessages().gameEnded(playerId, win);
+        }
         EntityId playerEntity = entityData.findEntity(new FieldFilter<>(KeeperComponent.class, "playerId", playerId), KeeperComponent.class);
         if (playerEntity != null) {
             entityData.setComponent(playerEntity, new GameEnded(win));

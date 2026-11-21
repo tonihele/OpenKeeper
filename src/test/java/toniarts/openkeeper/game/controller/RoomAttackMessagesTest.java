@@ -401,6 +401,17 @@ class RoomAttackMessagesTest {
     }
 
     @Test
+    void theKeeperHearsItsOwnWinOrLossBeforeTheMessagesStop() {
+        entityData.setComponent(entityData.createEntity(), new KeeperComponent(KEEPER));
+        entityData.setComponent(entityData.createEntity(), new KeeperComponent(Player.KEEPER2_ID));
+
+        roomAttackMessages.gameEnded(KEEPER, true);
+        roomAttackMessages.gameEnded(Player.KEEPER2_ID, false);
+
+        assertEquals(List.of("1160@null>p" + KEEPER, "1161@null>p" + Player.KEEPER2_ID), messages);
+    }
+
+    @Test
     void aKeeperWhoseGameHasEndedGetsNoMoreMessages() {
         EntityId loser = entityData.createEntity();
         entityData.setComponent(loser, new KeeperComponent(KEEPER));
