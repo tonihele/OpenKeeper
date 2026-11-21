@@ -326,7 +326,8 @@ final class KeeperAiCreatures {
      * Sees to each of its creatures whose mood has just turned for the
      * worse, once, as DK II's computer player does when the message about
      * it comes in. An unhappy creature is made happy when its settings say
-     * so, and so is an angry one. None of it takes an action.
+     * so. An angry one is got rid of when they say that, or else made happy
+     * when they say that. None of it takes an action.
      *
      * @param keeperAi the computer player
      * @param playerController its player
@@ -356,7 +357,9 @@ final class KeeperAiCreatures {
             if (state < seenState) {
                 continue;
             }
-            if (state == 2 ? ai.isTryToMakeAngryOnesHappy() : ai.isTryToMakeUnhappyOnesHappy()) {
+            if (state == 2 && ai.isDisposeOfAngryCreatures()) {
+                disposeOf(keeperAi, playerController, ai, creature);
+            } else if (state == 2 ? ai.isTryToMakeAngryOnesHappy() : ai.isTryToMakeUnhappyOnesHappy()) {
                 makeHappy(keeperAi, playerController, creature, mood.getDominantReason());
             }
         }
@@ -433,6 +436,43 @@ final class KeeperAiCreatures {
             decisionLog.log(keeperAi, "drop " + (reason == CreatureMood.REASON_NO_FOOD ? "a chicken" : "its pay")
                     + " on creature " + creatureId.getId(), tile, "unhappy");
             gameWorldController.drop(gift, tile, new Vector2f(position.x, position.z), creatureId, keeperAi.playerId);
+        }
+    }
+
+    /**
+     * Gets rid of an angry creature. A computer player that sacrifices drops
+     * it on a random tile of the pool of its Temple. Any other, and one
+     * whose hand could not do that, drops it on the middle of its Temple,
+     * with no Temple of a Portal, with no Portal of a Hero Portal
+     */
+    private void disposeOf(KeeperAi keeperAi, IPlayerController playerController, AI ai, Entity creature) {
+        IRoomController room = getRoom(playerController, ROOM_TEMPLE);
+        if (ai.getDisposalMethod() == AI.CreatureDisposalPolicy.SACRIFICE && room instanceof TempleController temple) {
+            List<Point> pool = new ArrayList<>();
+            for (Point tile : room.getRoomInstance().getCoordinates()) {
+                if (temple.isSacrificePool(tile)) {
+                    pool.add(tile);
+                }
+            }
+            if (!pool.isEmpty()) {
+                Point tile = Utils.getRandomItem(pool);
+                decisionLog.log(keeperAi, "sacrifice creature " + creature.getId().getId(), tile, "angry");
+                if (battles.carry(creature.getId(), tile, playerController)) {
+                    return;
+                }
+            }
+        }
+        if (room == null) {
+            room = getRoom(playerController, ROOM_PORTAL);
+        }
+        if (room == null) {
+            room = getRoom(playerController, ROOM_HERO_PORTAL);
+        }
+        if (room != null) {
+            Point tile = room.getRoomInstance().getCenter();
+            decisionLog.log(keeperAi, "carry creature " + creature.getId().getId() + " to room " + room.getRoomInstance().getRoom().getRoomId(),
+                    tile, "angry");
+            battles.carry(creature.getId(), tile, playerController);
         }
     }
 

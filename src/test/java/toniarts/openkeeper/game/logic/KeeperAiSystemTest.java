@@ -1390,6 +1390,29 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void getsRidOfAnAngryCreatureInItsTempleOrElseOnAPortalWhenItsSettingsSaySo() {
+        KeeperAiSystem system = createSystem(withMoodCare(ai(0, 0, 9, 1, 50, 0, List.of()), true, true, true), 1000);
+        roomControl.onBuild(createRoom(PORTAL, new Point(1, 8)));
+        EntityId creature = createUnhappyCreature(CreatureMood.REASON_NO_PAY, 40000);
+
+        system.processTick(0.25f);
+
+        assertEquals(Map.of(creature, new Point(1, 8)), dropped);
+
+        // Calming down to unhappy is no news, turning angry again is
+        dropped.clear();
+        entityData.setComponent(creature, new CreatureMood().add(CreatureMood.REASON_NO_PAY, 100));
+        system.processTick(0.25f);
+        assertTrue(dropped.isEmpty());
+
+        roomControl.onBuild(createRoom(TEMPLE, new Point(5, 4)));
+        entityData.setComponent(creature, new CreatureMood().add(CreatureMood.REASON_NO_PAY, 40000));
+        gameTime = 100;
+        system.processTick(0.25f);
+        assertEquals(Map.of(creature, new Point(5, 4)), dropped);
+    }
+
+    @Test
     void makesAnAngryCreatureHappyLikeAnUnhappyOneWhenItDoesNotGetRidOfThem() {
         KeeperAiSystem system = createSystem(withMoodCare(ai(0, 0, 9, 1, 50, 0, List.of()), false, true, false), 1000);
         roomControl.onBuild(createRoom(LAIR, new Point(1, 4)));
