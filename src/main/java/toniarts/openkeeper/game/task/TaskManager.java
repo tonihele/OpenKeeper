@@ -691,7 +691,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             addTask(playerId, new DigTileTask(navigationService, mapController, tile, playerId));
         } // Claim wall
         else if (mapController.isClaimableWall(mapTile, terrain, playerId)) {
-            addTask(playerId, new ClaimWallTileTask(navigationService, mapController, tile, playerId));
+
+            // Nobody's reinforced wall only becomes work once it is below half its health (DKII.EXE 0x453E90)
+            if (!terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) || mapTile.getHealth() < mapTile.getMaxHealth() / 2) {
+                addTask(playerId, new ClaimWallTileTask(navigationService, mapController, tile, playerId));
+            }
         } // Claim
         else if (mapController.isClaimableTile(mapTile, terrain, playerId)) {
             addTask(playerId, new ClaimTileTask(navigationService, mapController, tile, playerId));

@@ -476,7 +476,9 @@ public final class MapController extends Container implements IMapController {
     public void applyClaimTile(Point point, short playerId, ICreatureController creature) {
         IMapTileController tile = getMapData().getTile(point);
         Terrain terrain = getTerrain(tile);
-        if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() != playerId) {
+        // Nobody's reinforced wall is repaired, not dug out (DKII.EXE 0x497960)
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() != playerId
+                && !(terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID)) {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
                 damageRoom(point, playerId);
             } else {
@@ -596,13 +598,11 @@ public final class MapController extends Container implements IMapController {
         float rate;
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
 
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-                if (tile.getOwnerId() == playerId) {
-                    rate = getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_WALL_HEALTH);
-                } else {
-                    rate = getLevelVariable(Variable.MiscVariable.MiscType.CLAIM_TILE_HEALTH);
-                }
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() == playerId) {
+                rate = getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_WALL_HEALTH);
             } else {
+
+                // Rock, and nobody's reinforced wall, which stays nobody's at full health (DKII.EXE 0x452F60)
                 rate = getLevelVariable(Variable.MiscVariable.MiscType.REINFORCE_WALL_HEALTH);
             }
         } else if (TileWork.convertsAtFullHealth(terrain)) {
