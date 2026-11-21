@@ -861,7 +861,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     /**
      * A creature that comes to make its bed and finds no free spot in the Lair
      * tells its keeper that the Lair is too small (DKII.EXE 0x46F4F0, message
-     * 0x2A for the Lair). A keeper without a Lair isn't told here
+     * 0x2A for the Lair). When a Lair has a free spot but the creature found
+     * none, it can't get there, and the keeper is told that (0x4E0470,
+     * message 0x2B for the Lair). A keeper without a Lair isn't told here
      *
      * @param playerId the keeper
      */
@@ -873,6 +875,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
         for (IRoomController lair : lairs) {
             if (!lair.getObjectControl(ObjectType.LAIR).isFullCapacity()) {
+                messages.roomUnreachable(playerId, lair.getRoom());
                 return;
             }
         }
@@ -1246,6 +1249,13 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             task.assign(creature, true);
             tasksByIds.put(task.getId(), task);
             return true;
+        }
+
+        // A creature that can't get to the room of its bed tells its keeper (DKII.EXE 0x46F440, message 0x2B)
+        RoomAttackMessages messages = gameWorldController.getRoomAttackMessages();
+        IRoomController lair = creature.hasLair() ? mapController.getRoomControllerByCoordinates(creature.getLairLocation()) : null;
+        if (messages != null && lair != null) {
+            messages.roomUnreachable(creature.getOwnerId(), lair.getRoom());
         }
         return false;
     }

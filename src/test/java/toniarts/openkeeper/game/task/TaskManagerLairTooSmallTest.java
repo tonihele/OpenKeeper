@@ -33,6 +33,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.task.hero.RoomTileWorld;
 import toniarts.openkeeper.tools.convert.map.DestroyRoomsFixtures;
@@ -46,7 +47,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 /**
  * A creature that finds no free spot in its keeper's Lair tells the keeper
  * that the Lair is too small (DKII.EXE 0x46F4F0, message 0x2A for room type 2:
- * speech 199, held 90 seconds)
+ * speech 199, held 90 seconds). One that can't get to a Lair with a free spot,
+ * or to the Lair of its bed, tells the keeper that (0x4E0470, 0x46F440,
+ * message 0x2B for room type 2: speech 1314, held 300 seconds)
  */
 class TaskManagerLairTooSmallTest {
 
@@ -58,6 +61,10 @@ class TaskManagerLairTooSmallTest {
             Player.KEEPER1_ID;
         case "getCreatureCoordinates" ->
             new Point(1, 1);
+        case "hasLair" ->
+            true;
+        case "getLairLocation" ->
+            new Point(2, 2);
         default ->
             RoomTileWorld.defaultValue(proxy, method);
     });
@@ -82,12 +89,29 @@ class TaskManagerLairTooSmallTest {
     }
 
     @Test
-    void aLairWithAFreeSpotIsNotTooSmall() {
+    void aLairWithAFreeSpotTheCreatureCanNotGetToIsUnreachableNotTooSmall() {
         lairs.add(lair(true));
         lairs.add(lair(false));
 
         assertFalse(createTaskManager().assignClosestRoomTask(creature, ObjectType.LAIR, null));
-        assertEquals(List.of(), speeches);
+        assertEquals(List.of(1314), speeches);
+    }
+
+    @Test
+    void aCreatureThatCanNotGetToItsBedTellsTheKeeper() {
+        lairs.add(lair(false));
+        TaskManager taskManager = createTaskManager();
+
+        assertFalse(taskManager.assignSleepTask(creature));
+        assertEquals(List.of(1314), speeches);
+
+        // The message is held for 300 seconds
+        gameTime = 299;
+        taskManager.assignSleepTask(creature);
+        assertEquals(List.of(1314), speeches);
+        gameTime = 300;
+        taskManager.assignSleepTask(creature);
+        assertEquals(List.of(1314, 1314), speeches);
     }
 
     @Test
@@ -133,13 +157,16 @@ class TaskManagerLairTooSmallTest {
                 mapData;
             case "getRoomsByFunction" ->
                 lairs;
+            case "getRoomControllerByCoordinates" ->
+                lairs.get(0);
             default ->
                 RoomTileWorld.defaultValue(proxy, method);
         });
         Keeper keeper = new Keeper(false, Player.KEEPER1_ID);
         IPlayerController player = RoomTileWorld.stub(IPlayerController.class, (proxy, method, args)
                 -> method.getName().equals("getKeeper") ? keeper : RoomTileWorld.defaultValue(proxy, method));
-        return new TaskManager(entityData, gameWorldController, mapController, null, null, null, List.of(player),
+        INavigationService navigation = RoomTileWorld.stub(INavigationService.class, (proxy, method, args) -> RoomTileWorld.defaultValue(proxy, method));
+        return new TaskManager(entityData, gameWorldController, mapController, null, null, navigation, List.of(player),
                 RoomTileWorld.stub(ILevelInfo.class, (proxy, method, args) -> RoomTileWorld.defaultValue(proxy, method)), null, Map.of());
     }
 

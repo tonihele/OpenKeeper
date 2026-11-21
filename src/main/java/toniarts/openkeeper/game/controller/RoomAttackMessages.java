@@ -209,7 +209,16 @@ public final class RoomAttackMessages {
          * held for 240 seconds (0x47B2D0). Variants 1 to 4 of the message
          * are for rooms, traps, doors and the rest
          */
-        CANNOT_AFFORD(20, 0, Map.of(5, 1343), Map.of(5, 240), 20);
+        CANNOT_AFFORD(20, 0, Map.of(5, 1343), Map.of(5, 240), 20),
+        /**
+         * "Your creatures are unable to get to a Lair", message 0x2B. The
+         * Prison's and the Torture Chamber's are held for 360 seconds
+         * (variant table at 0x6A0528)
+         */
+        UNREACHABLE(300, 0, Map.ofEntries(Map.entry(1, 1313), Map.entry(2, 1314), Map.entry(3, 1322), Map.entry(4, 1315),
+                Map.entry(6, 1327), Map.entry(7, 1316), Map.entry(9, 1328), Map.entry(10, 1319), Map.entry(11, 1326),
+                Map.entry(12, 1325), Map.entry(13, 1318), Map.entry(14, 1321), Map.entry(15, 1320), Map.entry(16, 1317)),
+                Map.of(11, 360, 12, 360), 300);
 
         private final double duration;
         private final int defaultSpeechId;
@@ -415,6 +424,16 @@ public final class RoomAttackMessages {
      */
     public void cannotAffordTraining(short ownerId) {
         show(Message.CANNOT_AFFORD, ownerId, (short) 5, null);
+    }
+
+    /**
+     * A creature can't get to the keeper's rooms of the type
+     *
+     * @param ownerId the keeper
+     * @param room the room type
+     */
+    public void roomUnreachable(short ownerId, Room room) {
+        show(Message.UNREACHABLE, ownerId, room.getRoomId(), null);
     }
 
     /**
