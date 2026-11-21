@@ -31,6 +31,9 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Navigation;
@@ -38,6 +41,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.SummonedReaper;
+import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -57,6 +61,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * nothing left to do and leaves (DKII.EXE 0x4748E0, the search at 0x45E1B0).
  * He has no needs, so he never looks for a lair, food or work. Sent for the
  * Portal Gem, he walks to it and picks it up, and that is the end of his job.
+ * On that walk he destroys the traps and unlocks his keeper's doors on his
+ * tile and the four next to it (0x474F80).
  */
 final class ReaperAi implements SummonedReaperSystem.ReaperDecisions {
 
@@ -67,14 +73,16 @@ final class ReaperAi implements SummonedReaperSystem.ReaperDecisions {
     private final Map<Short, Keeper> keepers;
     private final ICreaturesController creaturesController;
     private final INavigationService navigationService;
+    private final IEntityPositionLookup entityPositionLookup;
     private final Random random;
 
     ReaperAi(EntityData entityData, Map<Short, Keeper> keepers, ICreaturesController creaturesController,
-            INavigationService navigationService, Random random) {
+            INavigationService navigationService, IEntityPositionLookup entityPositionLookup, Random random) {
         this.entityData = entityData;
         this.keepers = keepers;
         this.creaturesController = creaturesController;
         this.navigationService = navigationService;
+        this.entityPositionLookup = entityPositionLookup;
         this.random = random;
     }
 
@@ -118,6 +126,8 @@ final class ReaperAi implements SummonedReaperSystem.ReaperDecisions {
             return;
         }
 
+        clearTheWay(reaper, from);
+
         // Keep him on his way, whatever else he might think of
         Navigation navigation = entityData.getComponent(reaper, Navigation.class);
         if (navigation != null && gemTile.equals(navigation.target)) {
@@ -127,6 +137,34 @@ final class ReaperAi implements SummonedReaperSystem.ReaperDecisions {
         if (path != null) {
             reaperController.getStateMachine().changeState(CreatureState.WANDER);
             entityData.setComponent(reaper, new Navigation(gemTile, null, SteeringUtils.pathToList(path)));
+        }
+    }
+
+    /**
+     * On each tick of his walk to the gem the Reaper clears his tile and the
+     * four next to it, like DK II's state for that walk (0x474F80): a built
+     * trap is destroyed, whoever owns it, and a locked door of his own keeper
+     * is unlocked. A blueprint is left alone.
+     */
+    private void clearTheWay(EntityId reaper, Point from) {
+        short ownerId = entityData.getComponent(reaper, Owner.class).ownerId;
+        for (Point tile : new Point[]{from, new Point(from.x - 1, from.y), new Point(from.x + 1, from.y),
+            new Point(from.x, from.y - 1), new Point(from.x, from.y + 1)}) {
+            for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+                Health health = entityData.getComponent(entityId, Health.class);
+                if (entityData.getComponent(entityId, TrapComponent.class) != null && health != null) {
+                    entityData.setComponent(entityId, new Damage(health.health));
+                    continue;
+                }
+                DoorComponent door = entityData.getComponent(entityId, DoorComponent.class);
+                if (door != null && door.locked && !door.blueprint && entityData.getComponent(entityId, Owner.class).ownerId == ownerId) {
+                    entityData.setComponent(entityId, new DoorComponent(door.doorId, false, false));
+                    DoorViewState viewState = entityData.getComponent(entityId, DoorViewState.class);
+                    if (viewState != null) {
+                        entityData.setComponent(entityId, new DoorViewState(viewState.doorId, false, viewState.blueprint, viewState.open));
+                    }
+                }
+            }
         }
     }
 

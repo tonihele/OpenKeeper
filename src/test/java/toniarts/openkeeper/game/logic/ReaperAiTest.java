@@ -18,12 +18,14 @@ package toniarts.openkeeper.game.logic;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -32,6 +34,8 @@ import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Navigation;
@@ -40,6 +44,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.SummonedReaper;
+import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -292,6 +297,54 @@ class ReaperAiTest {
         assertNull(entityData.getComponent(reaper, Navigation.class));
     }
 
+    @Test
+    void destroysTheBuiltTrapsOnAndNextToHisTileOnHisWayToTheGem() {
+        EntityId gem = addGem(new Point(20, 14));
+        EntityId under = addThing(new TrapComponent((short) 1), ENEMY_ID, REAPER_TILE, 50);
+        EntityId own = addThing(new TrapComponent((short) 1), PLAYER_ID, new Point(REAPER_TILE.x, REAPER_TILE.y + 1), 70);
+        EntityId blueprint = addThing(new TrapComponent((short) 1), ENEMY_ID, new Point(REAPER_TILE.x - 1, REAPER_TILE.y), 0);
+        EntityId diagonal = addThing(new TrapComponent((short) 1), ENEMY_ID, new Point(REAPER_TILE.x + 1, REAPER_TILE.y + 1), 50);
+        EntityId far = addThing(new TrapComponent((short) 1), ENEMY_ID, new Point(REAPER_TILE.x + 2, REAPER_TILE.y), 50);
+
+        ai().fetchPortalGem(reaper, gem);
+
+        // DK II asks no owner, the whole health is the damage
+        assertEquals(50, entityData.getComponent(under, Damage.class).damage);
+        assertEquals(70, entityData.getComponent(own, Damage.class).damage);
+        assertNull(entityData.getComponent(blueprint, Damage.class));
+        assertNull(entityData.getComponent(diagonal, Damage.class));
+        assertNull(entityData.getComponent(far, Damage.class));
+    }
+
+    @Test
+    void unlocksHisKeepersLockedDoorNextToHimOnHisWayToTheGem() {
+        EntityId gem = addGem(new Point(20, 14));
+        EntityId own = addThing(new DoorComponent((short) 1, true, false), PLAYER_ID, new Point(REAPER_TILE.x + 1, REAPER_TILE.y), 100);
+        EntityId enemy = addThing(new DoorComponent((short) 1, true, false), ENEMY_ID, new Point(REAPER_TILE.x, REAPER_TILE.y - 1), 100);
+        EntityId blueprint = addThing(new DoorComponent((short) 1, true, true), PLAYER_ID, new Point(REAPER_TILE.x - 1, REAPER_TILE.y), 0);
+
+        ai().fetchPortalGem(reaper, gem);
+
+        assertFalse(entityData.getComponent(own, DoorComponent.class).locked);
+        assertTrue(entityData.getComponent(enemy, DoorComponent.class).locked);
+        assertTrue(entityData.getComponent(blueprint, DoorComponent.class).locked);
+        for (EntityId door : List.of(own, enemy, blueprint)) {
+            assertNull(entityData.getComponent(door, Damage.class));
+        }
+    }
+
+    /**
+     * A trap or a door, without health when it is a blueprint
+     */
+    private EntityId addThing(EntityComponent component, short ownerId, Point tile, int health) {
+        EntityId entityId = entityData.createEntity();
+        entityData.setComponents(entityId, component, new Owner(ownerId, ownerId), new Position(0, WorldUtils.pointToVector3f(tile)));
+        if (health > 0) {
+            entityData.setComponent(entityId, new Health(health, health));
+        }
+        return entityId;
+    }
+
     private EntityId addGem(Point tile) {
         EntityId gem = entityData.createEntity();
         entityData.setComponent(gem, new ObjectComponent((short) 28, null));
@@ -309,7 +362,15 @@ class ReaperAiTest {
     }
 
     private ReaperAi ai() {
-        return new ReaperAi(entityData, keepers, creaturesController(), navigationService(), new Random() {
+        IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(),
+                new Class<?>[]{IEntityPositionLookup.class}, (proxy, method, args) -> {
+                    if (!method.getName().equals("getEntitiesInLocation")) {
+                        throw new UnsupportedOperationException(method.getName());
+                    }
+                    return entityData.findEntities(null, Position.class).stream().filter(entityId
+                            -> args[0].equals(WorldUtils.vectorToPoint(entityData.getComponent(entityId, Position.class).position))).toList();
+                });
+        return new ReaperAi(entityData, keepers, creaturesController(), navigationService(), entityPositionLookup, new Random() {
             @Override
             public int nextInt(int bound) {
                 return roll;
