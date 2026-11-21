@@ -246,9 +246,11 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
 
     @Override
     public boolean isClaimableWall(S tile, Terrain terrain, short playerId) {
-        // Another keeper's reinforced wall is never reinforced over, it has to be dug out
+        // Another keeper's reinforced wall is never reinforced over, it has to be dug out. Nobody's reinforced wall
+        // is repaired until it is at full health (DKII.EXE 0x453DC0)
         return (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
-                && (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || !terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE))
+                && (!terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
+                || (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID && !tile.isAtFullHealth()))
                 && isClaimable(tile, terrain, playerId));
     }
 
@@ -263,7 +265,8 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
 
     @Override
     public boolean isClaimableTile(S tile, Terrain terrain, short playerId) {
-        return (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && isClaimable(tile, terrain, playerId));
+        return (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                && isClaimable(tile, terrain, playerId));
     }
 
     @Override

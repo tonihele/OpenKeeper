@@ -32,7 +32,8 @@ import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.flags;
 import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.terrain;
 
 /**
- * Which walls the imps may reinforce.
+ * Which walls the imps may reinforce, and that a wall is never claimed as
+ * floor.
  */
 class MapInformationTest {
 
@@ -50,14 +51,33 @@ class MapInformationTest {
 
     @Test
     void doesNotReinforceOverAnotherKeepersWall() {
-        assertFalse(isClaimableWall(REINFORCED_WALL_ID, OTHER_KEEPER));
+        assertFalse(isClaimableWall(REINFORCED_WALL_ID, OTHER_KEEPER, 400));
+    }
+
+    @Test
+    void repairsNobodysWallUntilItIsAtFullHealth() {
+        assertTrue(isClaimableWall(REINFORCED_WALL_ID, Player.NEUTRAL_PLAYER_ID, 899));
+        assertFalse(isClaimableWall(REINFORCED_WALL_ID, Player.NEUTRAL_PLAYER_ID, 900));
+    }
+
+    @Test
+    void floorIsNotClaimedOnAWall() {
+        assertFalse(mapInformation(REINFORCED_WALL_ID, OTHER_KEEPER, 400).isClaimableTile(new Point(0, 0), KEEPER));
     }
 
     private static boolean isClaimableWall(short wallTerrainId, short wallOwnerId) {
+        return isClaimableWall(wallTerrainId, wallOwnerId, 0);
+    }
+
+    private static boolean isClaimableWall(short wallTerrainId, short wallOwnerId, int wallHealth) {
+        return mapInformation(wallTerrainId, wallOwnerId, wallHealth).isClaimableWall(new Point(0, 0), KEEPER);
+    }
+
+    private static MapInformation<FakeMapData, FakeMapTile> mapInformation(short wallTerrainId, short wallOwnerId, int wallHealth) {
         Map<Short, Terrain> terrains = Map.of(
                 ROCK_ID, terrain(ROCK_ID, flags(Terrain.TerrainFlag.SOLID, Terrain.TerrainFlag.TAGGABLE), 0, 165, 660, REINFORCED_WALL_ID),
                 CLAIMED_PATH_ID, terrain(CLAIMED_PATH_ID, flags(Terrain.TerrainFlag.OWNABLE), 0, 660, 660, CLAIMED_PATH_ID),
-                REINFORCED_WALL_ID, terrain(REINFORCED_WALL_ID, flags(Terrain.TerrainFlag.SOLID, Terrain.TerrainFlag.OWNABLE, Terrain.TerrainFlag.TAGGABLE), 0, 900, 900, REINFORCED_WALL_ID));
+                REINFORCED_WALL_ID, terrain(REINFORCED_WALL_ID, flags(Terrain.TerrainFlag.SOLID, Terrain.TerrainFlag.OWNABLE, Terrain.TerrainFlag.TAGGABLE, Terrain.TerrainFlag.ATTACKABLE), 0, 900, 900, REINFORCED_WALL_ID));
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> "getTerrain".equals(method.getName()) ? terrains.get((Short) args[0]) : null);
 
@@ -66,13 +86,13 @@ class MapInformationTest {
         FakeMapTile wall = mapData.getTile(0, 0);
         wall.terrainId = wallTerrainId;
         wall.ownerId = wallOwnerId;
+        wall.health = wallHealth;
+        wall.maxHealth = 900;
         FakeMapTile floor = mapData.getTile(1, 0);
         floor.terrainId = CLAIMED_PATH_ID;
         floor.ownerId = KEEPER;
 
-        MapInformation<FakeMapData, FakeMapTile> mapInformation = new MapInformation<>(mapData, kwdFile,
-                List.of(new Keeper(false, KEEPER), new Keeper(false, OTHER_KEEPER)));
-        return mapInformation.isClaimableWall(new Point(0, 0), KEEPER);
+        return new MapInformation<>(mapData, kwdFile, List.of(new Keeper(false, KEEPER), new Keeper(false, OTHER_KEEPER)));
     }
 
 }
