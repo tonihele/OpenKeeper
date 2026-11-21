@@ -150,10 +150,24 @@ public final class TrapFiringFixtures {
      * @return the shot
      */
     public static Shot shot(short shotId, Shot.ProcessType processType, Shot.DamageType damageType) {
+        return shot(shotId, processType, damageType, 0);
+    }
+
+    /**
+     * A shot that scares
+     *
+     * @param shotId the shot ID
+     * @param processType the process type
+     * @param damageType the damage type
+     * @param threat the shot's threat
+     * @return the shot
+     */
+    public static Shot shot(short shotId, Shot.ProcessType processType, Shot.DamageType damageType, int threat) {
         Shot shot = new Shot();
         shot.setShotId(shotId);
         shot.setProcessType(processType);
         shot.setDamageType(damageType);
+        shot.setThreat(threat);
         return shot;
     }
 

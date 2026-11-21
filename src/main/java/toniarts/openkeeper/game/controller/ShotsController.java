@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.TrapComponent;
@@ -67,6 +68,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CHICKEN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.GAS;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.JACK_IN_THE_BOX;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
@@ -75,6 +77,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CRE
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SIGHT_OF_EVIL;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SUMMON_REAPER;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TREMOR;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TRIGGER;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TURNCOAT;
 
 /**
@@ -108,6 +111,12 @@ public final class ShotsController implements IShotsController {
      * (0x4B02E0)
      */
     private static final short CREATURE_JACK_ID = 46;
+
+    /**
+     * How far, in tiles, the gas cloud, the Trigger Trap and the Jack in the
+     * Box look for enemies to scare (0x4AF8E0, 0x4AFAD0, 0x4B02E0)
+     */
+    private static final int SCARE_RANGE = 2;
 
     private final IKwdFile kwdFile;
     private final EntityData entityData;
@@ -186,6 +195,8 @@ public final class ShotsController implements IShotsController {
         result.put(ALARM, this::raiseAlarm);
         result.put(BOULDER, this::rollBoulder);
         result.put(JACK_IN_THE_BOX, this::releaseJack);
+        result.put(GAS, this::scare);
+        result.put(TRIGGER, this::scare);
 
         return result;
     }
@@ -359,6 +370,7 @@ public final class ShotsController implements IShotsController {
             return;
         }
         EntityController.setDamage(entityData, request.target(), request.shotData1());
+        scare(request);
 
         IEntityPositionLookup entityPositionLookup = gameController.getEntityLookupService();
         for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(WorldUtils.vectorToPoint(request.position()))) {
@@ -372,6 +384,43 @@ public final class ShotsController implements IShotsController {
         if (jack != null) {
             creaturesController.createController(jack).getStateMachine().changeState(CreatureState.JACK_IN_THE_BOX);
             entityData.setComponent(jack, new CreatureAi(gameTimer.getGameTime(), CreatureState.JACK_IN_THE_BOX, CREATURE_JACK_ID));
+        }
+    }
+
+    /**
+     * The shot scares its keeper's enemies that see it: its threat is split
+     * between the enemy creatures within 2 tiles and in its line of sight, and
+     * those within a tile get their share for a tick (0x4B32A0). DK II means
+     * this, but compares the distance in 4096ths of a tile with the range in
+     * whole tiles, so there it never finds anyone
+     *
+     * @param request the shot
+     */
+    private void scare(ShotRequest request) {
+        Keeper keeper = levelInfo.getPlayer(request.playerId());
+        IEntityPositionLookup entityPositionLookup = gameController.getEntityLookupService();
+        Point tile = WorldUtils.vectorToPoint(request.position());
+        int enemies = 0;
+        for (int x = tile.x - SCARE_RANGE; keeper != null && x <= tile.x + SCARE_RANGE; x++) {
+            for (int y = tile.y - SCARE_RANGE; y <= tile.y + SCARE_RANGE; y++) {
+                for (EntityId entity : entityPositionLookup.getEntitiesInLocation(x, y)) {
+                    Owner owner = entityData.getComponent(entity, Owner.class);
+                    Position position = entityData.getComponent(entity, Position.class);
+                    if (owner != null && position != null && keeper.isEnemy(owner.ownerId)
+                            && entityData.getComponent(entity, CreatureComponent.class) != null
+                            && FastMath.sqr(position.position.x - request.position().x) + FastMath.sqr(position.position.z - request.position().z) < SCARE_RANGE * SCARE_RANGE
+                            && entityPositionLookup.hasLineOfSight(request.position(), position.position)) {
+                        enemies++;
+                    }
+                }
+            }
+        }
+
+        int threat = enemies > 0 ? request.shot().getThreat() / enemies : 0;
+        if (threat > 0) {
+            entityData.setComponents(entityData.createEntity(), new Owner(request.playerId(), request.playerId()),
+                    new Position(0, new Vector3f(request.position())), new Threat(threat, SCARE_RANGE - 1),
+                    new Decay(gameTimer.getGameTime(), 1.0 / kwdFile.getGameLevel().getTicksPerSec()));
         }
     }
 

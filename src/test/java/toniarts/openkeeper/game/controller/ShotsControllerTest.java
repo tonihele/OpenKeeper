@@ -33,6 +33,8 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.Threat;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -81,6 +83,7 @@ class ShotsControllerTest {
     private final Map<Short, Shot> shotsById = new HashMap<>();
     private final List<Object[]> loadedObjects = new ArrayList<>();
     private final Set<Point> waterTiles = new HashSet<>();
+    private final Set<Vector3f> blindSpots = new HashSet<>();
     private final ShotsController shotsController;
     private double gameTime = 0;
 
@@ -91,7 +94,7 @@ class ShotsControllerTest {
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
         shotsById.put(SPIKE_ID, TrapFiringFixtures.shot(SPIKE_ID, Shot.ProcessType.NONE, Shot.DamageType.CONSTANT));
-        shotsById.put(GAS_CLOUD_ID, TrapFiringFixtures.shot(GAS_CLOUD_ID, Shot.ProcessType.GAS, Shot.DamageType.RANGE_FROM_ORIGIN));
+        shotsById.put(GAS_CLOUD_ID, TrapFiringFixtures.shot(GAS_CLOUD_ID, Shot.ProcessType.GAS, Shot.DamageType.RANGE_FROM_ORIGIN, 300));
         shotsById.put(DOOR_FIREBALL_ID, TrapFiringFixtures.shot(DOOR_FIREBALL_ID, Shot.ProcessType.NONE, Shot.DamageType.HIT_THING));
         shotsById.put(FREEZE_ID, TrapFiringFixtures.shot(FREEZE_ID, Shot.ProcessType.FREEZE, Shot.DamageType.NONE));
         shotsById.put(ALARM_ID, TrapFiringFixtures.shot(ALARM_ID, Shot.ProcessType.ALARM, Shot.DamageType.NONE));
@@ -124,12 +127,15 @@ class ShotsControllerTest {
         GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null);
 
         IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class},
-                (proxy, method, args) -> entityData.findEntities(null, Position.class).stream()
+                (proxy, method, args) -> method.getName().equals("hasLineOfSight") ? !blindSpots.contains(args[1])
+                        : entityData.findEntities(null, Position.class).stream()
                         .filter(entity -> new Point((int) args[0], (int) args[1]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position)))
                         .toList());
         IGameController gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(), new Class<?>[]{IGameController.class},
                 (proxy, method, args) -> method.getName().equals("getEntityLookupService") ? entityPositionLookup : null);
-        shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, null, objectsController, null, gameEventService);
+        ILevelInfo levelInfo = (ILevelInfo) Proxy.newProxyInstance(ILevelInfo.class.getClassLoader(), new Class<?>[]{ILevelInfo.class},
+                (proxy, method, args) -> method.getName().equals("getPlayer") ? new Keeper(false, (short) args[0]) : null);
+        shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, levelInfo, objectsController, null, gameEventService);
     }
 
     @Test
@@ -328,6 +334,32 @@ class ShotsControllerTest {
         assertNull(entityData.getComponent(own, Damage.class));
         assertNull(entityData.getComponent(diagonal, Damage.class));
         assertNull(entityData.getComponent(farAway, Damage.class));
+    }
+
+    @Test
+    void gasCloudSplitsItsThreatBetweenTheEnemiesItSees() {
+        EntityId target = createCreature(ENEMY_ID, 11, 10);
+        createCreature(ENEMY_ID, 10, 11.5f);
+        createCreature(PLAYER_ID, 10, 9);
+        createCreature(ENEMY_ID, 12, 10);
+        blindSpots.add(new Vector3f(9, 1, 9));
+        createCreature(ENEMY_ID, 9, 9);
+
+        shotsController.createShot(GAS_CLOUD_ID, 750, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+
+        // Two enemies within 2 tiles in sight share the 300, those within a tile of the cloud are scared
+        Threat threat = entityData.getComponent(entityData.findEntity(null, Threat.class, Decay.class), Threat.class);
+        assertEquals(150, threat.threat);
+        assertEquals(1, threat.range, DELTA);
+    }
+
+    @Test
+    void gasCloudThatNoEnemySeesScaresNobody() {
+        EntityId own = createCreature(PLAYER_ID, 11, 10);
+
+        shotsController.createShot(GAS_CLOUD_ID, 750, 1, PLAYER_ID, new Vector3f(10, 1, 10), own, null);
+
+        assertNull(entityData.findEntity(null, Threat.class));
     }
 
     @Test
