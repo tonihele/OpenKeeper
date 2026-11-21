@@ -996,6 +996,35 @@ public enum CreatureState implements State<ICreatureController> {
         public boolean onMessage(ICreatureController entity, Telegram telegram) {
             return true;
         }
+    }, HEART_CALL {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.unassingCurrentTask();
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Called by its Dungeon Heart it walks to where the enemy was seen, and fights what it
+            // meets on the way (DK II 0x4D9690)
+            if (entity.shouldFleeOrAttack()) {
+                return;
+            }
+            if (entity.isStopped()) {
+                entity.getStateMachine().changeState(IDLE);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
     }, HERO_RECUPERATING {
 
         @Override

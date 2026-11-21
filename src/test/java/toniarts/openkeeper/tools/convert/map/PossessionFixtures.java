@@ -17,8 +17,8 @@
 package toniarts.openkeeper.tools.convert.map;
 
 /**
- * Builds the level variables a possessed creature's attack reads, their
- * setters are protected
+ * Builds the level variables and creatures a possessed creature's attack
+ * reads, their setters are protected
  *
  * @author OpenKeeper
  */
@@ -32,6 +32,12 @@ public final class PossessionFixtures {
         stat.setStatId(statType);
         stat.setValue(value);
         return stat;
+    }
+
+    public static Creature creature(Material material) {
+        Creature creature = new Creature();
+        creature.setMaterial(material);
+        return creature;
     }
 
     public static Variable.MiscVariable miscVariable(Variable.MiscVariable.MiscType type, int value) {

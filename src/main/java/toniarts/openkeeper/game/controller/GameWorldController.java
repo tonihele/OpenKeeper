@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.DoorTarget;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Food;
@@ -1208,6 +1209,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         entityData.removeComponent(entity, CreatureTortured.class);
         entityData.removeComponent(entity, CreatureImprisoned.class);
         entityData.removeComponent(entity, AttackTarget.class);
+        entityData.removeComponent(entity, DoorTarget.class);
         entityData.removeComponent(entity, CombatPitFighter.class);
         entityData.removeComponent(entity, FollowTarget.class);
         entityData.removeComponent(entity, HauledBy.class);

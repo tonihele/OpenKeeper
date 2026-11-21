@@ -57,6 +57,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -229,6 +230,77 @@ class DungeonHeartAttackTest {
         createController(createCreature(HERO, FIGHTER, new Point(10, 8))).executeAttack(heart);
 
         assertEquals(100, entityData.getComponent(heart, Damage.class).damage);
+    }
+
+    @Test
+    void creatureHittingTheHeartTurnsToFaceThePillarItHits() {
+        EntityId heart = createHeart(KEEPER);
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 15));
+        Vector3f inReach = new Vector3f(10, 0, 7.9f);
+
+        // Arrived in reach of the north pillar facing away, with no navigation to turn it
+        entityData.setComponent(hero, new Position((float) Math.PI, inReach));
+        createController(hero).executeAttack(heart);
+
+        // It turns before it swings (0x45F030)
+        assertNull(entityData.getComponent(heart, Damage.class));
+        Navigation navigation = entityData.getComponent(hero, Navigation.class);
+        assertEquals(WorldUtils.vectorToPoint(inReach), navigation.target);
+        assertTurnsToFace(navigation, inReach, 10, 8.8f);
+
+        // Already facing it, nothing to steer
+        entityData.removeComponent(hero, Navigation.class);
+        entityData.setComponent(hero, new Position(0, inReach));
+        createController(hero).executeAttack(heart);
+
+        assertNull(entityData.getComponent(hero, Navigation.class));
+
+        // DK II faces the pillar it targets, the nearest one, not the centre of the heart (0x45CB00, 0x4B2AE0)
+        Vector3f bySouthWestPillar = new Vector3f(8.5f, 0, 10.1f);
+        entityData.setComponent(hero, new Position((float) Math.atan2(HEART_TILE.x - 8.5f, HEART_TILE.y - 10.1f), bySouthWestPillar));
+        createController(hero).executeAttack(heart);
+
+        assertTurnsToFace(entityData.getComponent(hero, Navigation.class), bySouthWestPillar, 8.9f, 10.6f);
+
+        entityData.removeComponent(hero, Navigation.class);
+        entityData.setComponent(hero, new Position((float) Math.atan2(8.9f - 8.5f, 10.6f - 10.1f), bySouthWestPillar));
+        createController(hero).executeAttack(heart);
+
+        assertNull(entityData.getComponent(hero, Navigation.class));
+    }
+
+    @Test
+    void creatureOnThePillarsTileTurnsFromWhereItStandsToThePillar() {
+        EntityId heart = createHeart(KEEPER);
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 15));
+
+        // Beside the north pillar on its own tile, facing away. DK II turns from where the creature stands to where
+        // the pillar stands (0x4B2AE0), from tile to tile there is no way to turn here
+        Vector3f onPillarTile = new Vector3f(10.45f, 0, 8.55f);
+        entityData.setComponent(hero, new Position((float) Math.PI, onPillarTile));
+        createController(hero).executeAttack(heart);
+
+        assertTurnsToFace(entityData.getComponent(hero, Navigation.class), onPillarTile, 10, 8.8f);
+
+        // Facing the pillar itself, not the centre of its tile, is facing it
+        entityData.removeComponent(hero, Navigation.class);
+        entityData.setComponent(hero, new Position((float) Math.atan2(10 - 10.45f, 8.8f - 8.55f), onPillarTile));
+        createController(hero).executeAttack(heart);
+
+        assertNull(entityData.getComponent(hero, Navigation.class));
+    }
+
+    /**
+     * The steering turns the creature to face from the centre of the
+     * navigation's tile to the centre of its face target tile, and that has to
+     * be the way from the creature to the pillar
+     */
+    private static void assertTurnsToFace(Navigation navigation, Vector3f from, float pillarX, float pillarZ) {
+        double steered = Math.atan2(navigation.faceTarget.x - navigation.target.x, navigation.faceTarget.y - navigation.target.y);
+        double wanted = Math.atan2(pillarX - from.x, pillarZ - from.z);
+        assertFalse(navigation.faceTarget.equals(navigation.target), "no way to turn from a tile to itself");
+        assertTrue(Math.abs(Math.IEEEremainder(steered - wanted, 2 * Math.PI)) < 0.05,
+                "turns to " + Math.toDegrees(steered) + " degrees, the pillar is at " + Math.toDegrees(wanted));
     }
 
     @Test
