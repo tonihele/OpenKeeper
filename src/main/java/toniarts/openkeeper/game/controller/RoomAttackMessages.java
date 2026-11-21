@@ -21,7 +21,10 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.GameEnded;
+import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomMessageShown;
 import toniarts.openkeeper.game.state.session.PlayerService;
@@ -42,7 +45,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * (0x4C4090). Every message in the table has flag 0x2000, which shows it as a
  * message tab, and the per tick update (0x4C41E0) clears that once the message
  * is 200 ticks old, so the tab goes after 200 ticks even while the message is
- * still held. The table also gives each message its tab's icon (entry +6,
+ * still held. A player whose game has ended, won or lost, gets no more
+ * messages: the queue turns them away at its very top. The table also gives each message its tab's icon (entry +6,
  * copied to the queue entry's +0x13), which the message row (0x423BD0) draws:
  * 3 is the fight icon, the heart attack and the defeated keeper here, and 1 the
  * info icon, all the other messages here.
@@ -465,7 +469,8 @@ public final class RoomAttackMessages {
     }
 
     private void show(Message message, short ownerId, short roomId, Point tile, int speechId, short namedPlayerId) {
-        if (playerService == null || speechId == 0) {
+        if (playerService == null || speechId == 0
+                || entityData.findEntity(new FieldFilter<>(KeeperComponent.class, "playerId", ownerId), KeeperComponent.class, GameEnded.class) != null) {
             return;
         }
         double now = gameTimer.getGameTime();

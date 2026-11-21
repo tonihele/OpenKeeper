@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
@@ -24,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.GameEnded;
+import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureMoodFixtures;
@@ -51,7 +54,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * queue holds at most 256 messages for all the keepers together (0x4C4090). A
  * message shows its tab for at most 200 ticks (table flag 0x2000, 0x4C41E0),
  * with the icon of the table's graphic id: 3, the fight icon, for the heart
- * attack and the defeated keeper, 1, the info icon, for the others here
+ * attack and the defeated keeper, 1, the info icon, for the others here. A
+ * player whose game has ended gets no more messages (the top of 0x4C4600)
  */
 class RoomAttackMessagesTest {
 
@@ -75,7 +79,8 @@ class RoomAttackMessagesTest {
             });
     private final IGameTimer gameTimer = (IGameTimer) Proxy.newProxyInstance(IGameTimer.class.getClassLoader(),
             new Class<?>[]{IGameTimer.class}, (proxy, method, args) -> method.getName().equals("getGameTime") ? gameTime : null);
-    private final RoomAttackMessages roomAttackMessages = new RoomAttackMessages(new DefaultEntityData(), playerService, gameTimer, 4);
+    private final EntityData entityData = new DefaultEntityData();
+    private final RoomAttackMessages roomAttackMessages = new RoomAttackMessages(entityData, playerService, gameTimer, 4);
     private final Room lair = room("Lair", 2);
     private final Room treasury = room("Treasury", 1);
 
@@ -381,6 +386,27 @@ class RoomAttackMessagesTest {
         gameTime += 1;
         roomAttackMessages.creatureMoodWorsened(new EntityId(2), KEEPER, imp, content, unhappy, RoomAttackMessages.MOOD_REASON_NO_LAIR);
         assertEquals(List.of("590@null>p" + KEEPER, "586@null>p" + KEEPER), messages);
+    }
+
+    @Test
+    void aKeeperWhoseGameHasEndedGetsNoMoreMessages() {
+        EntityId loser = entityData.createEntity();
+        entityData.setComponent(loser, new KeeperComponent(KEEPER));
+        entityData.setComponent(entityData.createEntity(), new KeeperComponent(Player.KEEPER2_ID));
+        roomAttackMessages.roomTileAttacked(KEEPER, lair, TILE);
+        assertEquals(1, messages.size());
+
+        entityData.setComponent(loser, new GameEnded(false));
+        roomAttackMessages.roomTileAttacked(KEEPER, treasury, TILE);
+        roomAttackMessages.heartHealthChanged(KEEPER, 500, 1000);
+        roomAttackMessages.hint(KEEPER, 1);
+        assertEquals(1, messages.size());
+
+        // The others still hear of theirs, and of the keeper's defeat
+        roomAttackMessages.roomTileAttacked(Player.KEEPER2_ID, lair, TILE);
+        roomAttackMessages.heartDestroyed(KEEPER, (short) 0, List.of(KEEPER, Player.KEEPER2_ID));
+        assertEquals(3, messages.size());
+        assertTrue(messages.get(2).endsWith(">p" + Player.KEEPER2_ID + " named p" + KEEPER));
     }
 
     @Test
