@@ -26,6 +26,7 @@ import com.simsilica.es.EntitySet;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
+import toniarts.openkeeper.game.component.CombatPitSpectator;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
@@ -134,6 +135,11 @@ public final class CreatureViewSystem extends GameTimeCounter {
                         Creature creature = kwdFile.getCreature(state.creatureId);
                         targetState = drinking ? getDrinkAnimation(entityId, creature) : getGambleAnimation(creature);
                     }
+                } else if (taskComponent != null && taskComponent.taskType == TaskType.WATCH_COMBAT_PIT) {
+
+                    // The spectator cheers or idles, as its task tells
+                    CombatPitSpectator spectator = entityData.getComponent(entityId, CombatPitSpectator.class);
+                    targetState = spectator != null ? spectator.animation : Creature.AnimationType.STAND_STILL;
                 } else if (taskComponent != null && taskComponent.taskType == TaskType.TORTURE) {
                     targetState = getTorturerAnimation(taskComponent.targetEntity, state);
                 } else if (taskComponent != null) {

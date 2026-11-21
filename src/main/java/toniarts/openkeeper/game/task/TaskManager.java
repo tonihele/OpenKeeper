@@ -77,6 +77,7 @@ import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.CasinoController;
+import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
@@ -102,6 +103,7 @@ import toniarts.openkeeper.game.task.creature.Pray;
 import toniarts.openkeeper.game.task.creature.Research;
 import toniarts.openkeeper.game.task.creature.Torture;
 import toniarts.openkeeper.game.task.creature.Train;
+import toniarts.openkeeper.game.task.creature.WatchCombatPit;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
 import toniarts.openkeeper.game.task.objective.KillCreatures;
 import toniarts.openkeeper.game.task.objective.KillPlayer;
@@ -1055,9 +1057,68 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case DRINK: {
                 return assignClosestRoomTask(creature, ObjectType.GAMBLER, null, assign);
             }
+            case COMBAT_PIT_SPECTATE: {
+                return assignWatchCombatPitTask(creature, assign);
+            }
             default:
                 return false;
         }
+    }
+
+    /**
+     * Sends the creature to watch a fight in a Combat Pit of its keeper, as
+     * DK II does (0x457780, 0x4D8510). A creature standing on the tiles round
+     * a pit watches from there, also for a moment after the fight. Otherwise
+     * it goes to the nearest free tile round a pit with a fight on that it
+     * can get to
+     *
+     * @param creature the creature
+     * @param assign whether to actually assign the creature to the task or
+     * just test
+     * @return true if there is a fight to watch
+     */
+    private boolean assignWatchCombatPitTask(ICreatureController creature, boolean assign) {
+        Point location = creature.getCreatureCoordinates();
+        CombatPitController nearestPit = null;
+        Point nearestSpot = null;
+        int nearestDistance = Integer.MAX_VALUE;
+        for (IRoomController room : mapController.getRoomControllers()) {
+            if (!(room instanceof CombatPitController pit) || pit.getOwnerId() != creature.getOwnerId() || pit.isDestroyed()) {
+                continue;
+            }
+            List<Point> spots = pit.getSpectatorTiles();
+            if (spots.contains(location)) {
+                if (pit.isFightToWatch()) {
+                    nearestPit = pit;
+                    nearestSpot = location;
+                    break;
+                }
+                continue;
+            }
+            if (!pit.isFightOn()) {
+                continue;
+            }
+            for (Point spot : spots) {
+                int distance = WorldUtils.calculateDistance(location, spot);
+                if (distance < nearestDistance
+                        && entityPositionLookup.getEntityTypesInLocation(spot, ICreatureController.class).isEmpty()
+                        && navigationService.findPath(location, spot, creature) != null) {
+                    nearestPit = pit;
+                    nearestSpot = spot;
+                    nearestDistance = distance;
+                }
+            }
+        }
+        if (nearestPit == null) {
+            return false;
+        }
+        if (assign) {
+            Task task = new WatchCombatPit(navigationService, mapController, nearestPit, nearestSpot, creature.getOwnerId(),
+                    entityData, entityPositionLookup, FastMath.rand);
+            task.assign(creature, true);
+            tasksByIds.put(task.getId(), task);
+        }
+        return true;
     }
 
     @Override

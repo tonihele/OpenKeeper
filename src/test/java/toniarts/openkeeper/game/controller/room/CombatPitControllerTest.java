@@ -21,12 +21,16 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CombatPitFight;
 import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
@@ -70,6 +74,37 @@ class CombatPitControllerTest {
         // Every tile of the inside 2..4 and none of the edge
         assertEquals(9, tiles.size());
         assertTrue(tiles.stream().allMatch(pit::isFightingTile));
+    }
+
+    @Test
+    void spectatorsStandOnTheTilesRoundThePit() {
+        CombatPitController pit = buildPit(5);
+
+        List<Point> tiles = pit.getSpectatorTiles();
+
+        assertEquals(16, tiles.size());
+        assertTrue(tiles.stream().noneMatch(pit::isFightingTile));
+    }
+
+    @Test
+    void fightIsOnWithAFighterOnItsFeetAndWatchedFourSecondsLonger() {
+        EntityData entityData = new DefaultEntityData();
+        double[] gameTime = {10};
+        CombatPitController pit = buildPit(entityData, 5, () -> gameTime[0]);
+        assertFalse(pit.isFightToWatch());
+
+        EntityId fighter = creature(entityData, Player.KEEPER2_ID, false);
+        pit.addFighter(fighter, new Point(3, 3));
+        assertTrue(pit.isFightOn());
+        assertEquals(10, entityData.getComponent(pit.getEntityId(), CombatPitFight.class).lastFightTime);
+
+        // Knocked out, the fight is over, but it was seen a moment ago
+        entityData.setComponent(fighter, new Unconscious(11));
+        gameTime[0] = 14;
+        assertFalse(pit.isFightOn());
+        assertTrue(pit.isFightToWatch());
+        gameTime[0] = 14.25;
+        assertFalse(pit.isFightToWatch());
     }
 
     @Test
@@ -140,6 +175,10 @@ class CombatPitControllerTest {
     }
 
     private static CombatPitController buildPit(EntityData entityData, int size) {
+        return buildPit(entityData, size, () -> 0);
+    }
+
+    private static CombatPitController buildPit(EntityData entityData, int size, IGameTimer gameTimer) {
         IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(
                 IObjectsController.class.getClassLoader(),
                 new Class<?>[]{IObjectsController.class},
@@ -151,7 +190,7 @@ class CombatPitControllerTest {
                 roomInstance.addCoordinate(new Point(x, y));
             }
         }
-        CombatPitController pit = new CombatPitController(entityData.createEntity(), entityData, null, roomInstance, objectsController);
+        CombatPitController pit = new CombatPitController(entityData.createEntity(), entityData, null, roomInstance, objectsController, gameTimer);
         pit.construct();
         return pit;
     }

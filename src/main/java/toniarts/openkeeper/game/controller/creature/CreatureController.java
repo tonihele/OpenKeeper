@@ -609,10 +609,17 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
 
-        // With none of its own jobs to start, the creature trains, like in DK II. The Casino comes after this
+        // With none of its own jobs to start, the creature trains, like in DK II (0x478680)
         if (!creature.getFlags().contains(Creature.CreatureFlag.NOT_TRAIN_WHEN_IDLE)
                 && taskManager.isTaskAvailable(this, Creature.JobType.TRAIN)
                 && taskManager.assignTask(this, Creature.JobType.TRAIN)) {
+            workResult.accept(true);
+            return;
+        }
+
+        // Then it watches a fight in the Combat Pit. The Casino comes after this
+        if (taskManager.isTaskAvailable(this, Creature.JobType.COMBAT_PIT_SPECTATE)
+                && taskManager.assignTask(this, Creature.JobType.COMBAT_PIT_SPECTATE)) {
             workResult.accept(true);
             return;
         }
