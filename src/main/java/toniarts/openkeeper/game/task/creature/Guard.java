@@ -17,12 +17,14 @@
 package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityData;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.random.RandomGenerator;
+import toniarts.openkeeper.game.component.GuardedRoom;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -37,7 +39,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 /**
  * Stands guard in the Guard Room. As in DK II, the guard goes to the guard
  * post nearest to it, a corner of the room, and after a while walks on to
- * another post.
+ * another post. The guard remembers the room, DK II sends it back there for
+ * its next guard duty (DKII.EXE 0x462850).
  */
 public final class Guard extends AbstractCapacityCriticalRoomTask {
 
@@ -51,6 +54,7 @@ public final class Guard extends AbstractCapacityCriticalRoomTask {
      */
     public static final int ROOM_TILE_TICKS = 50;
 
+    private final EntityData entityData;
     private final int ticksPerSecond;
     private final int maxExtraTicks;
     private final RandomGenerator random;
@@ -67,18 +71,28 @@ public final class Guard extends AbstractCapacityCriticalRoomTask {
      * @param playerId the owner of the room
      * @param room the Guard Room
      * @param taskManager the task manager
+     * @param entityData the entity data
      * @param ticksPerSecond the logic ticks per second of the level
      * @param maxExtraTicks at most this many random ticks are added to the
      * time a guard stands at a post
      * @param random the random number generator
      */
     public Guard(final INavigationService navigationService, final IMapController mapController, Point p, short playerId,
-            IRoomController room, TaskManager taskManager, int ticksPerSecond, int maxExtraTicks, RandomGenerator random) {
+            IRoomController room, TaskManager taskManager, EntityData entityData, int ticksPerSecond, int maxExtraTicks,
+            RandomGenerator random) {
         super(navigationService, mapController, p, playerId, room, taskManager);
 
+        this.entityData = entityData;
         this.ticksPerSecond = ticksPerSecond;
         this.maxExtraTicks = maxExtraTicks;
         this.random = random;
+    }
+
+    @Override
+    public void assign(ICreatureController creature, boolean setToCreature) {
+        super.assign(creature, setToCreature);
+
+        entityData.setComponent(creature.getEntityId(), new GuardedRoom(getRoom().getEntityId()));
     }
 
     @Override

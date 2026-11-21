@@ -20,13 +20,16 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Threat;
 
 /**
  * Which enemies scare a creature. In DKII.EXE a creature's fear is made of the
  * threat of the enemy creatures that are fighting it (the fight update at
  * 0x45E4F0 adds each fighter's threat, shared between its opponents, to the
  * fear of the creatures it fights, and only where it can see them), not of every
- * enemy that is near. A trap's threat has no fight, it counts when sensed.
+ * enemy that is near. A trap's threat has no fight, it counts when sensed. A
+ * rolling boulder's only reaches so far (0x4B32A0).
  */
 public final class ThreatSource {
 
@@ -41,15 +44,31 @@ public final class ThreatSource {
      * @param enemy the enemy entity
      * @param us the creature that might be scared
      * @return true if the enemy is a creature that has chosen us as its target,
-     * or anything else with a threat, like a trap
+     * or anything else with a threat, like a trap, that reaches us
      */
     public static boolean isThreateningUs(EntityData entityData, EntityId enemy, EntityId us) {
         if (entityData.getComponent(enemy, CreatureComponent.class) == null) {
-            return true;
+            return isInRange(entityData, enemy, us);
         }
 
         AttackTarget target = entityData.getComponent(enemy, AttackTarget.class);
         return target != null && us.equals(target.entityId);
+    }
+
+    private static boolean isInRange(EntityData entityData, EntityId enemy, EntityId us) {
+        Threat threat = entityData.getComponent(enemy, Threat.class);
+        if (threat == null || threat.range == 0) {
+            return true;
+        }
+        Position position = entityData.getComponent(enemy, Position.class);
+        Position ourPosition = entityData.getComponent(us, Position.class);
+        if (position == null || ourPosition == null) {
+            return false;
+        }
+        float distanceX = ourPosition.position.x - position.position.x;
+        float distanceY = ourPosition.position.z - position.position.z;
+
+        return distanceX * distanceX + distanceY * distanceY < threat.range * threat.range;
     }
 
 }

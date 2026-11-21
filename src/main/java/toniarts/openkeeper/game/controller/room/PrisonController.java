@@ -18,9 +18,13 @@ package toniarts.openkeeper.game.controller.room;
 
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.utils.Point;
 import java.util.Collection;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.FoodHunt;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomPrisonerControl;
@@ -58,6 +62,23 @@ public final class PrisonController extends DoubleQuadController {
      */
     public boolean isCageTile(Point tile) {
         return insideCoordinates.contains(tile);
+    }
+
+    /**
+     * Food was dropped into the Prison. Like in DK II, food that lands
+     * inside the cage sends every prisoner of the Prison after the food in
+     * it, hungry or not (DKII.EXE 0x49F550, 0x4E3230)
+     *
+     * @param tile the tile the food landed on
+     */
+    public void foodDropped(Point tile) {
+        if (!isCageTile(tile)) {
+            return;
+        }
+        for (EntityId prisoner : entityData.findEntities(new FieldFilter<>(Stored.class, "room", entityId),
+                Stored.class, CreatureImprisoned.class)) {
+            entityData.setComponent(prisoner, new FoodHunt());
+        }
     }
 
     @Override

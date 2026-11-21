@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.GuardedRoom;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.creature.CreatureController;
 import toniarts.openkeeper.game.task.ITaskManager;
@@ -45,6 +46,7 @@ class CreatureTrainFallbackTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final List<Creature.JobType> assigned = new ArrayList<>();
+    private boolean stoodGuard;
 
     @Test
     void creatureWithoutAJobOfItsOwnTrains() {
@@ -57,6 +59,24 @@ class CreatureTrainFallbackTest {
     void ownJobComesBeforeTraining() {
         assertTrue(findWork(Player.KEEPER1_ID, EnumSet.noneOf(Creature.CreatureFlag.class),
                 Set.of(Creature.JobType.MANUFACTURE, Creature.JobType.TRAIN), Creature.JobType.MANUFACTURE));
+        assertEquals(List.of(Creature.JobType.MANUFACTURE), assigned);
+    }
+
+    @Test
+    void creatureThatHasStoodGuardGoesBackToGuardDutyFirst() {
+
+        // DKII tries the guard duty before the creature picks from its jobs (0x4778E0)
+        stoodGuard = true;
+        assertTrue(findWork(Player.KEEPER1_ID, EnumSet.noneOf(Creature.CreatureFlag.class),
+                Set.of(Creature.JobType.GUARD, Creature.JobType.MANUFACTURE), Creature.JobType.MANUFACTURE));
+        assertEquals(List.of(Creature.JobType.GUARD), assigned);
+    }
+
+    @Test
+    void creatureThatHasStoodGuardPicksFromItsJobsWithoutAGuardRoomToGoTo() {
+        stoodGuard = true;
+        assertTrue(findWork(Player.KEEPER1_ID, EnumSet.noneOf(Creature.CreatureFlag.class),
+                Set.of(Creature.JobType.MANUFACTURE), Creature.JobType.MANUFACTURE));
         assertEquals(List.of(Creature.JobType.MANUFACTURE), assigned);
     }
 
@@ -103,6 +123,9 @@ class CreatureTrainFallbackTest {
 
         EntityId id = entityData.createEntity();
         entityData.setComponents(id, new CreatureComponent(), new Owner(owner, owner));
+        if (stoodGuard) {
+            entityData.setComponent(id, new GuardedRoom(entityData.createEntity()));
+        }
         ITaskManager taskManager = (ITaskManager) Proxy.newProxyInstance(
                 ITaskManager.class.getClassLoader(), new Class<?>[]{ITaskManager.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "isTaskAvailable" -> available.contains((Creature.JobType) args[1]);

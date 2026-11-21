@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Threat;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -67,6 +69,18 @@ class ThreatSourceTest {
         entityData.setComponent(trap, new Threat(74));
 
         assertTrue(ThreatSource.isThreateningUs(entityData, trap, imp));
+    }
+
+    @Test
+    void aBoulderOnlyScaresWithinTheRangeOfItsThreat() {
+        EntityId boulder = entityData.createEntity();
+        entityData.setComponents(boulder, new Threat(701, 3), new Position(0, new Vector3f(5, 1, 5)));
+
+        entityData.setComponent(imp, new Position(0, new Vector3f(5, 1, 7.5f)));
+        assertTrue(ThreatSource.isThreateningUs(entityData, boulder, imp));
+
+        entityData.setComponent(imp, new Position(0, new Vector3f(5, 1, 8)));
+        assertFalse(ThreatSource.isThreateningUs(entityData, boulder, imp));
     }
 
 }

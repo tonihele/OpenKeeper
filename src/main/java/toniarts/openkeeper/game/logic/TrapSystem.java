@@ -281,6 +281,11 @@ public final class TrapSystem implements IGameLogicUpdatable {
             shotsController.createShot(trap.getShotTypeId(), trap.getShotData1(), trap.getShotData2(), ownerId,
                     trapPosition.clone(), target, null);
         }
+
+        // A trap that turns into its shot, like the Boulder Trap, is gone
+        if (entityData.getComponent(trapEntity.getId(), TrapComponent.class) == null) {
+            return true;
+        }
         if (trap.getFlags().contains(Trap.TrapFlag.REVEAL_WHEN_FIRED)) {
             reveal(trapEntity);
         }

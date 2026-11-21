@@ -28,6 +28,11 @@ public final class Threat implements EntityComponent {
 
     public int threat;
 
+    /**
+     * How far the threat reaches, in tiles. 0 when it scares whoever senses it
+     */
+    public float range;
+
     public Threat() {
         // For serialization
     }
@@ -36,8 +41,14 @@ public final class Threat implements EntityComponent {
         this.threat = threat;
     }
 
+    public Threat(int threat, float range) {
+        this.threat = threat;
+        this.range = range;
+    }
+
     public Threat(Threat threat) {
         this.threat = threat.threat;
+        this.range = threat.range;
     }
 
 }

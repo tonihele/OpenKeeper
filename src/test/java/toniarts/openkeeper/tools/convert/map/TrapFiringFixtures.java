@@ -52,6 +52,18 @@ public final class TrapFiringFixtures {
     }
 
     /**
+     * Gives the trap type its health
+     *
+     * @param trap the trap
+     * @param health the health
+     * @return the same trap
+     */
+    public static Trap withHealth(Trap trap, int health) {
+        trap.setHealth(health);
+        return trap;
+    }
+
+    /**
      * Gives the trap the shot offset, in tiles
      *
      * @param trap the trap
@@ -138,10 +150,24 @@ public final class TrapFiringFixtures {
      * @return the shot
      */
     public static Shot shot(short shotId, Shot.ProcessType processType, Shot.DamageType damageType) {
+        return shot(shotId, processType, damageType, 0);
+    }
+
+    /**
+     * A shot that scares
+     *
+     * @param shotId the shot ID
+     * @param processType the process type
+     * @param damageType the damage type
+     * @param threat the shot's threat
+     * @return the shot
+     */
+    public static Shot shot(short shotId, Shot.ProcessType processType, Shot.DamageType damageType, int threat) {
         Shot shot = new Shot();
         shot.setShotId(shotId);
         shot.setProcessType(processType);
         shot.setDamageType(damageType);
+        shot.setThreat(threat);
         return shot;
     }
 

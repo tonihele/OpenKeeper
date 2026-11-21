@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.BattleSystem;
+import toniarts.openkeeper.game.logic.BoulderSystem;
 import toniarts.openkeeper.game.logic.CallToArmsSystem;
 import toniarts.openkeeper.game.logic.CasinoSystem;
 import toniarts.openkeeper.game.logic.ChickenAiSystem;
@@ -45,6 +46,7 @@ import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
 import toniarts.openkeeper.game.logic.FreezeSystem;
 import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.GraveyardSystem;
+import toniarts.openkeeper.game.logic.HatedCompanySystem;
 import toniarts.openkeeper.game.logic.HaulingSystem;
 import toniarts.openkeeper.game.logic.HealthSystem;
 import toniarts.openkeeper.game.logic.InfernoSystem;
@@ -132,6 +134,8 @@ public final class GameLoopManager {
                 new CreatureMoodSystem(entityData, levelInfo.getLevelData(), playerControllers.values(),
                         gameController.getGameTimer(), gameSettings),
                 payDaySystem,
+                new HatedCompanySystem(entityData, levelInfo.getLevelData(), gameSettings, gameWorldController.getMapController(),
+                        gameController.getGameTimer()),
                 new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings,
                         gameWorldController.getObjectsController()),
                 new TurncoatSystem(entityData, gameController.getGameTimer()),
@@ -175,6 +179,8 @@ public final class GameLoopManager {
                 new HaulingSystem(entityData),
                 new TrapSystem(entityData, level, gameController.getGameTimer(), positionSystem, playerControllers,
                         gameWorldController.getShotsController(), gameEventService),
+                new BoulderSystem(entityData, level, gameSettings, gameWorldController.getMapController(), positionSystem,
+                        gameWorldController.getCreaturesController(), playerControllers),
                 new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
                 new ShotSystem(entityData, level, gameEventService, gameWorldController.getShotsController(), positionSystem,
                         gameWorldController.getMapController(), playerControllers),

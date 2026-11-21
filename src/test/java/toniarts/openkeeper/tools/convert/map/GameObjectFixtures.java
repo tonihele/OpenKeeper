@@ -39,6 +39,30 @@ public final class GameObjectFixtures {
         return object;
     }
 
+    /**
+     * Gives the object its width, in tiles
+     *
+     * @param object the object
+     * @param width the width
+     * @return the same object
+     */
+    public static GameObject withWidth(GameObject object, float width) {
+        object.setWidth(width);
+        return object;
+    }
+
+    /**
+     * Gives the object its health
+     *
+     * @param object the object
+     * @param hp the health
+     * @return the same object
+     */
+    public static GameObject withHp(GameObject object, int hp) {
+        object.setHp(hp);
+        return object;
+    }
+
     public static ArtResource animation(int frames, int fps) {
         ArtResource animation = new ArtResource();
         animation.setData(ArtResource.KEY_FRAMES, frames);

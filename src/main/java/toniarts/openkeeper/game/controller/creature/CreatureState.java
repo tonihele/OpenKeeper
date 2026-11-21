@@ -595,7 +595,9 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
-
+            if (entity.isStopped()) {
+                entity.idleInPrison();
+            }
         }
 
         @Override
@@ -1018,6 +1020,29 @@ public enum CreatureState implements State<ICreatureController> {
                     entity.wanderOnOwnLand();
                 }
             }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, JACK_IN_THE_BOX {
+
+        @Override
+        public void enter(ICreatureController entity) {
+
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Jack out of the box does nothing but walk to its keeper's Dungeon Heart to die (DK II state 0x111, 0x46E820)
+            entity.walkToHeartToDie();
         }
 
         @Override
