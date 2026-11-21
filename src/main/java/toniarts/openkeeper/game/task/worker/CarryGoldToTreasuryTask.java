@@ -23,6 +23,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractRoomTask;
 import toniarts.openkeeper.game.task.TaskType;
@@ -65,7 +66,13 @@ public final class CarryGoldToTreasuryTask extends AbstractRoomTask {
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
         int gold = creature.getGold();
-        creature.substractGold(gold - gameWorldController.addGold(playerId, getTaskLocation(), gold));
+        int stored = gold - gameWorldController.addGold(playerId, getTaskLocation(), gold);
+        creature.substractGold(stored);
+
+        // Like DK II (0x466AC0), the coins only clink when there was room for some of the gold
+        if (stored > 0) {
+            creature.fireEvent(GameEventType.CREATURE_STORE_GOLD, getTaskLocation());
+        }
 
         // This is a one timer
         executed = true;

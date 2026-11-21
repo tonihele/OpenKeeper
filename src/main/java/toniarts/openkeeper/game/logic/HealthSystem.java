@@ -21,6 +21,7 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CombatPitFighter;
@@ -184,7 +185,7 @@ public final class HealthSystem extends GameTimeCounter {
             // tick when 0x4B5DE0 says it is being dragged)
             if (unconscious != null) {
                 if (entityData.getComponent(entityId, HauledBy.class) != null) {
-                    entityData.setComponent(entityId, new Unconscious(unconscious.startTime + tpf));
+                    entityData.setComponent(entityId, new Unconscious(unconscious.startTime + tpf, unconscious.killerId));
                 } else if (timeElapsed - unconscious.startTime >= timeToDeath) {
                     processDeath(entityId);
                 }
@@ -247,6 +248,7 @@ public final class HealthSystem extends GameTimeCounter {
         // Death or destruction!!!!
         // No body, just vanish from the world
         if (!isLeaveDeadBody(entityId)) {
+            countDeath(entityId, findKiller(entityId));
             shatter(entityId);
             triggerDestroyedEffect(entityId);
             entityPositionLookup.getEntityController(entityId).remove();
@@ -270,6 +272,7 @@ public final class HealthSystem extends GameTimeCounter {
             Owner owner = entityData.getComponent(entityId, Owner.class);
             Short creatureId = getRoomCreatureId(entityId);
             if (creatureId != null && !damageEntities.containsId(entityId) && canRiseAsSkeleton(owner, creatureId)) {
+                countDeath(entityId, findKiller(entityId));
                 creaturesController.turnCreatureIntoAnother(entityId, owner.controlId, creatureId);
 
                 // The mentor tells the keeper of the Prison, like DK II (CRoom_sub_4E30F0, message 0x41)
@@ -282,6 +285,48 @@ public final class HealthSystem extends GameTimeCounter {
 
         // Leave the entity incapacitaded and waiting for death... or rescue
         processUnconscious(entityId, health);
+    }
+
+    /**
+     * The keeper a creature's kill goes to. DK II gives it to the player who
+     * hit the creature last (creature +0x36) or, failing that, to the owner of
+     * a creature fighting it (+0x504 and +0x514, 0x487C70). The hits don't
+     * keep who dealt them here yet, so it goes to the keeper of a creature
+     * fighting it
+     *
+     * @param entityId the creature
+     * @return the keeper, 0 for nobody
+     */
+    private short findKiller(EntityId entityId) {
+        for (EntityId attacker : entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", entityId), AttackTarget.class, Owner.class)) {
+            return entityData.getComponent(attacker, Owner.class).ownerId;
+        }
+        return 0;
+    }
+
+    /**
+     * Counts a creature's death for the Player Information window as DK II's
+     * 0x487C70 does: a loss to its owner, and a kill to the keeper that killed
+     * it, unless that is its owner and it isn't a hero
+     *
+     * @param entityId the creature
+     * @param killerId the keeper the kill goes to, 0 for nobody
+     */
+    private void countDeath(EntityId entityId, short killerId) {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (creatureComponent == null || owner == null || entityData.getComponent(entityId, Death.class) != null) {
+            return;
+        }
+        Creature creature = levelInfo.getLevelData().getCreature(creatureComponent.creatureId);
+        IPlayerController killer = playerControllersById.get(killerId);
+        if (killer != null && (killerId != owner.ownerId || creature.getFlags().contains(Creature.CreatureFlag.IS_GOOD))) {
+            killer.getStatsControl().creatureKilled(creature);
+        }
+        IPlayerController ownerPlayer = playerControllersById.get(owner.ownerId);
+        if (ownerPlayer != null) {
+            ownerPlayer.getStatsControl().ownCreatureKilled();
+        }
     }
 
     private boolean isDiesInstantly(EntityId entityId) {
@@ -334,7 +379,7 @@ public final class HealthSystem extends GameTimeCounter {
             entityData.setComponent(entityId, new Owner(owner.ownerId, owner.ownerId));
         }
         entityData.setComponent(entityId, new Health(0, health.maxHealth));
-        entityData.setComponent(entityId, new Unconscious(timeElapsed));
+        entityData.setComponent(entityId, new Unconscious(timeElapsed, findKiller(entityId)));
         //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
         creaturesController.createController(entityId).getStateMachine().changeState(CreatureState.UNCONSCIOUS);
         entityData.removeComponent(entityId, Navigation.class);
@@ -511,6 +556,8 @@ public final class HealthSystem extends GameTimeCounter {
     }
 
     private void processDeath(EntityId entityId) {
+        Unconscious unconscious = entityData.getComponent(entityId, Unconscious.class);
+        countDeath(entityId, unconscious != null ? unconscious.killerId : findKiller(entityId));
         if (entityData.getComponent(entityId, Death.class) == null
                 && entityData.getComponent(entityId, CreatureComponent.class) != null) {
             gameEventService.emit(GameEventType.CREATURE_DIE, entityId);

@@ -66,7 +66,7 @@ public final class PlayerController implements IPlayerController {
         creatureControl = new PlayerCreatureControl(keeper, imp, kwdFile.getCreatureList());
         roomControl = new PlayerRoomControl(keeper, kwdFile.getRooms());
         spellControl = new PlayerSpellControl(keeper, kwdFile.getKeeperSpells());
-        statsControl = new PlayerStatsControl();
+        statsControl = new PlayerStatsControl(keeper);
         doorControl = new PlayerDoorControl(keeper, kwdFile.getDoors());
         trapControl = new PlayerTrapControl(keeper, kwdFile.getTraps());
 
@@ -74,7 +74,7 @@ public final class PlayerController implements IPlayerController {
         if (keeper.getId() != Player.GOOD_PLAYER_ID && keeper.getId() != Player.NEUTRAL_PLAYER_ID) {
             manaControl = new PlayerManaControl(keeper, gameSettings);
             handControl = new PlayerHandControl(keeper, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_NUMBER_OF_THINGS_IN_HAND).getValue(), entityData);
-            researchControl = new PlayerResearchControl(keeper, kwdFile);
+            researchControl = new PlayerResearchControl(keeper, kwdFile, statsControl);
             manufactureControl = new PlayerManufactureControl();
         } else {
             manaControl = null;
@@ -92,6 +92,7 @@ public final class PlayerController implements IPlayerController {
     @Override
     public void addListener(PlayerListener listener) {
         goldControl.addListener(listener);
+        statsControl.addListener(listener);
         if (manaControl != null) {
             manaControl.addListener(listener);
         }
@@ -116,6 +117,7 @@ public final class PlayerController implements IPlayerController {
     @Override
     public void removeListener(PlayerListener listener) {
         goldControl.removeListener(listener);
+        statsControl.removeListener(listener);
         if (manaControl != null) {
             manaControl.removeListener(listener);
         }

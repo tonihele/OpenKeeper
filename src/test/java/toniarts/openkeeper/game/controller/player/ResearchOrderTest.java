@@ -65,6 +65,9 @@ class ResearchOrderTest {
         assertSame(door, researchControl.research(1000));
         researchControl.completeResearch();
         assertSame(spellA, keeper.getCurrentResearch());
+
+        // The Player Information window's Level of Research counts each one (DK II's CPlayer +0x17B)
+        assertEquals(2, keeper.getResearchCompleted());
     }
 
     @Test
@@ -169,7 +172,7 @@ class ResearchOrderTest {
                     case "getKeeperSpellById" -> ResearchOrderFixtures.keeperSpell(((Integer) args[0]).shortValue(), 500, 1500);
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
-        return new PlayerResearchControl(keeper, kwdFile);
+        return new PlayerResearchControl(keeper, kwdFile, new PlayerStatsControl(keeper));
     }
 
 }

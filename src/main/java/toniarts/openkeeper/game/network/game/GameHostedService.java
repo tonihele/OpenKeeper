@@ -374,9 +374,17 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
-    public void onGoldChange(short keeperId, int gold) {
+    public void onGoldChange(short keeperId, int gold, int goldSpentOnBuilding) {
         for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onGoldChange(keeperId, gold);
+            gameSession.onGoldChange(keeperId, gold, goldSpentOnBuilding);
+        }
+    }
+
+    @Override
+    public void onStatsChange(short keeperId, int enemyCreaturesKilled, int heroesDestroyed, int ownCreaturesKilled,
+            int researchCompleted) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onStatsChange(keeperId, enemyCreaturesKilled, heroesDestroyed, ownCreaturesKilled, researchCompleted);
         }
     }
 
@@ -735,8 +743,14 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
-        public void onGoldChange(short keeperId, int gold) {
-            getCallback().onGoldChange(keeperId, gold);
+        public void onGoldChange(short keeperId, int gold, int goldSpentOnBuilding) {
+            getCallback().onGoldChange(keeperId, gold, goldSpentOnBuilding);
+        }
+
+        @Override
+        public void onStatsChange(short keeperId, int enemyCreaturesKilled, int heroesDestroyed, int ownCreaturesKilled,
+                int researchCompleted) {
+            getCallback().onStatsChange(keeperId, enemyCreaturesKilled, heroesDestroyed, ownCreaturesKilled, researchCompleted);
         }
 
         @Override

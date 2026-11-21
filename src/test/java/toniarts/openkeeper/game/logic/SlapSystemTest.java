@@ -144,7 +144,7 @@ class SlapSystemTest {
 
     private static IPlayerController player() {
         Keeper keeper = new Keeper(false, KEEPER);
-        PlayerStatsControl statsControl = new PlayerStatsControl();
+        PlayerStatsControl statsControl = new PlayerStatsControl(keeper);
         return (IPlayerController) Proxy.newProxyInstance(IPlayerController.class.getClassLoader(), new Class<?>[]{IPlayerController.class}, (proxy, method, args) -> {
             return switch (method.getName()) {
                 case "getKeeper" ->

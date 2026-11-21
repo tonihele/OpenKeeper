@@ -35,11 +35,13 @@ public final class PlayerResearchControl {
 
     private final Keeper keeper;
     private final IKwdFile kwdFile;
+    private final PlayerStatsControl statsControl;
     protected List<PlayerResearchableEntityListener> researchListeners;
 
-    public PlayerResearchControl(Keeper keeper, IKwdFile kwdFile) {
+    public PlayerResearchControl(Keeper keeper, IKwdFile kwdFile, PlayerStatsControl statsControl) {
         this.keeper = keeper;
         this.kwdFile = kwdFile;
+        this.statsControl = statsControl;
     }
 
     /**
@@ -95,10 +97,11 @@ public final class PlayerResearchControl {
     }
 
     /**
-     * Finishes the current research once its result has been stored: resets
-     * the progress and moves on to the next target
+     * Finishes the current research once its result has been stored: counts
+     * it, resets the progress and moves on to the next target
      */
     public void completeResearch() {
+        statsControl.researchCompleted();
         keeper.getCurrentResearch().setResearch(0);
         setNextResearchTarget();
     }

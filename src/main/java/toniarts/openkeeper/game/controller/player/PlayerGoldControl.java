@@ -63,7 +63,7 @@ public final class PlayerGoldControl {
 
     private void updateListeners() {
         for (PlayerGoldListener listener : listeners.getArray()) {
-            listener.onGoldChange(keeper.getId(), keeper.getGold());
+            listener.onGoldChange(keeper.getId(), keeper.getGold(), keeper.getGoldSpentOnBuilding());
         }
     }
 

@@ -31,9 +31,11 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InfernoArea;
+import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureFlagFixtures;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -59,7 +61,8 @@ class InfernoSystemTest {
             STONE_KNIGHT, CreatureFlagFixtures.creature(STONE_KNIGHT, EnumSet.of(Creature.CreatureFlag.ONLY_ATTACKABLE_BY_HORNY)),
             HORNY, CreatureFlagFixtures.creature(HORNY, EnumSet.of(Creature.CreatureFlag.CAN_WALK_ON_LAVA, Creature.CreatureFlag.IS_HORNY)),
             FIREFLY, CreatureFlagFixtures.creature(FIREFLY, EnumSet.of(Creature.CreatureFlag.CAN_WALK_ON_LAVA, Creature.CreatureFlag.CAN_FLY)));
-    private final InfernoSystem system = new InfernoSystem(entityData, positionLookup(), kwdFile());
+    private double time;
+    private final InfernoSystem system = new InfernoSystem(entityData, positionLookup(), kwdFile(), () -> time);
 
     @Test
     void burnsEveryTick() {
@@ -71,6 +74,19 @@ class InfernoSystemTest {
         system.processTick(TICK);
         assertEquals(2 * DAMAGE, damage(inTheFire));
         assertEquals(2, entityData.getComponent(fire, InfernoArea.class).burns);
+    }
+
+    @Test
+    void setsTheCreaturesItBurnsAlightForATick() {
+        fire(new Point(5, 5));
+        EntityId inTheFire = creature(new Point(5, 5));
+        EntityId farAway = creature(new Point(7, 5));
+        time = 10;
+
+        system.processTick(TICK);
+
+        assertEquals(10 + TICK, entityData.getComponent(inTheFire, OnFire.class).endTime, 0.0001);
+        assertNull(entityData.getComponent(farAway, OnFire.class));
     }
 
     @Test
@@ -190,6 +206,7 @@ class InfernoSystemTest {
         return (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
             case "getCreature" -> creatures.get((short) args[0]);
+            case "getGameLevel" -> CreatureSleepFixtures.level(4);
             default -> throw new UnsupportedOperationException(method.getName());
         });
     }

@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
+import toniarts.openkeeper.game.component.ShotTarget;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.event.GameEventService;
@@ -60,6 +61,7 @@ class ShotSystemTest {
 
     private DefaultEntityData entityData;
     private final Shot fireball = ShotFixtures.fireball();
+    private final Shot guidedBolt = ShotFixtures.guidedBolt();
     private final Creature imp = ShotFixtures.creature(IMP_ID, EnumSet.noneOf(Creature.CreatureFlag.class),
             EnumSet.noneOf(Creature.CreatureFlag3.class));
     private final List<EntityId> creatures = new ArrayList<>();
@@ -67,6 +69,7 @@ class ShotSystemTest {
     private final List<EntityId[]> hits = new ArrayList<>();
     private final List<Object[]> effects = new ArrayList<>();
     private ShotSystem shotSystem;
+    private double gameTime = 0;
 
     @BeforeEach
     void setUp() {
@@ -74,7 +77,8 @@ class ShotSystemTest {
         ShotFixtures.setSize(imp, 0.14f, 0.5f);
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
-            case "getShotById" -> fireball;
+            case "getShotById" -> (Short) args[0] == ShotFixtures.GUIDED_BOLT_ID ? guidedBolt : fireball;
+            case "getGameLevel" -> ShotFixtures.gameLevel(4);
             case "getCreature" -> imp;
             default -> throw new UnsupportedOperationException(method.getName());
         });
@@ -110,7 +114,8 @@ class ShotSystemTest {
                     throw new UnsupportedOperationException(method.getName());
                 });
 
-        shotSystem = new ShotSystem(entityData, kwdFile, gameEventService, shotsController, positionLookup, mapInformation, Map.of());
+        shotSystem = new ShotSystem(entityData, kwdFile, gameEventService, shotsController, positionLookup, mapInformation, Map.of(),
+                () -> gameTime);
     }
 
     @AfterEach
@@ -222,6 +227,42 @@ class ShotSystemTest {
     }
 
     @Test
+    void guidedShotTurnsTowardsItsTargetOnlyOnEveryEighthTurn() {
+        EntityId target = createCreature(ENEMY_ID, new Vector3f(5, 1, 4));
+        EntityId shot = createGuidedShot(new Vector3f(1, 1.25f, 1), new Vector3f(0.7f, 0, 0), target);
+
+        // Turn 7, the shot flies straight
+        gameTime = 7 / 4.0;
+        shotSystem.processTick(0.25f);
+
+        assertEquals(new Vector3f(1.7f, 1.25f, 1), positionOf(shot));
+
+        // Turn 8, the shot turns to the middle of its target: 3.3 tiles east and 3 tiles south of it, at its height
+        gameTime = 8 / 4.0;
+        shotSystem.processTick(0.25f);
+
+        Vector3f velocity = entityData.getComponent(shot, ShotFlight.class).velocity;
+        assertEquals(0.7f, velocity.length(), DELTA);
+        assertEquals(3.3f / 3, velocity.x / velocity.z, DELTA);
+        assertEquals(0, velocity.y, DELTA);
+        assertEquals(1.7f + velocity.x, positionOf(shot).x, DELTA);
+        assertEquals(1 + velocity.z, positionOf(shot).z, DELTA);
+    }
+
+    @Test
+    void guidedShotWhoseTargetIsGoneFliesOnStraight() {
+        EntityId target = createCreature(ENEMY_ID, new Vector3f(5, 1, 4));
+        EntityId shot = createGuidedShot(new Vector3f(1, 1.25f, 1), new Vector3f(0.7f, 0, 0), target);
+        creatures.remove(target);
+        entityData.removeEntity(target);
+
+        gameTime = 8 / 4.0;
+        shotSystem.processTick(0.25f);
+
+        assertEquals(new Vector3f(1.7f, 1.25f, 1), positionOf(shot));
+    }
+
+    @Test
     void shotDiesOutOfTheSpellsRange() {
         EntityId shot = createShot(new Vector3f(1, 1.3f, 1), new Vector3f(0.9f, 0, 0), 1.5f);
 
@@ -251,6 +292,16 @@ class ShotSystemTest {
                 new Position(0, new Vector3f(position)),
                 new ShotFlight(ShotFixtures.FIREBALL_ID, PLAYER_ID, null, 50, 0, velocity, new Vector3f(position), maxRange,
                         fireball.getHealth()));
+        return shot;
+    }
+
+    private EntityId createGuidedShot(Vector3f position, Vector3f velocity, EntityId target) {
+        EntityId shot = entityData.createEntity();
+        entityData.setComponents(shot,
+                new Position(0, new Vector3f(position)),
+                new ShotFlight(ShotFixtures.GUIDED_BOLT_ID, PLAYER_ID, null, 50, 0, velocity, new Vector3f(position), 0,
+                        guidedBolt.getHealth()),
+                new ShotTarget(target));
         return shot;
     }
 

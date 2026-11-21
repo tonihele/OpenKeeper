@@ -46,6 +46,8 @@ class KeeperSpellCastValidatorTest {
     private final KeeperSpell thunderbolt = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.ENEMY_CREATURES, 6000);
     private final KeeperSpell chicken = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.ALL_CREATURES, 0);
     private final KeeperSpell possession = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.POSESSION, 0);
+    private final KeeperSpell heal = ShotFixtures.keeperSpell((short) 10, KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.OWN_CREATURES, 0);
+    private final KeeperSpell otherOwnCreatureSpell = ShotFixtures.keeperSpell((short) 12, KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.OWN_CREATURES, 0);
     private final Keeper player = new Keeper(false, PLAYER_ID);
     private final FakeMapTile ownTile;
 
@@ -113,11 +115,26 @@ class KeeperSpellCastValidatorTest {
 
     @Test
     void spellWithoutTargetCannotBeCastOnCreatures() {
-        assertFalse(KeeperSpellCastValidator.isValidCast(chicken, mapInformation, ownTile, player, null, null, false, 0));
+        assertFalse(KeeperSpellCastValidator.isValidCast(chicken, mapInformation, ownTile, player, null, null, false, false, 0));
+    }
+
+    @Test
+    void healCannotBeCastOnACreatureAtFullHealth() {
+        assertTrue(isValidCast(heal, creature, PLAYER_ID, false, false));
+        assertFalse(isValidCast(heal, creature, PLAYER_ID, false, true));
+    }
+
+    @Test
+    void onlyHealIsRefusedAtFullHealth() {
+        assertTrue(isValidCast(otherOwnCreatureSpell, creature, PLAYER_ID, false, true));
     }
 
     private boolean isValidCast(KeeperSpell keeperSpell, Creature target, short owner, boolean isChicken) {
-        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, ownTile, player, target, owner, isChicken, keeperSpell.getManaCost());
+        return isValidCast(keeperSpell, target, owner, isChicken, false);
+    }
+
+    private boolean isValidCast(KeeperSpell keeperSpell, Creature target, short owner, boolean isChicken, boolean fullHealth) {
+        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, ownTile, player, target, owner, isChicken, fullHealth, keeperSpell.getManaCost());
     }
 
 }

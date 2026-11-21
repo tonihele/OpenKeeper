@@ -240,9 +240,10 @@ public final class SoundManager {
     }
 
     /**
-     * Applies the volume settings of the game, i.e. 0..1 percentages.
+     * Applies the volume settings of the game, i.e. 0..1 percentages. Like DK II (0x567DE0), turning the
+     * sound effects off also cuts every effect that is playing.
      */
-    public static void applyVolumes(float master, float music, float speech, float effects) {
+    public static void applyVolumes(float master, float music, float speech, float effects, boolean effectsEnabled) {
         SoundEngine current = engine;
         if (current == null) {
             return;
@@ -251,6 +252,10 @@ public final class SoundManager {
         current.setChannelVolume(CHANNEL_MUSIC, percent(music));
         current.setChannelVolume(CHANNEL_SPEECH, percent(speech));
         current.setChannelVolume(CHANNEL_EFFECTS, percent(effects));
+        current.setChannelMuted(CHANNEL_EFFECTS, !effectsEnabled);
+        if (!effectsEnabled) {
+            current.stopChannel(CHANNEL_EFFECTS);
+        }
     }
 
     private static int percent(float value) {

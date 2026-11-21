@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
@@ -93,6 +94,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger.Level;
@@ -504,6 +506,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             if (cost > players.get(playerId).getGold()) {
                 return false;
             }
+            players.get(playerId).addGoldSpentOnBuilding(cost);
             substractGold(cost, playerId);
             return true;
         }
@@ -1057,8 +1060,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 makeSafe(playerId);
             case ObjectsController.OBJECT_SPECIAL_DESTROY_WALLS_ID ->
                 destroyEnemyWalls(playerId);
-            case ObjectsController.OBJECT_SPECIAL_INCREASE_GOLD_ID ->
-                addGold(playerId, (int) gameSettings.get(Variable.MiscVariable.MiscType.SPECIAL_INCREASE_GOLD_AMOUNT).getValue());
+            case ObjectsController.OBJECT_SPECIAL_INCREASE_GOLD_ID -> {
+
+                // Like DK II (0x4A4710), what the gold rooms can't hold is left as loose gold where the special was
+                int goldLeft = addGold(playerId, (int) gameSettings.get(Variable.MiscVariable.MiscType.SPECIAL_INCREASE_GOLD_AMOUNT).getValue());
+                if (goldLeft > 0) {
+                    dropLooseGold(WorldUtils.vectorToPoint(position.position), WorldUtils.vector3fToVector2f(position.position), goldLeft);
+                }
+            }
             case ObjectsController.OBJECT_SPECIAL_MANA_BOOST_ID ->
                 playerControllers.get(playerId).getManaControl().addMana((int) gameSettings.get(Variable.MiscVariable.MiscType.SPECIAL_INCREASE_MANA_AMOUNT).getValue());
             case ObjectsController.OBJECT_SPECIAL_STUN_IMPS_ID ->
@@ -1173,19 +1182,38 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     /**
-     * The "Receive imps" special: conjures new level 5 imps for the player on the special's spot. The original
-     * skips the spell for these, so there is no cast sound.
+     * The "Receive imps" special: conjures new level 5 imps for the player. Like DK II (0x4A4980) they stand
+     * in a ring round the player's Dungeon Heart, each facing a random way, or on the special's spot when
+     * the player has no heart. The original skips the spell for these, so there is no cast sound.
      *
      * @param playerId the player receiving the imps
      * @param position where the special was
      */
     private void receiveImps(short playerId, Position position) {
         short impId = kwdFile.getImp().getCreatureId();
-        Vector2f spot = WorldUtils.vector3fToVector2f(position.position);
+        IRoomController heart = playerControllers.get(playerId).getRoomControl().getDungeonHeart();
         int amount = (int) gameSettings.get(Variable.MiscVariable.MiscType.SPECIAL_RECEIVE_IMPS_AMOUNT).getValue();
         for (int i = 0; i < amount; i++) {
-            creaturesController.spawnCreature(impId, playerId, RECEIVE_IMPS_LEVEL, spot, ICreaturesController.SpawnType.CONJURE);
+            Vector2f spot = heart != null ? getReceivedImpSpot(heart.getRoomInstance().getCenter(), i, amount)
+                    : WorldUtils.vector3fToVector2f(position.position);
+            EntityId imp = creaturesController.spawnCreature(impId, playerId, RECEIVE_IMPS_LEVEL, spot, ICreaturesController.SpawnType.CONJURE);
+            Position impPosition = entityData.getComponent(imp, Position.class);
+            entityData.setComponent(imp, new Position(Utils.getRandom().nextFloat() * FastMath.TWO_PI, impPosition.position));
         }
+    }
+
+    /**
+     * Where a Receive Imps special puts one of its imps: like DK II (0x4A4980) 2 tiles from the middle of the
+     * Dungeon Heart, the ring split in whole steps of DK II's 2048 angle units, starting north
+     *
+     * @param heartCenter the middle tile of the Dungeon Heart
+     * @param index which of the imps
+     * @param amount how many imps the special gives
+     * @return the spot of the imp
+     */
+    static Vector2f getReceivedImpSpot(Point heartCenter, int index, int amount) {
+        float angle = (index * (2048 / amount) & 0x7FF) * FastMath.TWO_PI / 2048;
+        return new Vector2f(heartCenter.x + 2 * FastMath.sin(angle), heartCenter.y - 2 * FastMath.cos(angle));
     }
 
     private void putToKeeperHand(PlayerHandControl playerHandControl, EntityId entity, short playerId) {
@@ -1701,6 +1729,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Creature targetCreature = null;
         Short targetOwner = null;
         boolean targetChicken = false;
+        boolean targetFullHealth = false;
         if (target != null) {
             CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
             if (creatureComponent != null) {
@@ -1712,8 +1741,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             }
             CreatureAi creatureAi = entityData.getComponent(target, CreatureAi.class);
             targetChicken = creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
+            Health health = entityData.getComponent(target, Health.class);
+            targetFullHealth = health != null && health.health == health.maxHealth;
         }
-        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, mapController, mapTile, player, targetCreature, targetOwner, targetChicken, manaCost)
+        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, mapController, mapTile, player, targetCreature, targetOwner, targetChicken, targetFullHealth, manaCost)
                 || !ReaperSummoner.checkReaperRule(keeperSpell, kwdFile, player, entityData)) {
             return;
         }
@@ -1769,9 +1800,13 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
-        // Validate
-        if (DoorPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, door, player.getGold())
-                != DoorPlacementValidator.Failure.NONE) {
+        // Validate. Like DK II (0x4C33B0), a keeper without the gold for it is told so
+        DoorPlacementValidator.Failure failure = DoorPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile,
+                playerId, door, player.getGold());
+        if (failure == DoorPlacementValidator.Failure.NOT_ENOUGH_GOLD) {
+            gameEventService.emitToPlayer(GameEventType.NOT_ENOUGH_GOLD, playerId);
+        }
+        if (failure != DoorPlacementValidator.Failure.NONE) {
             return;
         }
 
@@ -1791,6 +1826,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             if (cost > players.get(playerId).getGold()) {
                 return false;
             }
+            players.get(playerId).addGoldSpentOnBuilding(cost);
             substractGold(cost, playerId);
             return true;
         }
@@ -1825,8 +1861,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // Validate
         boolean hasWorkshop = playerControllers.get(playerId).getRoomControl()
                 .getTypeCount(kwdFile.getRoomById(TrapPlacementValidator.WORKSHOP_ROOM_ID)) > 0;
-        if (TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, trap, hasWorkshop,
-                player.getGold()) != TrapPlacementValidator.Failure.NONE) {
+        TrapPlacementValidator.Failure failure = TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile,
+                playerId, trap, hasWorkshop, player.getGold());
+
+        // Like DK II (0x4C3860), a keeper without the gold for it is told so
+        if (failure == TrapPlacementValidator.Failure.NOT_ENOUGH_GOLD) {
+            gameEventService.emitToPlayer(GameEventType.NOT_ENOUGH_GOLD, playerId);
+        }
+        if (failure != TrapPlacementValidator.Failure.NONE) {
             return;
         }
 
@@ -1846,6 +1888,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             if (cost > players.get(playerId).getGold()) {
                 return false;
             }
+            players.get(playerId).addGoldSpentOnBuilding(cost);
             substractGold(cost, playerId);
             return true;
         }
@@ -1876,6 +1919,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     @Override
     public IDoorsController getDoorsController() {
         return doorsController;
+    }
+
+    @Override
+    public GameEventService getGameEventService() {
+        return gameEventService;
     }
 
     @Override

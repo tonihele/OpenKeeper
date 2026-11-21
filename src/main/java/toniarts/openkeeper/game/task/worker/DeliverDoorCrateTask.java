@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTask;
 import toniarts.openkeeper.game.task.TaskType;
@@ -97,6 +98,9 @@ public final class DeliverDoorCrateTask extends AbstractTask {
         crateController.setHaulable(null);
         doorsController.buildDoor(blueprint);
         crateController.remove();
+
+        // DK II (0x467460) plays the building sound from the worker's bank, the door itself makes none
+        creature.fireEvent(GameEventType.CREATURE_BUILD_DOOR, getTaskLocation());
     }
 
     @Override

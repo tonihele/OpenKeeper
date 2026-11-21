@@ -16,8 +16,11 @@
  */
 package toniarts.openkeeper.game.controller.player;
 
+import com.jme3.util.SafeArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.listener.PlayerStatsListener;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
@@ -31,6 +34,60 @@ public final class PlayerStatsControl {
     private final Map<Creature, Integer> slapsMap = new HashMap<>();
     private final Map<Creature, Integer> pickUpsMap = new HashMap<>();
     private final Map<Creature, Integer> dropsMap = new HashMap<>();
+    private final Keeper keeper;
+    private final SafeArrayList<PlayerStatsListener> listeners = new SafeArrayList<>(PlayerStatsListener.class);
+
+    public PlayerStatsControl(Keeper keeper) {
+        this.keeper = keeper;
+    }
+
+    /**
+     * The player has killed a creature, DK II counts the heroes apart from the
+     * other creatures (DKII.EXE 0x487C70, CPlayer +0x14A and +0x146)
+     *
+     * @param creature the creature that was killed
+     */
+    public void creatureKilled(Creature creature) {
+        if (creature.getFlags().contains(Creature.CreatureFlag.IS_GOOD)) {
+            keeper.setHeroesDestroyed(keeper.getHeroesDestroyed() + 1);
+        } else {
+            keeper.setEnemyCreaturesKilled(keeper.getEnemyCreaturesKilled() + 1);
+        }
+        updateListeners();
+    }
+
+    /**
+     * One of the player's own creatures has died (DKII.EXE 0x487C70, CPlayer
+     * +0x173)
+     */
+    public void ownCreatureKilled() {
+        keeper.setOwnCreaturesKilled(keeper.getOwnCreaturesKilled() + 1);
+        updateListeners();
+    }
+
+    /**
+     * The player has finished a research item, its book has found room in a
+     * Library (DKII.EXE 0x4C2DC0, CPlayer +0x17B)
+     */
+    public void researchCompleted() {
+        keeper.setResearchCompleted(keeper.getResearchCompleted() + 1);
+        updateListeners();
+    }
+
+    public void addListener(PlayerStatsListener listener) {
+        listeners.add(listener);
+    }
+
+    public void removeListener(PlayerStatsListener listener) {
+        listeners.remove(listener);
+    }
+
+    private void updateListeners() {
+        for (PlayerStatsListener listener : listeners.getArray()) {
+            listener.onStatsChange(keeper.getId(), keeper.getEnemyCreaturesKilled(), keeper.getHeroesDestroyed(),
+                    keeper.getOwnCreaturesKilled(), keeper.getResearchCompleted());
+        }
+    }
 
     public boolean hasSlapped() {
         return !slapsMap.isEmpty();

@@ -24,7 +24,9 @@ import com.simsilica.es.EntitySet;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InfernoArea;
+import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -34,19 +36,22 @@ import toniarts.openkeeper.utils.WorldUtils;
 /**
  * Burns the creatures around a burning Inferno, friend and foe alike, except
  * the ones fire can't harm. As in the original (DKII.EXE 0x4AF660) it burns
- * every game tick. The fire itself goes out on its own (it decays).
+ * every game tick and sets each creature it burns alight for that tick. The
+ * fire itself goes out on its own (it decays).
  */
 public final class InfernoSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final IEntityPositionLookup entityPositionLookup;
     private final IKwdFile kwdFile;
+    private final IGameTimer gameTimer;
     private final EntitySet fires;
 
-    public InfernoSystem(EntityData entityData, IEntityPositionLookup entityPositionLookup, IKwdFile kwdFile) {
+    public InfernoSystem(EntityData entityData, IEntityPositionLookup entityPositionLookup, IKwdFile kwdFile, IGameTimer gameTimer) {
         this.entityData = entityData;
         this.entityPositionLookup = entityPositionLookup;
         this.kwdFile = kwdFile;
+        this.gameTimer = gameTimer;
 
         fires = entityData.getEntities(InfernoArea.class, Position.class);
     }
@@ -84,6 +89,7 @@ public final class InfernoSystem implements IGameLogicUpdatable {
                     float dx = position.position.x - centre.x;
                     float dz = position.position.z - centre.z;
                     if (dx * dx + dz * dz < reachSquared) {
+                        entityData.setComponent(entityId, new OnFire(gameTimer.getGameTime() + 1.0 / kwdFile.getGameLevel().getTicksPerSec()));
                         EntityController.setDamage(entityData, entityId, area.damage);
                     }
                 }

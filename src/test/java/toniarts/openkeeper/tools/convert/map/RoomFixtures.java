@@ -43,4 +43,10 @@ public final class RoomFixtures {
         return room;
     }
 
+    public static Room roomWithEffects(Integer... effects) {
+        Room room = new Room();
+        room.setEffects(List.of(effects));
+        return room;
+    }
+
 }

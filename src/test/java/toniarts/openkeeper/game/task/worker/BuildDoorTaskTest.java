@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
@@ -55,6 +56,7 @@ class BuildDoorTaskTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final List<EntityId> built = new ArrayList<>();
+    private final List<Object[]> events = new ArrayList<>();
     private final List<Task> queued = new ArrayList<>();
     private EntityId blueprint;
     private EntityId crate;
@@ -103,6 +105,11 @@ class BuildDoorTaskTest {
 
         assertEquals(List.of(blueprint), built);
         assertNull(entityData.getComponent(crate, Crate.class));
+
+        // Like DK II, the worker makes the sound
+        assertEquals(1, events.size());
+        assertEquals(GameEventType.CREATURE_BUILD_DOOR, events.get(0)[0]);
+        assertEquals(BLUEPRINT_TILE, events.get(0)[1]);
         assertTrue(assigned.isRemovable());
         assertTrue(task.isRemovable());
     }
@@ -150,6 +157,7 @@ class BuildDoorTaskTest {
                 assigned = (Task) args[0];
                 yield null;
             }
+            case "fireEvent" -> events.add(args);
             case "hashCode" -> System.identityHashCode(proxy);
             case "equals" -> proxy == args[0];
             default -> throw new UnsupportedOperationException(method.getName());
