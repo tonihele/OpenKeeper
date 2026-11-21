@@ -223,8 +223,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 playerController.getRoomControl().init(rooms);
             }
 
-            // Add the listener
+            // Add the listeners, the gold follows the gold rooms when they are captured
             mapController.addListener(player.getId(), playerController.getRoomControl());
+            mapController.addListener(player.getId(), playerController.getGoldControl());
         }
     }
 
@@ -271,7 +272,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 for (IRoomController roomController : mapController.getRoomControllers()) {
                     if (roomController.getRoomInstance().getOwnerId() == playerId && roomController.canStoreGold()) {
                         RoomGoldControl control = roomController.getObjectControl(ObjectType.GOLD);
-                        moneyLeft = control.addItem(sum, p);
+                        moneyLeft = control.addItem(moneyLeft, p);
                         if (moneyLeft == 0) {
                             break;
                         }
