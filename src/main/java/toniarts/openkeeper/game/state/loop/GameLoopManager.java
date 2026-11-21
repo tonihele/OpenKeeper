@@ -138,7 +138,7 @@ public final class GameLoopManager {
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
                         levelInfo, playerControllers.values(), gameWorldController.getMapController(),
                         gameController.getGameTimer(), gameEventService),
-                new InfernoSystem(entityData, positionSystem, levelInfo.getLevelData()),
+                new InfernoSystem(entityData, positionSystem, levelInfo.getLevelData(), gameController.getGameTimer()),
                 new CreatureTorturingSystem(entityData, gameWorldController.getCreaturesController(),
                         gameWorldController.getMapController(), gameEventService, gameSettings),
                 new PrisonOvercrowdingSystem(entityData, gameWorldController.getMapController(), gameSettings),
