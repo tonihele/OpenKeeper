@@ -218,7 +218,13 @@ public final class RoomAttackMessages {
         UNREACHABLE(300, 0, Map.ofEntries(Map.entry(1, 1313), Map.entry(2, 1314), Map.entry(3, 1322), Map.entry(4, 1315),
                 Map.entry(6, 1327), Map.entry(7, 1316), Map.entry(9, 1328), Map.entry(10, 1319), Map.entry(11, 1326),
                 Map.entry(12, 1325), Map.entry(13, 1318), Map.entry(14, 1321), Map.entry(15, 1320), Map.entry(16, 1317)),
-                Map.of(11, 360, 12, 360), 300);
+                Map.of(11, 360, 12, 360), 300),
+        /**
+         * "A creature has been unable to pick up its jackpot winnings",
+         * message 0x4D, when the keeper has less gold than the big winner is
+         * owed (0x457560)
+         */
+        JACKPOT_UNPAID(50, 373, Map.of());
 
         private final double duration;
         private final int defaultSpeechId;
@@ -424,6 +430,16 @@ public final class RoomAttackMessages {
      */
     public void cannotAffordTraining(short ownerId) {
         show(Message.CANNOT_AFFORD, ownerId, (short) 5, null);
+    }
+
+    /**
+     * The big winner of the keeper's Casino came for its winnings and the
+     * keeper has less gold than it is owed
+     *
+     * @param ownerId the keeper
+     */
+    public void jackpotUnpaid(short ownerId) {
+        show(Message.JACKPOT_UNPAID, ownerId, (short) 0, null);
     }
 
     /**
