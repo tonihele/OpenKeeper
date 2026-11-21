@@ -75,11 +75,15 @@ Other options: `--model`, `--tile`, `--gpu`, `--source` and `--dest`.
 The interface (`GUI/`, and the briefing, movie and other images it shows from
 elsewhere) is laid out by the size of its images in pixels. OpenKeeper's
 screens give their images the original's size, so the HD interface keeps its
-layout and gets the detail where it is drawn bigger than the original. Images
-drawn with an `imageMode` in pixels (the HUD bars, the minimap frame, the hint
-and message boxes, the scroll bars) can't be sized that way and look wrong as
-HD copies. An older OpenKeeper that doesn't set the sizes draws the HD
-interface 4x too big; `clean` puts that right.
+layout and gets the detail where it is drawn bigger than the original.
+
+An `imageMode` that cuts an image in pixels (the HUD bars, the minimap frame,
+the hint and message boxes, the scroll bars) is in the original's pixels, and
+Nifty draws each piece at that size on screen. For the images listed in
+`.hd-textures.properties`, OpenKeeper takes those pieces from the HD copy at
+4x the coordinates, so they keep their layout too. An older OpenKeeper that
+doesn't set the sizes draws the HD interface 4x too big; `clean` puts that
+right.
 
 ## Left out
 

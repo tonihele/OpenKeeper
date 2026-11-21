@@ -462,7 +462,7 @@
                     </panel>
                     <!-- creature health -->
                     <panel align="left" valign="center" childLayout="overlay" height="64px">
-                        <image filename="Textures/GUI/Map/m-h-bg.png" imageMode="resize:0,111,0,0,0,111,0,32,0,111,0,0" />
+                        <image filename="Textures/GUI/Map/m-h-bg.png" width="128px" height="32px" imageMode="resize:0,111,0,0,0,111,0,32,0,111,0,0" />
                         <panel childLayout="center" padding="6px">
                             <image filename="Textures/GUI/Map/m-hp.png" imageMode="repeat:0,0,16,16" align="left" width="100%" height="100%" id="creature-health" />
                         </panel>
@@ -473,7 +473,7 @@
                     <panel childLayout="horizontal" valign="center" height="64px">
                         <image valign="center" filename="Textures/GUI/Rooms/Treasury.png" width="64px" height="64px" />
                         <panel align="left" valign="center" childLayout="overlay">
-                            <image valign="center" filename="Textures/GUI/Map/m-h-bg.png" imageMode="resize:0,111,0,0,0,111,0,32,0,111,0,0" />
+                            <image valign="center" filename="Textures/GUI/Map/m-h-bg.png" width="128px" height="32px" imageMode="resize:0,111,0,0,0,111,0,32,0,111,0,0" />
                             <panel childLayout="center" align="right" valign="center" paddingRight="10px">
                                 <control name="label" id="creature-gold" text="0" style="text" textHAlign="right" width="100%"/>
                             </panel>
