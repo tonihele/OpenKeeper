@@ -54,6 +54,7 @@ class LooseObjectSystemTest {
     private final Keeper heroKeeper = new Keeper(false, Player.GOOD_PLAYER_ID);
     private final PlayerGoldControl heroGold = new PlayerGoldControl(heroKeeper);
     private final List<Object> storedInRoom = new ArrayList<>();
+    private short roomOwner = Player.GOOD_PLAYER_ID;
 
     @Test
     void heroTreasuryTakesInTheGoldLyingOnIt() {
@@ -68,6 +69,22 @@ class LooseObjectSystemTest {
         assertNull(entityData.getComponent(gold, ObjectComponent.class));
         assertEquals(List.of(3000), storedInRoom);
         assertEquals(3000, heroKeeper.getGold());
+    }
+
+    @Test
+    void neutralTreasuryTakesInTheGoldLyingOnIt() {
+
+        // DK II (0x49F730) stores a gold pile on any owner's Treasury, neutral too
+        roomOwner = Player.NEUTRAL_PLAYER_ID;
+        heroGold.setGoldMax(9000);
+        EntityId gold = addObject(ObjectType.GOLD);
+        entityData.setComponent(gold, new Gold(500, 2000));
+
+        newSystem().processTick(0.25f);
+
+        assertNull(entityData.getComponent(gold, ObjectComponent.class));
+        assertEquals(List.of(500), storedInRoom);
+        assertEquals(500, heroKeeper.getGold());
     }
 
     @Test
@@ -90,7 +107,7 @@ class LooseObjectSystemTest {
     }
 
     /**
-     * The system on a map with one hero room, that has space for any object
+     * The system on a map with one room of the room owner, that has space for any object
      */
     private LooseObjectSystem newSystem() {
         IRoomObjectControl<?> storage = stub(IRoomObjectControl.class, (name, args) -> switch (name) {
@@ -109,7 +126,7 @@ class LooseObjectSystemTest {
             case "getObjectControl" ->
                 storage;
             case "getOwnerId" ->
-                Player.GOOD_PLAYER_ID;
+                roomOwner;
             default ->
                 throw new UnsupportedOperationException(name);
         });
@@ -121,7 +138,7 @@ class LooseObjectSystemTest {
         });
         IMapTileInformation tile = stub(IMapTileInformation.class, (name, args) -> switch (name) {
             case "getOwnerId" ->
-                Player.GOOD_PLAYER_ID;
+                roomOwner;
             case "getLocation" ->
                 TILE;
             default ->
@@ -139,7 +156,7 @@ class LooseObjectSystemTest {
             }
             throw new UnsupportedOperationException(name);
         });
-        return new LooseObjectSystem(entityData, mapController, Map.of(Player.GOOD_PLAYER_ID, heroes), positions);
+        return new LooseObjectSystem(entityData, mapController, Map.of(roomOwner, heroes), positions);
     }
 
     private interface Answer {

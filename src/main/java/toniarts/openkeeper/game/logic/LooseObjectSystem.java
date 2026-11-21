@@ -102,11 +102,11 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
                 continue;
             }
 
-            // Like in DK II, a hero Treasury also takes in the gold lying on it
+            // Like in DK II (0x49F730), a hero or neutral Treasury also takes in the gold lying on it
             Entity entity = looseObjectEntities.getEntity(entityId);
             ObjectComponent objectComponent = entity.get(ObjectComponent.class);
-            if (mapTile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || (mapTile.getOwnerId() == Player.GOOD_PLAYER_ID
-                    && objectComponent.objectType != AbstractRoomController.ObjectType.GOLD)) {
+            if ((mapTile.getOwnerId() == Player.GOOD_PLAYER_ID || mapTile.getOwnerId() == Player.NEUTRAL_PLAYER_ID)
+                    && objectComponent.objectType != AbstractRoomController.ObjectType.GOLD) {
                 continue;
             }
 
