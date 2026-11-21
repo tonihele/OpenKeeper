@@ -62,6 +62,15 @@ public final class FetchObjectTask extends AbstractTileTask {
         return gameObject.getPickUpPriority();
     }
 
+    /**
+     * Whether the object to pick up is loose gold
+     *
+     * @return true for gold
+     */
+    public boolean isGold() {
+        return gameObject.getType() == AbstractRoomController.ObjectType.GOLD;
+    }
+
     @Override
     public String toString() {
         return "Collecting item at " + getTaskLocation();

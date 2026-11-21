@@ -85,6 +85,17 @@ public interface Task {
     boolean isFull();
 
     /**
+     * Lets a worker take a full task over from the one assigned to it, where
+     * the original does that. The one that loses the task looks for work again
+     *
+     * @param creature the worker that wants the task
+     * @return {@code true} if the task has room for the worker now
+     */
+    default boolean makeRoomFor(ICreatureController creature) {
+        return false;
+    }
+
+    /**
      * Task priority, added to distance when evaluating tasks to give out. The
      * bigger the number, the less urgent the task is
      *

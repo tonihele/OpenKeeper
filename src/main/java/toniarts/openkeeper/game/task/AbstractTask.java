@@ -134,6 +134,35 @@ public abstract class AbstractTask implements Task {
         return assignees.size();
     }
 
+    /**
+     * The workers assigned to this task
+     *
+     * @return a copy of the assignees
+     */
+    protected List<ICreatureController> getAssignees() {
+        return List.copyOf(assignees.keySet());
+    }
+
+    /**
+     * The worker takes the task over, if it can do it and get there. The ones
+     * assigned to it lose it and look for work again
+     *
+     * @param creature the worker that wants the task
+     * @return {@code true} if the task has room for the worker now
+     */
+    protected boolean takeOver(ICreatureController creature) {
+        if (!isValid(creature) || !isReachable(creature)) {
+            return false;
+        }
+        for (ICreatureController assignee : getAssignees()) {
+            unassign(assignee);
+            if (this.equals(assignee.getAssignedTask())) {
+                assignee.unassingCurrentTask();
+            }
+        }
+        return true;
+    }
+
     @Override
     public boolean isFull() {
         return getAssigneeCount() >= getMaxAllowedNumberOfAsignees();

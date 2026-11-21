@@ -159,6 +159,12 @@ class ArmTrapTaskTest {
     }
 
     @Test
+    void impInTheKeepersHandKeepsItsJob() {
+        assertFalse(task.makeRoomFor(creature(entityData.createEntity())));
+        assertEquals(1, task.getAssigneeCount());
+    }
+
+    @Test
     void soldBlueprintEndsTheTask() {
         task.executeTask(imp, 0);
 
@@ -179,6 +185,7 @@ class ArmTrapTaskTest {
         return (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class},
                 (proxy, method, args) -> switch (method.getName()) {
             case "getEntityId" -> entityId;
+            case "getPosition" -> null; // In the keeper's hand
             case "setAssignedTask" -> {
 
                 // As the creature does, the task it had lets go of it

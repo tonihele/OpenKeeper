@@ -50,10 +50,13 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.game.component.Casino;
+import toniarts.openkeeper.game.component.ClaimingFloor;
 import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.DiggingTiles;
 import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.DropArea;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -141,6 +144,13 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private static final Logger logger = System.getLogger(TaskManager.class.getName());
+
+    /**
+     * How far around the drop a dropped worker looks for work first, in tiles
+     * in every direction. The original (DKII.EXE 0x463DF0) searches 2 tiles
+     * around a dropped imp before its usual work.
+     */
+    static final int DROP_AREA_RADIUS = 2;
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
@@ -650,6 +660,10 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         for (Entry<Short, Set<Task>> entry : taskQueues.entrySet()) {
 
+            // A tile that was being dug and now can be claimed is floor the digging left (DKII.EXE 0x4655D0 and 0x465870
+            // leave job 0xE on it)
+            boolean dug = deleteObsolete && entry.getValue().contains(new DigTileTask(navigationService, mapController, tile, entry.getKey()));
+
             // Scan existing tasks that are they valid, should be only one tile task per tile?
             if (deleteObsolete) {
                 removeObsoleteTileTasks(entry.getValue());
@@ -660,7 +674,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
             // Perhaps we should have a store for these, since only one of such per player can exist, would save IDs
-            createTerrainTask(entry.getKey(), terrain, mapTile, tile);
+            createTerrainTask(entry.getKey(), terrain, mapTile, tile, dug);
         }
 
         // See the neighbours
@@ -684,7 +698,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
     }
 
-    private void createTerrainTask(short playerId, Terrain terrain, IMapTileController mapTile, Point tile) {
+    private void createTerrainTask(short playerId, Terrain terrain, IMapTileController mapTile, Point tile, boolean dug) {
 
         // Dig
         if (mapController.isSelected(mapTile, playerId)) {
@@ -694,7 +708,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             addTask(playerId, new ClaimWallTileTask(navigationService, mapController, tile, playerId));
         } // Claim
         else if (mapController.isClaimableTile(mapTile, terrain, playerId)) {
-            addTask(playerId, new ClaimTileTask(navigationService, mapController, tile, playerId));
+            addTask(playerId, new ClaimTileTask(navigationService, mapController, tile, playerId, dug));
         } // Repair wall
         else if (mapController.isRepairableWall(mapTile, terrain, playerId)) {
             addTask(playerId, new RepairWallTileTask(navigationService, mapController, tile, playerId));
@@ -745,6 +759,48 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             return assignClosestRoomTask(creature, ObjectType.GOLD, null);
         }
         return false;
+    }
+
+    @Override
+    public boolean assignDugFloorOnTheWay(ICreatureController creature) {
+
+        // Only on the way to digging, claiming, wall work or loose gold, more than 2 tiles from it (DKII.EXE 0x464170,
+        // the flag at 0x6986B8 for each kind of job)
+        Task work = creature.getAssignedTask();
+        Set<Task> tasks = taskQueues.get(creature.getOwnerId());
+        if (work == null || tasks == null || !isClaimingOnTheWay(work)) {
+            return false;
+        }
+        Point tile = creature.getCreatureCoordinates();
+        if (Math.max(Math.abs(tile.x - work.getTaskLocation().x), Math.abs(tile.y - work.getTaskLocation().y)) <= 2
+                || !mapController.isClaimableTile(tile, creature.getOwnerId())) {
+            return false;
+        }
+
+        // The floor that digging has left, once no digging is tagged around it. A worker on its way to it gives it up
+        // to this nearer one (0x469600)
+        for (Task task : tasks) {
+            if (task instanceof ClaimTileTask claim && tile.equals(claim.getTaskLocation())) {
+                if (!claim.isDugFloorToClaim() || (claim.isFull() && !claim.makeRoomFor(creature)) || !claim.canAssign(creature)) {
+                    return false;
+                }
+                claim.assign(creature, true);
+                setCurrentWork(creature, TaskType.CLAIM_TILE);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isClaimingOnTheWay(Task task) {
+        return switch (task.getTaskType()) {
+            case DIG_TILE, CLAIM_TILE, CLAIM_ROOM, CLAIM_WALL, REPAIR_WALL ->
+                true;
+            case FETCH_OBJECT ->
+                task instanceof FetchObjectTask fetch && fetch.isGold();
+            default ->
+                false;
+        };
     }
 
     @Override
@@ -1222,11 +1278,16 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         // Process each available task for each available worker
         List<TaskWorkerPriority> priorizedTasks = new LinkedList<>();
+        List<ICreatureController> goingHome = new ArrayList<>();
         for (Entry<ICreatureController, Consumer<Boolean>> workerEntry : unemployedWorkers.entrySet()) {
             ICreatureController creature = workerEntry.getKey();
             Consumer<Boolean> workResult = workerEntry.getValue();
             final Point currentLocation = creature.getCreatureCoordinates();
             Set<Point> reachableArea = getReachableArea(creature, currentLocation);
+            DropArea dropArea = entityData.getComponent(creature.getEntityId(), DropArea.class);
+            boolean claiming = entityData.getComponent(creature.getEntityId(), ClaimingFloor.class) != null;
+            boolean digging = entityData.getComponent(creature.getEntityId(), DiggingTiles.class) != null;
+            List<TaskWorkerPriority> workerTasks = new ArrayList<>();
 
             // Give points by distance and priority. The distance is to the task's own tile: finding the spot to work from, and
             // whether it can be reached, takes path finding, which canAssign() does only for the tasks being handed out (#671)
@@ -1239,10 +1300,28 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                     continue;
                 }
 
+                boolean sameWork = (digging && isDigging(task)) || (claiming && isClaiming(task));
                 int points = WorldUtils.calculateDistance(currentLocation, task.getTaskLocation()) + task.getPriority();
-                priorizedTasks.add(new TaskWorkerPriority(task, creature, points, workResult));
+                int dropRing = dropArea != null ? getDropRing(task, dropArea.center) : Integer.MAX_VALUE;
+                workerTasks.add(new TaskWorkerPriority(task, creature, points, dropRing, sameWork, workResult));
             }
+
+            // Only the first search after the drop looks around it, then the worker is back to its usual work
+            if (dropArea != null) {
+                entityData.removeComponent(creature.getEntityId(), DropArea.class);
+            }
+
+            // A worker whose digging is done brings home the gold it carries before it takes other work
+            boolean bringsGoldHome = digging && creature.getGold() > 0 && !hasMoreDigging(taskQueue, creature);
+            if (bringsGoldHome && assignGoldToTreasuryTask(creature)) {
+                setCurrentWork(creature, TaskType.CARRY_GOLD_TO_TREASURY);
+                workResult.accept(Boolean.TRUE);
+                goingHome.add(creature);
+                continue;
+            }
+            priorizedTasks.addAll(workerTasks);
         }
+        goingHome.forEach(unemployedWorkers::remove);
 
         // Go through the tasks and assign workers
         while (!unemployedWorkers.isEmpty() && !priorizedTasks.isEmpty()) {
@@ -1256,7 +1335,8 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
                 // See if the task is full or the worker is not unemployed anymore or that the task can't actually be handled by this creature
                 if (!unemployedWorkers.containsKey(taskWorkerPriority.creature)
-                        || taskWorkerPriority.task.isFull()
+                        || taskWorkerPriority.task.isFull() && (isFreeBlueprintJobLeft(priorizedTasks, taskWorkerPriority)
+                        || !taskWorkerPriority.task.makeRoomFor(taskWorkerPriority.creature))
                         || !taskWorkerPriority.task.canAssign(taskWorkerPriority.creature)) {
                     iter.remove();
                     continue;
@@ -1264,6 +1344,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
                 // Assign task
                 taskWorkerPriority.task.assign(taskWorkerPriority.creature, true);
+                setCurrentWork(taskWorkerPriority.creature, taskWorkerPriority.task.getTaskType());
                 taskWorkerPriority.workResult.accept(Boolean.TRUE);
 
                 // Prune list and re-sort tasks
@@ -1275,8 +1356,85 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         // Finally anybody without assigment will get feedback
         unemployedWorkers.forEach((t, u) -> {
+            setCurrentWork(t, null);
             u.accept(Boolean.FALSE);
         });
+    }
+
+    /**
+     * Remembers whether the worker is claiming or digging, so that it carries
+     * on with it
+     *
+     * @param creature the worker
+     * @param taskType the task it got, {@code null} for none
+     */
+    private void setCurrentWork(ICreatureController creature, TaskType taskType) {
+        if (taskType == TaskType.CLAIM_TILE || taskType == TaskType.CLAIM_ROOM) {
+            entityData.setComponent(creature.getEntityId(), new ClaimingFloor());
+        } else {
+            entityData.removeComponent(creature.getEntityId(), ClaimingFloor.class);
+        }
+        if (taskType == TaskType.DIG_TILE) {
+            entityData.setComponent(creature.getEntityId(), new DiggingTiles());
+        } else {
+            entityData.removeComponent(creature.getEntityId(), DiggingTiles.class);
+        }
+    }
+
+    /**
+     * Whether there is more digging a worker can take. In the original's imp
+     * idle state (DKII.EXE 0x463DF0) a digging imp that finds none takes any
+     * gold it carries home first. Only digging it can reach counts, so this
+     * stops at the first free dig task it can be assigned to.
+     *
+     * @param tasks the player's tasks
+     * @param creature the worker
+     * @return true if it can dig on
+     */
+    static boolean hasMoreDigging(Collection<Task> tasks, ICreatureController creature) {
+        for (Task task : tasks) {
+            if (isDigging(task) && !task.isFull() && task.canAssign(creature)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Digging, mining gold included
+     *
+     * @param task the task
+     * @return true if the task digs
+     */
+    static boolean isDigging(Task task) {
+        return task.getTaskType() == TaskType.DIG_TILE;
+    }
+
+    /**
+     * A worker takes a trap or door blueprint job away from another one only
+     * when no blueprint job is free for it (DKII.EXE 0x464A80)
+     *
+     * @param tasks the tasks left to hand out
+     * @param taken the full task the worker wants
+     * @return true if the worker should take a free blueprint job instead
+     */
+    private static boolean isFreeBlueprintJobLeft(List<TaskWorkerPriority> tasks, TaskWorkerPriority taken) {
+        return isBlueprintJob(taken.task) && tasks.stream().anyMatch(other -> other.creature == taken.creature
+                && isBlueprintJob(other.task) && !other.task.isFull());
+    }
+
+    private static boolean isBlueprintJob(Task task) {
+        return task.getTaskType() == TaskType.FETCH_TRAP_CRATE || task.getTaskType() == TaskType.FETCH_DOOR_CRATE;
+    }
+
+    /**
+     * Claiming, the floor and rooms alike, as the original's claiming job
+     *
+     * @param task the task
+     * @return true if the task claims
+     */
+    static boolean isClaiming(Task task) {
+        return task.getTaskType() == TaskType.CLAIM_TILE || task.getTaskType() == TaskType.CLAIM_ROOM;
     }
 
     /**
@@ -1305,7 +1463,32 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         return area;
     }
 
-    static record TaskWorkerPriority(Task task, ICreatureController creature, int points, Consumer<Boolean> workResult) {
+    /**
+     * The ring around the spot a worker was dropped on that the task lies in:
+     * 0 on the spot itself, 1 for the eight tiles around it and so on, up to
+     * {@link #DROP_AREA_RADIUS}. Any kind of work counts, walls and gold too.
+     *
+     * @param task the task
+     * @param dropCenter the tile the worker was dropped on
+     * @return the ring, {@link Integer#MAX_VALUE} if the task is further away
+     */
+    static int getDropRing(Task task, Point dropCenter) {
+        Point tile = task.getTaskLocation();
+        if (tile == null) {
+            return Integer.MAX_VALUE;
+        }
+        int ring = Math.max(Math.abs(tile.x - dropCenter.x), Math.abs(tile.y - dropCenter.y));
+        return ring <= DROP_AREA_RADIUS ? ring : Integer.MAX_VALUE;
+    }
+
+    /**
+     * @param dropRing the ring around the spot this worker was dropped on
+     * that the task lies in, see {@link #getDropRing(Task, Point)}
+     * @param sameWork the worker is digging or claiming and the task is the
+     * same kind of work
+     */
+    static record TaskWorkerPriority(Task task, ICreatureController creature, int points, int dropRing, boolean sameWork,
+            Consumer<Boolean> workResult) {
 
     }
 
