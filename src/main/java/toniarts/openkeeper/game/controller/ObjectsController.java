@@ -375,7 +375,8 @@ public final class ObjectsController implements IObjectsController {
     }
 
     private IChickenController createChickenControllerInternal(EntityId id) {
-        return new ChickenController(id, entityData, kwdFile.getObject(OBJECT_EGG_ID), kwdFile.getObject(OBJECT_CHICKEN_ID), gameController.getNavigationService(), gameTimer, this, gameController.getGameWorldController().getMapController());
+        return new ChickenController(id, entityData, kwdFile.getObject(OBJECT_EGG_ID), kwdFile.getObject(OBJECT_CHICKEN_ID), gameController.getNavigationService(), gameTimer, this, gameController.getGameWorldController().getMapController(),
+                gameController.getEntityLookupService());
     }
 
     private static AbstractRoomController.ObjectType getObjectType(GameObject obj) {
