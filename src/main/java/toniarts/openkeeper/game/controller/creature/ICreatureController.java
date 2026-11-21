@@ -453,6 +453,20 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean isRecuperating();
 
     /**
+     * The jail break of a hero: walks to the door of the enemy Prison it
+     * stands in and, once there, sends the imprisoned friends inside on
+     * their way out
+     */
+    public void freePrisoners();
+
+    /**
+     * The way out of a prisoner in a jail break, for a prisoner that was let
+     * out: walks to the tile of the cage below the door of the Prison, then
+     * onto the door, and is free once it stands on it
+     */
+    public void escapePrison();
+
+    /**
      * Turns the creature into a chicken for a while, as by the Chicken spell.
      * Creatures immune to the spell stay as they are
      *

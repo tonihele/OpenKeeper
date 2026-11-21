@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.JailBreaker;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Objective;
@@ -223,6 +224,7 @@ public final class CreaturesController implements ICreaturesController {
         short objectiveTargetPlayerId = 0;
         int objectiveTargetActionPointId = 0;
         boolean diesInstantly = false;
+        boolean jailBreaker = false;
         EnumSet<Thing.Creature.CreatureFlag> flags = null;
         if (creature instanceof Thing.GoodCreature goodCreature) {
             triggerId = goodCreature.getTriggerId();
@@ -235,6 +237,8 @@ public final class CreaturesController implements ICreaturesController {
             objectiveTargetActionPointId = goodCreature.getObjectiveTargetActionPointId();
             diesInstantly = goodCreature.getFlags2() != null
                     && goodCreature.getFlags2().contains(Thing.Creature.CreatureFlag2.DIES_INSTANTLY);
+            jailBreaker = goodCreature.getFlags() != null
+                    && goodCreature.getFlags().contains(Thing.Creature.CreatureFlag.FREE_FRIENDS_ON_JAIL_BREAK);
         } else if (creature instanceof Thing.NeutralCreature neutralCreature) {
             triggerId = neutralCreature.getTriggerId();
             healthPercentage = neutralCreature.getInitialHealth();
@@ -255,6 +259,9 @@ public final class CreaturesController implements ICreaturesController {
         SpawnType spawnType = flags != null && flags.contains(Thing.Creature.CreatureFlag.ACT_AS_DROPPED) ? SpawnType.DROP : SpawnType.PLACE;
         EntityId entityId = loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
                 triggerId != null && triggerId != 0 ? triggerId : null, spawnType, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
+        if (jailBreaker) {
+            entityData.setComponent(entityId, new JailBreaker());
+        }
 
         // The level may place a creature that won't fight (DK II 0x520180, 0x520460, 0x5208B0, 0x519F90)
         if (flags != null && !flags.contains(Thing.Creature.CreatureFlag.WILL_FIGHT)) {
