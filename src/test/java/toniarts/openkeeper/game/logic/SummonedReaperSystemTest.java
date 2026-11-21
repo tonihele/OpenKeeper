@@ -49,6 +49,7 @@ class SummonedReaperSystemTest {
     private final Keeper keeper = new Keeper(false, PLAYER_ID);
     private final List<EntityId> removedCreatures = new ArrayList<>();
     private final List<EntityId> thinkingReapers = new ArrayList<>();
+    private final List<EntityId> fetchedGems = new ArrayList<>();
     private boolean somethingToDo = true;
     private double now = 0;
 
@@ -203,6 +204,27 @@ class SummonedReaperSystemTest {
         assertTrue(thinkingReapers.isEmpty());
     }
 
+    @Test
+    void reaperFetchingThePortalGemOnlyGoesForTheGem() {
+        keeper.setMana(0);
+        EntityId reaper = addReaper(0, MANA_DRAIN);
+        EntityId gem = entityData.createEntity();
+        SummonedReaper summonedReaper = entityData.getComponent(reaper, SummonedReaper.class);
+        summonedReaper.gem = gem;
+        entityData.setComponent(reaper, summonedReaper);
+        entityData.setComponent(reaper, new Slapped(0));
+        SummonedReaperSystem system = system();
+
+        tickAt(system, 50);
+        tickAt(system, 51);
+
+        // No upkeep, no slap and no other plans can stop him now
+        assertFalse(isLeaving(reaper));
+        assertNull(entityData.getComponent(reaper, Mana.class));
+        assertTrue(thinkingReapers.isEmpty());
+        assertEquals(List.of(gem, gem), fetchedGems);
+    }
+
     private boolean isLeaving(EntityId reaper) {
         SummonedReaper summonedReaper = entityData.getComponent(reaper, SummonedReaper.class);
         assertNotNull(summonedReaper);
@@ -231,7 +253,17 @@ class SummonedReaperSystemTest {
                     return keeper;
                 });
         return new SummonedReaperSystem(entityData, List.of(playerController), creaturesController(), () -> now,
-                (reaper, ownerId) -> thinkingReapers.add(reaper) && somethingToDo);
+                new SummonedReaperSystem.ReaperDecisions() {
+            @Override
+            public boolean think(EntityId reaper, short ownerId) {
+                return thinkingReapers.add(reaper) && somethingToDo;
+            }
+
+            @Override
+            public void fetchPortalGem(EntityId reaper, EntityId gem) {
+                fetchedGems.add(gem);
+            }
+        });
     }
 
     private ICreaturesController creaturesController() {

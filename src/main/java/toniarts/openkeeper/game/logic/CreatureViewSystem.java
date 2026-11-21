@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
@@ -137,6 +138,11 @@ public final class CreatureViewSystem extends GameTimeCounter {
                         targetState = getTortureAnimation(tortured != null ? tortured.device : null, state);
                     } else if (aiState != null) {
                         targetState = getAnimation(aiState.getCreatureState());
+                    } else if (entityData.getComponent(entityId, PortalGem.class) != null) {
+
+                        // The Horned Reaper picks up the Portal Gem. His pick-up animation, REA3_PickUpGem4, is in
+                        // his praying slot. DK II's pick-up state (0x4744F0) plays it for 13 seconds
+                        targetState = Creature.AnimationType.PRAYING;
                     }
                 }
             }
