@@ -537,16 +537,31 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     private boolean payForRoom(int plotCount, Room room, short playerId) {
+        int cost = getRoomCost(plotCount, room, isGodMode(playerId));
+        if (cost <= 0) {
+            return true;
+        }
         // Keep shared gold operations atomic until player actions are processed by the game loop.
         // skipcq: JAVA-E1061
         synchronized (GOLD_LOCK) {
-            int cost = plotCount * room.getCost();
             if (cost > players.get(playerId).getGold()) {
                 return false;
             }
             substractGold(cost, playerId);
             return true;
         }
+    }
+
+    /**
+     * The gold building the room tiles costs. God mode builds for free.
+     *
+     * @param plotCount the number of room tiles
+     * @param room the room
+     * @param godMode whether the builder is in god mode
+     * @return the cost in gold
+     */
+    static int getRoomCost(int plotCount, Room room, boolean godMode) {
+        return godMode ? 0 : plotCount * room.getCost();
     }
 
     private void buildRoomTiles(List<Point> instancePlots, Room room, short playerId,

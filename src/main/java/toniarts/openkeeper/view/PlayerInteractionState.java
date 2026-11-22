@@ -1218,7 +1218,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
          * The room can be built if it has tiles to build on and the keeper can pay for them
          */
         private boolean isRoomSelectionValid() {
-            return roomCost > 0 && roomCost <= gameClientState.getPlayer(player.getPlayerId()).getGold();
+            return roomCost > 0
+                    && (gameClientState.isGodMode() || roomCost <= gameClientState.getPlayer(player.getPlayerId()).getGold());
         }
 
         /**
@@ -1247,7 +1248,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             int gold = gameClientState.getPlayer(player.getPlayerId()).getGold();
             return switch (interactionState.getType()) {
                 case ROOM ->
-                    CursorIcon.Price.cost(roomCost, gold);
+                    CursorIcon.Price.cost(gameClientState.isGodMode() ? 0 : roomCost, gold);
                 case DOOR ->
                     CursorIcon.Price.cost(kwdFile.getDoorById(interactionState.getItemId()).getGoldCost(), gold);
                 case TRAP ->

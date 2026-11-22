@@ -1196,6 +1196,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
             return;
         }
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        GameClientState client = state.stateManager.getState(GameClientState.class);
+        boolean godMode = client != null && client.isGodMode();
         for (ResearchableEntity room : state.getAvailableRoomsToBuild()) {
             if (!room.isDiscovered()) {
                 continue;
@@ -1204,7 +1206,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
             if (icon == null) {
                 continue;
             }
-            boolean unaffordable = state.getKwdFile().getRoomById(room.getId()).getCost() > gold;
+            // God mode builds for free
+            boolean unaffordable = !godMode && state.getKwdFile().getRoomById(room.getId()).getCost() > gold;
             if (unaffordable == unaffordableRooms.contains(icon)) {
                 continue;
             }
@@ -1704,6 +1707,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         GameClientState client = state.stateManager.getState(GameClientState.class);
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         syncCheatTabVisibility();
+        updateRoomAffordability(state.getPlayer().getGold());
         Element overlay = hud.findElementById("terrain-overlay");
         if (overlay != null) {
             overlay.setVisible(client.isGodMode() && client.isCheat(CheatState.CheatType.TERRAIN_CHANGE));
