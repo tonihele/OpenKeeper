@@ -739,21 +739,20 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
 
-        // See that is there a prefered job for us
+        // A job of its own: like DK II, roll 0 to 99 against the chances of all of its jobs, and when the job rolled
+        // can't be started, take the first one of the list that can (0x4780E0)
         // FIXME: moods
-        List<Creature.JobPreference> jobs = new ArrayList<>();
-        if (creature.getHappyJobs() != null) {
-            for (Creature.JobPreference jobPreference : creature.getHappyJobs()) {
-                if (taskManager.isTaskAvailable(this, jobPreference.getJobType())) {
-                    jobs.add(jobPreference);
-                }
-            }
-        }
-
-        // Choose
-        if (!jobs.isEmpty() && taskManager.assignTask(this, chooseOnWeight(jobs).getJobType())) {
+        Creature.JobPreference[] jobs = creature.getHappyJobs() != null ? creature.getHappyJobs() : new Creature.JobPreference[0];
+        Creature.JobPreference rolled = rollJob(jobs);
+        if (rolled != null && taskManager.isTaskAvailable(this, rolled.getJobType()) && taskManager.assignTask(this, rolled.getJobType())) {
             workResult.accept(true);
             return;
+        }
+        for (Creature.JobPreference job : jobs) {
+            if (job != rolled && taskManager.isTaskAvailable(this, job.getJobType()) && taskManager.assignTask(this, job.getJobType())) {
+                workResult.accept(true);
+                return;
+            }
         }
 
         // With none of its own jobs to start, the creature trains, like in DK II. The Casino comes after this
@@ -767,17 +766,21 @@ public final class CreatureController extends EntityController implements ICreat
         workResult.accept(false);
     }
 
-    private static Creature.JobPreference chooseOnWeight(List<Creature.JobPreference> items) {
-        double completeWeight = 0.0;
-        for (Creature.JobPreference item : items) {
-            completeWeight += item.getChance();
-        }
-        double r = FastMath.rand.nextDouble() * completeWeight;
-        double countWeight = 0.0;
-        for (Creature.JobPreference item : items) {
-            countWeight += item.getChance();
-            if (countWeight >= r) {
-                return item;
+    /**
+     * Rolls 0 to 99 against the jobs' chances laid end to end. A range takes
+     * both of its ends, so a roll on the border goes to the earlier job. With
+     * chances adding up to less than 100 the roll can miss them all
+     *
+     * @param jobs the creature's jobs
+     * @return the job rolled, {@code null} for none
+     */
+    private static Creature.JobPreference rollJob(Creature.JobPreference[] jobs) {
+        int roll = FastMath.rand.nextInt(100);
+        int end = 0;
+        for (Creature.JobPreference job : jobs) {
+            end += job.getChance();
+            if (roll <= end) {
+                return job;
             }
         }
         return null;

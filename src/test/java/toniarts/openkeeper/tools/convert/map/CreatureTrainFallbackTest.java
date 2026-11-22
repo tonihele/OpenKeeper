@@ -21,6 +21,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -81,6 +82,20 @@ class CreatureTrainFallbackTest {
     }
 
     @Test
+    void aJobThatCantBeStartedPassesItsChanceToTheFirstJobThatCan() {
+
+        // The Warlock without a Library: research 80 falls to training, the first of its jobs that can be started,
+        // so it prays only on a roll of its own 10 (0x4780E0)
+        for (int i = 0; i < 400; i++) {
+            findWork(Player.KEEPER1_ID, EnumSet.noneOf(Creature.CreatureFlag.class), Set.of(Creature.JobType.TRAIN, Creature.JobType.PRAY),
+                    new Creature.JobType[]{Creature.JobType.RESEARCH, Creature.JobType.TRAIN, Creature.JobType.PRAY}, new short[]{80, 10, 10});
+        }
+        long prayed = assigned.stream().filter(job -> job == Creature.JobType.PRAY).count();
+        assertEquals(400, assigned.size());
+        assertTrue(prayed > 15 && prayed < 70, "prayed " + prayed + " times in 400");
+    }
+
+    @Test
     void creatureThatDoesNotTrainWhenIdleFindsNoWork() {
         assertFalse(findWork(Player.KEEPER1_ID, EnumSet.of(Creature.CreatureFlag.NOT_TRAIN_WHEN_IDLE),
                 Set.of(Creature.JobType.TRAIN)));
@@ -111,13 +126,20 @@ class CreatureTrainFallbackTest {
      */
     private boolean findWork(short owner, EnumSet<Creature.CreatureFlag> flags, Set<Creature.JobType> available,
             Creature.JobType... happyJobs) {
+        short[] chances = new short[happyJobs.length];
+        Arrays.fill(chances, (short) 100);
+        return findWork(owner, flags, available, happyJobs, chances);
+    }
+
+    private boolean findWork(short owner, EnumSet<Creature.CreatureFlag> flags, Set<Creature.JobType> available,
+            Creature.JobType[] happyJobs, short[] chances) {
         Creature creature = new Creature();
         creature.setFlags(flags);
         Creature.JobPreference[] preferences = new Creature.JobPreference[happyJobs.length];
         for (int i = 0; i < happyJobs.length; i++) {
             preferences[i] = new Creature.JobPreference();
             preferences[i].setJobType(happyJobs[i]);
-            preferences[i].setChance((short) 100);
+            preferences[i].setChance(chances[i]);
         }
         creature.setHappyJobs(preferences);
 
