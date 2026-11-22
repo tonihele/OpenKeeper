@@ -222,8 +222,8 @@ public final class ShotsController implements IShotsController {
      * (0x4AC3C0). The shot's data 1 is the damage:
      * <ul>
      * <li>A shot that hits a thing (Magic Door) hurts its target.</li>
-     * <li>A shot with constant damage (Spike Trap) hurts the creatures on its
-     * tile.</li>
+     * <li>A shot with constant damage (Spike Trap) hurts the creatures in a
+     * square twice shot data 2 wide.</li>
      * <li>A shot with damage from its origin (Fireburst Trap, Gas Trap, Gas
      * Cloud) hurts the things within shot data 2 tiles, the less the further
      * they are (0x4AC6D0).</li>
@@ -236,25 +236,27 @@ public final class ShotsController implements IShotsController {
         if (damageType == Shot.DamageType.HIT_THING && request.target() != null) {
             EntityController.setDamage(entityData, request.target(), request.shotData1());
         } else if (damageType == Shot.DamageType.CONSTANT) {
-            damageCreatures(request, 0);
+            damageCreatures(request);
         } else if (damageType == Shot.DamageType.RANGE_FROM_ORIGIN && request.shotData2() > 0) {
             damageFromOrigin(request);
         }
     }
 
     /**
-     * Area damage spares only the creatures of the player that fired the shot
-     * (0x4AC5A0)
+     * Constant damage (0x4AC5A0) hurts every creature but those of the player
+     * that fired the shot in a square of tiles twice the radius (shot data 2)
+     * wide, all with the full damage. The square runs from the radius below
+     * the shot's tile to one less than the radius above it, so a radius of 1,
+     * the Spike Trap's, covers the shot's tile and the three on its lower side
      *
      * @param request the shot
-     * @param radius how far the shot reaches in tiles, 0 for just its tile
      */
-    private void damageCreatures(ShotRequest request, int radius) {
+    private void damageCreatures(ShotRequest request) {
         IEntityPositionLookup entityPositionLookup = gameController.getEntityLookupService();
-        Vector3f origin = request.position();
-        Point tile = WorldUtils.vectorToPoint(origin);
-        for (int x = tile.x - radius; x <= tile.x + radius; x++) {
-            for (int y = tile.y - radius; y <= tile.y + radius; y++) {
+        Point tile = WorldUtils.vectorToPoint(request.position());
+        int radius = request.shotData2();
+        for (int x = tile.x - radius; x < tile.x + radius; x++) {
+            for (int y = tile.y - radius; y < tile.y + radius; y++) {
                 for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
                     Owner owner = entityData.getComponent(entityId, Owner.class);
                     if (owner == null || owner.ownerId == request.playerId()
@@ -264,13 +266,7 @@ public final class ShotsController implements IShotsController {
                     }
 
                     // One picked up this tick is still in the lookup, but not on the map
-                    Vector3f position = EntityController.getPosition(entityData, entityId);
-                    if (position == null) {
-                        continue;
-                    }
-                    float dx = position.x - origin.x;
-                    float dz = position.z - origin.z;
-                    if (radius == 0 || dx * dx + dz * dz <= radius * radius) {
+                    if (EntityController.getPosition(entityData, entityId) != null) {
                         EntityController.setDamage(entityData, entityId, request.shotData1());
                     }
                 }
