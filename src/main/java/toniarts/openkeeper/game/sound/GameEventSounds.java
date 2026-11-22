@@ -124,6 +124,8 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.SHOT_LAUNCH, event.position);
             case SHOT_HIT ->
                 addShotHit(sounds, event, kwdFile, subject);
+            case TRAP_FIRED -> // From the trap's own bank, the Magic Door's trap's too (0x4A80E0, 0x4A55F0)
+                add(sounds, kwdFile.getTrapById(event.subjectId).getSoundCategory(), ThingSounds.TRAP_TRIGGER, event.position);
             case IMPS_CREATED ->
                 add(sounds, ThingSounds.getCreateImpCategory(kwdFile), ThingSounds.SHOT_LAUNCH, event.position);
             case CALL_TO_ARMS_UNREACHABLE ->

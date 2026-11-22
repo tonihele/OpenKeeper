@@ -181,6 +181,16 @@ class GameEventTest {
     }
 
     @Test
+    void firingTrapPlaysItsTriggerSound() {
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> method.getName().equals("getTrapById") ? SoundFixtures.trap("TRAP_SENTRY") : null);
+        GameEvent event = new GameEvent(GameEventType.TRAP_FIRED, ThingFlag.TRAP, 1, null, 0, null, new Point(3, 4));
+
+        // DK II (0x4A80E0) plays sound 0xEB from the trap's bank where the trap is
+        assertEquals(List.of(new GameEventSounds.Sound("TRAP_SENTRY", 0xEB, new Point(3, 4))), GameEventSounds.getSounds(event, kwdFile));
+    }
+
+    @Test
     void workerMakesTheSoundOfArmingATrapOrBuildingADoor() {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> method.getName().equals("getCreature") ? SoundFixtures.creature("CREATURE_IMP") : null);

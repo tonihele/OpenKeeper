@@ -79,6 +79,10 @@ public enum GameEventType {
      * The subject is the shot type, the target is the victim
      */
     SHOT_HIT,
+    /**
+     * A trap or a Magic Door fired its shot, the subject is the trap type
+     */
+    TRAP_FIRED,
     IMPS_CREATED,
     /**
      * A Call to Arms banner calls its creatures, the entity is the banner

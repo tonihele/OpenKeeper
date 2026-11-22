@@ -49,7 +49,9 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -95,6 +97,7 @@ class TrapSystemTest {
     private final List<Fired> shots = new ArrayList<>();
     private final List<Object[]> flyingShots = new ArrayList<>();
     private final List<Integer> effects = new ArrayList<>();
+    private final List<Object> firedSounds = new ArrayList<>();
     private final List<EntityId> entities = new ArrayList<>();
     private boolean shotsFly = false;
     private final Keeper keeper = new Keeper(false, KEEPER);
@@ -132,6 +135,16 @@ class TrapSystemTest {
         tick();
 
         assertEquals(List.of(new Fired(SENTRY, enemy)), shots);
+    }
+
+    @Test
+    void aTrapMakesItsTriggerSoundWhenItFires() {
+        addTrap(SENTRY, TRAP_TILE);
+        addCreature(IMP, ENEMY, 13, 10);
+
+        tick();
+
+        assertEquals(List.of(List.of(GameEventType.TRAP_FIRED, ThingFlag.TRAP, (int) SENTRY)), firedSounds);
     }
 
     @Test
@@ -596,6 +609,9 @@ class TrapSystemTest {
         assertEquals(enemy, shot[5]);
         assertEquals(door, shot[6]);
         assertEquals(500, keeper.getMana());
+
+        // With the sound of the door's trap
+        assertEquals(List.of(List.of(GameEventType.TRAP_FIRED, ThingFlag.TRAP, (int) MAGIC_DOOR_TRAP)), firedSounds);
     }
 
     @Test
@@ -665,7 +681,8 @@ class TrapSystemTest {
         if (trapSystem == null) {
             trapSystem = new TrapSystem(entityData, kwdFile(), () -> gameTime, positionLookup(), playerControllers(),
                     shotsController(), (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(),
-                            new Class<?>[]{GameEventService.class}, (proxy, method, args) -> effects.add((int) args[0])));
+                            new Class<?>[]{GameEventService.class}, (proxy, method, args) -> "emitEffect".equals(method.getName())
+                            ? effects.add((int) args[0]) : firedSounds.add(List.of(args[0], args[1], args[2]))));
         }
         trapSystem.processTick(0.25f);
     }
