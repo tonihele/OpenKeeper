@@ -91,8 +91,8 @@ public class TableRowViewConverter<T extends TableRow> implements ListBox.ListBo
         if (itemData) {
             NiftyImage img = element.getNifty().createImage("Textures/Tick-1.png", true);
             renderer.setImage(img);
-            element.setConstraintWidth(new SizeValue(img.getWidth() + "px"));
-            element.setConstraintHeight(new SizeValue(img.getHeight() + "px"));
+            element.setConstraintWidth(new SizeValue("18px"));
+            element.setConstraintHeight(new SizeValue("13px"));
             element.getParent().layoutElements();
         } else {
             renderer.setImage(null);
