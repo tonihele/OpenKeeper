@@ -60,6 +60,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.ALARM;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CHICKEN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.DRAIN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
@@ -168,6 +169,17 @@ public final class ShotsController implements IShotsController {
         result.put(SUMMON_REAPER, request -> new ReaperSummoner(kwdFile, entityData, gameTimer, creaturesController).summon(request.shot().getShotId(),
                 request.shotData1(), request.playerId(), WorldUtils.vector3fToVector2f(request.position())));
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
+        // Drain: the first value is how much of the shooter's full health it takes off the target, as a percentage,
+        // but no more than the target has left. The shooter gets it
+        result.put(DRAIN, request -> {
+            Health health = entityData.getComponent(request.target(), Health.class);
+            Health shooterHealth = request.shooter() != null ? entityData.getComponent(request.shooter(), Health.class) : null;
+            if (health != null && shooterHealth != null) {
+                int amount = Math.min(health.health, shooterHealth.maxHealth * request.shotData1() / 100);
+                EntityController.setDamage(entityData, request.target(), amount);
+                EntityController.setDamage(entityData, request.shooter(), -amount);
+            }
+        });
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
         result.put(FREEZE, this::freeze);
         result.put(ALARM, this::raiseAlarm);
@@ -362,7 +374,7 @@ public final class ShotsController implements IShotsController {
         }
 
         process(new ShotRequest(shot, flight.shotData1, flight.shotData2, flight.ownerId,
-                EntityController.getPosition(entityData, shotEntity), thing));
+                EntityController.getPosition(entityData, shotEntity), thing, flight.shooter));
     }
 
     /**
