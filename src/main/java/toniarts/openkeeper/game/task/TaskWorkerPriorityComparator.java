@@ -17,6 +17,8 @@
 package toniarts.openkeeper.game.task;
 
 import java.util.Comparator;
+import toniarts.openkeeper.game.task.worker.ArmTrapTask;
+import toniarts.openkeeper.game.task.worker.BuildDoorTask;
 
 /**
  * The order in which the unemployed workers take the tasks
@@ -54,6 +56,13 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
             return result;
         }
 
+        // The blueprints are served in the order they were placed, not the nearest first: the original walks the
+        // keeper's blueprint list from its start (DKII.EXE 0x464A80). Entity ids go up as the blueprints are placed
+        result = Long.compare(getBlueprintOrder(o1.task()), getBlueprintOrder(o2.task()));
+        if (result != 0) {
+            return result;
+        }
+
         // Walls are only worked on once there is nothing else to do, the floor is claimed first. Repairing goes with
         // reinforcing, in the original (DKII.EXE 0x46AEA0) both are one job that only comes after the usual work
         result = Boolean.compare(isWallWork(o1.task()), isWallWork(o2.task()));
@@ -79,6 +88,17 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
                 true;
             default ->
                 false;
+        };
+    }
+
+    private static long getBlueprintOrder(Task task) {
+        return switch (task) {
+            case ArmTrapTask armTrap ->
+                armTrap.getBlueprint().getId();
+            case BuildDoorTask buildDoor ->
+                buildDoor.getBlueprint().getId();
+            default ->
+                Long.MAX_VALUE;
         };
     }
 

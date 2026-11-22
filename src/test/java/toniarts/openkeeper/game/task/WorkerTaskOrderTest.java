@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task;
 
+import com.simsilica.es.EntityId;
 import java.lang.reflect.Proxy;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -24,6 +25,8 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.task.worker.ArmTrapTask;
+import toniarts.openkeeper.game.task.worker.BuildDoorTask;
 import toniarts.openkeeper.game.task.worker.ClaimTileTask;
 import toniarts.openkeeper.utils.Point;
 
@@ -49,6 +52,18 @@ class WorkerTaskOrderTest {
         TaskManager.TaskWorkerPriority farFloor = pair(TaskType.CLAIM_TILE, 0, 106);
 
         assertEquals(List.of(takenFloor, farFloor, wall), sorted(wall, takenFloor, farFloor));
+    }
+
+    @Test
+    void blueprintsAreServedInTheOrderTheyWerePlaced() {
+
+        // A far crate for the first blueprint, a door's, comes before a near one for a trap placed later (0x464A80)
+        TaskManager.TaskWorkerPriority laterNear = new TaskManager.TaskWorkerPriority(new ArmTrapTask(null, null, null, null, null, null,
+                new EntityId(9), new Point(1, 1), new EntityId(10), (short) 3), null, 10, Integer.MAX_VALUE, false, null);
+        TaskManager.TaskWorkerPriority firstFar = new TaskManager.TaskWorkerPriority(new BuildDoorTask(null, null, null, null, null, null,
+                new EntityId(5), new Point(1, 1), new EntityId(6), (short) 3), null, 50, Integer.MAX_VALUE, false, null);
+
+        assertEquals(List.of(firstFar, laterNear), sorted(laterNear, firstFar));
     }
 
     @Test

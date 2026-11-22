@@ -89,6 +89,13 @@ public final class ArmTrapTask extends AbstractTask {
     }
 
     /**
+     * @return the blueprint the crate is for
+     */
+    public EntityId getBlueprint() {
+        return blueprint;
+    }
+
+    /**
      * Done, or it can't be done anymore: the trap is armed, the blueprint is
      * sold or the crate is gone. Unlike {@link #isValid}, which also says no
      * while somebody carries the crate.

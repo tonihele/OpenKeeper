@@ -89,6 +89,13 @@ public final class BuildDoorTask extends AbstractTask {
     }
 
     /**
+     * @return the blueprint the crate is for
+     */
+    public EntityId getBlueprint() {
+        return blueprint;
+    }
+
+    /**
      * Done, or it can't be done anymore: the door is built, the blueprint is
      * sold or the crate is gone. Unlike {@link #isValid}, which also says no
      * while somebody carries the crate.
