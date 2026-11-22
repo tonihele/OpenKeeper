@@ -130,3 +130,14 @@ or errors** (1,605 total). The 34 added cases include synthetic world/client
 checks and serialization. CRLF-aware `git diff --check` passes. The hash-checked
 native runner passed its 4,800 cases and the persistence/visibility assertions.
 No new rendered full-game comparison is claimed.
+
+The prepared #1339 contact changes were also combined in an isolated checkout.
+Three overlaps needed explicit integration: keep the contact implementation of
+PossessedMovementSystem; retain both terrain-only access and knowledge-aware AI
+costs in MapIndexedGraph; and register both systems in GameLoopManager. The
+combined `test installDist` passed **1,626 tests with four skipped** (1,630 total).
+Two additional direct-movement cases then passed with secret doors hidden and
+known: both stop at the same closed footprint and pass the same open footprint,
+without changing route knowledge. This integration checkout is separate from
+the #1365 implementation; the original worktree's pending contact edits were
+not changed.
