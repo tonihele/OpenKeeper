@@ -133,6 +133,16 @@ public final class GameEventSounds {
                             RoomCaptureSpeech.forRoom(kwdFile.getRoomById(event.subjectId)).getId(), null);
                 }
             }
+            case ROOM_TAKEN_OVER -> {
+                if (event.subjectKind == ThingFlag.ROOM) {
+                    add(sounds, SoundCategory.SPEECH_MENTOR, RoomCaptureSpeech.forTakenOver(kwdFile.getRoomById(event.subjectId)), null);
+                }
+            }
+            case ROOM_LOST -> {
+                if (event.subjectKind == ThingFlag.ROOM) {
+                    add(sounds, SoundCategory.SPEECH_MENTOR, RoomCaptureSpeech.forLost(kwdFile.getRoomById(event.subjectId)), null);
+                }
+            }
             case NO_MANA ->
                 add(sounds, subject, ThingSounds.ROOM_NO_MANA, null);
             case TERRAIN_DESTROYED ->

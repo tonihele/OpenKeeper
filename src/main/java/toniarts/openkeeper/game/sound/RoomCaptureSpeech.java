@@ -20,7 +20,34 @@ import toniarts.openkeeper.tools.convert.map.Room;
 
 /** Selects the existing, localized mentor recording for a completed room capture. */
 final class RoomCaptureSpeech {
+
+    /**
+     * "You have taken over an enemy room" and its room versions (DK II's
+     * message 0x20) come in the same order as the claimed ones, this many
+     * numbers before them
+     */
+    private static final int TAKEN_OVER_OFFSET = 78;
+    /**
+     * "The enemy has taken your room" and its room versions (message 0x23),
+     * the same way
+     */
+    private static final int LOST_OFFSET = 16;
+
     private RoomCaptureSpeech() {
+    }
+
+    /**
+     * @return the speech for the new owner of an enemy room
+     */
+    static int forTakenOver(Room room) {
+        return forRoom(room).getId() - TAKEN_OVER_OFFSET;
+    }
+
+    /**
+     * @return the speech for the old owner of a room an enemy took
+     */
+    static int forLost(Room room) {
+        return forRoom(room).getId() - LOST_OFFSET;
     }
 
     static MentorType forRoom(Room room) {

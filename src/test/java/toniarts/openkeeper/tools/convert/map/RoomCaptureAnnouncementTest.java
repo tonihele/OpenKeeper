@@ -94,8 +94,16 @@ class RoomCaptureAnnouncementTest {
                 controller.applyClaimTile(new Point(0, 0), Player.KEEPER1_ID, null);
                 assertTrue(sent.isEmpty(), "Partial claiming must not announce success");
                 controller.applyClaimTile(new Point(0, 0), Player.KEEPER1_ID, null);
-                assertEquals(1, sent.size(), "One announcement per room, not per tile");
-                assertArrayEquals(new Object[]{GameEventType.ROOM_CAPTURED, GameEvent.ThingFlag.ROOM, 42, Player.KEEPER1_ID}, sent.getFirst());
+
+                // One announcement per room, not per tile: a neutral room is claimed, an enemy one taken over and lost
+                if (previousOwner == Player.NEUTRAL_PLAYER_ID) {
+                    assertEquals(1, sent.size());
+                    assertArrayEquals(new Object[]{GameEventType.ROOM_CAPTURED, GameEvent.ThingFlag.ROOM, 42, Player.KEEPER1_ID}, sent.getFirst());
+                } else {
+                    assertEquals(2, sent.size());
+                    assertArrayEquals(new Object[]{GameEventType.ROOM_TAKEN_OVER, GameEvent.ThingFlag.ROOM, 42, Player.KEEPER1_ID}, sent.get(0));
+                    assertArrayEquals(new Object[]{GameEventType.ROOM_LOST, GameEvent.ThingFlag.ROOM, 42, previousOwner}, sent.get(1));
+                }
             } finally {
                 entities.close();
             }
