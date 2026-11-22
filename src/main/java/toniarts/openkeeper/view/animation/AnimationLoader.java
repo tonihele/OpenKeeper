@@ -19,10 +19,14 @@ package toniarts.openkeeper.view.animation;
 import com.jme3.anim.AnimComposer;
 import com.jme3.anim.tween.Tweens;
 import com.jme3.asset.AssetManager;
+import com.jme3.math.Vector3f;
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.VertexBuffer;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.nio.FloatBuffer;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -184,6 +188,52 @@ public final class AnimationLoader {
      */
     public static void playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager) {
         playAnimation(spatial, anim, assetManager, false);
+    }
+
+    /**
+     * Get where a control point of the shown animation is right now, e.g.
+     * 5000 over the creature's head
+     *
+     * @param root the creature root
+     * @param controlPointId the control point id
+     * @param store where to put the point
+     * @return the point in the root's local space, or {@code null} if the
+     * shown animation doesn't have the point
+     */
+    public static Vector3f getControlPoint(Node root, int controlPointId, Vector3f store) {
+        return getAnimationPoint(root, KmfModelLoader.ANIM_CONTROL_POINT + controlPointId, store);
+    }
+
+    /**
+     * Get where the vertex at the front of the shown animation's last frame is
+     * right now, after a fall the head
+     *
+     * @param root the creature root
+     * @param store where to put the point
+     * @return the point in the root's local space, or {@code null} if the
+     * shown animation doesn't have the point
+     */
+    public static Vector3f getFrontPoint(Node root, Vector3f store) {
+        return getAnimationPoint(root, KmfModelLoader.ANIM_FRONT_POINT, store);
+    }
+
+    private static Vector3f getAnimationPoint(Node root, String key, Vector3f store) {
+        for (Spatial child : root.getChildren()) {
+            String point = child.getUserData(key);
+            if (point == null || child.getCullHint() == Spatial.CullHint.Always || !(child instanceof Node animNode)) {
+                continue;
+            }
+
+            // "geometry index, vertex index", the animation keeps the position buffer up to date
+            int separator = point.indexOf(' ');
+            Geometry geometry = (Geometry) animNode.getChild(Integer.parseInt(point, 0, separator, 10));
+            FloatBuffer positions = geometry.getMesh().getFloatBuffer(VertexBuffer.Type.Position);
+            int vertex = Integer.parseInt(point, separator + 1, point.length(), 10) * 3;
+            store.set(positions.get(vertex), positions.get(vertex + 1), positions.get(vertex + 2));
+            geometry.localToWorld(store, store);
+            return root.worldToLocal(store, store);
+        }
+        return null;
     }
 
     private static void hideAllNodes(Node root) {

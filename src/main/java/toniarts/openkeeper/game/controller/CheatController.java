@@ -27,6 +27,7 @@ import toniarts.openkeeper.game.controller.player.PlayerDoorControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
+import toniarts.openkeeper.game.logic.PayDaySystem;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.game.task.creature.Gamble;
@@ -52,8 +53,10 @@ public final class CheatController implements ICheatController {
     private final IGameWorldController gameWorldController;
     private final IMapController mapController;
     private final EntityData entityData;
+    private final PayDaySystem payDaySystem;
 
-    public CheatController(IKwdFile kwdFile, IGameController gameController, EntityData entityData) {
+    public CheatController(IKwdFile kwdFile, IGameController gameController, EntityData entityData, PayDaySystem payDaySystem) {
+        this.payDaySystem = payDaySystem;
         this.kwdFile = kwdFile;
         this.gameController = gameController;
         this.entityData = entityData;
@@ -74,6 +77,10 @@ public final class CheatController implements ICheatController {
             }
             case MONEY: {
                 gameWorldController.addGold(playerId, CHEAT_MONEY_AMOUNT);
+                break;
+            }
+            case PAY_DAY: {
+                payDaySystem.payDayNow(playerId);
                 break;
             }
             case REMOVE_FOW: {

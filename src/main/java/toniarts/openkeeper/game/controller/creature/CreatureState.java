@@ -23,6 +23,7 @@ import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Thing;
 
 /**
  * State machine for creature AI. TODO: needs to be hierarchial so that this
@@ -84,6 +85,15 @@ public enum CreatureState implements State<ICreatureController> {
             if (entity.getParty() != null && !entity.getParty().isPartyLeader(entity)) {
                 entity.setFollowTarget(entity.getParty().getPartyLeader().getEntityId());
                 entity.getStateMachine().changeState(CreatureState.FOLLOW);
+                workResult.accept(true);
+                return;
+            }
+
+            // A creature told to wait, or sent to an action point when there is none (it has passed its
+            // last waypoint), stays where it is. The original only shuffles about on the creature's own tile
+            Thing.HeroParty.Objective objective = entity.getObjective();
+            if (objective == Thing.HeroParty.Objective.WAIT || (objective == Thing.HeroParty.Objective.SEND_TO_ACTION_POINT
+                    && entity.getObjectiveTargetActionPointId() == 0)) {
                 workResult.accept(true);
                 return;
             }
@@ -362,6 +372,12 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // A badly hurt hero may withdraw to the hero lair, before fear is weighed (DK II 0x45F030)
+            if (entity.withdrawToHeroLair()) {
+                entity.getStateMachine().changeState(HERO_RECUPERATING);
+                return;
+            }
+
             // A scared creature backs off from its target for a while (DK II 0x45F030)
             if (entity.isScared()) {
                 entity.getStateMachine().changeState(BACK_OFF);
@@ -542,6 +558,9 @@ public enum CreatureState implements State<ICreatureController> {
         public void enter(ICreatureController entity) {
             entity.stopCreature();
             entity.unassingCurrentTask();
+
+            // A knocked out creature drops its gold at once, even if it is rescued later (0x4596D0)
+            entity.dropLoot();
         }
 
         @Override
@@ -984,6 +1003,39 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void exit(ICreatureController entity) {
             entity.resetFollowTarget();
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, HERO_RECUPERATING {
+
+        @Override
+        public void enter(ICreatureController entity) {
+
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // A wounded hero walks to the hero lair, then about its own land until its health is back,
+            // and fights what it meets on the way (DK II state 0x10A, 0x461B50)
+            if (entity.shouldFleeOrAttack()) {
+                return;
+            }
+            if (entity.isStopped()) {
+                if (entity.isFullHealth()) {
+                    entity.getStateMachine().changeState(IDLE);
+                } else {
+                    entity.wanderOnOwnLand();
+                }
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
         }
 
         @Override
