@@ -147,4 +147,35 @@ class CreatureViewSystemTest {
 
         assertEquals(Creature.AnimationType.MELEE_ATTACK, CreatureViewSystem.getManufactureAnimation(creature));
     }
+
+    @Test
+    void actualAttachmentSelectsDragDuringMovementAndStationaryPauses() {
+        var worker = CreatureFixtures.workerWithDragAnimation();
+        var level = (toniarts.openkeeper.tools.convert.map.IKwdFile) java.lang.reflect.Proxy.newProxyInstance(
+                getClass().getClassLoader(), new Class<?>[]{toniarts.openkeeper.tools.convert.map.IKwdFile.class},
+                (proxy, method, args) -> method.getName().equals("getCreature") ? worker : null);
+        EntityId imp = entityData.createEntity();
+        EntityId box = entityData.createEntity();
+        entityData.setComponents(imp, new CreatureViewState((short) 1, 0, Creature.AnimationType.WALK),
+                new Position(0, new Vector3f()), new toniarts.openkeeper.game.component.Navigation());
+        try {
+            CreatureViewSystem system = new CreatureViewSystem(entityData, level);
+            system.processTick(.25f);
+            assertEquals(Creature.AnimationType.WALK, entityData.getComponent(imp, CreatureViewState.class).state);
+            entityData.setComponents(box, new Position(0, new Vector3f()),
+                    new toniarts.openkeeper.game.component.HauledBy(imp));
+            system.processTick(.25f);
+            assertEquals(Creature.AnimationType.DRAG, entityData.getComponent(imp, CreatureViewState.class).state);
+            entityData.removeComponent(imp, toniarts.openkeeper.game.component.Navigation.class);
+            system.processTick(.25f);
+            assertEquals(Creature.AnimationType.DRAG, entityData.getComponent(imp, CreatureViewState.class).state);
+            entityData.removeComponent(box, toniarts.openkeeper.game.component.HauledBy.class);
+            entityData.setComponent(imp, new toniarts.openkeeper.game.component.Navigation());
+            system.processTick(.25f);
+            assertEquals(Creature.AnimationType.WALK, entityData.getComponent(imp, CreatureViewState.class).state);
+            system.stop();
+        } finally {
+            entityData.removeEntity(box);
+        }
+    }
 }

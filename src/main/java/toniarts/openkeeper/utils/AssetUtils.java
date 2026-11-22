@@ -132,8 +132,28 @@ public final class AssetUtils {
     }
 
     private static Spatial loadModel(final AssetManager assetManager, ModelKey assetKey, ArtResource artResource) {
+        return loadModel(assetManager, assetKey, artResource, false);
+    }
+
+    /**
+     * Load a model with its converted, authored node translations intact.
+     * Worker drag poses and specials share an entity position in DKII; their
+     * mesh origins must supply the relative placement rather than an offset
+     * invented by the hauling code. Use the asset manager's model cache, keeping
+     * this variant out of the cache of models with reset translations.
+     */
+    public static Spatial loadModelWithAuthoredTranslations(AssetManager assetManager,
+            String modelName, ArtResource artResource) {
+        String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
+        return loadModel(assetManager, new ModelKey(getCanonicalAssetKey(filename)), artResource, true);
+    }
+
+    private static Spatial loadModel(AssetManager assetManager, ModelKey assetKey,
+            ArtResource artResource, boolean preserveTranslations) {
         Spatial model = assetManager.loadModel(assetKey);
-        resetSpatial(model);
+        if (!preserveTranslations) {
+            resetSpatial(model);
+        }
         
         // Assign maps
         assignMapsToMaterial(model, assetManager);

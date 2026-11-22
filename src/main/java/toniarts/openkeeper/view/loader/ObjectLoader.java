@@ -59,7 +59,9 @@ public final class ObjectLoader implements ILoader<ObjectViewState> {
                 // Some objects, like the Hero Gate Table, are only a light source and have no model
                 return null;
             }
-            Node nodeObject = (Node) AssetUtils.loadModel(assetManager, artResource.getName(), artResource);
+            Node nodeObject = (Node) (gameObject.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPECIAL)
+                    ? AssetUtils.loadModelWithAuthoredTranslations(assetManager, artResource.getName(), artResource)
+                    : AssetUtils.loadModel(assetManager, artResource.getName(), artResource));
             return nodeObject;
         } catch (Exception e) {
             logger.log(Level.ERROR, "Failed to load object " + object + "!", e);

@@ -45,6 +45,13 @@ public final class CreatureFixtures {
         return creature;
     }
 
+    public static Creature workerWithDragAnimation() {
+        Creature creature = creatureWithAnimation(Creature.AnimationType.DRINKING,
+                ArtResource.ArtResourceType.ANIMATING_MESH);
+        creature.setFlags(java.util.EnumSet.of(Creature.CreatureFlag.IS_WORKER));
+        return creature;
+    }
+
     /**
      * A creature that works in the workshop
      *

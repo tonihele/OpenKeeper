@@ -154,11 +154,12 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public boolean isStopAnimation() {
-        return super.isStopAnimation() || (currentState != Creature.AnimationType.WALK && currentState != Creature.AnimationType.IN_HAND && !isWorkAnimation());
+        return super.isStopAnimation() || (currentState != Creature.AnimationType.WALK && currentState != Creature.AnimationType.DRAG && currentState != Creature.AnimationType.IN_HAND && !isWorkAnimation());
     }
 
     private void playAnimation(Creature.AnimationType animation) {
-        AnimationLoader.playAnimation(getSpatial(), getAnimationData(animation), assetManager);
+        AnimationLoader.playAnimation(getSpatial(), getAnimationData(animation), assetManager,
+                false, animation == Creature.AnimationType.DRAG);
         if (getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE)) {
             CreatureVariantTextures.apply(getSpatial(), assetManager);
         }
@@ -313,7 +314,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     protected ArtResource getAnimationData(Creature.AnimationType state) {
-        ArtResource animation = getDataObject().getAnimation(state);
+        ArtResource animation = getDataObject().getAnimationForState(state);
         if (animation == null && state == Creature.AnimationType.TORTURED_CHAIR_SKELETON) {
             return ELECTROCUTE_SKELETONS[ThreadLocalRandom.current().nextInt(ELECTROCUTE_SKELETONS.length)];
         }

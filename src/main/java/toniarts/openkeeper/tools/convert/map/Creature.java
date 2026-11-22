@@ -86,6 +86,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         NULL_2, // always null
         NULL_3, // always null
         NULL_4, // always null
+        DRAG, // Gameplay state; worker descriptor 0x13. Appended for enum compatibility.
     }
 
     public static enum OffsetType {
@@ -600,6 +601,45 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
 
     public ArtResource getAnimation(AnimationType type) {
         return animation.get(type);
+    }
+
+    /** Read a standard native descriptor without assigning it a gameplay meaning. */
+    public ArtResource getAnimation(AnimationSlot slot) {
+        return getAnimation(slot.getAnimationType());
+    }
+
+    protected void setAnimation(AnimationSlot slot, ArtResource resource) {
+        setAnimation(slot.getAnimationType(), resource);
+    }
+
+    /** Worker meanings apply only to creatures with the original IS_WORKER flag. */
+    public ArtResource getAnimation(WorkerAnimationType type) {
+        return isWorkerAnimationProfile() ? getAnimation(type.getSlot()) : null;
+    }
+
+    private boolean isWorkerAnimationProfile() {
+        return flags != null && flags.contains(CreatureFlag.IS_WORKER);
+    }
+
+    /**
+     * Resolve a gameplay view state while preserving the existing replicated enum.
+     * The raw DIG resource is an extra Imp animation, not the standard digging
+     * action: the Dwarf trace selects 0x05, the slot also holding Imp_Dig.
+     */
+    public ArtResource getAnimationForState(AnimationType state) {
+        if (isWorkerAnimationProfile()) {
+            WorkerAnimationType workerType = switch (state) {
+                case DIG -> WorkerAnimationType.DIG;
+                case DRAG -> WorkerAnimationType.DRAG;
+                case SLEEPING -> WorkerAnimationType.REINFORCE_WALL;
+                case EATING -> WorkerAnimationType.CLAIM_FLOOR;
+                default -> null;
+            };
+            if (workerType != null) {
+                return getAnimation(workerType);
+            }
+        }
+        return getAnimation(state);
     }
 
     public Map<AnimationType, ArtResource> getAnimations() {
