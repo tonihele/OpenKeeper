@@ -165,7 +165,7 @@ public final class GameLoopManager {
                 new MentorHintSystem(entityData, level, playerControllers.values(), gameWorldController.getRoomAttackMessages(),
                         gameController.getGameTimer()),
                 new PossessedSystem(playerControllers.values(), entityData, gameController,
-                        gameWorldController.getCreaturesController()),
+                        gameWorldController.getCreaturesController(), gameWorldController.getRoomAttackMessages()),
                 new SummonedReaperSystem(entityData, playerControllers.values(), gameWorldController.getCreaturesController(),
                         gameController.getGameTimer(), gameController.getNavigationService()),
                 new CallToArmsSystem(entityData, level, playerControllers.values(),

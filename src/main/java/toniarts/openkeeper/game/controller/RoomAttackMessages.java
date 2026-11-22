@@ -148,10 +148,11 @@ public final class RoomAttackMessages {
          */
         LOW_MANA(20, 447, Map.of(1, 447, 2, 1329, 3, 1330, 4, 1331)),
         /**
-         * "You do not have enough Mana to maintain your Imps", message 0x35
-         * variant 3 (0x4C1BC0)
+         * Message 0x35: "You do not have enough Mana to maintain your Imps",
+         * variant 3 (0x4C1BC0), and "You do not have enough Mana to continue
+         * possession", variant 5 (0x4C10E0)
          */
-        NOT_ENOUGH_MANA_FOR_IMPS(20, 1333, Map.of()),
+        NOT_ENOUGH_MANA(20, 0, Map.of(3, 1333, 5, 1335)),
         /**
          * "The battle in the Combat Pit is over", message 9, told when a
          * fight is down to one fighter standing (0x4D7A60). It has no tile
@@ -397,7 +398,16 @@ public final class RoomAttackMessages {
      * @param ownerId the keeper
      */
     public void notEnoughManaForImps(short ownerId) {
-        show(Message.NOT_ENOUGH_MANA_FOR_IMPS, ownerId, (short) 0, null);
+        show(Message.NOT_ENOUGH_MANA, ownerId, (short) 3, null);
+    }
+
+    /**
+     * The keeper's possession ends for want of mana
+     *
+     * @param ownerId the keeper
+     */
+    public void notEnoughManaForPossession(short ownerId) {
+        show(Message.NOT_ENOUGH_MANA, ownerId, (short) 5, null);
     }
 
     /**
