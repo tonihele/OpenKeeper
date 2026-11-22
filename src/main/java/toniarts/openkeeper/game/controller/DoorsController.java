@@ -23,9 +23,11 @@ import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
@@ -213,6 +215,27 @@ public final class DoorsController implements IDoorsController {
     }
 
     @Override
+    public OptionalInt sellDoor(Collection<EntityId> entitiesOnTile, short playerId) {
+        for (EntityId entity : entitiesOnTile) {
+            DoorComponent doorComponent = entityData.getComponent(entity, DoorComponent.class);
+            Owner owner = entityData.getComponent(entity, Owner.class);
+            if (doorComponent == null || owner == null || owner.ownerId != playerId) {
+                continue;
+            }
+
+            // A blueprint returns the same as a built door. The share is the one of the rooms, the original doesn't
+            // use DOOR_SELL_VALUE_PERCENTAGE_OF_COST
+            Door door = kwdFile.getDoorById(doorComponent.doorId);
+            int sellValuePercentage = (int) gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue();
+            entityData.removeEntity(entity);
+
+            return OptionalInt.of(door.getGoldCost() * sellValuePercentage / 100);
+        }
+
+        return OptionalInt.empty();
+    }
+
+    @Override
     public IDoorController createController(EntityId entityId) {
         DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
         if (doorComponent == null) {
@@ -270,6 +293,11 @@ public final class DoorsController implements IDoorsController {
 
         @Override
         public void onFogOfWarReset(short keeperId) {
+            // Not interested
+        }
+
+        @Override
+        public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
             // Not interested
         }
 
