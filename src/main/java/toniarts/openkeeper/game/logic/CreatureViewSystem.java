@@ -104,8 +104,11 @@ public final class CreatureViewSystem extends GameTimeCounter {
             Creature.AnimationType currentState = state.state;
             Creature.AnimationType targetState = currentState;
             boolean restart = false;
-            if (entityData.getComponent(entityId, CreatureFall.class) != null) {
-                targetState = Creature.AnimationType.FALLBACK;
+            CreatureFall creatureFall = entityData.getComponent(entityId, CreatureFall.class);
+            if (creatureFall != null) {
+
+                // A conjured creature comes down standing, only a dropped one tumbles and lands dazed
+                targetState = creatureFall.conjured ? Creature.AnimationType.IDLE_1 : Creature.AnimationType.FALLBACK;
             } else if (entityData.getComponent(entityId, Navigation.class) != null) {
                 targetState = Creature.AnimationType.WALK;
             } else if (entityData.getComponent(entityId, Death.class) != null) {
