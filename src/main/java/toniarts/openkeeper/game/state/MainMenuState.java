@@ -95,6 +95,10 @@ public final class MainMenuState extends AbstractAppState {
 
     private static final Logger logger = System.getLogger(MainMenuState.class.getName());
 
+    /** Shown for a map that has no thumbnail, at its original's size of 128 pixels */
+    static final String NO_THUMBNAIL = "Textures/Unique_NoTextureName.png";
+    static final int NO_THUMBNAIL_SIZE = 128;
+
     protected Main app;
     protected Node rootNode;
     protected AssetManager assetManager;
@@ -820,7 +824,7 @@ public final class MainMenuState extends AbstractAppState {
                 AssetsConverter.generateMapThumbnail(map.load(), AssetsConverter.getAssetsFolder() + AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator);
             } catch (Exception e) {
                 logger.log(Level.WARNING, "Failed to generate map file out of {0}!", map);
-                asset = "Textures/Unique_NoTextureName.png";
+                asset = NO_THUMBNAIL;
             }
         }
         return asset;
@@ -924,6 +928,11 @@ public final class MainMenuState extends AbstractAppState {
         @Override
         public void endGame(boolean win, short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void sendEffect(int effectId, Vector3f position, float yaw) {
+            // The main menu has no running map effect generators.
         }
 
         @Override

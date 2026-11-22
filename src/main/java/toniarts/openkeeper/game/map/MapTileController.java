@@ -37,6 +37,13 @@ import toniarts.openkeeper.tools.convert.map.Tile.BridgeTerrainType;
  */
 public final class MapTileController extends AbstractMapTileInformation implements IMapTileController {
 
+    /**
+     * The mana a bridge tile gives its owner every second. DK II has the
+     * number in its code, the bridge terrains give no mana in the data
+     * (DKII.EXE 0x455B90)
+     */
+    public static final int BRIDGE_MANA_GAIN = 1;
+
     private final EntityData entityData;
     private Point location;
     private int index;

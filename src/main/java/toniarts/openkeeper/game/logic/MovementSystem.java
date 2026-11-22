@@ -28,14 +28,18 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.navigation.steering.EntitySteeringBehavior;
 import toniarts.openkeeper.game.navigation.steering.EntitySteeringFactory;
 import toniarts.openkeeper.game.navigation.steering.ISteerableEntity;
 import toniarts.openkeeper.game.navigation.steering.SteerableEntity;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Handles moving of the entities
@@ -61,9 +65,11 @@ public final class MovementSystem implements IGameLogicUpdatable {
     private final Map<EntitySteeringBehavior, SteeringAcceleration<Vector2>> steeringOutputsBySteeringBehaviors = new HashMap<>();
     private final EntitySet movableEntities;
     private final EntityData entityData;
+    private final IMapInformation mapInformation;
 
-    public MovementSystem(EntityData entityData) {
+    public MovementSystem(EntityData entityData, IMapInformation mapInformation) {
         this.entityData = entityData;
+        this.mapInformation = mapInformation;
         movableEntities = entityData.getEntities(Position.class, Mobile.class, Navigation.class);
 
         processAddedEntities(movableEntities);
@@ -81,6 +87,9 @@ public final class MovementSystem implements IGameLogicUpdatable {
 
         // Process ticks
         for (EntitySteeringBehavior steeringBehavior : steeringBehaviors.getArray()) {
+            EntityId entityId = entityIdsBySteeringBehavior.get(steeringBehavior);
+            ISteerableEntity steerableEntity = steerableEntitiesBySteeringBehavior.get(steeringBehavior);
+            steerableEntity.setMaxLinearSpeed(getMaxSpeed(entityId, movableEntities.getEntity(entityId).get(Mobile.class), steerableEntity.getPosition()));
 
             // Calculate steering acceleration
             SteeringAcceleration<Vector2> steeringOutput = steeringOutputsBySteeringBehaviors.get(steeringBehavior);
@@ -94,8 +103,36 @@ public final class MovementSystem implements IGameLogicUpdatable {
              * accelerate; and it only moves in the direction it is facing (ignoring power slides).
              */
             // Apply steering acceleration
-            applySteering(entityIdsBySteeringBehavior.get(steeringBehavior), steerableEntitiesBySteeringBehavior.get(steeringBehavior), steeringOutput, tpf);
+            applySteering(entityId, steerableEntity, steeringOutput, tpf);
         }
+    }
+
+    /**
+     * Get the speed of the entity for this step. A creature other than a worker
+     * walks at half speed below a fifth of its health. Walking through water
+     * halves the speed and lava speeds it up by half, flying is not affected
+     *
+     * @param entityId the entity
+     * @param mobile the mobility of the entity
+     * @param position the position of the entity
+     * @return the maximum speed
+     */
+    private float getMaxSpeed(EntityId entityId, Mobile mobile, Vector2 position) {
+        float speed = mobile.maxSpeed;
+        Health health = entityData.getComponent(entityId, Health.class);
+        CreatureComponent creature = entityData.getComponent(entityId, CreatureComponent.class);
+        if (health != null && creature != null && !creature.worker && health.health < health.maxHealth * 20 / 100) {
+            speed *= 0.5f;
+        }
+        if (!mobile.canFly) {
+            Point p = WorldUtils.vectorToPoint(position);
+            if (mapInformation.isWater(p)) {
+                speed *= 0.5f;
+            } else if (mapInformation.isLava(p)) {
+                speed *= 1.5f;
+            }
+        }
+        return speed;
     }
 
     private void processAddedEntities(Set<Entity> addedEntities) {

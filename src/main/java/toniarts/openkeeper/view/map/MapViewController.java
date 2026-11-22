@@ -46,7 +46,8 @@ import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.lighting.LightSource;
 import toniarts.openkeeper.view.loader.ILoader;
-import toniarts.openkeeper.view.map.WallSection.WallDirection;
+import toniarts.openkeeper.game.map.WallSection;
+import toniarts.openkeeper.game.map.WallSection.WallDirection;
 import toniarts.openkeeper.view.map.construction.RoomConstructor;
 import toniarts.openkeeper.view.map.construction.SingleQuadConstructor;
 import toniarts.openkeeper.view.map.construction.WaterConstructor;
@@ -57,6 +58,7 @@ import java.nio.FloatBuffer;
 import java.util.*;
 
 import static toniarts.openkeeper.view.lighting.LightConstants.CLAIM_SCAN_LIGHT_INTENSITY;
+import static toniarts.openkeeper.view.lighting.LightConstants.DEFAULT_TORCH_LIGHT_HEIGHT_TILES_FALLBACK;
 
 /**
  * Loads whole maps, and handles the maps
@@ -114,6 +116,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private Node roomsNode;
     private final short playerId;
     private final Set<Point> flashedTiles = new HashSet<>();
+    private short[] drawnTerrainIds; // The terrain each tile and its neighbours were last built with, by tile index
+    private short[] drawnOwnerIds; // And the owner
     private final List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
     private final List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
     private Spatial waterSurface; // Currently attached merged water mesh, if any
@@ -211,10 +215,13 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // Go through the map
         int index = 0;
         int tilesCount = getMapData().getSize();
+        drawnTerrainIds = new short[tilesCount];
+        drawnOwnerIds = new short[tilesCount];
 
         for (IMapTileInformation tile : getMapData()) {
 
             try {
+                isDrawnTileChanged(tile);
                 handleTile(tile, terrain);
             } catch (Exception e) {
                 logger.log(Level.ERROR, "Failed to handle tile at " + tile.getLocation() + "!", e);
@@ -432,6 +439,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         Map<CeilingBatchKey, List<Point>> batchTiles = new HashMap<>();
         Map<CeilingBatchKey, Terrain> batchTerrain = new HashMap<>();
         Map<CeilingBatchKey, ArtResource> batchResource = new HashMap<>();
+        int ceilingTileCount = 0;
         for (IMapTileInformation tile : mapData) {
             Terrain terrain = getTerrain(tile);
             Point p = tile.getLocation();
@@ -444,6 +452,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             CeilingBatchKey key = new CeilingBatchKey(terrain.getTerrainId(),
                     ceilingResource != null ? ceilingResource.getName() : null);
             batchTiles.computeIfAbsent(key, k -> new ArrayList<>()).add(p);
+            ceilingTileCount++;
             batchTerrain.putIfAbsent(key, terrain);
             if (ceilingResource != null) {
                 batchResource.putIfAbsent(key, ceilingResource);
@@ -456,10 +465,13 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         Node surface = new Node("Ceiling");
         List<Material> ceilingMaterials = new ArrayList<>();
+        ClearanceFieldSamples clearanceSamples = new ClearanceFieldSamples(clearanceField,
+                ceilingTileCount >= ClearanceFieldSamples.MINIMUM_TILES_FOR_CACHE);
         for (Map.Entry<CeilingBatchKey, List<Point>> batch : batchTiles.entrySet()) {
             CeilingBatchKey key = batch.getKey();
-            Geometry ceilingGeometry = Ceiling.construct(assetManager, clearanceField,
-                    batchTerrain.get(key), batchResource.get(key), batch.getValue(), deformer, pillarTiles);
+            Geometry ceilingGeometry = Ceiling.construct(assetManager,
+                    batchTerrain.get(key), batchResource.get(key), batch.getValue(), deformer,
+                    pillarTiles, clearanceSamples);
             surface.attachChild(ceilingGeometry);
             ceilingMaterials.add(ceilingGeometry.getMaterial());
         }
@@ -494,6 +506,16 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             }
         }
         return solid;
+    }
+
+    /**
+     * Get the room on a tile, as the map shows it
+     *
+     * @param p the tile
+     * @return the room, {@code null} if there is none on the tile
+     */
+    public RoomInstance getRoomInstance(Point p) {
+        return roomCoordinates.get(p);
     }
 
     /**
@@ -542,6 +564,12 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // If this touches any rooms, reconstruct them and add the neighbouring tiles to update list
         for (Point point : points) {
             pointsToUpdate.add(point);
+
+            // Most updates (a dig or claim hit, gold, mana, a tag or a flash)
+            // change only the tile's own look, not its neighbours or rooms
+            if (!isDrawnTileChanged(getMapData().getTile(point))) {
+                continue;
+            }
             RoomInstance roomInstance = roomCoordinates.get(point);
             if (roomInstance != null) {
                 pointsToUpdate.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(getMapData(), point, true)));
@@ -646,6 +674,26 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         // Reconstruct
         handleTile(tile, (Node) map.getChild(TERRAIN_NODE));
+    }
+
+    /**
+     * Checks whether the tile now shows another terrain or owner than it was
+     * last built with, and remembers the current ones. Rooms and neighbouring
+     * walls are built from just these.
+     *
+     * @param tile the tile
+     * @return true if the terrain or the owner changed
+     */
+    private boolean isDrawnTileChanged(IMapTileInformation tile) {
+        int index = tile.getIndex();
+        short terrainId = getTerrain(tile).getTerrainId();
+        short ownerId = tile.getOwnerId();
+        if (drawnTerrainIds[index] == terrainId && drawnOwnerIds[index] == ownerId) {
+            return false;
+        }
+        drawnTerrainIds[index] = terrainId;
+        drawnOwnerIds[index] = ownerId;
+        return true;
     }
 
     /**
@@ -959,20 +1007,25 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         lightRules.setTileAmbient(p.x, p.y, getVertexAmbient(terrain, tile.getOwnerId()),
                 fogOfWarInformation.isExplored(p));
 
-        // Torch (see https://github.com/tonihele/OpenKeeper/issues/128). Only on
-        // explored ground: a tile that is merely perceived (claim scan) shows no torches
-        if (torchesEnabled && fogOfWarInformation.isExplored(p) && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            handleTorch(tile, pageNode);
-        }
-
         // Room
         boolean isRoomTile = terrain.getFlags().contains(Terrain.TerrainFlag.ROOM);
         RoomInstance roomInstance = null;
+        Room room = null;
         if (isRoomTile) {
 
             // Construct the actual room
-            Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
+            room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
             roomInstance = handleRoom(p, room, null);
+        }
+
+        // Torch (see https://github.com/tonihele/OpenKeeper/issues/128). Only on
+        // explored ground: a tile that is merely perceived (claim scan) shows no torches.
+        // After the room is found, as some rooms put their torches between the wall furniture
+        if (torchesEnabled && fogOfWarInformation.isExplored(p) && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            handleTorch(tile, pageNode, roomInstance);
+        }
+
+        if (isRoomTile) {
 
             // Swap the terrain if this is a bridge
             Terrain bridgeTerrain = kwdFile.getTerrainBridge(tile.getBridgeTerrainType(), room);
@@ -993,11 +1046,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
     }
 
-    private void handleTorch(IMapTileInformation tile, Node pageNode) {
+    private void handleTorch(IMapTileInformation tile, Node pageNode, RoomInstance roomInstance) {
 
         // DKII places at most one torch per tile. At corners, the direction order makes the
         // perpendicular wall skip this tile and resume on the next eligible tile in its run.
-        for (WallDirection direction : TorchPlacement.getTorchDirections(tile.getX(), tile.getY())) {
+        for (WallDirection direction : TorchPlacement.getTorchDirections(tile.getX(), tile.getY(), roomInstance)) {
             Point neighbor = switch (direction) {
                 case NORTH -> new Point(tile.getX(), tile.getY() - 1);
                 case WEST -> new Point(tile.getX() - 1, tile.getY());
@@ -1060,8 +1113,6 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             } else {
                 name = null;
             }
-            position.y = room.getTorchHeight();
-            lightHeight = room.getTorchHeight();
 
             Color torchColor = room.getTorchColor();
             if (torchColor == null) {
@@ -1071,8 +1122,12 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             int torchRed = LightConstants.withBonus(torchColor.getRed(), room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_RED), LightConstants.TORCH_OVER_BRIGHT_BONUS);
             int torchGreen = LightConstants.withBonus(torchColor.getGreen(), room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_GREEN), LightConstants.TORCH_OVER_BRIGHT_BONUS);
             int torchBlue = LightConstants.withBonus(torchColor.getBlue(), room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_BLUE), LightConstants.TORCH_OVER_BRIGHT_BONUS);
+            boolean defaultLight = false;
             if (torchRed == 0 && torchGreen == 0 && torchBlue == 0) {
-                return; // A room with torchColor == 0 has no torches
+                defaultLight = true;
+                torchRed = LightConstants.getDefaultTorchLightRed(kwdFile);
+                torchGreen = LightConstants.getDefaultTorchLightGreen(kwdFile);
+                torchBlue = LightConstants.getDefaultTorchLightBlue(kwdFile);
             }
             torchRed = Math.min(torchRed, LightConstants.TORCH_MAX_CHANNEL);
             torchGreen = Math.min(torchGreen, LightConstants.TORCH_MAX_CHANNEL);
@@ -1081,8 +1136,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             red = torchRed;
             green = torchGreen;
             blue = torchBlue;
-            intensity = room.getTorchIntensity() / 128f;
-            radius = room.getTorchRadius();
+            intensity = defaultLight ? LightConstants.getDefaultTorchLightIntensity(kwdFile) : room.getTorchIntensity() / 128f;
+            radius = defaultLight ? LightConstants.getDefaultTorchLightRadiusTiles(kwdFile) : room.getTorchRadius();
+            position.y = lightHeight = defaultLight ? DEFAULT_TORCH_LIGHT_HEIGHT_TILES_FALLBACK : room.getTorchHeight();
             maxRadius = LightConstants.TORCH_LIGHT_MAX_RADIUS_TILES;
         } else {
             red = LightConstants.getDefaultTorchLightRed(kwdFile);
@@ -1164,7 +1220,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             Point center = getRoomCenterTile(roomInstance);
             // Tile (x, y) is centred on (x, y) in world space, not (x + 0.5, y + 0.5)
             Vector3f position = new Vector3f(center.x, 0.49f, center.y);
-            //lightRules.addPortalLight(roomInstance, position);
+            lightRules.addPortalLight(roomInstance, position);
         }
 
         return roomInstance;
@@ -1523,6 +1579,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      */
     private void handleTerrainLight(IMapTileInformation tile, Terrain terrain, boolean isRoomTile, RoomInstance roomInstance) {
         Point p = tile.getLocation();
+        // The dungeon heart room gets no terrain light
+        if (isRoomTile && roomInstance != null && roomInstance.getRoom() == kwdFile.getDungeonHeart()) {
+            return;
+        }
         Terrain lightingTerrain = isRoomTile
                 ? (isInteriorRoomSlab(p, roomInstance) ? terrain : null)
                 : terrain;
@@ -1754,7 +1814,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             int r = LightConstants.withBonus(c.getRed(), terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_RED), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
             int g = LightConstants.withBonus(c.getGreen(), terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_GREEN), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
             int b = LightConstants.withBonus(c.getBlue(), terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_BLUE), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
-            return new ColorRGBA(r / 255f, g / 255f, b / 255f, 1f);
+            float scale = terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)
+                    && Main.getUserSettings().getAppSettings().isGammaCorrection() ? LightConstants.ROOM_AMBIENT_SCALE : 1f;
+            return new ColorRGBA(r * scale / 255f, g * scale / 255f, b * scale / 255f, 1f);
         }
 
         // Player-coloured (claimed) paths and walls get no owner tint here: they
@@ -1930,110 +1992,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      */
     private void findRoomWallSections(RoomInstance roomInstance) {
         if (hasRoomWalls(roomInstance.getRoom())) {
-            List<WallSection> sections = new ArrayList<>();
-            Map<Point, Set<WallDirection>> alreadyWalledPoints = new HashMap<>();
-            for (Point p : roomInstance.getCoordinates()) {
-
-                // Traverse in all four directions to find wallable sections facing the same direction
-                traverseRoomWalls(p, roomInstance, WallDirection.NORTH, sections, alreadyWalledPoints);
-                traverseRoomWalls(p, roomInstance, WallDirection.EAST, sections, alreadyWalledPoints);
-                traverseRoomWalls(p, roomInstance, WallDirection.SOUTH, sections, alreadyWalledPoints);
-                traverseRoomWalls(p, roomInstance, WallDirection.WEST, sections, alreadyWalledPoints);
-            }
-            roomInstance.setWallSections(sections);
+            roomInstance.setWallSections(WallSection.findWallSections(roomInstance, getMapData(), kwdFile));
         }
-    }
-
-    /**
-     * Traverses room walls facing in certain direction from a room point. Finds
-     * a section.
-     *
-     * @param p starting room point
-     * @param roomInstance the room instance of which walls we need to find
-     * @param direction the direction of which the want the walls to face
-     * @param sections list of already find sections
-     * @param alreadyWalledPoints already found wall points
-     */
-    private void traverseRoomWalls(Point p, RoomInstance roomInstance, WallDirection direction,
-            List<WallSection> sections, Map<Point, Set<WallDirection>> alreadyWalledPoints) {
-
-        Set<WallDirection> alreadyTraversedDirections = alreadyWalledPoints.get(p);
-        if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(direction)) {
-
-            List<Point> section = getRoomWalls(p, roomInstance, direction);
-            if (!section.isEmpty()) {
-
-                // Add section
-                sections.add(new WallSection(direction, section));
-
-                // Add to known points
-                for (Point sectionPoint : section) {
-                    Set<WallDirection> directions = alreadyWalledPoints.get(sectionPoint);
-                    if (directions == null) {
-                        directions = EnumSet.noneOf(WallDirection.class);
-                    }
-                    directions.add(direction);
-                    alreadyWalledPoints.put(sectionPoint, directions);
-                }
-            }
-        }
-    }
-
-    private List<Point> getRoomWalls(Point p, RoomInstance roomInstance, WallDirection wallDirection) {
-
-        // A missing direction is treated as WEST
-        WallDirection direction = wallDirection != null ? wallDirection : WallDirection.WEST;
-
-        // See if the starting point has a wall to the given direction
-        Point wallPoint = getWallNeighbour(p, direction);
-        IMapTileInformation tile = getMapData().getTile(wallPoint.x, wallPoint.y);
-        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
-                || !terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
-            return Collections.emptyList();
-        }
-
-        // Found wallable
-        List<Point> wallPoints = new ArrayList<>();
-        wallPoints.add(p);
-
-        // Traverse possible directions, well one direction, "to the right"
-        Point nextPoint = getNextWallPoint(p, direction);
-        RoomInstance instance = roomCoordinates.get(nextPoint);
-        if (instance != null && instance.equals(roomInstance)) {
-            wallPoints.addAll(getRoomWalls(nextPoint, roomInstance, wallDirection));
-        }
-
-        return wallPoints;
-    }
-
-    /**
-     * The tile on the wall side of the room tile
-     */
-    private static Point getWallNeighbour(Point p, WallDirection direction) {
-        return switch (direction) {
-            case NORTH ->
-                new Point(p.x, p.y + 1);
-            case EAST ->
-                new Point(p.x - 1, p.y);
-            case SOUTH ->
-                new Point(p.x, p.y - 1);
-            default ->
-                new Point(p.x + 1, p.y); // West
-        };
-    }
-
-    /**
-     * The next tile along the wall ("to the right", sorting forces the
-     * directions to be what they are)
-     */
-    private static Point getNextWallPoint(Point p, WallDirection direction) {
-        return switch (direction) {
-            case NORTH, SOUTH ->
-                new Point(p.x + 1, p.y); // East
-            default ->
-                new Point(p.x, p.y + 1); // South
-        };
     }
 
     /**

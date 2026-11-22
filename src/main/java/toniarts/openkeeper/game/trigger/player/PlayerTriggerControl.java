@@ -211,9 +211,8 @@ public class PlayerTriggerControl extends TriggerControl {
                 return false;
             case PLAYER_KILLED:
 
-                // TODO: Is player killed specifically by this other player
-                short otherPlayerId = trigger.getUserData("playerId", short.class);
-                return false;
+                // Has this player been defeated, by a certain player or by anyone (0)
+                return getPlayer().isKilledBy(trigger.getUserData("playerId", short.class));
             case PLAYER_DUNGEON_BREACHED:
                 return false;
             case PLAYER_ENEMY_BREACHED:
@@ -312,7 +311,11 @@ public class PlayerTriggerControl extends TriggerControl {
             return;
         }
         ICreatureEntrance room = ((ICreatureEntrance) rooms.iterator().next());
-        creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(room.getEntranceCoordinate()), ICreaturesController.SpawnType.ENTRANCE);
+        var entityId = creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(room.getEntranceCoordinate()), ICreaturesController.SpawnType.ENTRANCE);
+        if (entityId != null) {
+            // Scripted arrivals count toward the cadence without restarting the generation clock.
+            room.onSpawn(room.getLastSpawnTime(), entityId);
+        }
     }
 
     private void setPortalStatus(TriggerActionData trigger) { // Creature part. Only for keeper x
