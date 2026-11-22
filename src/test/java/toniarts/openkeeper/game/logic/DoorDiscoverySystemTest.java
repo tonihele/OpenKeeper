@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import toniarts.openkeeper.game.component.*;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -254,6 +255,48 @@ class DoorDiscoverySystemTest {
         discovery.processTick(0);
         assertTrue(toniarts.openkeeper.game.controller.creature.DoorAttackTarget.canBreak(data, door,
                 toniarts.openkeeper.tools.convert.map.Creature.FightStyle.BLITZER, true));
+    }
+
+    @ParameterizedTest(name = "{0}: hidden={1}, open={2}, locked={3}")
+    @CsvSource({
+        "ALLY,true,false,false", "ALLY,true,true,false", "ALLY,true,false,true", "ALLY,true,true,true",
+        "ALLY,false,false,false", "ALLY,false,true,false", "ALLY,false,false,true", "ALLY,false,true,true",
+        "ENEMY,true,false,false", "ENEMY,true,true,false", "ENEMY,true,false,true", "ENEMY,true,true,true",
+        "ENEMY,false,false,false", "ENEMY,false,true,false", "ENEMY,false,false,true", "ENEMY,false,true,true"
+    })
+    void alliedAndEnemyDoorMatrix(String relation, boolean hidden, boolean open, boolean locked) {
+        short viewer = relation.equals("ALLY") ? ALLY : ENEMY;
+        boolean allied = viewer == ALLY;
+        data.setComponents(door, new DoorComponent(TYPE, locked, false, hidden),
+                new DoorViewState(TYPE, locked, false, open, hidden));
+        assertEquals(!hidden, positions.isDoorKnown(door, viewer));
+        assertEquals(!hidden, view().isShownTo(OWNER, viewer));
+        assertEquals(!hidden && (!allied || !locked), cost(viewer, !allied) != null,
+                "AI must know the door before opening or attacking it");
+        assertEquals(!hidden && allied && !locked, cost(viewer, false) != null);
+        assertEquals(open || allied && !locked, movementCost(viewer) != null,
+                "Manual passage follows physical state independently of discovery");
+    }
+
+    @ParameterizedTest(name = "{0} observer, locked={1}")
+    @CsvSource({"ALLY,false", "ALLY,true", "ENEMY,false", "ENEMY,true"})
+    void openingAndDiscoveryWithAlliedAndEnemyObservers(String relation, boolean locked) {
+        short observerOwner = relation.equals("ALLY") ? ALLY : ENEMY;
+        data.setComponents(door, new DoorComponent(TYPE, locked, false, true),
+                new DoorViewState(TYPE, locked, false, false, true));
+        creature(observerOwner, 8, 8);
+        opening.processTick(0);
+        discovery.processTick(0);
+        assertEquals(observerOwner == ALLY && !locked, view().open);
+        assertTrue(component().hidden, "An ally cannot reveal it; an enemy cannot open it");
+        if (!locked) {
+            creature(OWNER, 8, 8);
+            opening.processTick(0);
+            discovery.processTick(0);
+            assertTrue(view().open);
+            assertEquals(observerOwner == ALLY, component().hidden,
+                    "Only an enemy witnessing the owner's open door reveals it");
+        }
     }
 
     private EntityId creature(short owner, float x, float z) {

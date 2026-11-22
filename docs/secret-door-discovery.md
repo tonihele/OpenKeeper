@@ -141,3 +141,39 @@ known: both stop at the same closed footprint and pass the same open footprint,
 without changing route knowledge. This integration checkout is separate from
 the #1365 implementation; the original worktree's pending contact edits were
 not changed.
+
+### Allied/enemy test pass
+
+The follow-up matrix adds 20 cases: allied/enemy ownership crossed with hidden
+or discovered, open or closed, and locked or unlocked states; plus actual
+DoorViewSystem/DoorDiscoverySystem ticks with allied and enemy observers.
+The focused discovery, client visibility, route-cost and hero-party suite passes
+**54 tests**. Allied opening leaves the secret hidden. Enemy observation reveals
+an already open secret, while an enemy alone cannot open it. Locked allied doors
+remain unavailable to ordinary routes. Possession access follows physical state.
+
+The isolated contact integration passes **76 focused tests**, including actual
+PossessedMovementSystem movement with both allied and enemy secret doors, hidden
+and discovered. Every closed case stops at the contact band; every open case
+passes, and physical passage does not change knowledge. These 76 overlap the
+primary focused suite; they are not 76 additional unique tests.
+
+`research/dkii-secret-doors/run_visual.py` loads the user's converted wooden and
+secret door models and drives the production PlayerEntityViewState visibility
+update. It renders owned, allied and enemy columns in three phases: closed and
+hidden, open and hidden, discovered and closed. All **18 visibility assertions**
+pass and three screenshots are captured. This is an asset-backed rendering
+fixture; discovery and movement are exercised separately by the simulation tests.
+Preview lighting uses AssetUtils.applyFullLight. It does not test full gameplay
+or the game's lighting pipeline. No reference assets or screenshots are committed.
+
+After `./gradlew installDist`, run with JDK 25 and a working graphical display:
+
+```sh
+python3 research/dkii-secret-doors/run_visual.py \
+  '/path/to/Dungeon Keeper 2/' '/path/to/OpenKeeper/assets/Converted' \
+  --output /tmp/openkeeper-secret-door-visual
+```
+
+The preview closes automatically after capturing all three phases. Screenshots
+are saved beneath the selected output directory's `frames` directory.
