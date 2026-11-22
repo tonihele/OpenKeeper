@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller;
 
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.data.Keeper;
@@ -82,6 +83,7 @@ class MapControllerTest {
                 (proxy, method, args) -> switch (method.getName()) {
             case "getMap" -> map;
             case "getTerrain" -> terrains.get((Short) args[0]);
+            case "getThings" -> List.of();
             default -> throw new UnsupportedOperationException(method.getName());
         });
         Map<Short, Keeper> players = Map.of(NEUTRAL, new Keeper(false, NEUTRAL), KEEPER, new Keeper(false, KEEPER));
