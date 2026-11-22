@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.jme3.math.FastMath;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -509,6 +510,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
             @Override
+            public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+                // Not interested
+            }
+
+            @Override
             public void onFogOfWarDisabled(short keeperId) {
                 // Not interested
             }
@@ -769,7 +775,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         List<IRoomController> rooms = mapController.getRoomsByFunction(objectType, creature.getOwnerId());
         Map<Integer, IRoomController> distancesToRooms = new TreeMap<>();
         for (IRoomController room : rooms) {
-            if (!spots.apply(room).isEmpty()) {
+
+            // A destroyed room serves nobody, like a claimed ruined Dungeon Heart that no longer stores gold
+            if (!room.isDestroyed() && !spots.apply(room).isEmpty()) {
                 distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])), room
                 );
             }
@@ -792,7 +800,19 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
             // Assign
             if (!coordinates.isEmpty()) {
-                Point target = Utils.getRandomItem(coordinates);
+                Point target;
+                if (objectType == ObjectType.SPECIAL || objectType == ObjectType.SPELL_BOOK) {
+                    Vector3f source = targetEntity != null ? EntityController.getPosition(entityData, targetEntity) : null;
+                    float originX = source != null ? source.x / WorldUtils.TILE_WIDTH : currentPosition.x;
+                    float originY = source != null ? source.z / WorldUtils.TILE_WIDTH : currentPosition.y;
+                    target = coordinates.stream().min(Comparator.comparingDouble(p -> {
+                        double dx = p.x - originX;
+                        double dy = p.y - originY;
+                        return dx * dx + dy * dy;
+                    })).orElseThrow();
+                } else {
+                    target = Utils.getRandomItem(coordinates);
+                }
                 GraphPath<IMapTileInformation> path = navigationService.findPath(creature.getCreatureCoordinates(), target, creature);
                 if (path != null || target == creature.getCreatureCoordinates()) {
 
@@ -857,7 +877,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new CarryGoldToTreasuryTask(navigationService, mapController, target, creature.getOwnerId(), room, gameWorldController);
             }
             case LAIR -> {
-                return new ClaimLair(navigationService, mapController, target, creature.getOwnerId(), room, this);
+                return new ClaimLair(navigationService, mapController, target, creature.getOwnerId(), room, this, gameSettings);
             }
             case RESEARCHER -> {
                 return new Research(navigationService, mapController, target, creature.getOwnerId(), room, this, playerControllers.get(creature.getOwnerId()).getResearchControl(), objectsController);

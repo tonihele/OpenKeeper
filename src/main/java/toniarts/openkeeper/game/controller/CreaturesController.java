@@ -68,6 +68,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -133,6 +134,11 @@ public final class CreaturesController implements ICreaturesController {
     private final static Set<Short> CREATURES_THAT_DIE_INSTANTLY = Set.of((short) 21, (short) 28, (short) 29);
 
     /**
+     * The Hero Lair terrain, the Hero Toolbox creatures stand on it
+     */
+    final static short HERO_LAIR_TERRAIN_ID = 35;
+
+    /**
      * Load creatures from a KWD file straight (new game)
      *
      * @param kwdFile the KWD file
@@ -160,7 +166,12 @@ public final class CreaturesController implements ICreaturesController {
     private void loadCreatures() {
         for (Thing.GoodCreature creature : kwdFile.getThings(Thing.GoodCreature.class)) {
             try {
-                spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
+                EntityId entityId = spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
+                if (creature.getFlags2() != null && creature.getFlags2().contains(Thing.Creature.CreatureFlag2.I_AM_A_TOOL)) {
+                    CreatureComponent creatureComponent = new CreatureComponent(entityData.getComponent(entityId, CreatureComponent.class));
+                    creatureComponent.tool = true;
+                    entityData.setComponent(entityId, creatureComponent);
+                }
             } catch (Exception ex) {
                 logger.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
             }
@@ -411,7 +422,7 @@ public final class CreaturesController implements ICreaturesController {
             }
             case CONJURE -> {
                 creatureState = null;
-                entityData.setComponent(entity, new CreatureFall());
+                entityData.setComponent(entity, new CreatureFall(true));
             }
             default ->
                 throw new RuntimeException("SpawnType " + spawnType + " not handled!");
@@ -512,6 +523,21 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public void levelUpTools(int level) {
+
+        // The tools still in the Hero Toolbox, i.e. standing on the Hero Lair
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(CreatureComponent.class, "tool", true), CreatureComponent.class, CreatureExperience.class, Health.class, Position.class);
+        for (Entity entity : entities) {
+            Point tile = WorldUtils.vectorToPoint(entity.get(Position.class).position);
+            IMapTileController mapTile = mapController.getMapData().getTile(tile);
+            if (mapTile != null && mapTile.getTerrainId() == HERO_LAIR_TERRAIN_ID && entity.get(CreatureExperience.class).level != level) {
+                levelUpCreature(entity.getId(), level, 0);
+            }
+        }
+        entities.release();
+    }
+
+    @Override
     public void increaseLevelOfCreatures(short playerId, int levelIncrease) {
 
         // Find all the living creatures of the wanted player and bump each one up individually
@@ -593,8 +619,11 @@ public final class CreaturesController implements ICreaturesController {
         creatureComponent.researchPerTick = getPointsPerTick(attributes.getResearchPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND));
         creatureComponent.manufacturePerTick = getPointsPerTick(attributes.getManufacturePerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND));
         creatureComponent.decomposeValue = scaleByLevel(attributes.getDecomposeValue(), getStatPercent(stats, Variable.CreatureStats.StatType.DECOMPOSE_VALUE));
-        creatureComponent.speed = scaleByLevel(attributes.getSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.SPEED_TILES_PER_SECOND));
-        creatureComponent.runSpeed = scaleByLevel(attributes.getRunSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.RUN_SPEED_TILES_PER_SECOND));
+
+        // The original never reads the level stats of the speeds, a creature walks and runs as fast on every level
+        // (CCreature_init 0x4872A0, level up 0x48B120)
+        creatureComponent.speed = attributes.getSpeed();
+        creatureComponent.runSpeed = attributes.getRunSpeed();
         creatureComponent.tortureTimeToConvert = scaleByLevel(attributes.getTortureTimeToConvert(), getStatPercent(stats, Variable.CreatureStats.StatType.TORTURE_TIME_TO_CONVERT_SECONDS));
         creatureComponent.posessionManaCost = scaleByLevel(attributes.getPossessionManaCost(), getStatPercent(stats, Variable.CreatureStats.StatType.POSSESSION_MANA_COST_PER_SECOND));
         if (sensesComponent != null) {
@@ -829,7 +858,7 @@ public final class CreaturesController implements ICreaturesController {
     @Override
     public void spawnCreatures(short creatureId, short playerId, int level, int amount) {
         IRoomController dungeonHeart = gameController.getPlayerController(playerId).getRoomControl().getDungeonHeart();
-        if (!(dungeonHeart instanceof ICreatureEntrance entrance)) {
+        if (!(dungeonHeart instanceof ICreatureEntrance entrance) || entrance.isDestroyed()) {
             logger.log(Level.WARNING, "Player {0} has no dungeon heart to spawn creatures at!", playerId);
             return;
         }
