@@ -153,6 +153,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void update(float tpf) {
+        if (screen != null && SCREEN_HUD_ID.equals(screen.getScreenId())) {
+            var tabs = screen.findNiftyControl("tabs-hud", CustomTabGroupControl.class);
+            if (tabs != null) {
+                tabs.refreshLayout();
+            }
+        }
         updateSpellRecharge(tpf);
         lastUpdate += tpf;
 
