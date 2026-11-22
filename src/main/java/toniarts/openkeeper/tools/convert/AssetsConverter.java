@@ -20,6 +20,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.system.AppSettings;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.conversion.ConversionTaskManager;
+import toniarts.openkeeper.tools.convert.conversion.task.ConversionTask;
 import toniarts.openkeeper.tools.convert.conversion.task.ConvertFonts;
 import toniarts.openkeeper.tools.convert.conversion.task.ConvertHiScores;
 import toniarts.openkeeper.tools.convert.conversion.task.ConvertMapThumbnails;
@@ -32,12 +33,14 @@ import toniarts.openkeeper.tools.convert.conversion.task.ConvertTextures;
 import toniarts.openkeeper.tools.convert.conversion.task.IConversionTask;
 import toniarts.openkeeper.tools.convert.conversion.task.IConversionTaskUpdate;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.hdtextures.HdTextures;
 import toniarts.openkeeper.utils.PathUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,14 +64,15 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
     public enum ConvertProcess {
 
         TEXTURES(7, new ConvertProcess[]{}),
-        MODELS(14, new ConvertProcess[]{TEXTURES}),
+        MODELS(15, new ConvertProcess[]{TEXTURES}),
         MOUSE_CURSORS(4, new ConvertProcess[]{}),
         MUSIC_AND_SOUNDS(4, new ConvertProcess[]{}),
         INTERFACE_TEXTS(3, new ConvertProcess[]{}),
         PATHS(4, new ConvertProcess[]{}),
         HI_SCORES(2, new ConvertProcess[]{}),
         FONTS(5, new ConvertProcess[]{}),
-        MAP_THUMBNAILS(3, new ConvertProcess[]{TEXTURES});
+        MAP_THUMBNAILS(3, new ConvertProcess[]{TEXTURES}),
+        HD_TEXTURES(1, new ConvertProcess[]{TEXTURES});
 
         private ConvertProcess(int version, ConvertProcess[] dependencies) {
             this.version = version;
@@ -118,7 +122,13 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
     public static final String FONTS_FOLDER = INTERFACE_FOLDER + "Fonts";
     public static final String TEXTS_FOLDER = INTERFACE_FOLDER + "Texts";
     public static final String PATHS_FOLDER = INTERFACE_FOLDER + "Paths";
-    
+
+    /**
+     * Whether the player wants the optional HD textures step, see
+     * {@link HdTextures}. Off by default.
+     */
+    public static final String HD_TEXTURES_SETTING = "HdTextures";
+
     private final String dungeonKeeperFolder;
     private final AssetManager assetManager;
 
@@ -152,6 +162,13 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
      */
     public static boolean isConversionNeeded(ConvertProcess convertProcess, AppSettings settings) {
         String key = convertProcess.getSettingName();
+        if (convertProcess == ConvertProcess.HD_TEXTURES) {
+
+            // Switched off it runs once more, to delete them. Switched on it follows the converted textures.
+            return settings.getBoolean(HD_TEXTURES_SETTING)
+                    ? convertProcess.getVersion() > settings.getInteger(key) || isConversionNeeded(ConvertProcess.TEXTURES, settings)
+                    : settings.getInteger(key) > 0;
+        }
         return convertProcess.getVersion() > settings.getInteger(key);
     }
 
@@ -173,7 +190,8 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
     }
 
     private static synchronized void setConversionComplete(ConvertProcess process, AppSettings settings) {
-        settings.putInteger(process.getSettingName(), process.getVersion());
+        boolean noHdTextures = process == ConvertProcess.HD_TEXTURES && !settings.getBoolean(HD_TEXTURES_SETTING);
+        settings.putInteger(process.getSettingName(), noHdTextures ? 0 : process.getVersion());
     }
 
     /**
@@ -253,6 +271,29 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
                 return new ConvertFonts(dungeonKeeperFolder, currentFolder.concat(FONTS_FOLDER).concat(File.separator), OVERWRITE_DATA);
             case MAP_THUMBNAILS:
                 return new ConvertMapThumbnails(dungeonKeeperFolder, currentFolder.concat(MAP_THUMBNAILS_FOLDER).concat(File.separator), OVERWRITE_DATA);
+            case HD_TEXTURES:
+                return new ConversionTask(dungeonKeeperFolder, currentFolder, OVERWRITE_DATA) {
+
+                    @Override
+                    public ConvertProcess getConvertProcess() {
+                        return ConvertProcess.HD_TEXTURES;
+                    }
+
+                    @Override
+                    protected void internalExecuteTask() {
+                        updateStatus(0, 1);
+                        AppSettings settings = Main.getSettings();
+                        Path converted = Paths.get(destination);
+                        boolean on = HdTextures.convert(settings.getBoolean(HD_TEXTURES_SETTING), converted.resolve(TEXTURES_FOLDER),
+                                converted.resolveSibling(TEXTURES_FOLDER), HdTextures.TOOLS_DIR);
+                        synchronized (AssetsConverter.class) {
+
+                            // Switched off if they couldn't be made, so the menu shows it
+                            settings.putBoolean(HD_TEXTURES_SETTING, on);
+                        }
+                        updateStatus(1, 1);
+                    }
+                };
         }
 
         throw new IllegalArgumentException("Conversion " + conversion + " not implemented!");
