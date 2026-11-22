@@ -87,6 +87,10 @@ class TaskManagerUnusedTaskTest {
     private ICreatureController createCreature() {
         entityData.setComponent(creatureId, new CreatureComponent());
         return stub(ICreatureController.class, (proxy, method, args) -> {
+            if (method.getName().equals("getObjectiveTargetActionPointId")) {
+                // A hero past his last waypoint has no action point (0) and gets no task
+                return 1;
+            }
             if (method.getName().equals("setAssignedTask")) {
                 Task task = (Task) args[0];
                 entityData.setComponent(creatureId, new TaskComponent(task.getId(), null, null, task.getTaskType(), 0f, false));
