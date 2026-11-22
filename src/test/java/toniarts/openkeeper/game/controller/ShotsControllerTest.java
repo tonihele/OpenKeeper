@@ -638,7 +638,7 @@ class ShotsControllerTest {
     private EntityId createDrainShot(EntityId shooter) {
         EntityId shot = entityData.createEntity();
         entityData.setComponents(shot, new Position(0, new Vector3f(1.5f, 1f, 1.5f)),
-                new ShotFlight(DRAIN_ID, PLAYER_ID, shooter, 25, 0, new Vector3f(), new Vector3f(), 3, 128));
+                new ShotFlight(DRAIN_ID, PLAYER_ID, shooter, null, 25, 0, new Vector3f(), new Vector3f(), 3, 128));
         return shot;
     }
 
