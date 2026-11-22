@@ -782,7 +782,8 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         Map<Integer, IRoomController> distancesToRooms = new TreeMap<>();
         Map<Integer, IRoomController> distancesToRoomsWithHatedCompany = new TreeMap<>();
         for (IRoomController room : rooms) {
-            if (!spots.apply(room).isEmpty()) {
+            // A destroyed room serves nobody, like a claimed ruined Dungeon Heart that no longer stores gold
+            if (!room.isDestroyed() && !spots.apply(room).isEmpty()) {
                 (hasHatedCompany(creature, objectType, room) ? distancesToRoomsWithHatedCompany : distancesToRooms)
                         .put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])), room);
             }
@@ -947,7 +948,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new CarryGoldToTreasuryTask(navigationService, mapController, target, creature.getOwnerId(), room, gameWorldController);
             }
             case LAIR -> {
-                return new ClaimLair(navigationService, mapController, target, creature.getOwnerId(), room, this);
+                return new ClaimLair(navigationService, mapController, target, creature.getOwnerId(), room, this, gameSettings);
             }
             case RESEARCHER -> {
                 return new Research(navigationService, mapController, target, creature.getOwnerId(), room, this, playerControllers.get(creature.getOwnerId()).getResearchControl(), objectsController);

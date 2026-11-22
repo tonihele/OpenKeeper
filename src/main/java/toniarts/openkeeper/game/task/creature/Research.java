@@ -53,8 +53,8 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
     public boolean isValid(ICreatureController creature) {
 
         // A researcher that shares the Library with the other side moves to another one (0x475E70, 0x476060)
-        return (researchControl.isAnythingToReaseach() && !getRoom().getObjectControl(getRoomObjectType()).isFullCapacity()
-                && (creature == null || !taskManager.isLibraryWithoutHatedCompanyInReach(creature, getRoom())));
+        return super.isValid(creature) && researchControl.isAnythingToReaseach()
+                && (creature == null || !taskManager.isLibraryWithoutHatedCompanyInReach(creature, getRoom()));
     }
 
     @Override

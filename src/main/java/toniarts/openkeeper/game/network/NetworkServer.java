@@ -58,6 +58,7 @@ import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreaturePay;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureTypeAttraction;
@@ -95,6 +96,7 @@ import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
+import toniarts.openkeeper.game.component.PathRetry;
 import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.PlayerObjective;
@@ -175,7 +177,7 @@ public final class NetworkServer {
         this.port = port;
     }
 
-    private static void initialize() {
+    static void initialize() {
         if (!initialized) {
             initialized = true;
 
@@ -217,6 +219,7 @@ public final class NetworkServer {
             Serializer.registerClass(Casino.class, new FieldSerializer());
             Serializer.registerClass(CastShot.class, new FieldSerializer());
             Serializer.registerClass(CreatureGenerator.class, new FieldSerializer());
+            Serializer.registerClass(CreatureSpell.class, new FieldSerializer());
             Serializer.registerClass(CreatureSpells.class, new FieldSerializer());
             Serializer.registerClass(CreatureTypeAttraction.class, new FieldSerializer());
             Serializer.registerClass(DungeonHeart.class, new FieldSerializer());
@@ -273,6 +276,7 @@ public final class NetworkServer {
             Serializer.registerClass(OnFire.class, new FieldSerializer());
             Serializer.registerClass(Owner.class, new FieldSerializer());
             Serializer.registerClass(Party.class, new FieldSerializer());
+            Serializer.registerClass(PathRetry.class, new FieldSerializer());
             Serializer.registerClass(Peaceful.class, new FieldSerializer());
             Serializer.registerClass(Placeable.class, new FieldSerializer());
             Serializer.registerClass(PlayerObjective.class, new FieldSerializer());
