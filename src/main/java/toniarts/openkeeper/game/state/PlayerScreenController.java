@@ -137,6 +137,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private WatchedEntity possessedCreature;
     private int lastImpCount = -1;
     private EntitySet spellCasts;
+    private Boolean lastGodMode;
     private final Map<Short, Float> spellRechargeLeft = new HashMap<>();
     private PossessionInteractionState.Action possessionAction = PossessionInteractionState.Action.MELEE;
 
@@ -1245,8 +1246,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
      */
     public int getSpellManaCost(KeeperSpell keeperSpell) {
         int impCount = creatureCardManager != null ? creatureCardManager.getImpCount() : 0;
+        GameClientState client = state.stateManager.getState(GameClientState.class);
         return KeeperSpellCost.getManaCost(keeperSpell, impCount,
-                (int) state.getKwdFile().getVariables().get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue());
+                (int) state.getKwdFile().getVariables().get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue(),
+                client != null && client.isGodMode());
     }
 
     private void updateSpellAffordability(int availableMana) {
@@ -1707,7 +1710,14 @@ public final class PlayerScreenController implements IPlayerScreenController {
         GameClientState client = state.stateManager.getState(GameClientState.class);
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         syncCheatTabVisibility();
+        boolean godMode = client.isGodMode();
+        if (lastGodMode == null || lastGodMode != godMode) {
+            // The spell tooltips show the mana cost, which is free in god mode
+            lastGodMode = godMode;
+            populateSpellTab();
+        }
         updateRoomAffordability(state.getPlayer().getGold());
+        updateSpellAffordability(state.getPlayer().getMana() - state.getPlayer().getManaLoose());
         Element overlay = hud.findElementById("terrain-overlay");
         if (overlay != null) {
             overlay.setVisible(client.isGodMode() && client.isCheat(CheatState.CheatType.TERRAIN_CHANGE));

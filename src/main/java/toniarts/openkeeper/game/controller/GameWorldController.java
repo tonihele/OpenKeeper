@@ -1795,9 +1795,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
-        // Validate. The workers get more expensive the more of them there are
+        // Validate. The workers get more expensive the more of them there are, god mode casts for free
         int manaCost = KeeperSpellCost.getManaCost(keeperSpell, playerControllers.get(playerId).getCreatureControl().getImpCount(),
-                (int) gameSettings.get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue());
+                (int) gameSettings.get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue(), isGodMode(playerId));
         Creature targetCreature = null;
         Short targetOwner = null;
         boolean targetChicken = false;

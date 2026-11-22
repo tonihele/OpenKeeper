@@ -113,7 +113,8 @@ public final class KeeperSpellCastValidator {
     }
 
     private static boolean checkPlayerMana(int manaCost, Keeper player) {
-        return manaCost <= player.getMana() - player.getManaLoose();
+        // A free spell, such as in god mode, can always be cast
+        return manaCost <= 0 || manaCost <= player.getMana() - player.getManaLoose();
     }
 
     private static boolean checkTargetRule(Creature creature, Short owner, boolean chicken, KeeperSpell keeperSpell, Keeper player) {
