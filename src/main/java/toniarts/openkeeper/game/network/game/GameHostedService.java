@@ -334,6 +334,16 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
+    public void revealSightOfEvil(Point centre, int radius, int durationTicks, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onSightOfEvil(centre, radius, durationTicks, playerId);
+                break;
+            }
+        }
+    }
+
+    @Override
     public void disableFogOfWar(short playerId) {
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (gameSession.getKey().getKeeper().getId() == playerId) {
@@ -433,11 +443,20 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
+    public void sendEffect(int effectId, Vector3f position, float yaw) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onEffect(effectId, position, yaw);
+        }
+    }
+
+    @Override
     public void sendEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position, Short playerId) {
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (playerId == null || gameSession.getKey().getKeeper().getId() == playerId) {
                 gameSession.getValue().onEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
-                break;
+                if (playerId != null) {
+                    break;
+                }
             }
         }
     }
@@ -794,6 +813,11 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
+        public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+            getCallback().onSightOfEvil(centre, radius, durationTicks, keeperId);
+        }
+
+        @Override
         public void onFogOfWarDisabled(short keeperId) {
             getCallback().onFogOfWarDisabled(keeperId);
         }
@@ -836,6 +860,11 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         @Override
         public void onGameEnded(boolean win) {
             getCallback().onGameEnded(win);
+        }
+
+        @Override
+        public void onEffect(int effectId, Vector3f position, float yaw) {
+            getCallback().onEffect(effectId, position, yaw);
         }
 
         @Override

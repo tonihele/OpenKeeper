@@ -278,6 +278,15 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void revealSightOfEvil(Point centre, int radius, int durationTicks, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onSightOfEvil(centre, radius, durationTicks, playerId);
+            }
+        }
+    }
+
+    @Override
     public void disableFogOfWar(short playerId) {
         if (playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {
@@ -558,6 +567,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
             for (GameSessionListener listener : listeners.getArray()) {
                 listener.onGameEnded(win);
             }
+        }
+    }
+
+    @Override
+    public void sendEffect(int effectId, Vector3f position, float yaw) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onEffect(effectId, position, yaw);
         }
     }
 

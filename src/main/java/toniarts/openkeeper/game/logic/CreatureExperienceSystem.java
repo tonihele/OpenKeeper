@@ -29,9 +29,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -53,7 +56,8 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
 
     private enum ExperienceGainReason {
         NONE,
-        WORKING_OR_FIGHTING
+        WORKING,
+        FIGHTING
     }
 
     /**
@@ -68,6 +72,8 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     private final EntityData entityData;
     private final int impExperienceGainPerSecond;
     private final int trainingRoomMaxExperienceLevel;
+    private final int combatPitMaxLevel;
+    private final int experienceLossPerTick;
     private final SafeArrayList<EntityId> experienceEntityIds;
     private final SafeArrayList<EntityId> trainingEntityIds;
     private final ICreaturesController creaturesController;
@@ -85,6 +91,10 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         impExperienceGainPerSecond = (int) gameSettings.get(Variable.MiscVariable.MiscType.IMP_EXPERIENCE_GAIN_PER_SECOND).getValue();
         Variable.MiscVariable trainingRoomMaxLevelVariable = gameSettings.get(Variable.MiscVariable.MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL);
         trainingRoomMaxExperienceLevel = trainingRoomMaxLevelVariable != null ? (int) trainingRoomMaxLevelVariable.getValue() : Utils.MAX_CREATURE_LEVEL;
+        Variable.MiscVariable combatPitMaxLevelVariable = gameSettings.get(Variable.MiscVariable.MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL);
+        combatPitMaxLevel = combatPitMaxLevelVariable != null ? (int) combatPitMaxLevelVariable.getValue() : Utils.MAX_CREATURE_LEVEL;
+        Variable.MiscVariable experienceLossVariable = gameSettings.get(Variable.MiscVariable.MiscType.E_P_LOSS_SECOND_WHILE_NOT_TRAINING);
+        experienceLossPerTick = experienceLossVariable != null ? (int) experienceLossVariable.getValue() : 0;
 
         experienceEntities = entityData.getEntities(CreatureComponent.class, CreatureExperience.class, CreatureAi.class);
         trainingEntities = entityData.getEntities(new AndFilter(TaskComponent.class, new FieldFilter(TaskComponent.class, "taskStarted", true), new FieldFilter(TaskComponent.class, "taskType", TaskType.TRAIN)), CreatureComponent.class, CreatureExperience.class, CreatureAi.class, TaskComponent.class);
@@ -112,8 +122,14 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         for (EntityId entityId : experienceEntityIds.getArray()) {
             Entity entity = experienceEntities.getEntity(entityId);
             handleEntity(entity, entityId, tpf, () -> {
-                return isEntityWorkingOrFighting(entity) && !isWorkerFightingWithoutGain(entity) ? ExperienceGainReason.WORKING_OR_FIGHTING : ExperienceGainReason.NONE;
+                if (isFightingACreature(entity)) {
+                    return isWorkerFightingWithoutGain(entity) ? ExperienceGainReason.NONE : ExperienceGainReason.FIGHTING;
+                }
+                return isEntityWorking(entity) ? ExperienceGainReason.WORKING : ExperienceGainReason.NONE;
             });
+            if (experienceLossPerTick > 0 && !isTraining(entityId)) {
+                loseExperience(entityId);
+            }
         }
         for (EntityId entityId : trainingEntityIds.getArray()) {
             handleTraining(trainingEntities.getEntity(entityId), entityId);
@@ -153,35 +169,59 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
             return;
         }
 
+        // The Combat Pit teaches only up to a level
+        if (creatureExperience.level >= combatPitMaxLevel && entityData.getComponent(entityId, CombatPitFighter.class) != null) {
+            return;
+        }
+
         // Check if we can gain exp
         ExperienceGainReason reason = reasonSupplier.get();
         if (reason == ExperienceGainReason.NONE) {
             return;
         }
 
-        double timeWorking = timeWorkingByEntityId.compute(entityId, (k, v) -> {
-            if (v == null) {
-                return 0.0;
+        // Fighting teaches on every tick, the rest once a second
+        if (reason != ExperienceGainReason.FIGHTING) {
+            double timeWorking = timeWorkingByEntityId.compute(entityId, (k, v) -> {
+                if (v == null) {
+                    return 0.0;
+                }
+                return v + tpf;
+            });
+
+            // Increase the exp
+            if (timeWorking < 1) {
+                return;
             }
-            return v + tpf;
-        });
 
-        // Increase the exp
-        if (timeWorking < 1) {
-            return;
+            timeWorkingByEntityId.merge(entityId, -1.0, Double::sum);
         }
-
-        timeWorkingByEntityId.merge(entityId, -1.0, Double::sum);
         addExperience(entityId, creatureExperience, getCreatureExperienceGain(entity, reason));
+    }
+
+    /**
+     * Creatures that are not training, or on their way to train, lose
+     * E_P_LOSS_SECOND_WHILE_NOT_TRAINING experience on every tick, as in DK
+     * II. They lose no levels, the experience stops at zero.
+     */
+    private void loseExperience(EntityId entityId) {
+        CreatureExperience creatureExperience = entityData.getComponent(entityId, CreatureExperience.class);
+        if (creatureExperience.level < Utils.MAX_CREATURE_LEVEL && creatureExperience.experience > 0) {
+            addExperience(entityId, creatureExperience, -Math.min(experienceLossPerTick, creatureExperience.experience));
+        }
+    }
+
+    private boolean isTraining(EntityId entityId) {
+        TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
+        return taskComponent != null && taskComponent.taskType == TaskType.TRAIN;
     }
 
     private void addExperience(EntityId entityId, CreatureExperience creatureExperience, int gain) {
         int experience = creatureExperience.experience + gain;
 
-        // See if we gained a level
+        // See if we gained a level, the new level starts from nothing
         if (experience >= creatureExperience.experienceToNextLevel) {
-            experience -= creatureExperience.experienceToNextLevel;
-            creaturesController.levelUpCreature(entityId, creatureExperience.level + 1, experience);
+            creaturesController.levelUpCreature(entityId, creatureExperience.level + 1, 0);
         } else {
             entityData.setComponent(entityId, new CreatureExperience(creatureExperience.level, experience, creatureExperience.experienceToNextLevel, creatureExperience.experiencePerSecond, creatureExperience.experiencePerTickTraining));
         }
@@ -204,10 +244,25 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         }
     }
 
-    private boolean isEntityWorkingOrFighting(Entity entity) {
-        CreatureAi creatureAi = entity.get(CreatureAi.class);
-        CreatureState creatureState = creatureAi.getCreatureState();
-        return creatureState == CreatureState.MELEE_ATTACK || creatureState == CreatureState.CAST_SPELL || (creatureState == CreatureState.WORK && isWorker(entity) && isDoingWorkerJob(entity));
+    /**
+     * A creature learns from the whole fight with another creature, also
+     * while it waits for its next swing, but not on its way to the target. Nor
+     * does it learn from hitting a Dungeon Heart or other objects
+     */
+    private boolean isFightingACreature(Entity entity) {
+        CreatureState creatureState = entity.get(CreatureAi.class).getCreatureState();
+        if (creatureState != CreatureState.FIGHT && creatureState != CreatureState.MELEE_ATTACK && creatureState != CreatureState.CAST_SPELL) {
+            return false;
+        }
+        if (entityData.getComponent(entity.getId(), Navigation.class) != null) {
+            return false;
+        }
+        AttackTarget attackTarget = entityData.getComponent(entity.getId(), AttackTarget.class);
+        return attackTarget != null && entityData.getComponent(attackTarget.entityId, CreatureComponent.class) != null;
+    }
+
+    private boolean isEntityWorking(Entity entity) {
+        return entity.get(CreatureAi.class).getCreatureState() == CreatureState.WORK && isWorker(entity) && isDoingWorkerJob(entity);
     }
 
     /**
@@ -238,7 +293,12 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     }
 
     private int getCreatureExperienceGain(Entity entity, ExperienceGainReason reason) {
-        if (reason != ExperienceGainReason.WORKING_OR_FIGHTING) {
+        if (reason == ExperienceGainReason.FIGHTING) {
+            // The experience per second spread over the ticks, at least one point
+            int experiencePerSecond = entity.get(CreatureExperience.class).experiencePerSecond;
+            return experiencePerSecond > 0 ? Math.max(1, experiencePerSecond / kwdFile.getGameLevel().getTicksPerSec()) : 0;
+        }
+        if (reason != ExperienceGainReason.WORKING) {
             return 0;
         }
 
