@@ -19,7 +19,9 @@ package toniarts.openkeeper.game.task;
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IGameWorldController;
@@ -30,7 +32,10 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.RoomFixtures;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -78,7 +83,10 @@ class RoomTaskSharingTest {
 
         IGameWorldController gameWorldController = proxy(IGameWorldController.class, (proxy, method, args) -> null);
 
-        return new TaskManager(new DefaultEntityData(), gameWorldController, mapController, null, null, navigationService, List.of(), null, null, null);
+        Map<MiscType, MiscVariable> gameSettings = new EnumMap<>(MiscType.class);
+        gameSettings.put(MiscType.CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH, CreatureSleepFixtures.variable(MiscType.CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH, 50));
+
+        return new TaskManager(new DefaultEntityData(), gameWorldController, mapController, null, null, navigationService, List.of(), null, null, gameSettings);
     }
 
     /**
@@ -108,7 +116,7 @@ class RoomTaskSharingTest {
                 control;
             case "isTileAccessible" ->
                 true;
-            case "isFullCapacity" ->
+            case "isFullCapacity", "isDestroyed" ->
                 false;
             case "hashCode" ->
                 System.identityHashCode(proxy);
