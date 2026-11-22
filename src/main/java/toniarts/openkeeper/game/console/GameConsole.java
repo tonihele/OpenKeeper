@@ -55,7 +55,7 @@ public final class GameConsole {
         ADD_GOLD("<amount>"),
         ADD_MANA("<amount>"),
         SPAWN_CREATURE("<name> [level] [amount]"),
-        SPAWN_IMPS("<amount>"),
+        SPAWN_IMPS("[amount] [level]"),
         TERRAIN("<name|id> [x y [x2 y2]] (god mode, default: the tile under the cursor)");
 
         final String param;
@@ -81,7 +81,6 @@ public final class GameConsole {
         LOOSE_LEVEL,
         LEVEL_MAX,
         PAYDAY,
-        SPAWN_IMP,
         UNLOCK_ROOMS,
         UNLOCK_SPELLS,
         UNLOCK_DOORS_TRAPS,
@@ -157,9 +156,6 @@ public final class GameConsole {
                 case HELP:
                     showHelpMessage();
                     break;
-                case SPAWN_IMP:
-                    spawnImp();
-                    break;
                 case EXIT:
                     stateManager.getState(ConsoleState.class).setEnabled(false);
                     break;
@@ -192,7 +188,7 @@ public final class GameConsole {
         @Override
         public void execute(final String[] args) {
             String command = args[0].toUpperCase();
-            if (args.length == 1) {
+            if (args.length == 1 && !ParameterCommands.SPAWN_IMPS.name().equals(command)) {
                 console.outputError("This command needs at least one parameter");
                 return;
             }
@@ -217,10 +213,11 @@ public final class GameConsole {
                     break;
                 case SPAWN_IMPS:
                     try {
-                        int amount = Integer.parseInt(args[1]);
-                        spawnImps(amount);
+                        int amount = args.length > 1 ? Integer.parseInt(args[1]) : 1;
+                        int level = args.length > 2 ? Integer.parseInt(args[2]) : 1;
+                        spawnImps(amount, level);
                     } catch (NumberFormatException e) {
-                        console.outputError("First parameter must be the amount of imps!");
+                        console.outputError("Usage: spawn_imps [amount] [level]");
                     }
                     break;
                 case TERRAIN: {
@@ -315,13 +312,9 @@ public final class GameConsole {
         return null;
     }
 
-    private void spawnImps(final int amount) {
+    private void spawnImps(final int amount, final int level) {
         GameClientState gameClientState = stateManager.getState(GameClientState.class);
-        spawnCreature(gameClientState.getLevelData().getImp().getCreatureId(), 1, amount);
-    }
-
-    private void spawnImp() {
-        spawnImps(1);
+        spawnCreature(gameClientState.getLevelData().getImp().getCreatureId(), level, amount);
     }
 
     private void spawnCreature(short creatureId, int level, int amount) {
