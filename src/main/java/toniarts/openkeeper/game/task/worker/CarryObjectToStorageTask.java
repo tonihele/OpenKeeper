@@ -55,7 +55,12 @@ public final class CarryObjectToStorageTask extends AbstractCapacityCriticalRoom
     @Override
     public boolean isValid(ICreatureController creature) {
         if (!executed) {
-            return super.isValid(creature);
+            if (!super.isValid(creature)) {
+                return false;
+            }
+            AbstractRoomController.ObjectType type = getRoomObjectType();
+            return (type != AbstractRoomController.ObjectType.SPECIAL && type != AbstractRoomController.ObjectType.SPELL_BOOK)
+                    || room.getObjectControl(type).getAvailableCoordinates().contains(getTaskLocation());
         }
         return false;
     }

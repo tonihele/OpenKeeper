@@ -23,18 +23,22 @@ import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Objects;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
@@ -123,21 +127,24 @@ public class EntityController implements IEntityController {
 
     @Override
     public void removePossession() {
-        handleLootDrop();
+        dropLoot();
         handleAssociatedEntities();
     }
 
-    private void handleLootDrop() {
+    @Override
+    public void dropLoot() {
 
-        // Drop gold
+        // Drop gold, in one pile below 1000, two below 3000 and three from
+        // that up. The piles share the gold evenly, the remainder is lost (0x48F930)
         Gold gold = entityData.getComponent(entityId, Gold.class);
         if (gold != null && gold.gold > 0) {
             Position position = entityData.getComponent(entityId, Position.class);
-            Owner owner = entityData.getComponent(entityId, Owner.class);
             Point point = WorldUtils.vectorToPoint(position.position);
-            // TODO: some central place, we need to add more than one pile if it exceeds the max
-            objectsController.addLooseGold(owner.ownerId, point.x, point.y, gold.gold, gold.maxGold);
-            entityData.removeComponent(entityId, Gold.class);
+            int piles = gold.gold < 1000 ? 1 : gold.gold < 3000 ? 2 : 3;
+            for (int i = 0; i < piles; i++) {
+                objectsController.addLooseGold(point.x, point.y, gold.gold / piles, gold.maxGold);
+            }
+            entityData.setComponent(entityId, new Gold(0, gold.maxGold));
         }
 
         // Drop Portal Gem
@@ -152,31 +159,32 @@ public class EntityController implements IEntityController {
 
     protected void removeFromRoomStrorage() {
         Stored roomStorage = entityData.getComponent(entityId, Stored.class);
-        Position position = entityData.getComponent(entityId, Position.class);
-        removeRoomStorage(roomStorage, position, entityId);
+        removeRoomStorage(roomStorage, entityId);
     }
 
     protected void removeLair() {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
         if (creatureSleep != null && creatureSleep.lairObjectId != null) {
             Stored roomStorage = entityData.getComponent(creatureSleep.lairObjectId, Stored.class);
-            Position position = entityData.getComponent(creatureSleep.lairObjectId, Position.class);
-            removeRoomStorage(roomStorage, position, creatureSleep.lairObjectId);
+            removeRoomStorage(roomStorage, creatureSleep.lairObjectId);
         }
     }
 
-    private void removeRoomStorage(Stored roomStorage, Position position, EntityId entityId) {
+    private void removeRoomStorage(Stored roomStorage, EntityId entityId) {
         if (roomStorage == null) {
             return;
         }
-        if (position == null) {
-            logger.log(Level.WARNING, () -> "Entity died and is part of room storage (" + roomStorage + ") but hasn't got location!");
+
+        // The room is the one the object is stored in, not necessarily the one under it (a chicken can wander off)
+        IRoomController roomController = mapController.getRoomController(roomStorage.room);
+        if (roomController == null) {
+            logger.log(Level.WARNING, () -> "Entity is part of room storage (" + roomStorage + ") but the room is gone!");
             return;
         }
-
-        IRoomController roomController = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
         IRoomObjectControl roomObjectControl = roomController.getObjectControl(roomStorage.objectType);
-        roomObjectControl.removeItem(entityId);
+        if (roomObjectControl != null) {
+            roomObjectControl.removeItem(entityId);
+        }
     }
 
     private void removeAttacks() {
@@ -224,7 +232,44 @@ public class EntityController implements IEntityController {
     public static void setDamage(EntityData entityData, EntityId entityId, int damageAmount) {
         Damage damage = entityData.getComponent(entityId, Damage.class);
         int damageTotal = damage != null ? damage.damage : 0;
-        entityData.setComponent(entityId, new Damage(damageTotal + damageAmount));
+        entityData.setComponent(entityId, new Damage(damageTotal + scaleDamage(entityData, entityId, damageAmount)));
+    }
+
+    /**
+     * Scales the damage a creature takes by what it is doing. DK II counts in
+     * 128ths: a possessed creature takes half, a frozen one a quarter more
+     * (DKII.EXE 0x4B2CE0), and one that lies stunned or is getting up takes
+     * double. Healing is never scaled
+     *
+     * @param entityData the entity data
+     * @param entityId the entity that is hit
+     * @param damageAmount the damage dealt
+     * @return the damage taken
+     */
+    private static int scaleDamage(EntityData entityData, EntityId entityId, int damageAmount) {
+        if (damageAmount <= 0) {
+            return damageAmount;
+        }
+        int multiplier = 128;
+
+        // A possessed creature has no AI
+        if (entityData.getComponent(entityId, Possessed.class) != null) {
+            multiplier -= 64;
+        }
+
+        // A frozen creature stands in the stunned state, but it doesn't lie stunned
+        boolean frozen = entityData.getComponent(entityId, Frozen.class) != null;
+        if (frozen) {
+            multiplier += 32;
+        }
+        CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
+        if (creatureAi != null) {
+            CreatureState state = creatureAi.getCreatureState();
+            if ((state == CreatureState.STUNNED && !frozen) || state == CreatureState.FALLEN || state == CreatureState.GETTING_UP) {
+                multiplier += 128;
+            }
+        }
+        return (int) Math.min(Integer.MAX_VALUE, (long) damageAmount * multiplier / 128);
     }
 
     @Override

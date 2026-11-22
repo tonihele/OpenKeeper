@@ -32,4 +32,15 @@ public interface PlayerActionListener {
     @Asynchronous
     public void onSold(short keeperId, List<Point> tiles);
 
+    /**
+     * Called by the server once after the last wave of a room build or sale.
+     * The tile list contains all room tiles actually changed by that selection, in
+     * wave order. Rejected, cancelled and unchanged selections do not notify.
+     * Per-wave onBuild/onSold callbacks remain available for incremental work.
+     * Server listeners can use this hook for selection-wide job reassessment.
+     */
+    @Asynchronous
+    default void onRoomSelectionComplete(short keeperId, List<Point> tiles) {
+    }
+
 }
