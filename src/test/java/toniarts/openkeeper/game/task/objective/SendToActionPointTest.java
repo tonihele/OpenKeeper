@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task.objective;
 
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.jme3.math.Vector2f;
 import java.lang.reflect.Proxy;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
@@ -34,15 +35,18 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * A hero sent to an action point waits there for the point's wait delay
- * (seconds) before moving on to the next waypoint, as in DKII.EXE (the
+ * A hero sent to an action point mills about there for the point's wait delay
+ * (game ticks) before moving on to the next waypoint, as in DKII.EXE (the
  * arrival state at 0x00472150 sets the wait timer, the patrol state at
- * 0x004721C0 holds the creature until it has passed). It goes to a random
- * tile of the point that it can get to (0x00471EB0), not to its middle.
+ * 0x004721C0 steps to a side neighbour until it has passed). It goes to a
+ * random tile of the point that it can get to (0x00471EB0), not to its middle.
  */
 class SendToActionPointTest {
+
+    private static final int TICKS_PER_SECOND = 4;
 
     private int objectiveActionPointId;
     private Thing.HeroParty.Objective objective = Thing.HeroParty.Objective.SEND_TO_ACTION_POINT;
@@ -94,7 +98,7 @@ class SendToActionPointTest {
                     ? TerrainFixtures.flags(Terrain.TerrainFlag.SOLID) : TerrainFixtures.flags(), 0, 0, 0, (short) 1);
             default -> null;
         });
-        return new SendToActionPoint(navigationService, mapController, new ActionPoint(actionPoint), creature);
+        return new SendToActionPoint(navigationService, mapController, new ActionPoint(actionPoint), creature, TICKS_PER_SECOND);
     }
 
     @Test
@@ -131,7 +135,9 @@ class SendToActionPointTest {
     @Test
     void keepsWaitingUntilTheWaitDelayHasPassed() {
         ICreatureController creature = creature(1);
-        SendToActionPoint task = task(1, 5, 2);
+
+        // 20 game ticks are 5 seconds
+        SendToActionPoint task = task(1, 20, 2);
 
         task.executeTask(creature, 0f);
         task.executeTask(creature, 4.9f);
@@ -143,12 +149,40 @@ class SendToActionPointTest {
     @Test
     void movesToTheNextWaypointAfterTheWaitDelay() {
         ICreatureController creature = creature(1);
-        SendToActionPoint task = task(1, 5, 2);
+        SendToActionPoint task = task(1, 20, 2);
 
         task.executeTask(creature, 5f);
 
         assertEquals(2, objectiveActionPointId);
         assertFalse(task.isValid(creature));
+    }
+
+    @Test
+    void theWaitDelayIsInGameTicks() {
+        ICreatureController creature = creature(1);
+        SendToActionPoint task = task(1, 5, 2);
+
+        task.executeTask(creature, 1.25f);
+
+        assertEquals(2, objectiveActionPointId);
+    }
+
+    @Test
+    void millsAboutStepToSideNeighboursWhileWaiting() {
+        ICreatureController creature = creature(1);
+        SendToActionPoint task = task(1, 20, 2);
+        Point start = task.getTaskLocation();
+        Point open = new Point(start.x + 1, start.y);
+        solid = tile -> !tile.equals(open) && !tile.equals(start);
+
+        task.executeTask(creature, 0f);
+
+        // Only the tile to the east is open, so that is where it steps, and from there back
+        assertEquals(WorldUtils.pointToVector2f(open), task.getTarget(creature));
+
+        task.executeTask(creature, 1f);
+
+        assertEquals(WorldUtils.pointToVector2f(start), task.getTarget(creature));
     }
 
     @Test
@@ -165,7 +199,7 @@ class SendToActionPointTest {
     @Test
     void lastWaypointAlsoWaitsThenLeavesNoActionPointToGoTo() {
         ICreatureController creature = creature(3);
-        SendToActionPoint task = task(3, 2, 0);
+        SendToActionPoint task = task(3, 8, 0);
 
         task.executeTask(creature, 1f);
         assertTrue(task.isValid(creature));

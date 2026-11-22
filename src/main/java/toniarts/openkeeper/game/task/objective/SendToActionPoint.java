@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task.objective;
 
+import com.jme3.math.Vector2f;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -37,13 +38,33 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public final class SendToActionPoint extends GoToTask {
 
-    protected final ActionPoint actionPoint;
-    private boolean executed = false;
+    /**
+     * The four side neighbours a creature milling about at the point steps to
+     */
+    private static final int[][] SIDE_NEIGHBOURS = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
 
-    public SendToActionPoint(final INavigationService navigationService, final IMapController mapController, ActionPoint actionPoint, ICreatureController creature) {
+    protected final ActionPoint actionPoint;
+    private final int ticksPerSecond;
+    private boolean executed = false;
+    private Point spot;
+
+    /**
+     * Sends the creature to the action point
+     *
+     * @param navigationService the navigation
+     * @param mapController the map
+     * @param actionPoint the action point
+     * @param creature the creature sent
+     * @param ticksPerSecond the level's ticks per second, the point's wait
+     * delay is in game ticks
+     */
+    public SendToActionPoint(final INavigationService navigationService, final IMapController mapController, ActionPoint actionPoint, ICreatureController creature,
+            int ticksPerSecond) {
         super(navigationService, mapController, getDestination(navigationService, mapController, actionPoint, creature), creature.getOwnerId());
 
         this.actionPoint = actionPoint;
+        this.ticksPerSecond = ticksPerSecond;
+        spot = getTaskLocation();
     }
 
     /**
@@ -85,16 +106,41 @@ public final class SendToActionPoint extends GoToTask {
     }
 
     @Override
+    public Vector2f getTarget(ICreatureController creature) {
+        return WorldUtils.pointToVector2f(spot);
+    }
+
+    @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
 
-        // The creature waits at the point for its wait delay (seconds) before moving on
-        if (executionDuration < actionPoint.getWaitDelay()) {
+        // The creature mills about at the point for its wait delay before moving on. The delay is in game ticks,
+        // the original adds it to the game tick (0x472150)
+        if (executionDuration < (float) actionPoint.getWaitDelay() / ticksPerSecond) {
+            millAbout(creature);
             return;
         }
         executed = true;
 
         // Assign new objective. Past the last waypoint (0) there is no action point left to go to
         creature.setObjectiveTargetActionPointId(actionPoint.getNextWaypointId());
+    }
+
+    /**
+     * Steps to one of the four side neighbours, trying them in turn from a
+     * random one, and takes the first the creature can get to. With none it
+     * stays (0x4721C0)
+     */
+    private void millAbout(ICreatureController creature) {
+        int start = Utils.getRandom().nextInt(SIDE_NEIGHBOURS.length);
+        for (int i = 0; i < SIDE_NEIGHBOURS.length; i++) {
+            int[] offset = SIDE_NEIGHBOURS[(start + i) % SIDE_NEIGHBOURS.length];
+            Point neighbour = new Point(spot.x + offset[0], spot.y + offset[1]);
+            if (mapController.getMapData().getTile(neighbour) != null && !isSolid(mapController, neighbour)
+                    && navigationService.findPath(spot, neighbour, creature) != null) {
+                spot = neighbour;
+                return;
+            }
+        }
     }
 
 }

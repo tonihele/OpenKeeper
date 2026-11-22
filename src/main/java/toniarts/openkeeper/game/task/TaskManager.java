@@ -725,7 +725,8 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
                 ActionPoint actionPoint = levelInfo.getActionPoint(creature.getObjectiveTargetActionPointId());
                 if (actionPoint != null) {
-                    task = new SendToActionPoint(navigationService, mapController, actionPoint, creature);
+                    task = new SendToActionPoint(navigationService, mapController, actionPoint, creature,
+                            levelInfo.getLevelData().getGameLevel().getTicksPerSec());
                 } else {
                     logger.log(Level.ERROR, "Creature is sent to action point {0}, but the level doesn't have it!", creature.getObjectiveTargetActionPointId());
                 }
