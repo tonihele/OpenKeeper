@@ -439,8 +439,9 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
         getGameClientService().triggerCheat(cheat);
 
-        // The overlay modes (terrain change, creature spawning) stand alone, the other modes wait until it is over
-        if (cheat.isOverlayMode()) {
+        // The exclusive modes (terrain change, creature spawning, claiming land and instant digging)
+        // stand alone, the other modes wait until it is over
+        if (cheat.isExclusiveMode()) {
             if (enabled) {
                 for (CheatState.CheatType other : List.copyOf(cheats)) {
                     if (other != CheatState.CheatType.GOD_MODE && other != cheat) {

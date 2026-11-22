@@ -78,12 +78,20 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
          *
          * @return {@code true} if this cheat is a mode
          */
-        public boolean isOverlayMode() {
-            return this == TERRAIN_CHANGE || this == SPAWN_CREATURES;
-        }
-
         public boolean isMode() {
             return this == GOD_MODE || cheatMessage == null;
+        }
+
+        /**
+         * Modes that stand alone: while one is on, the other cheat buttons are
+         * switched off. These are the modes that take over the map
+         * interactions, so only one of them can be active at a time.
+         *
+         * @return {@code true} if this cheat can't be combined with the others
+         */
+        public boolean isExclusiveMode() {
+            return this == TERRAIN_CHANGE || this == SPAWN_CREATURES
+                    || this == CLAIM_LAND || this == INSTANT_DIG;
         }
 
         public String getMessage() {

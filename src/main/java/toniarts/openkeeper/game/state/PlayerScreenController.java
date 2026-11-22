@@ -1506,10 +1506,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.RESURRECT_CREATURES, "Specials/SP-Resurrect", "Resurrect creatures: right click a dying creature"));
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.DESTROY_DOORS, "Doors/wood_door", "Destroy doors: right click a door"));
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.REMOVE_FOW, "Specials/SP-Reveal_Map", "Reveal map: removes the fog of war, click again to bring it back"));
-        contentPanel.addElement(createCheatIcon(CheatState.CheatType.CLAIM_LAND, "Specials/SP-Safe", "Claim land and rooms: drag over an area to claim it"));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.CLAIM_LAND, "Specials/SP-Safe", "Claim land and rooms: drag over an area to claim it. Switches the other cheats off while on."));
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.TERRAIN_CHANGE, "C-Spells/c-Armour", "Terrain change: choose the terrain and its owner on the right, drag over an area to change it. Switches the other cheats off while on."));
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.SPAWN_CREATURES, "Specials/SP-Get_Imps", "Spawn creatures: choose the creature, the amount and the keeper on the right, click a tile to spawn them there. Switches the other cheats off while on."));
-        contentPanel.addElement(createCheatIcon(CheatState.CheatType.INSTANT_DIG, "Specials/SP-Destroy_Walls", "Instant digging: tag tiles to dig them out at once"));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.INSTANT_DIG, "Specials/SP-Destroy_Walls", "Instant digging: tag tiles to dig them out at once. Switches the other cheats off while on."));
     }
 
     private record Choice(short id, String name) {
@@ -1659,8 +1659,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
         CheatState.CheatType cheat = CheatState.CheatType.valueOf(cheatName);
         GameClientState client = state.stateManager.getState(GameClientState.class);
         for (CheatState.CheatType active : CheatState.CheatType.values()) {
-            if (active.isOverlayMode() && active != cheat && client.isCheat(active)) {
-                // Overlay modes stand alone
+            if (active.isExclusiveMode() && active != cheat && client.isCheat(active)) {
+                // The exclusive modes stand alone
                 return;
             }
         }
@@ -1726,10 +1726,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (creatureOverlay != null) {
             creatureOverlay.setVisible(client.isGodMode() && client.isCheat(CheatState.CheatType.SPAWN_CREATURES));
         }
-        // The overlay modes stand alone, the other buttons are disabled while one of them is on
-        boolean overlayOn = false;
+        // The exclusive modes stand alone, the other buttons are disabled while one of them is on
+        boolean exclusiveModeOn = false;
         for (CheatState.CheatType cheat : CheatState.CheatType.values()) {
-            overlayOn |= cheat.isOverlayMode() && client.isCheat(cheat);
+            exclusiveModeOn |= cheat.isExclusiveMode() && client.isCheat(cheat);
         }
         for (CheatState.CheatType cheat : CheatState.CheatType.values()) {
             Element button = hud.findElementById("cheat_" + cheat.name());
@@ -1739,7 +1739,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             button.stopEffect(EffectEventId.onCustom);
             if (cheat.isMode() && client.isCheat(cheat)) {
                 button.startEffect(EffectEventId.onCustom, null, "select");
-            } else if (overlayOn) {
+            } else if (exclusiveModeOn) {
                 // Darkened like the spells that can't be cast
                 button.startEffect(EffectEventId.onCustom, null, "unaffordable");
             }
