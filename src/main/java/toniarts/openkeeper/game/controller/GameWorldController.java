@@ -706,7 +706,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private Sale sellTiles(List<Point> tiles, short playerId) {
         Sale sale = new Sale();
         for (Point tile : tiles) {
-            if (mapController.isSellable(tile, isGodMode(playerId) ? owned.getOwnerId() : playerId)) {
+            IMapTileController owned = mapController.getMapData().getTile(tile);
+            if (mapController.isSellable(tile, isGodMode(playerId) && owned != null ? owned.getOwnerId() : playerId)) {
                 sellTile(tile, sale);
             }
         }

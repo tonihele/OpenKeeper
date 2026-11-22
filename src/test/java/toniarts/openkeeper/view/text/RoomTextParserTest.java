@@ -74,6 +74,7 @@ class RoomTextParserTest {
                     case "getHealthPercent" -> 100;
                     case "getUsedCapacity" -> 2;
                     case "getMaxCapacity" -> args == null ? 9 : 0;
+                    case "getOwnerId" -> OWNER;
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
         var rooms = new IRoomsInformation<IRoomInformation>() {
