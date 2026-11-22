@@ -103,6 +103,7 @@ class OwnLandRegenerationTest {
 
         IKwdFile kwd = proxy(IKwdFile.class, method -> switch (method) {
             case "getGameLevel" -> CreatureSleepFixtures.level(4);
+            case "getCreature" -> CreatureSleepFixtures.sleeper(1);
             default -> throw new UnsupportedOperationException(method);
         });
         ILevelInfo levelInfo = proxy(ILevelInfo.class, method -> switch (method) {
