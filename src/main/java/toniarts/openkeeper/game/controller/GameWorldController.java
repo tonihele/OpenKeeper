@@ -109,6 +109,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -139,6 +140,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private IEntityPositionLookup entityPositionLookup;
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<Short, Keeper> players;
+    private final RoomActionQueue roomActions = new RoomActionQueue();
     private final IGameTimer gameTimer;
     private RoomAttackMessages roomAttackMessages;
     private final GameEventService gameEventService;
@@ -372,31 +374,66 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void build(Vector2f start, Vector2f end, short playerId, short roomId) {
+        // Copy the coordinates: the client's selection vectors can be reused after submission.
+        Vector2f first = start.clone();
+        Vector2f last = end.clone();
+        List<Point> changedTiles = new ArrayList<>();
+        roomActions.add(WorldUtils.vectorToPoint(first), WorldUtils.vectorToPoint(last),
+                () -> prepareRoomBuild(first, last, playerId, roomId, changedTiles),
+                () -> notifyOnRoomSelectionComplete(playerId, changedTiles));
+    }
+
+    void processRoomActions() {
+        roomActions.processTick();
+    }
+
+    void clearRoomActions() {
+        roomActions.clear();
+    }
+
+    private Consumer<List<Point>> prepareRoomBuild(Vector2f start, Vector2f end, short playerId, short roomId,
+            List<Point> changedTiles) {
         Keeper player = players.get(playerId);
         if (player == null) {
-            return;
+            return null;
         }
-
         RoomPlacementValidator.Result placement = RoomPlacementValidator.validate(
                 kwdFile, mapController, this::isConstructionBlocked, start, end,
                 playerId, roomId, playerControllers.get(playerId).getGoldControl().getGold());
         if (!placement.isValid()) {
-            return;
+            return null;
         }
-
         Room room = kwdFile.getRoomById(roomId);
-        if (!payForRoom(placement.plots().size(), room, playerId)) {
-            return;
-        }
+        Map<Point, Short> selected = placement.plots().stream().collect(Collectors.toMap(
+                point -> point, point -> mapController.getMapData().getTile(point).getTerrainId()));
+        boolean bridge = room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER)
+                || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA);
+        return new Consumer<>() {
+            private boolean placementAnnounced;
 
-        // Skipped tiles may split the selection, build each connected part as its own room
-        List<Point> buildTiles = new ArrayList<>(placement.plots().size());
-        for (List<Point> instancePlots : getConnectedPlots(placement.plots())) {
-            buildRoomInstance(instancePlots, room, playerId, buildTiles);
-        }
-
-        // Notify the build
-        notifyOnBuild(playerId, buildTiles);
+            @Override
+            public void accept(List<Point> diagonal) {
+                List<Point> built = new ArrayList<>(diagonal.size());
+                for (Point tile : diagonal) {
+                    // Queued tiles can have changed ownership, terrain or occupants.
+                    // Bridge connectivity was validated for the whole footprint. Its release
+                    // corner can appear before the tiles connecting it to the shore.
+                    if (!selected.containsKey(tile) || isConstructionBlocked(tile)
+                            || (bridge ? mapController.getMapData().getTile(tile).getTerrainId() != selected.get(tile)
+                                    : !mapController.isBuildable(tile, playerId, roomId))
+                            || !payForRoom(1, room, playerId)) {
+                        continue;
+                    }
+                    buildRoomInstance(List.of(tile), room, playerId, built);
+                }
+                if (!built.isEmpty()) {
+                    changedTiles.addAll(built);
+                    notifyOnBuild(playerId, built);
+                    notifyBuildEvents(room, placement.plots(), built, !placementAnnounced);
+                    placementAnnounced = true;
+                }
+            }
+        };
     }
 
     private void buildRoomInstance(List<Point> instancePlots, Room room, short playerId, List<Point> buildTiles) {
@@ -419,23 +456,21 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             addGoldCapacityToPlayer(instance.getEntityId());
             //notifyOnBuild(instance.getOwnerId(), mapController.getRoomActuals().get(instance));
         }
-
-        // Notify the build
-        notifyOnBuild(playerId, buildTiles);
-        notifyBuildEvents(room, instancePlots, buildTiles);
     }
 
     /**
      * One event for the whole placement, at its top left tile, and one for each tile that appears
      */
-    private void notifyBuildEvents(Room room, List<Point> plots, List<Point> buildTiles) {
+    private void notifyBuildEvents(Room room, List<Point> plots, List<Point> buildTiles, boolean announcePlacement) {
         int minX = Integer.MAX_VALUE;
         int minY = Integer.MAX_VALUE;
         for (Point plot : plots) {
             minX = Math.min(minX, plot.x);
             minY = Math.min(minY, plot.y);
         }
-        gameEventService.emit(GameEventType.ROOM_TILES_LAID, ThingFlag.ROOM, room.getRoomId(), new Point(minX, minY));
+        if (announcePlacement) {
+            gameEventService.emit(GameEventType.ROOM_TILES_LAID, ThingFlag.ROOM, room.getRoomId(), new Point(minX, minY));
+        }
         for (Point tile : buildTiles) {
             gameEventService.emit(GameEventType.ROOM_TILE_BUILT, ThingFlag.ROOM, room.getRoomId(), tile);
         }
@@ -609,7 +644,21 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
-        Sale sale = sellTiles(start, end, playerId);
+        // Native selling always sweeps from the maximum to the minimum map coordinates.
+        Point first = new Point((int) Math.max(0, Math.min(start.x, end.x)),
+                (int) Math.max(0, Math.min(start.y, end.y)));
+        Point last = new Point((int) Math.min(kwdFile.getMap().getWidth() - 1, Math.max(start.x, end.x)),
+                (int) Math.min(kwdFile.getMap().getHeight() - 1, Math.max(start.y, end.y)));
+        if (first.x > last.x || first.y > last.y) {
+            return;
+        }
+        List<Point> changedTiles = new ArrayList<>();
+        roomActions.add(first, last, () -> diagonal -> sellRoomTiles(diagonal, playerId, changedTiles),
+                () -> notifyOnRoomSelectionComplete(playerId, changedTiles));
+    }
+
+    private void sellRoomTiles(List<Point> tiles, short playerId, List<Point> changedTiles) {
+        Sale sale = sellTiles(tiles, playerId);
         if (sale.soldTiles.isEmpty()) {
             return;
         }
@@ -619,6 +668,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         reattachLairs(detachedLairs);
         restoreGoldCapacity(sale.roomCoordinates);
         returnSaleRevenue(playerId, sale.moneyToReturnByPoint);
+        changedTiles.addAll(sale.soldTiles);
         notifyOnSold(playerId, sale.soldTiles);
     }
 
@@ -661,15 +711,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         return true;
     }
 
-    private Sale sellTiles(Vector2f start, Vector2f end, short playerId) {
+    private Sale sellTiles(List<Point> tiles, short playerId) {
         Sale sale = new Sale();
-        for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
-            for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
-                Point p = new Point(x, y);
-                if (!mapController.isSellable(p, playerId)) {
-                    continue;
-                }
-                sellTile(p, sale);
+        for (Point tile : tiles) {
+            if (mapController.isSellable(tile, playerId)) {
+                sellTile(tile, sale);
             }
         }
         return sale;
@@ -952,6 +998,16 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private void notifyOnSpecialActivated(short playerId, short objectId) {
         for (SpecialListener listener : specialListeners.getArray()) {
             listener.onSpecialActivated(playerId, objectId);
+        }
+    }
+
+    private void notifyOnRoomSelectionComplete(short playerId, List<Point> changedTiles) {
+        if (changedTiles.isEmpty()) {
+            return;
+        }
+        List<Point> completedTiles = List.copyOf(changedTiles);
+        for (PlayerActionListener listener : listeners.getArray()) {
+            listener.onRoomSelectionComplete(playerId, completedTiles);
         }
     }
 

@@ -457,7 +457,9 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (playerId == null || gameSession.getKey().getKeeper().getId() == playerId) {
                 gameSession.getValue().onEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
-                break;
+                if (playerId != null) {
+                    break;
+                }
             }
         }
     }

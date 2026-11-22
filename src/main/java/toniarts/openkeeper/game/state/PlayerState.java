@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.console.ConsoleState;
+import toniarts.openkeeper.game.controller.TrapPlacementValidator;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
@@ -354,6 +355,16 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             return gs.getPlayer(playerId);
         }
         return null;
+    }
+
+    /**
+     * Does this player have a Workshop, needed for placing traps and doors
+     *
+     * @return true if the player has at least one Workshop
+     */
+    public boolean hasWorkshop() {
+        GameClientState gs = stateManager.getState(GameClientState.class);
+        return gs == null || gs.getRoomsInformation().getRoomCount(playerId, TrapPlacementValidator.WORKSHOP_ROOM_ID) > 0;
     }
 
     public PlayerStatsControl getStatsControl() {
