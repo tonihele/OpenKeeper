@@ -23,6 +23,7 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
