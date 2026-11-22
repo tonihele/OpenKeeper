@@ -86,10 +86,15 @@ class JobRoomOccupancyTest {
         ICreatureController onItsWay = creature();
         Train late = train(room);
         late.assign(onItsWay, true);
-        ICreatureController trainee = creature();
-        Train train = train(room);
-        train.assign(trainee, true);
-        train.executeTask(trainee, 0);
+        // Trainees go in until the room is full, one more than it has dummies with #909
+        ICreatureController trainee = null;
+        Train train = null;
+        while (room.getUsedCapacity(ObjectType.TRAINEE) < room.getMaxCapacity(ObjectType.TRAINEE)) {
+            trainee = creature();
+            train = train(room);
+            train.assign(trainee, true);
+            train.executeTask(trainee, 0);
+        }
         assertEquals(room.getMaxCapacity(ObjectType.TRAINEE), room.getUsedCapacity(ObjectType.TRAINEE));
 
         assertTrue(train.isValid(trainee));
