@@ -310,6 +310,15 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void revealSightOfEvil(Point centre, int radius, int durationTicks, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onSightOfEvil(centre, radius, durationTicks, playerId);
+            }
+        }
+    }
+
+    @Override
     public void disableFogOfWar(short playerId) {
         if (playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {
@@ -399,6 +408,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void cancelCallToArms() {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onCancelCallToArms(PLAYER_ID);
+        }
+    }
+
+    @Override
     public void transitionEnd() {
         playerInTransition = false;
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
@@ -447,9 +463,30 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void triggerAddGoldCheat(int amount) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onAddGoldCheatTriggered(amount, PLAYER_ID);
+        }
+    }
+
+    @Override
+    public void triggerAddManaCheat(int amount) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onAddManaCheatTriggered(amount, PLAYER_ID);
+        }
+    }
+
+    @Override
     public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
             listener.onSetPossessedMovement(direction, rotation, speedMode, PLAYER_ID);
+        }
+    }
+
+    @Override
+    public void setPossessedAttack(boolean attacking) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onSetPossessedAttack(attacking, PLAYER_ID);
         }
     }
 
@@ -562,6 +599,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
             for (GameSessionListener listener : listeners.getArray()) {
                 listener.onGameEnded(win);
             }
+        }
+    }
+
+    @Override
+    public void sendEffect(int effectId, Vector3f position, float yaw) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onEffect(effectId, position, yaw);
         }
     }
 

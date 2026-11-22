@@ -363,6 +363,16 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
+    public void revealSightOfEvil(Point centre, int radius, int durationTicks, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onSightOfEvil(centre, radius, durationTicks, playerId);
+                break;
+            }
+        }
+    }
+
+    @Override
     public void disableFogOfWar(short playerId) {
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (gameSession.getKey().getKeeper().getId() == playerId) {
@@ -458,6 +468,13 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
                 gameSession.getValue().onGameEnded(win);
                 break;
             }
+        }
+    }
+
+    @Override
+    public void sendEffect(int effectId, Vector3f position, float yaw) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onEffect(effectId, position, yaw);
         }
     }
 
@@ -636,6 +653,13 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
+        public void cancelCallToArms() {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onCancelCallToArms(clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
         public void transitionEnd() {
             playersInTransition.put(clientInfo, false);
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
@@ -679,9 +703,30 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
+        public void triggerAddGoldCheat(int amount) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onAddGoldCheatTriggered(amount, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void triggerAddManaCheat(int amount) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onAddManaCheatTriggered(amount, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
         public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
                 listener.onSetPossessedMovement(direction, rotation, speedMode, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void setPossessedAttack(boolean attacking) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onSetPossessedAttack(attacking, clientInfo.getKeeper().getId());
             }
         }
 
@@ -805,6 +850,11 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
+        public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+            getCallback().onSightOfEvil(centre, radius, durationTicks, keeperId);
+        }
+
+        @Override
         public void onFogOfWarDisabled(short keeperId) {
             getCallback().onFogOfWarDisabled(keeperId);
         }
@@ -847,6 +897,11 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         @Override
         public void onGameEnded(boolean win) {
             getCallback().onGameEnded(win);
+        }
+
+        @Override
+        public void onEffect(int effectId, Vector3f position, float yaw) {
+            getCallback().onEffect(effectId, position, yaw);
         }
 
         @Override

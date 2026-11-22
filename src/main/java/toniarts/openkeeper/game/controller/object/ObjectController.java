@@ -19,13 +19,17 @@ package toniarts.openkeeper.game.controller.object;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Placeable;
+import toniarts.openkeeper.game.component.Spin;
 import toniarts.openkeeper.game.component.Stored;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.game.logic.SpinSystem;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 
 /**
@@ -36,12 +40,16 @@ import toniarts.openkeeper.tools.convert.map.GameObject;
 public final class ObjectController extends EntityController implements IObjectController {
 
     private final GameObject object;
+    private final IGameTimer gameTimer;
+    private final int ticksPerSecond;
 
     public ObjectController(EntityId entityId, EntityData entityData, GameObject object,
-            IObjectsController objectsController, IMapController mapController) {
+            IObjectsController objectsController, IMapController mapController, IGameTimer gameTimer, int ticksPerSecond) {
         super(entityId, entityData, objectsController, mapController);
 
         this.object = object;
+        this.gameTimer = gameTimer;
+        this.ticksPerSecond = ticksPerSecond;
     }
 
     @Override
@@ -61,7 +69,12 @@ public final class ObjectController extends EntityController implements IObjectC
 
     @Override
     public boolean isPickableByPlayerCreature(short playerId) {
-        return entityData.getComponent(entityId, Placeable.class) != null && getTile().getOwnerId() == playerId;
+        if (entityData.getComponent(entityId, Placeable.class) == null) {
+            return false;
+        }
+
+        // In the keeper's hand the object has no position, the creatures can't get to it
+        return getPosition() != null && getTile().getOwnerId() == playerId;
     }
 
     @Override
@@ -78,6 +91,15 @@ public final class ObjectController extends EntityController implements IObjectC
             creature.giveObject(this);
             return true;
         }
+    }
+
+    @Override
+    public void spin() {
+        ObjectViewState viewState = entityData.getComponent(entityId, ObjectViewState.class);
+        entityData.setComponents(entityId,
+                new Spin(gameTimer.getGameTime() + (double) SpinSystem.SPIN_TICKS / ticksPerSecond),
+                new ObjectViewState(viewState.objectId, GameObject.State.SPINNING, viewState.animState, viewState.visible,
+                        viewState.lairCreatureTypeId));
     }
 
 }
