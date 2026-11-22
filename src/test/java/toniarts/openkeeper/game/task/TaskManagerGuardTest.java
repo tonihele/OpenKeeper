@@ -277,7 +277,7 @@ class TaskManagerGuardTest {
         IKwdFile kwdFile = stub(IKwdFile.class, (proxy, method, args) -> "getGameLevel".equals(method.getName()) ? CreatureSleepFixtures.level(4) : null);
         ILevelInfo levelInfo = stub(ILevelInfo.class, (proxy, method, args) -> "getLevelData".equals(method.getName()) ? kwdFile : null);
         Map<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
-        for (MiscType type : List.of(MiscType.MAX_TIME_IN_GUARD_ROOM_BEFORE_WANDERING_TO_GUARD_POST_SECONDS,
+        for (MiscType type : List.of(MiscType.MAX_TIME_IN_GUARD_ROOM_BEFORE_WANDERING_TO_GUARD_POST_SECONDS, MiscType.IMP_IDLE_DELAY_BEFORE_REEVALUATION_SECONDS,
                 MiscType.GAMBLING_MODIFY_CREATURE_MONEY_SMILES_PER_SECOND, MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND,
                 MiscType.GAMBLING_MODIFY_CREATURE_ANGER_SMILES_PER_SECOND, MiscType.GAMBLING_MODIFY_CREATURE_ANGER_MONEY_PER_SECOND,
                 MiscType.GAMBLING_CREATURE_JACKPOT_CHANCE_SMILES_PER_SECOND, MiscType.GAMBLING_CREATURE_JACKPOT_CHANCE_MONEY_PER_SECOND,

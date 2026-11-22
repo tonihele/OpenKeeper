@@ -18,13 +18,14 @@ package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.random.RandomGenerator;
 import toniarts.openkeeper.game.component.GuardedRoom;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -37,30 +38,44 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * Stands guard in the Guard Room. As in DK II, the guard goes to the guard
- * post nearest to it, a corner of the room, and after a while walks on to
- * another post. The guard remembers the room, DK II sends it back there for
- * its next guard duty (DKII.EXE 0x462850).
+ * Stands guard in the Guard Room. As in DK II, the guard goes to the edge
+ * tile of the room nearest to it and walks round the edge (DKII.EXE 0x462930,
+ * 0x462D00). Every so often it walks to a piece of the room's furniture and
+ * then to a random tile of the room, and takes up its round again (0x463190,
+ * 0x4632A0). The guard remembers the room, DK II sends it back there for its
+ * next guard duty (0x462850).
  */
 public final class Guard extends AbstractCapacityCriticalRoomTask {
 
     /**
-     * The least time a guard stands at a guard post, in logic ticks
+     * The least time between the guard's trips to the furniture, in logic
+     * ticks
      */
-    public static final int GUARD_POST_TICKS = 75;
+    public static final int ROUND_TICKS = 75;
     /**
-     * The least time a guard stands on a plain room tile, in logic ticks. Used
-     * when the room has no other guard post to go to.
+     * The least time a guard takes over the trip from the furniture to a room
+     * tile, in logic ticks
      */
-    public static final int ROOM_TILE_TICKS = 50;
+    public static final int TRIP_TICKS = 50;
+
+    /**
+     * The four directions a guard walks the edge in: north, east, south, west
+     */
+    private static final int[][] DIRECTIONS = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+
+    private enum Step {
+        ROUND, FURNITURE, ROOM_TILE
+    }
 
     private final EntityData entityData;
     private final int ticksPerSecond;
     private final int maxExtraTicks;
+    private final int noFurnitureExtraTicks;
     private final RandomGenerator random;
-    private Point guardPost;
-    private float arrivalTime = -1;
-    private float standTime;
+    private Point target;
+    private Step step = Step.ROUND;
+    private int direction;
+    private float tripTime = -1;
 
     /**
      * A guard duty in the Guard Room
@@ -74,17 +89,20 @@ public final class Guard extends AbstractCapacityCriticalRoomTask {
      * @param entityData the entity data
      * @param ticksPerSecond the logic ticks per second of the level
      * @param maxExtraTicks at most this many random ticks are added to the
-     * time a guard stands at a post
+     * time before a trip to the furniture and to the trip itself
+     * @param noFurnitureExtraTicks at most this many random ticks are added
+     * to the time before the next look for furniture when there was none
      * @param random the random number generator
      */
     public Guard(final INavigationService navigationService, final IMapController mapController, Point p, short playerId,
             IRoomController room, TaskManager taskManager, EntityData entityData, int ticksPerSecond, int maxExtraTicks,
-            RandomGenerator random) {
+            int noFurnitureExtraTicks, RandomGenerator random) {
         super(navigationService, mapController, p, playerId, room, taskManager);
 
         this.entityData = entityData;
         this.ticksPerSecond = ticksPerSecond;
         this.maxExtraTicks = maxExtraTicks;
+        this.noFurnitureExtraTicks = noFurnitureExtraTicks;
         this.random = random;
     }
 
@@ -97,10 +115,10 @@ public final class Guard extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public Vector2f getTarget(ICreatureController creature) {
-        if (guardPost == null) {
-            guardPost = getNearest(getGuardPosts(getRoomTiles()), creature.getCreatureCoordinates());
+        if (target == null) {
+            target = getNearestEdgeTile(creature.getCreatureCoordinates());
         }
-        return WorldUtils.pointToVector2f(guardPost);
+        return WorldUtils.pointToVector2f(target);
     }
 
     @Override
@@ -110,17 +128,38 @@ public final class Guard extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
+        switch (step) {
+            case FURNITURE -> {
 
-        // The guard has just come to its post
-        if (arrivalTime < 0) {
-            arrivalTime = executionDuration;
-            standTime = getStandTicks(getGuardPosts(getRoomTiles()).contains(guardPost)) / (float) ticksPerSecond;
-            return;
-        }
+                // From the furniture to a random tile of the room (0x4632A0)
+                step = Step.ROOM_TILE;
+                tripTime = executionDuration + getTime(TRIP_TICKS, maxExtraTicks);
+                List<Point> roomTiles = getRoomTiles();
+                target = roomTiles.get(random.nextInt(roomTiles.size()));
+            }
+            case ROOM_TILE -> {
 
-        if (executionDuration - arrivalTime >= standTime) {
-            guardPost = getNextGuardPost();
-            arrivalTime = -1;
+                // And back to the edge
+                step = Step.ROUND;
+                target = getNearestEdgeTile(target);
+            }
+            case ROUND -> {
+
+                // The guard has just come to the edge
+                if (tripTime < 0) {
+                    tripTime = executionDuration + getTime(ROUND_TICKS, maxExtraTicks);
+                }
+                if (executionDuration >= tripTime) {
+                    Point furniture = getRandomFurniture();
+                    if (furniture != null) {
+                        step = Step.FURNITURE;
+                        target = furniture;
+                        return;
+                    }
+                    tripTime = executionDuration + getTime(ROUND_TICKS, noFurnitureExtraTicks);
+                }
+                target = getNextEdgeTile(target);
+            }
         }
     }
 
@@ -138,62 +177,83 @@ public final class Guard extends AbstractCapacityCriticalRoomTask {
         return getRoom().getRoomInstance().getCoordinates();
     }
 
-    private int getStandTicks(boolean atGuardPost) {
-        int ticks = (atGuardPost ? GUARD_POST_TICKS : ROOM_TILE_TICKS);
-        if (maxExtraTicks > 0) {
-            ticks += random.nextInt(maxExtraTicks);
-        }
-        return ticks;
-    }
-
-    private Point getNextGuardPost() {
-        List<Point> roomTiles = getRoomTiles();
-        List<Point> candidates = getGuardPosts(roomTiles);
-        candidates.remove(guardPost);
-        if (candidates.isEmpty()) {
-
-            // No other guard post, just walk around the room
-            candidates = new ArrayList<>(roomTiles);
-            candidates.remove(guardPost);
-        }
-        if (candidates.isEmpty()) {
-            return guardPost;
-        }
-        return candidates.get(random.nextInt(candidates.size()));
+    private float getTime(int ticks, int maxExtra) {
+        return (ticks + (maxExtra > 0 ? random.nextInt(maxExtra) : 0)) / (float) ticksPerSecond;
     }
 
     /**
-     * Gets the guard posts of a Guard Room. A tile is a guard post when the
-     * room doesn't go on at both of its opposite sides, so the posts are the
-     * corners of the room and the ends of its one tile wide parts.
-     *
-     * @param roomTiles the tiles of the room
-     * @return the guard post tiles
+     * A tile of the room is on its edge when one of the eight tiles around it
+     * is not in the room
      */
-    public static List<Point> getGuardPosts(Collection<Point> roomTiles) {
-        Set<Point> tiles = new HashSet<>(roomTiles);
-        List<Point> guardPosts = new ArrayList<>();
-        for (Point p : roomTiles) {
-            boolean horizontal = tiles.contains(new Point(p.x - 1, p.y)) && tiles.contains(new Point(p.x + 1, p.y));
-            boolean vertical = tiles.contains(new Point(p.x, p.y - 1)) && tiles.contains(new Point(p.x, p.y + 1));
-            if (!horizontal && !vertical) {
-                guardPosts.add(p);
+    private static boolean isEdge(Set<Point> tiles, Point p) {
+        for (int x = -1; x <= 1; x++) {
+            for (int y = -1; y <= 1; y++) {
+                if (!tiles.contains(new Point(p.x + x, p.y + y))) {
+                    return true;
+                }
             }
         }
-        return guardPosts;
+        return false;
     }
 
-    private Point getNearest(List<Point> points, Point from) {
+    private Point getNearestEdgeTile(Point from) {
+        Set<Point> tiles = new HashSet<>(getRoomTiles());
         Point nearest = getTaskLocation();
         int nearestDistance = Integer.MAX_VALUE;
-        for (Point p : points) {
+        for (Point p : tiles) {
             int distance = WorldUtils.calculateDistance(from, p);
-            if (distance < nearestDistance) {
+            if (distance < nearestDistance && isEdge(tiles, p)) {
                 nearest = p;
                 nearestDistance = distance;
             }
         }
         return nearest;
+    }
+
+    /**
+     * Walks the edge from the given tile: keeping to the edge tiles, the guard
+     * turns left if it can, else goes on, else turns right, else turns back.
+     * It goes on to the end of the straight stretch, so that it doesn't stop
+     * on every tile
+     *
+     * @param from the edge tile the guard is on
+     * @return the edge tile to walk to
+     */
+    private Point getNextEdgeTile(Point from) {
+        Set<Point> tiles = new HashSet<>(getRoomTiles());
+        Point current = from;
+        for (int steps = 0; steps < tiles.size(); steps++) {
+            Point next = null;
+            int nextDirection = direction;
+            for (int turn : new int[]{3, 0, 1, 2}) {
+                int d = (direction + turn) % DIRECTIONS.length;
+                Point p = new Point(current.x + DIRECTIONS[d][0], current.y + DIRECTIONS[d][1]);
+                if (tiles.contains(p) && isEdge(tiles, p)) {
+                    next = p;
+                    nextDirection = d;
+                    break;
+                }
+            }
+
+            // A turn ends the stretch, the guard walks on from there on its next step
+            if (next == null || (steps > 0 && nextDirection != direction)) {
+                break;
+            }
+            direction = nextDirection;
+            current = next;
+        }
+        return current;
+    }
+
+    private Point getRandomFurniture() {
+        List<Point> furniture = new ArrayList<>();
+        for (EntityId entity : getRoom().getFloorFurniture()) {
+            Position position = entityData.getComponent(entity, Position.class);
+            if (position != null) {
+                furniture.add(WorldUtils.vectorToPoint(position.position));
+            }
+        }
+        return furniture.isEmpty() ? null : furniture.get(random.nextInt(furniture.size()));
     }
 
 }
