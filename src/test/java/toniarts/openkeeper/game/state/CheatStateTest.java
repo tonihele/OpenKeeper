@@ -23,6 +23,7 @@ import static toniarts.openkeeper.game.state.CheatState.CheatType.CLAIM_LAND;
 import static toniarts.openkeeper.game.state.CheatState.CheatType.GOD_MODE;
 import static toniarts.openkeeper.game.state.CheatState.CheatType.INSTANT_DIG;
 import static toniarts.openkeeper.game.state.CheatState.CheatType.KILL_CREATURES;
+import static toniarts.openkeeper.game.state.CheatState.CheatType.REMOVE_FOW;
 import static toniarts.openkeeper.game.state.CheatState.CheatType.SPAWN_CREATURES;
 import static toniarts.openkeeper.game.state.CheatState.CheatType.TERRAIN_CHANGE;
 
@@ -40,6 +41,14 @@ class CheatStateTest {
     void clickCheatsAreNotExclusive() {
         assertFalse(KILL_CREATURES.isExclusiveMode());
         assertFalse(GOD_MODE.isExclusiveMode());
+    }
+
+    @Test
+    void fogOfWarAndGodModeAreExemptFromExclusiveModes() {
+        assertTrue(GOD_MODE.isExemptFromExclusiveMode());
+        assertTrue(REMOVE_FOW.isExemptFromExclusiveMode());
+        assertFalse(KILL_CREATURES.isExemptFromExclusiveMode());
+        assertFalse(CLAIM_LAND.isExemptFromExclusiveMode());
     }
 
 }

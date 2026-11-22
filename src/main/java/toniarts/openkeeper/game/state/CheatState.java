@@ -94,6 +94,16 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
                     || this == CLAIM_LAND || this == INSTANT_DIG;
         }
 
+        /**
+         * Cheats that stay available while an exclusive mode is active
+         *
+         * @return {@code true} if this cheat is not suspended or locked out by
+         * exclusive modes
+         */
+        public boolean isExemptFromExclusiveMode() {
+            return this == GOD_MODE || this == REMOVE_FOW;
+        }
+
         public String getMessage() {
             return this.cheatMessage;
         }

@@ -444,7 +444,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         if (cheat.isExclusiveMode()) {
             if (enabled) {
                 for (CheatState.CheatType other : List.copyOf(cheats)) {
-                    if (other != CheatState.CheatType.GOD_MODE && other != cheat) {
+                    if (!other.isExemptFromExclusiveMode() && other != cheat) {
                         suspendedCheats.add(other);
                         toggleCheatMode(other);
                     }

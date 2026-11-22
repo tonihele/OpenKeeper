@@ -1505,7 +1505,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.KILL_CREATURES, "Specials/SP-Kill", "Kill creatures: right click a creature"));
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.RESURRECT_CREATURES, "Specials/SP-Resurrect", "Resurrect creatures: right click a dying creature"));
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.DESTROY_DOORS, "Doors/wood_door", "Destroy doors: right click a door"));
-        contentPanel.addElement(createCheatIcon(CheatState.CheatType.REMOVE_FOW, "Specials/SP-Reveal_Map", "Reveal map: removes the fog of war, click again to bring it back"));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.REMOVE_FOW, "Specials/SP-Reveal_Map", "Reveal map: removes the fog of war, click again to bring it back. Works with the other cheats"));
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.CLAIM_LAND, "Specials/SP-Safe", "Claim land and rooms: drag over an area to claim it. Switches the other cheats off while on."));
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.TERRAIN_CHANGE, "C-Spells/c-Armour", "Terrain change: choose the terrain and its owner on the right, drag over an area to change it. Switches the other cheats off while on."));
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.SPAWN_CREATURES, "Specials/SP-Get_Imps", "Spawn creatures: choose the creature, the amount and the keeper on the right, click a tile to spawn them there. Switches the other cheats off while on."));
@@ -1658,10 +1658,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
     public void toggleCheat(String cheatName) {
         CheatState.CheatType cheat = CheatState.CheatType.valueOf(cheatName);
         GameClientState client = state.stateManager.getState(GameClientState.class);
-        for (CheatState.CheatType active : CheatState.CheatType.values()) {
-            if (active.isExclusiveMode() && active != cheat && client.isCheat(active)) {
-                // The exclusive modes stand alone
-                return;
+        if (!cheat.isExemptFromExclusiveMode()) {
+            for (CheatState.CheatType active : CheatState.CheatType.values()) {
+                if (active.isExclusiveMode() && active != cheat && client.isCheat(active)) {
+                    // The exclusive modes stand alone
+                    return;
+                }
             }
         }
         if (cheat == CheatState.CheatType.REMOVE_FOW) {
@@ -1737,9 +1739,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 continue;
             }
             button.stopEffect(EffectEventId.onCustom);
-            if (cheat.isMode() && client.isCheat(cheat)) {
+            if ((cheat == CheatState.CheatType.REMOVE_FOW && fogOfWarRemoved)
+                    || (cheat.isMode() && client.isCheat(cheat))) {
                 button.startEffect(EffectEventId.onCustom, null, "select");
-            } else if (exclusiveModeOn) {
+            } else if (exclusiveModeOn && !cheat.isExemptFromExclusiveMode()) {
                 // Darkened like the spells that can't be cast
                 button.startEffect(EffectEventId.onCustom, null, "unaffordable");
             }
