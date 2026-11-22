@@ -218,6 +218,8 @@ public class VisualEffect {
             case SPRITE:
                 EffectGeometry g = new EffectGeometry("effect", resource.getFlags().contains(ArtResource.ArtResourceFlag.FLAT));
                 g.setFrames(AssetUtils.getAnimationFrameCount(resource, assetManager));
+                g.setLooping(!resource.getFlags().contains(ArtResource.ArtResourceFlag.DOESNT_LOOP));
+                g.setSelectRandomImage(resource.getFlags().contains(ArtResource.ArtResourceFlag.RANDOM_START_FRAME));
 
                 Material material = AssetUtils.createParticleMaterial(resource, assetManager);
                 g.setMaterial(material);
