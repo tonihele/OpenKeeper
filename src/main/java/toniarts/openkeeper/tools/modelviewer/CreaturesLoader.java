@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.Creature.AnimationType;
+import toniarts.openkeeper.tools.convert.map.Creature.AnimationSlot;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 
@@ -45,7 +45,7 @@ public final class CreaturesLoader implements ILoader<Creature> {
 
         float x = -5;
         float z = -5;
-        for (AnimationType type : AnimationType.values()) {
+        for (AnimationSlot type : AnimationSlot.values()) {
 
             ArtResource animation = object.getAnimation(type);
             if (animation != null && animation.getType() != ArtResource.ArtResourceType.NONE) {

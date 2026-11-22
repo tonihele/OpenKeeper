@@ -25,6 +25,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -34,6 +35,7 @@ import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
@@ -46,6 +48,9 @@ import toniarts.openkeeper.game.task.TaskType;
 import static toniarts.openkeeper.game.task.TaskType.TRAIN;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Creature.WorkerAnimation;
+import toniarts.openkeeper.tools.convert.map.Creature.AnimationAction;
+import toniarts.openkeeper.tools.convert.map.Creature.FighterAnimation;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.GameTimeCounter;
 
@@ -74,6 +79,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final EntitySet creatureViewEntities;
+    private final EntitySet hauledEntities;
 
     // TODO: The creature shouldn't be able to access the world like this, needs breaking up to pieces
     private final SafeArrayList<EntityId> creatureEntities = new SafeArrayList<>(EntityId.class);
@@ -82,6 +88,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
 
+        hauledEntities = entityData.getEntities(HauledBy.class);
         creatureViewEntities = entityData.getEntities(CreatureViewState.class, Position.class);
         processAddedEntities(creatureViewEntities);
     }
@@ -95,24 +102,30 @@ public final class CreatureViewSystem extends GameTimeCounter {
             processDeletedEntities(creatureViewEntities.getRemovedEntities());
         }
 
+        hauledEntities.applyChanges();
+        Set<EntityId> haulers = new HashSet<>();
+        for (Entity hauled : hauledEntities) {
+            haulers.add(hauled.get(HauledBy.class).entityId);
+        }
+
         // Process ticks
         for (EntityId entityId : creatureEntities.getArray()) {
 
             // Determine what animation to show
             CreatureViewState state = entityData.getComponent(entityId, CreatureViewState.class);
             Creature.AnimationType currentState = state.state;
-            Creature.AnimationType targetState = currentState;
+            AnimationAction targetAction = currentState;
             boolean restart = false;
             if (entityData.getComponent(entityId, CreatureFall.class) != null) {
-                targetState = Creature.AnimationType.FALLBACK;
+                targetAction = Creature.AnimationType.FALLBACK;
             } else if (entityData.getComponent(entityId, Navigation.class) != null) {
-                targetState = Creature.AnimationType.WALK;
+                targetAction = haulers.contains(entityId) ? WorkerAnimation.HAUL : FighterAnimation.WALK;
             } else if (entityData.getComponent(entityId, Death.class) != null) {
-                targetState = Creature.AnimationType.DEATH_POSE;
+                targetAction = Creature.AnimationType.DEATH_POSE;
             } else if (entityData.getComponent(entityId, Unconscious.class) != null) {
-                targetState = Creature.AnimationType.DIE;
+                targetAction = Creature.AnimationType.DIE;
             } else if (entityData.getComponent(entityId, Possessed.class) != null) {
-                targetState = getPossessedAnimation(entityId, state);
+                targetAction = getPossessedAnimation(entityId, state);
             } else {
                 TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
                 if (taskComponent != null && taskComponent.taskType == TaskType.GAMBLE) {
@@ -120,30 +133,30 @@ public final class CreatureViewSystem extends GameTimeCounter {
                     // A gambler plays an animation three times, then picks the next one, which can be the same
                     restart = !GAMBLE_ANIMATIONS.contains(currentState) || !isPlaying(state, GAMBLE_PLAYS);
                     if (restart) {
-                        targetState = getGambleAnimation(kwdFile.getCreature(state.creatureId));
+                        targetAction = getGambleAnimation(kwdFile.getCreature(state.creatureId));
                     }
                 } else if (taskComponent != null && taskComponent.taskType == TaskType.TORTURE) {
-                    targetState = getTorturerAnimation(taskComponent.targetEntity, state);
+                    targetAction = getTorturerAnimation(taskComponent.targetEntity, state);
                 } else if (taskComponent != null) {
-                    targetState = taskComponent.taskType == TaskType.MANUFACTURE
+                    targetAction = taskComponent.taskType == TaskType.MANUFACTURE
                             ? getManufactureAnimation(kwdFile.getCreature(state.creatureId))
                             : getAnimation(taskComponent.taskType);
                 } else {
                     CreatureAi aiState = entityData.getComponent(entityId, CreatureAi.class);
                     if (aiState != null && aiState.getCreatureState() == CreatureState.CELEBRATING) {
-                        targetState = getCelebrationAnimation(state);
+                        targetAction = getCelebrationAnimation(state);
                     } else if (aiState != null && aiState.getCreatureState() == CreatureState.TORTURED) {
                         CreatureTortured tortured = entityData.getComponent(entityId, CreatureTortured.class);
-                        targetState = getTortureAnimation(tortured != null ? tortured.device : null, state);
+                        targetAction = getTortureAnimation(tortured != null ? tortured.device : null, state);
                     } else if (aiState != null) {
-                        targetState = getAnimation(aiState.getCreatureState());
+                        targetAction = getAnimation(aiState.getCreatureState());
                     }
                 }
             }
 
             // Change!
-            if (currentState != targetState || restart) {
-                entityData.setComponent(entityId, new CreatureViewState(state.creatureId, timeElapsed, targetState));
+            if (!state.isAnimation(targetAction) || restart) {
+                entityData.setComponent(entityId, new CreatureViewState(state.creatureId, timeElapsed, targetAction));
             }
         }
     }
@@ -153,11 +166,11 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * as its keeper steers it. A melee swing shows for half of the attack's
      * recharge time, so that the next swing starts the animation again.
      */
-    private Creature.AnimationType getPossessedAnimation(EntityId entityId, CreatureViewState state) {
+    private AnimationAction getPossessedAnimation(EntityId entityId, CreatureViewState state) {
         CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
         if (state.state == Creature.AnimationType.MELEE_ATTACK && meleeAttack != null
                 && timeElapsed < state.stateStartTime + meleeAttack.rechargeTime / 2) {
-            return Creature.AnimationType.MELEE_ATTACK;
+            return FighterAnimation.MELEE_ATTACK;
         }
 
         PossessedMovement movement = entityData.getComponent(entityId, PossessedMovement.class);
@@ -189,6 +202,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
     @Override
     public void stop() {
         creatureViewEntities.release();
+        hauledEntities.release();
         creatureEntities.clear();
     }
 
@@ -198,7 +212,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * between. Like in DK II, the first shock comes when it sits down. The
      * others are on the Torture Wheel.
      */
-    private Creature.AnimationType getTortureAnimation(EntityId device, CreatureViewState state) {
+    private AnimationAction getTortureAnimation(EntityId device, CreatureViewState state) {
         if (device != null) {
             ObjectComponent deviceObject = entityData.getComponent(device, ObjectComponent.class);
             if (deviceObject != null && deviceObject.objectId == ELECTRIC_CHAIR_OBJECT_ID) {
@@ -220,9 +234,9 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * original (action 0x3F, 0x483E90) it whips its victim with its first
      * special animation, or it is tortured on the device itself
      */
-    private Creature.AnimationType getTorturerAnimation(EntityId target, CreatureViewState state) {
+    private AnimationAction getTorturerAnimation(EntityId target, CreatureViewState state) {
         if (target != null && entityData.getComponent(target, CreatureComponent.class) != null) {
-            return Creature.AnimationType.SPECIAL_1;
+            return Creature.AnimationType.TORTURE_VICTIM;
         }
         return getTortureAnimation(target, state);
     }
@@ -242,7 +256,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
         return state.state != Creature.AnimationType.TORTURED_CHAIR || time - state.stateStartTime >= ELECTROCUTION_TIME;
     }
 
-    private static Creature.AnimationType getAnimation(CreatureState creatureState) {
+    private static AnimationAction getAnimation(CreatureState creatureState) {
         switch (creatureState) {
             case IDLE:
                 return Creature.AnimationType.IDLE_1;
@@ -260,38 +274,38 @@ public final class CreatureViewSystem extends GameTimeCounter {
                 return Creature.AnimationType.TORTURED_WHEEL; // hmmm....
             case SLEEPING:
             case RECUPERATING:
-                return Creature.AnimationType.SLEEPING;
+                return FighterAnimation.SLEEP;
             case MELEE_ATTACK:
-                return Creature.AnimationType.MELEE_ATTACK;
+                return FighterAnimation.MELEE_ATTACK;
             case CAST_SPELL:
-                return Creature.AnimationType.CAST_SPELL;
+                return FighterAnimation.CAST_SPELL;
             case DANCING:
                 return Creature.AnimationType.DANCE;
             case CELEBRATING:
                 return Creature.AnimationType.HAPPY;
             case EATING:
-                return Creature.AnimationType.EATING;
+                return FighterAnimation.EAT;
             default:
                 return Creature.AnimationType.STAND_STILL;
         }
     }
 
-    private static Creature.AnimationType getAnimation(TaskType taskType) {
+    static AnimationAction getAnimation(TaskType taskType) {
         switch (taskType) {
             case CLAIM_ROOM:
             case CLAIM_TILE:
-                return Creature.AnimationType.EATING;
+                return WorkerAnimation.CLAIM_FLOOR;
             case REPAIR_WALL:
             case CLAIM_WALL:
-                return Creature.AnimationType.SLEEPING;
+                return WorkerAnimation.REINFORCE_WALL;
             case DIG_TILE:
-                return Creature.AnimationType.DIG;
+                return WorkerAnimation.DIG;
             case TRAIN:
-                return Creature.AnimationType.MELEE_ATTACK;
+                return FighterAnimation.MELEE_ATTACK;
             case RESEARCH:
-                return Creature.AnimationType.RESEARCHING;
+                return FighterAnimation.RESEARCH;
             case PRAY:
-                return Creature.AnimationType.PRAYING;
+                return FighterAnimation.PRAY;
             default:
                 return Creature.AnimationType.STAND_STILL;
         }
@@ -305,11 +319,11 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * the original plays the angry animation instead of the happy one, but the
      * pay out can't be switched yet.
      */
-    private static Creature.AnimationType getGambleAnimation(Creature creature) {
+    private static AnimationAction getGambleAnimation(Creature creature) {
         boolean happy = hasAnimation(creature, Creature.AnimationType.HAPPY);
         int roll = FastMath.rand.nextInt(100);
         if (happy && roll < 50 && hasAnimation(creature, Creature.AnimationType.RESEARCHING)) {
-            return Creature.AnimationType.RESEARCHING;
+            return FighterAnimation.RESEARCH;
         }
         if (happy && roll < 75) {
             return Creature.AnimationType.HAPPY;
@@ -321,7 +335,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * The big winner dances once, if it can, and then cheers until it goes to
      * collect its winnings, as in the original (0x456EC0)
      */
-    private Creature.AnimationType getCelebrationAnimation(CreatureViewState state) {
+    private AnimationAction getCelebrationAnimation(CreatureViewState state) {
         if (state.state != Creature.AnimationType.HAPPY
                 && hasAnimation(kwdFile.getCreature(state.creatureId), Creature.AnimationType.DANCE)
                 && (state.state != Creature.AnimationType.DANCE || isPlaying(state, 1))) {
@@ -334,7 +348,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * Is the creature still playing its animation the given number of times
      */
     private boolean isPlaying(CreatureViewState state, int plays) {
-        ArtResource animation = kwdFile.getCreature(state.creatureId).getAnimation(state.state);
+        ArtResource animation = kwdFile.getCreature(state.creatureId).getAnimationForAction(state.state);
         if (animation == null) {
             return false;
         }
@@ -358,12 +372,12 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * @param creature the creature manufacturing
      * @return the animation to show
      */
-    static Creature.AnimationType getManufactureAnimation(Creature creature) {
+    static AnimationAction getManufactureAnimation(Creature creature) {
         ArtResource manufacturing = creature.getAnimation(Creature.AnimationType.MANUFACTURING);
         if (manufacturing != null && manufacturing.getType() != ArtResource.ArtResourceType.NONE) {
-            return Creature.AnimationType.MANUFACTURING;
+            return FighterAnimation.MANUFACTURE;
         }
-        return Creature.AnimationType.MELEE_ATTACK;
+        return FighterAnimation.MELEE_ATTACK;
     }
 
 }

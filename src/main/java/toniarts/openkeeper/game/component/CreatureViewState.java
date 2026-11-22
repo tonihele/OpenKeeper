@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 import toniarts.openkeeper.tools.convert.map.Creature.AnimationType;
+import toniarts.openkeeper.tools.convert.map.Creature.AnimationAction;
 
 /**
  * Determines that the entity should be viewed as an creature. Visual
@@ -29,7 +30,7 @@ public final class CreatureViewState implements EntityComponent {
 
     public short creatureId;
     public double stateStartTime;
-    public AnimationType state; // TODO: Proper enum, not this
+    public AnimationType state; // Serialized state; action enums are converted at this boundary
 
     public CreatureViewState() {
         // For serialization
@@ -39,6 +40,16 @@ public final class CreatureViewState implements EntityComponent {
         this.creatureId = creatureId;
         this.stateStartTime = stateStartTime;
         this.state = state;
+    }
+
+    /** Accept gameplay actions while retaining the existing serialized field type. */
+    public CreatureViewState(short creatureId, double stateStartTime, AnimationAction action) {
+        this(creatureId, stateStartTime, action == null ? null : action.getAnimationType());
+    }
+
+    /** Compare actions by playback state, not slot: digging and melee share a slot. */
+    public boolean isAnimation(AnimationAction action) {
+        return state == (action == null ? null : action.getAnimationType());
     }
 
 }
