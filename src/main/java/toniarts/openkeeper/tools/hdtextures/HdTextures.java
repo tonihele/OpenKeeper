@@ -99,9 +99,11 @@ public class HdTextures {
     /** Where Real-ESRGAN is downloaded to, unless {@code --tools-dir} says otherwise */
     public static final Path TOOLS_DIR = Paths.get(System.getProperty("user.home"), ".OpenKeeper", "hd-textures");
 
-    private static final int SCALE = 4;
+    /** How much bigger the HD textures are */
+    public static final int SCALE = 4;
     private static final int PAD = 16;
-    private static final String MANIFEST_NAME = ".hd-textures.properties";
+    /** The record of the textures this tool wrote, kept next to them */
+    public static final String MANIFEST_NAME = ".hd-textures.properties";
     private static final String PYTHON_MANIFEST_NAME = ".hd-textures.json";
     private static final String DEFAULT_MODEL = "realesrgan-x4plus";
     private static final String RELEASE_URL = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/";

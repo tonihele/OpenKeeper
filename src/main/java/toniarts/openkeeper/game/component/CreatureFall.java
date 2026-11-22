@@ -30,6 +30,11 @@ public final class CreatureFall implements EntityComponent {
     public Vector3f velocity; // Tiles per turn, null when just dropped
     public int damage; // Taken on landing
 
+    /**
+     * A conjured creature doesn't land stunned like a creature dropped from the hand
+     */
+    public boolean conjured;
+
     public CreatureFall() {
         // For serialization
     }
@@ -44,6 +49,15 @@ public final class CreatureFall implements EntityComponent {
     public CreatureFall(Vector3f velocity, int damage) {
         this.velocity = velocity;
         this.damage = damage;
+    }
+
+    /**
+     * A creature that drops down without being stunned when it lands
+     *
+     * @param conjured true for a conjured creature
+     */
+    public CreatureFall(boolean conjured) {
+        this.conjured = conjured;
     }
 
 }

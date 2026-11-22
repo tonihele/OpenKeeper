@@ -907,10 +907,14 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
             // Map image
             Element mapImage = screen.findElementById("mapImage");
-            NiftyImage img = nifty.createImage(state.getMapThumbnail(map), true);
+            String thumbnail = state.getMapThumbnail(map);
+            NiftyImage img = nifty.createImage(thumbnail, true);
             mapImage.getRenderer(ImageRenderer.class).setImage(img);
-            mapImage.setConstraintWidth(new SizeValue(img.getWidth() + "px"));
-            mapImage.setConstraintHeight(new SizeValue(img.getHeight() + "px"));
+
+            // The placeholder is a game texture, so it may be an HD copy
+            boolean placeholder = MainMenuState.NO_THUMBNAIL.equals(thumbnail);
+            mapImage.setConstraintWidth(new SizeValue((placeholder ? MainMenuState.NO_THUMBNAIL_SIZE : img.getWidth()) + "px"));
+            mapImage.setConstraintHeight(new SizeValue((placeholder ? MainMenuState.NO_THUMBNAIL_SIZE : img.getHeight()) + "px"));
         }
 
         // Re-populate
