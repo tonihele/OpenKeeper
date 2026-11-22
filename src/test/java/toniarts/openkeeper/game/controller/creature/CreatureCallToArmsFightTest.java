@@ -35,6 +35,8 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
@@ -116,9 +118,12 @@ class CreatureCallToArmsFightTest {
         ICreaturesController creaturesController = proxy(ICreaturesController.class, "createController",
                 proxy(ICreatureController.class, null, null));
         IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, "getSensedEntities", Set.of());
+        // Every other keeper is an enemy
+        ILevelInfo levelInfo = (ILevelInfo) Proxy.newProxyInstance(ILevelInfo.class.getClassLoader(), new Class<?>[]{ILevelInfo.class},
+                (object, method, args) -> method.getName().equals("getPlayer") ? new Keeper(false, (Short) args[0]) : null);
         return new CreatureController(creature, entityData, CreatureSleepFixtures.sleeper(9),
                 proxy(INavigationService.class, "findPath", new DefaultGraphPath<>()), null, () -> 0,
-                settings, creaturesController, lookup, null, null, null, null, null);
+                settings, creaturesController, lookup, null, levelInfo, null, null, null);
     }
 
     @SuppressWarnings("unchecked")
