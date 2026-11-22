@@ -23,8 +23,8 @@
             <text id="#text" style="#text" text="" />
             <effect>
                 <onHover name="hint" hintText="$hintText" hintDelay="200" />
-                <onHover name="simpleHint" hintText="$tooltip" targetElement="tooltip" />
-                <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                <onHover name="simpleHintEx" hintText="$tooltip" targetElement="tooltip" />
+                <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
             </effect>
         </image>
     </controlDefinition>
