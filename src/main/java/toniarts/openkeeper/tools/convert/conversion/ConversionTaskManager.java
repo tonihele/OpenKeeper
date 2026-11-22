@@ -53,7 +53,8 @@ public final class ConversionTaskManager {
     private final Map<TaskNode, Future> runningTasks = new HashMap<>();
     private final Map<AssetsConverter.ConvertProcess, TaskNode> taskNodes = new LinkedHashMap<>();
     private final Graph<TaskNode> graph = new Graph<>();
-    private boolean failure = false;
+    private volatile boolean failure = false;
+    private volatile Error taskError;
 
     public ConversionTaskManager() {
         this.executorService = Executors.newFixedThreadPool(MAX_THREADS, new ThreadFactory() {
@@ -75,34 +76,42 @@ public final class ConversionTaskManager {
     /**
      * Starts all the assigned tasks. Blocks until complete
      *
-     * @return true if the conversion process was successful
+     * @return true if the conversion process was successful; false on task
+     * exceptions or interruption (the interrupt status is preserved)
+     * @throws Error if a task throws an Error, after the executor terminates
      */
     public boolean executeTasks() {
-        createTaskGraph();
+        try {
+            createTaskGraph();
 
-        // If we didn't have anything, just quit
-        if (tasksToRun == 0) {
-            return true;
-        }
+            // If we didn't have anything, just quit
+            if (tasksToRun == 0) {
+                return true;
+            }
 
-        // Get root nodes to start the processing
-        List<TaskNode> rootNodes = graph.getRootNodes();
-
-        // Prioritize tasks so that have higher amount of dependendant (initial) tasks get the priority
-        sortNodesChildCountDesc(rootNodes);
+            // Prioritize roots with more dependent tasks.
+            List<TaskNode> rootNodes = graph.getRootNodes();
+            sortNodesChildCountDesc(rootNodes);
             synchronized (graph) {
                 for (TaskNode node : rootNodes) {
                     new TaskExecuterGraphTraverser().traverse(node);
                 }
             }
 
-        try {
             executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.HOURS);
+            if (taskError != null) {
+                throw taskError;
+            }
+            return !failure;
         } catch (InterruptedException ex) {
-            logger.log(Level.ERROR, "Conversion tasks failed to complete!", ex);
+            failure = true;
+            Thread.currentThread().interrupt();
+            logger.log(Level.ERROR, "Conversion tasks interrupted!", ex);
+            return false;
+        } finally {
+            // Also covers interruption, graph setup failure and an empty task list.
+            executorService.shutdownNow();
         }
-
-        return !failure;
     }
 
     private void createTaskGraph() {
@@ -134,11 +143,17 @@ public final class ConversionTaskManager {
                 logger.log(Level.INFO, "Task {0} finished!", node);
 
                 executeNextTask(node);
-            } catch (Exception e) {
-                failure = true;
+            } catch (Throwable e) {
+                // Submit captures Errors in its Future too. Record them here so a
+                // failed prerequisite cannot strand unscheduled dependent tasks.
+                synchronized (graph) {
+                    failure = true;
+                    if (e instanceof Error error && taskError == null) {
+                        taskError = error;
+                    }
+                    executorService.shutdownNow();
+                }
                 logger.log(Level.ERROR, "Task " + node + " failed! Aborting...", e);
-
-                executorService.shutdown();
             }
         });
         runningTasks.put(node, task);
