@@ -171,7 +171,7 @@ public final class ShotsController implements IShotsController {
                 objectsController.loadObject((short) request.shotData1(), request.playerId(), request.position(), 0);
             }
         });
-        result.put(POSSESS_CREATURE, request -> creaturesController.createController(request.target()).setPossession(true));
+        result.put(POSSESS_CREATURE, this::possess);
         result.put(MODIFY_HEALTH, request -> EntityController.setDamage(entityData, request.target(), -request.shotData1()));
         result.put(CHICKEN, request -> {
             if (request.target() != null && creaturesController.isValidEntity(request.target())) {
@@ -380,6 +380,20 @@ public final class ShotsController implements IShotsController {
         EntityId boulder = objectsController.loadObject(ObjectsController.OBJECT_BOULDER_ID, request.playerId(), tile.x, tile.y);
         entityData.setComponents(boulder, new Health(health, health),
                 new Boulder(directionX, directionY, (int) Math.signum(directionX), (int) Math.signum(directionY)));
+    }
+
+    /**
+     * Possesses the target, unless its keeper already possesses a creature or
+     * the target is Jack, the creature of the Jack in the Box (0x4AEEA0)
+     *
+     * @param request the shot
+     */
+    private void possess(ShotRequest request) {
+        CreatureComponent creature = entityData.getComponent(request.target(), CreatureComponent.class);
+        if (creaturesController.getPossessedCreature(request.playerId()) == null
+                && (creature == null || creature.creatureId != CREATURE_JACK_ID)) {
+            creaturesController.createController(request.target()).setPossession(true);
+        }
     }
 
     /**
