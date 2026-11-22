@@ -617,9 +617,13 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
 
-        // Then it watches a fight in the Combat Pit. The Casino comes after this
+        // Then it watches a fight in the Combat Pit, and then it gambles in the Casino (job 9)
         if (taskManager.isTaskAvailable(this, Creature.JobType.COMBAT_PIT_SPECTATE)
                 && taskManager.assignTask(this, Creature.JobType.COMBAT_PIT_SPECTATE)) {
+            workResult.accept(true);
+            return;
+        }
+        if (taskManager.isTaskAvailable(this, Creature.JobType.DRINK) && taskManager.assignTask(this, Creature.JobType.DRINK)) {
             workResult.accept(true);
             return;
         }
