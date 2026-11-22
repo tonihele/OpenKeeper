@@ -24,6 +24,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -52,6 +53,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.TrapFiringFixtures;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
 
@@ -153,6 +155,21 @@ class TaskManagerGuardTest {
         assertTrue(near.getRoomInstance().hasCoordinate(evilsTask.get().getTaskLocation()));
         assertTrue(far.getRoomInstance().hasCoordinate(goodsTask.get().getTaskLocation()));
         assertTrue(near.getRoomInstance().hasCoordinate(otherEvilsTask.get().getTaskLocation()));
+    }
+
+    @Test
+    void aGamblerPrefersACasinoWithoutCreaturesOfTheOtherSide() {
+        IRoomController near = guardRoom(false, 6, 7);
+        IRoomController far = guardRoom(false, 12, 13);
+        TaskManager taskManager = taskManager(List.of(far, near));
+        AtomicReference<Task> evilsTask = new AtomicReference<>();
+        AtomicReference<Task> goodsTask = new AtomicReference<>();
+
+        assertTrue(taskManager.assignTask(guard(Creature.CreatureFlag.IS_EVIL, evilsTask), Creature.JobType.DRINK));
+        assertTrue(taskManager.assignTask(guard(Creature.CreatureFlag.IS_GOOD, goodsTask), Creature.JobType.DRINK));
+
+        assertTrue(near.getRoomInstance().hasCoordinate(evilsTask.get().getTaskLocation()));
+        assertTrue(far.getRoomInstance().hasCoordinate(goodsTask.get().getTaskLocation()));
     }
 
     @Test
@@ -259,11 +276,17 @@ class TaskManagerGuardTest {
                 -> "findPath".equals(method.getName()) ? new DefaultGraphPath<>() : null);
         IKwdFile kwdFile = stub(IKwdFile.class, (proxy, method, args) -> "getGameLevel".equals(method.getName()) ? CreatureSleepFixtures.level(4) : null);
         ILevelInfo levelInfo = stub(ILevelInfo.class, (proxy, method, args) -> "getLevelData".equals(method.getName()) ? kwdFile : null);
+        Map<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
+        for (MiscType type : List.of(MiscType.MAX_TIME_IN_GUARD_ROOM_BEFORE_WANDERING_TO_GUARD_POST_SECONDS,
+                MiscType.GAMBLING_MODIFY_CREATURE_MONEY_SMILES_PER_SECOND, MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND,
+                MiscType.GAMBLING_MODIFY_CREATURE_ANGER_SMILES_PER_SECOND, MiscType.GAMBLING_MODIFY_CREATURE_ANGER_MONEY_PER_SECOND,
+                MiscType.GAMBLING_CREATURE_JACKPOT_CHANCE_SMILES_PER_SECOND, MiscType.GAMBLING_CREATURE_JACKPOT_CHANCE_MONEY_PER_SECOND,
+                MiscType.GAMBLING_JACKPOT_BASIC_AMOUNT, MiscType.GAMBLING_JACKPOT_PAY_TIME_LIMIT, MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY)) {
+            settings.put(type, CreatureSleepFixtures.variable(type, 5));
+        }
         return new TaskManager(entityData, stub(IGameWorldController.class, (proxy, method, args) -> null),
                 mapController, stub(IObjectsController.class, (proxy, method, args) -> null), stub(ICreaturesController.class, (proxy, method, args) -> null),
-                navigation, List.of(player), levelInfo, stub(IEntityPositionLookup.class, (proxy, method, args) -> null),
-                Map.of(MiscType.MAX_TIME_IN_GUARD_ROOM_BEFORE_WANDERING_TO_GUARD_POST_SECONDS,
-                        CreatureSleepFixtures.variable(MiscType.MAX_TIME_IN_GUARD_ROOM_BEFORE_WANDERING_TO_GUARD_POST_SECONDS, 5)));
+                navigation, List.of(player), levelInfo, stub(IEntityPositionLookup.class, (proxy, method, args) -> null), settings);
     }
 
     /**

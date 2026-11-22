@@ -882,10 +882,10 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     /**
      * Tells whether a creature of the other side has a job in the room: an
      * evil creature for a good one, a good creature for any other. DK II's
-     * finders of the Library, Training Room, Temple and Guard Room prefer a
-     * room without such company even when it is further away (DKII.EXE
-     * 0x4C6AE0, 0x4E2500, 0x4F3560, 0x4F1A20, with 0x45C640 for the company).
-     * The Torture Chamber's finder doesn't care
+     * finders of the Library, Training Room, Temple, Guard Room and Casino
+     * prefer a room without such company even when it is further away
+     * (DKII.EXE 0x4C6AE0, 0x4E2500, 0x4F3560, 0x4F1A20, 0x4D75F0, with
+     * 0x45C640 for the company). The Torture Chamber's finder doesn't care
      *
      * @param creature the creature looking for a room
      * @param objectType the job it is looking for
@@ -895,7 +895,8 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private boolean hasHatedCompany(ICreatureController creature, ObjectType objectType, IRoomController room) {
         Map<Point, AbstractCapacityCriticalRoomTask> tasks = roomTasks.get(room);
         if (tasks == null || creature.getCreature() == null || !(objectType == ObjectType.RESEARCHER
-                || objectType == ObjectType.TRAINEE || objectType == ObjectType.WORSHIPPER || objectType == ObjectType.GUARD)) {
+                || objectType == ObjectType.TRAINEE || objectType == ObjectType.WORSHIPPER || objectType == ObjectType.GUARD
+                || objectType == ObjectType.GAMBLER)) {
             return false;
         }
         Creature.CreatureFlag hated = creature.getCreature().getFlags().contains(Creature.CreatureFlag.IS_GOOD)
