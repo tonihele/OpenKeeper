@@ -57,7 +57,9 @@ import toniarts.openkeeper.utils.Point;
  * his land goes back to nobody and his imps die.
  * In a skirmish or multiplayer game the last keeper standing wins, and when a
  * keeper wins, by the level script too, every keeper who is not his ally
- * loses. In the campaign, a level can have the last enemy heart leave a Portal Gem.
+ * loses. A keeper who loses by the level script can leave the last side
+ * standing too. In the campaign, a level can have the last enemy heart leave a
+ * Portal Gem.
  */
 public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
@@ -114,6 +116,10 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
             for (Entity player : endedGames.getAddedEntities()) {
                 if (player.get(GameEnded.class).won) {
                     rivalsLose(levelInfo.getPlayer(player.get(KeeperComponent.class).playerId));
+                } else if (endedGames.stream().noneMatch(ended -> ended.get(GameEnded.class).won)) {
+
+                    // A keeper who loses, by the level script too, can leave one side standing, which wins (0x4BE630)
+                    checkLastKeeperStanding();
                 }
             }
         }
@@ -127,7 +133,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
      * @param winner the keeper who won
      */
     private void rivalsLose(Keeper winner) {
-        for (Keeper keeper : getKeepersStanding()) {
+        for (Keeper keeper : getKeepersStillPlaying()) {
             if (keeper != winner && (winner.isEnemy(keeper.getId()) || keeper.isEnemy(winner.getId()))) {
                 gameController.endGame(keeper.getId(), false);
             }
@@ -255,7 +261,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
     }
 
     private void checkLastKeeperStanding() {
-        List<Keeper> standing = getKeepersStanding();
+        List<Keeper> standing = getKeepersStillPlaying();
         if (standing.isEmpty()) {
             return;
         }
@@ -306,6 +312,15 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
             return keeper.isAi();
         }
         return keeper.getPlayer() != null && keeper.getPlayer().isAi();
+    }
+
+    /**
+     * The keepers standing whose game hasn't ended, by a win or a loss
+     */
+    private List<Keeper> getKeepersStillPlaying() {
+        List<Keeper> playing = getKeepersStanding();
+        playing.removeIf(keeper -> endedGames.stream().anyMatch(ended -> ended.get(KeeperComponent.class).playerId == keeper.getId()));
+        return playing;
     }
 
     private List<Keeper> getKeepersStanding() {

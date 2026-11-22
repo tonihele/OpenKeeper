@@ -340,12 +340,27 @@ class KeeperDefeatSystemTest {
     }
 
     @Test
-    void keeperWhoLosesTheSkirmishEndsNobodyElsesGame() {
-        KeeperDefeatSystem system = skirmish(HUMAN, RIVAL);
+    void keeperWhoLosesTheSkirmishEndsNobodyElsesGameWhileRivalsAreLeft() {
+        KeeperDefeatSystem system = skirmish(HUMAN, RIVAL, OTHER_RIVAL);
         entityData.setComponent(entityData.findEntity(new FieldFilter<>(KeeperComponent.class, "playerId", HUMAN), KeeperComponent.class),
                 new GameEnded(false));
         system.processTick(0.25f);
         assertTrue(endings.isEmpty());
+    }
+
+    @Test
+    void keeperWhoLosesTheSkirmishLeavesTheLastSideStandingTheWinners() {
+        KeeperDefeatSystem system = skirmish(HUMAN, RIVAL, OTHER_RIVAL);
+        keepers.get(RIVAL).createAlliance(OTHER_RIVAL);
+        keepers.get(OTHER_RIVAL).createAlliance(RIVAL);
+
+        // The level script ends the human's game with a loss, the two allies left win together (0x4BE630)
+        entityData.setComponent(entityData.findEntity(new FieldFilter<>(KeeperComponent.class, "playerId", HUMAN), KeeperComponent.class),
+                new GameEnded(false));
+        system.processTick(0.25f);
+
+        assertEquals(Set.of(RIVAL + " won", OTHER_RIVAL + " won"), new HashSet<>(endings));
+        assertEquals(2, endings.size());
     }
 
     @Test
