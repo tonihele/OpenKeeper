@@ -60,6 +60,16 @@ public final class DoorFixtures {
         return variable;
     }
 
+    public static Thing.Door placedDoor(short id, int x, int y, short player, Thing.Door.DoorFlag flag) {
+        Thing.Door door = new Thing.Door();
+        door.setDoorId(id);
+        door.setPosX(x);
+        door.setPosY(y);
+        door.setPlayerId(player);
+        door.setFlag(flag);
+        return door;
+    }
+
     public static Door doorToManufacture(short doorId, int manufToBuild, short manufCrateObjectId) {
         Door door = door(doorId, 0);
         door.setManufToBuild(manufToBuild);

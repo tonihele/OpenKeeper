@@ -97,20 +97,9 @@ The independent PR branch's complete suite also passed: 1,567 passed and
 Both saved native probes were run against the hash-checked reference executable:
 48 opening candidates and 32 routing cases passed.
 
-## Remaining work: #1365
+## Secret-door follow-up: #1365
 
-The alliance change is a verified fix, but it is not the whole passage investigation.
-Secret-door discovery and route knowledge are tracked separately in
-[#1365](https://github.com/tonihele/OpenKeeper/issues/1365). OpenKeeper
-has no runtime secret-door discovery state equivalent to DK II's hidden tile
-marker. Consequently the hidden-versus-known route distinction cannot yet be
-expressed by its existing door components. Treating all allied secret doors as
-known would not reproduce the native route predicate.
-
-The native door tick has a separate discovery path in the latter part of
-`0x004A55F0`: an open, built secret door can be detected by a nearby enemy with line of sight,
-which clears the tile marker and refreshes navigation. The exact activity
-exclusions and visibility interaction still require validation before adding
-that state and its discovery transitions. A complete native AI/possession
-passage matrix, including discovery, should be recorded before closing #1288.
-No change to secret-door discovery or presentation is claimed by this patch.
+The implementation and native discovery investigation are documented in
+[secret-door-discovery.md](secret-door-discovery.md). The new work preserves
+this allied-opening policy while keeping route knowledge and physical movement
+separate. The original allied-only validation above did not test discovery.

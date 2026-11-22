@@ -106,7 +106,7 @@ public final class DoorViewSystem implements IGameLogicUpdatable {
             DoorViewState doorViewState = doorEntity.get(DoorViewState.class);
             if (doorViewState.open != shouldBeOpen) {
                 entityData.setComponent(doorEntityId, new DoorViewState(doorViewState.doorId, doorViewState.locked,
-                        doorViewState.blueprint, shouldBeOpen));
+                        doorViewState.blueprint, shouldBeOpen, doorViewState.hidden));
             }
         }
     }

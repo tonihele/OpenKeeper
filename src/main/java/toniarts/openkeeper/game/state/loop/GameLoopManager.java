@@ -41,6 +41,7 @@ import toniarts.openkeeper.game.logic.CreatureViewSystem;
 import toniarts.openkeeper.game.logic.DeathSystem;
 import toniarts.openkeeper.game.logic.DecaySystem;
 import toniarts.openkeeper.game.logic.DoorViewSystem;
+import toniarts.openkeeper.game.logic.DoorDiscoverySystem;
 import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
 import toniarts.openkeeper.game.logic.FreezeSystem;
 import toniarts.openkeeper.game.logic.GameLogicManager;
@@ -169,6 +170,7 @@ public final class GameLoopManager {
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData, levelInfo.getLevelData()),
                 new DoorViewSystem(entityData, positionSystem, levelInfo),
+                new DoorDiscoverySystem(entityData, positionSystem, levelInfo),
                 new BattleSystem(entityData, gameController.getGameTimer()),
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),

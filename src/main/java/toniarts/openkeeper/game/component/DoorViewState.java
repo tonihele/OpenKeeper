@@ -30,16 +30,27 @@ public final class DoorViewState implements EntityComponent {
     public boolean locked;
     public boolean blueprint;
     public boolean open;
+    public boolean hidden;
 
     public DoorViewState() {
         // For serialization
     }
 
     public DoorViewState(short doorId, boolean locked, boolean blueprint, boolean open) {
+        this(doorId, locked, blueprint, open, false);
+    }
+
+    public DoorViewState(short doorId, boolean locked, boolean blueprint, boolean open, boolean hidden) {
+        this.hidden = hidden;
         this.doorId = doorId;
         this.locked = locked;
         this.blueprint = blueprint;
         this.open = open;
+    }
+
+    /** Alliances do not reveal an undiscovered secret door (native 0x4A6E95). */
+    public boolean isShownTo(short ownerId, short playerId) {
+        return ownerId == playerId || (!blueprint && !hidden);
     }
 
     @Override

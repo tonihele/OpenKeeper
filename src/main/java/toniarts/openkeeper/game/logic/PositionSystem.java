@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -353,7 +354,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
                 continue;
             }
 
-            if (doorComponent.locked) {
+            if (!isDoorKnown(entityId, playerId) || doorComponent.locked) {
                 return entityId;
             }
 
@@ -366,6 +367,26 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         }
 
         return null;
+    }
+
+    @Override
+    public boolean isDoorKnown(EntityId door, short playerId) {
+        DoorComponent component = entityData.getComponent(door, DoorComponent.class);
+        Owner owner = entityData.getComponent(door, Owner.class);
+        return component == null || component.blueprint || !component.hidden
+                || (owner != null && owner.ownerId == playerId);
+    }
+
+    @Override
+    public boolean isDoorPhysicallyAccessible(EntityId door, short playerId) {
+        DoorComponent component = entityData.getComponent(door, DoorComponent.class);
+        Owner owner = entityData.getComponent(door, Owner.class);
+        if (component == null || component.blueprint) {
+            return true;
+        }
+        DoorViewState view = entityData.getComponent(door, DoorViewState.class);
+        return (view != null && view.open) || (!component.locked && owner != null
+                && DoorAccessRules.isFriendlyOwner(owner.ownerId, playerId, levelInfo));
     }
 
     @Override

@@ -136,11 +136,17 @@ public final class MapIndexedGraph implements IndexedGraph<IMapTileInformation> 
      */
     protected static Float getCost(final INavigable navigable, final IMapTileInformation from, final IMapTileInformation to, final IMapController mapController,
             IEntityPositionLookup entityPositionLookup) {
-        return getCost(navigable, from, to, mapController, entityPositionLookup, true);
+        return getCost(navigable, from, to, mapController, entityPositionLookup, true, true);
+    }
+
+    /** Manual movement keeps physical access separate from AI route knowledge. */
+    static Float getMovementCost(final INavigable navigable, final IMapTileInformation from, final IMapTileInformation to,
+            final IMapController mapController, IEntityPositionLookup entityPositionLookup) {
+        return getCost(navigable, from, to, mapController, entityPositionLookup, true, false);
     }
 
     private static Float getCost(final INavigable navigable, final IMapTileInformation from, final IMapTileInformation to, final IMapController mapController,
-            IEntityPositionLookup entityPositionLookup, boolean checkDiagonal) {
+            IEntityPositionLookup entityPositionLookup, boolean checkDiagonal, boolean checkKnowledge) {
         Terrain terrain = mapController.getTerrain(to);
         if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
 
@@ -162,9 +168,9 @@ public final class MapIndexedGraph implements IndexedGraph<IMapTileInformation> 
                 boolean hasConnection = false;
                 IMapTileInformation hiCorner = mapController.getMapData().getTile(from.getLocation().y < to.getLocation().y ? to.getLocation().x : from.getLocation().x, from.getLocation().y < to.getLocation().y ? from.getLocation().y : to.getLocation().y);
                 IMapTileInformation loCorner = mapController.getMapData().getTile(from.getLocation().y > to.getLocation().y ? to.getLocation().x : from.getLocation().x, from.getLocation().y > to.getLocation().y ? from.getLocation().y : to.getLocation().y);
-                if (hiCorner != null && getCost(navigable, from, hiCorner, mapController, entityPositionLookup, false) != null) {
+                if (hiCorner != null && getCost(navigable, from, hiCorner, mapController, entityPositionLookup, false, checkKnowledge) != null) {
                     hasConnection = true;
-                } else if (loCorner != null && getCost(navigable, from, loCorner, mapController, entityPositionLookup, false) != null) {
+                } else if (loCorner != null && getCost(navigable, from, loCorner, mapController, entityPositionLookup, false, checkKnowledge) != null) {
                     hasConnection = true;
                 }
 
@@ -176,6 +182,14 @@ public final class MapIndexedGraph implements IndexedGraph<IMapTileInformation> 
             // Check for doors, the ones that can be broken cost the effort of breaking them, others stop us
             EntityId door = entityPositionLookup.getBlockingDoor(to.getX(), to.getY(), navigable.getOwnerId());
             if (door != null) {
+                if (checkKnowledge && !entityPositionLookup.isDoorKnown(door, navigable.getOwnerId())) {
+                    return null;
+                }
+                if (!checkKnowledge) {
+                    // Opening/contact permission does not depend on route knowledge.
+                    return entityPositionLookup.isDoorPhysicallyAccessible(door, navigable.getOwnerId())
+                            ? DEFAULT_COST : null;
+                }
                 return navigable.canBreakDoor(door) ? DOOR_COST : null;
             }
 

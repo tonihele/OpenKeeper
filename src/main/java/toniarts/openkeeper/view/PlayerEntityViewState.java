@@ -45,6 +45,7 @@ import java.util.Objects;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomEffect;
@@ -772,7 +773,8 @@ public class PlayerEntityViewState extends AbstractAppState {
     private void updateDoorModelState(Spatial object, Entity e) {
         DoorViewState viewState = e.get(DoorViewState.class);
         object.getControl(DoorViewControl.class).setTargetState(viewState);
-        applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
+        applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position),
+                viewState.isShownTo(e.get(Owner.class).ownerId, playerId));
     }
 
     private void updateObjectModelState(Spatial object, Entity e) {
@@ -955,7 +957,8 @@ public class PlayerEntityViewState extends AbstractAppState {
                 continue;
             }
             boolean baseVisible = (!(control instanceof ObjectViewControl objectViewControl) || objectViewControl.getCurrentState().visible)
-                    && isTrapShown(control);
+                    && isTrapShown(control)
+                    && isDoorShown(control);
             applyFogCullHint(spatial, tile, baseVisible);
         }
     }
@@ -969,6 +972,13 @@ public class PlayerEntityViewState extends AbstractAppState {
     private boolean isTrapShown(IEntityViewControl<?, ?> control) {
         return !(control instanceof TrapViewControl trapControl)
                 || trapControl.getCurrentState().isShownTo(trapControl.getOwnerId(), playerId);
+    }
+
+    private boolean isDoorShown(IEntityViewControl<?, ?> control) {
+        if (!(control instanceof DoorViewControl doorControl)) {
+            return true;
+        }
+        return doorControl.isShownTo(playerId);
     }
 
     private void updateModelPosition(Spatial object, Entity e) {
@@ -1088,7 +1098,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         private boolean stopped = false;
 
         public DoorModelContainer(EntityData ed) {
-            super(ed, Position.class, DoorViewState.class); // Stuff with position is on the map
+            super(ed, Position.class, DoorViewState.class, Owner.class); // Stuff with position is on the map
         }
 
         @Override

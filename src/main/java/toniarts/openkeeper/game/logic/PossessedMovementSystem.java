@@ -107,7 +107,7 @@ public final class PossessedMovementSystem implements IGameLogicUpdatable {
 
         IMapTileInformation from = mapController.getMapData().getTile(fromPoint);
         IMapTileInformation ahead = mapController.getMapData().getTile(aheadPoint);
-        boolean blocked = ahead == null || navigable.getCost(from, ahead, mapController, entityPositionLookup) == null;
+        boolean blocked = ahead == null || navigable.getMovementCost(from, ahead, mapController, entityPositionLookup) == null;
         if (!blocked) {
             return toValue;
         }

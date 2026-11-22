@@ -139,7 +139,11 @@ class HeroPartyDoorTest {
     }
 
     private static IEntityPositionLookup positionLookup() {
-        return stub(IEntityPositionLookup.class, (method, args) -> method.equals("getBlockingDoor") ? DOOR : null);
+        return stub(IEntityPositionLookup.class, (method, args) -> switch (method) {
+            case "getBlockingDoor" -> DOOR;
+            case "isDoorKnown" -> true;
+            default -> null;
+        });
     }
 
     private static IMapTileInformation doorTile() {

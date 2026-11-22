@@ -59,7 +59,7 @@ public final class DoorAttackTarget {
      */
     public static boolean isBreakable(EntityData entityData, EntityId door) {
         DoorComponent doorComponent = entityData.getComponent(door, DoorComponent.class);
-        if (doorComponent == null || doorComponent.blueprint) {
+        if (doorComponent == null || doorComponent.blueprint || doorComponent.hidden) {
             return false;
         }
 
