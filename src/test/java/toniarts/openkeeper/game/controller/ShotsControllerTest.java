@@ -101,7 +101,7 @@ class ShotsControllerTest {
         shotsById.put(SPIKE_ID, TrapFiringFixtures.shot(SPIKE_ID, Shot.ProcessType.NONE, Shot.DamageType.CONSTANT));
         shotsById.put(GAS_CLOUD_ID, TrapFiringFixtures.shot(GAS_CLOUD_ID, Shot.ProcessType.GAS, Shot.DamageType.RANGE_FROM_ORIGIN, 300));
         shotsById.put(DOOR_FIREBALL_ID, TrapFiringFixtures.shot(DOOR_FIREBALL_ID, Shot.ProcessType.NONE, Shot.DamageType.HIT_THING));
-        shotsById.put(FREEZE_ID, TrapFiringFixtures.shot(FREEZE_ID, Shot.ProcessType.FREEZE, Shot.DamageType.NONE));
+        shotsById.put(FREEZE_ID, TrapFiringFixtures.shot(FREEZE_ID, Shot.ProcessType.FREEZE, Shot.DamageType.NONE, 200));
         shotsById.put(ALARM_ID, TrapFiringFixtures.shot(ALARM_ID, Shot.ProcessType.ALARM, Shot.DamageType.NONE));
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
@@ -399,6 +399,18 @@ class ShotsControllerTest {
         shotsController.createShot(FREEZE_ID, 20, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
 
         assertEquals(5, entityData.getComponent(target, Frozen.class).startTime);
+    }
+
+    @Test
+    void freezeShotScaresTheEnemiesAroundToo() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        createCreature(ENEMY_ID, 11, 10);
+
+        shotsController.createShot(FREEZE_ID, 20, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+
+        // The two enemies share the freeze shot's threat of 200
+        Threat threat = entityData.getComponent(entityData.findEntity(null, Threat.class, Decay.class), Threat.class);
+        assertEquals(100, threat.threat);
     }
 
     @Test

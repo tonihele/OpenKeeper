@@ -70,6 +70,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJE
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.DRAIN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.GAS;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.GUIDED;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.JACK_IN_THE_BOX;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
@@ -118,6 +119,13 @@ public final class ShotsController implements IShotsController {
      * Box look for enemies to scare (0x4AF8E0, 0x4AFAD0, 0x4B02E0)
      */
     private static final int SCARE_RANGE = 2;
+
+    /**
+     * The other shot processes that scare like the gas cloud as they work:
+     * lightning (0x4AF1E0), freeze (0x4AE1D0), chicken (0x4AE2A0), tremor
+     * (0x4AF330) and the guided bolt (0x4AF3A0)
+     */
+    private static final Set<Shot.ProcessType> SCARING_PROCESSES = EnumSet.of(LIGHTNING, FREEZE, CHICKEN, TREMOR, GUIDED);
 
     private final IKwdFile kwdFile;
     private final EntityData entityData;
@@ -234,6 +242,9 @@ public final class ShotsController implements IShotsController {
         IShotProcessor processor = processors.get(processType);
         if (processor != null) {
             processor.process(request);
+            if (SCARING_PROCESSES.contains(processType)) {
+                scare(request);
+            }
         } else if (processType != Shot.ProcessType.NONE && unprocessedTypes.add(processType)) {
             logger.log(Logger.Level.WARNING, "Shot type {0} not implemented", processType);
         }
@@ -413,6 +424,11 @@ public final class ShotsController implements IShotsController {
      * @param request the shot
      */
     private void scare(ShotRequest request) {
+
+        // A shot without threat scares nobody (0x4AD730 doesn't even look)
+        if (request.shot().getThreat() == 0) {
+            return;
+        }
         Keeper keeper = levelInfo.getPlayer(request.playerId());
         IEntityPositionLookup entityPositionLookup = gameController.getEntityLookupService();
         Point tile = WorldUtils.vectorToPoint(request.position());
