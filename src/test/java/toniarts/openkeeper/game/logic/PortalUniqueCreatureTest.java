@@ -231,6 +231,15 @@ class PortalUniqueCreatureTest {
         assertSame(goblin, choice.chooseCreature(player, portalRoom, creaturesController, creature -> true));
     }
 
+    @Test
+    void preparationDoesNotConsumeAUniqueCreature() {
+        buildFireflyLayout(20, 20);
+        assertTrue(choice.canChooseUniqueCreature(player, List.of(player, enemy), creaturesController, level));
+        assertTrue(choice.canChooseUniqueCreature(player, List.of(player, enemy), creaturesController, level));
+        assertSame(uniques.get((short) 32), choose());
+        assertFalse(choice.canChooseUniqueCreature(player, List.of(player, enemy), creaturesController, level));
+    }
+
     private Creature choose() {
         return choice.chooseUniqueCreature(player, List.of(player, enemy), creaturesController, level);
     }

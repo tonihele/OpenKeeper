@@ -80,6 +80,7 @@ public final class GameConsole {
         HELP,
         LOOSE_LEVEL,
         LEVEL_MAX,
+        PAYDAY,
         SPAWN_IMP,
         UNLOCK_ROOMS,
         UNLOCK_SPELLS,
@@ -161,6 +162,9 @@ public final class GameConsole {
                     break;
                 case EXIT:
                     stateManager.getState(ConsoleState.class).setEnabled(false);
+                    break;
+                case PAYDAY:
+                    stateManager.getState(CheatState.class).executeCheat(CheatState.CheatType.PAY_DAY);
                     break;
                 case CLAIM:
                     changeTerrain(ICheatController.CLAIM_TERRAIN, args, 1);
