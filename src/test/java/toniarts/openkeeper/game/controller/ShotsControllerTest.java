@@ -55,6 +55,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -70,6 +71,7 @@ class ShotsControllerTest {
     private static final short SIGHT_OF_EVIL_ID = 33;
     private static final short SKELETON_ID = 9;
     private static final int RAISE_DEAD_EFFECT_ID = 324;
+    private static final short DRAIN_ID = 42;
     private static final short SPIKE_ID = 27;
     private static final short GAS_CLOUD_ID = 58;
     private static final short DOOR_FIREBALL_ID = 57;
@@ -88,6 +90,7 @@ class ShotsControllerTest {
     private final List<Object[]> raised = new ArrayList<>();
     private final List<Object[]> effects = new ArrayList<>();
     private final Set<Point> waterTiles = new HashSet<>();
+    private final List<EntityId> pickedUpThings = new ArrayList<>();
     private final ShotsController shotsController;
     private double gameTime = 0;
 
@@ -98,6 +101,8 @@ class ShotsControllerTest {
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
+        // Drain does its process when it hits, as in the original data
+        shotsById.put(DRAIN_ID, ShotFixtures.shot(DRAIN_ID, Shot.ProcessType.DRAIN, 0, EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING)));
         shotsById.put(SPIKE_ID, TrapFiringFixtures.shot(SPIKE_ID, Shot.ProcessType.NONE, Shot.DamageType.CONSTANT));
         shotsById.put(GAS_CLOUD_ID, TrapFiringFixtures.shot(GAS_CLOUD_ID, Shot.ProcessType.GAS, Shot.DamageType.RANGE_FROM_ORIGIN));
         shotsById.put(DOOR_FIREBALL_ID, TrapFiringFixtures.shot(DOOR_FIREBALL_ID, Shot.ProcessType.NONE, Shot.DamageType.HIT_THING));
@@ -133,9 +138,12 @@ class ShotsControllerTest {
                 (proxy, method, args) -> method.getName().equals("emitEffect") ? effects.add(args) : null);
 
         IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class},
-                (proxy, method, args) -> (args.length == 1 ? deadBodies : entityData.findEntities(null, Position.class).stream().toList()).stream()
-                        .filter(entity -> (args.length == 1 ? (Point) args[0] : new Point((int) args[0], (int) args[1])).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position)))
-                        .toList());
+                (proxy, method, args) -> args.length == 1 ? deadBodies.stream()
+                        .filter(entity -> ((Point) args[0]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position)))
+                        .toList()
+                        : Stream.concat(entityData.findEntities(null, Position.class).stream()
+                                .filter(entity -> new Point((int) args[0], (int) args[1]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position))),
+                                pickedUpThings.stream()).toList());
         IGameController gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(), new Class<?>[]{IGameController.class},
                 (proxy, method, args) -> method.getName().equals("getEntityLookupService") ? entityPositionLookup : null);
         ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class},
@@ -354,6 +362,20 @@ class ShotsControllerTest {
     }
 
     @Test
+    void constantDamageShotPassesOverAThingPickedUpThisTick() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        // Still in the position lookup, but picked up so it has no position
+        EntityId pickedUp = entityData.createEntity();
+        entityData.setComponents(pickedUp, new CreatureComponent(), new Owner(ENEMY_ID, ENEMY_ID), new Health(100, 100));
+        pickedUpThings.add(pickedUp);
+
+        shotsController.createShot(SPIKE_ID, 750, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+
+        assertEquals(750, entityData.getComponent(target, Damage.class).damage);
+        assertNull(entityData.getComponent(pickedUp, Damage.class));
+    }
+
+    @Test
     void damageFromOriginHurtsEveryoneWithinTheRadiusButTheOwnersCreatures() {
         EntityId target = createCreature(ENEMY_ID, 11, 10);
         EntityId neutral = createCreature((short) 2, 10, 9);
@@ -428,6 +450,40 @@ class ShotsControllerTest {
         shotsController.createShot(ALARM_ID, 0, 5, ENEMY_ID, new Vector3f(20, 1, 20), null, null);
 
         assertEquals(2, entityData.findEntities(null, Alarm.class).size());
+    }
+
+    @Test
+    void drainGivesTheShooterAQuarterOfItsFullHealthFromTheTarget() {
+        EntityId vampire = createCreature();
+        entityData.setComponent(vampire, new Health(500, 2000));
+        EntityId target = createCreature();
+        entityData.setComponent(target, new Health(900, 1000));
+
+        // Drain: 25 % of the Vampire's 2000
+        shotsController.hit(createDrainShot(vampire), target);
+
+        assertEquals(500, entityData.getComponent(target, Damage.class).damage);
+        assertEquals(-500, entityData.getComponent(vampire, Damage.class).damage);
+    }
+
+    @Test
+    void drainTakesNoMoreThanTheTargetHasLeft() {
+        EntityId vampire = createCreature();
+        entityData.setComponent(vampire, new Health(500, 2000));
+        EntityId target = createCreature();
+        entityData.setComponent(target, new Health(120, 1000));
+
+        shotsController.hit(createDrainShot(vampire), target);
+
+        assertEquals(120, entityData.getComponent(target, Damage.class).damage);
+        assertEquals(-120, entityData.getComponent(vampire, Damage.class).damage);
+    }
+
+    private EntityId createDrainShot(EntityId shooter) {
+        EntityId shot = entityData.createEntity();
+        entityData.setComponents(shot, new Position(0, new Vector3f(1.5f, 1f, 1.5f)),
+                new ShotFlight(DRAIN_ID, PLAYER_ID, shooter, 25, 0, new Vector3f(), new Vector3f(), 3, 128));
+        return shot;
     }
 
     private EntityId createCreature(short ownerId, float x, float y) {
