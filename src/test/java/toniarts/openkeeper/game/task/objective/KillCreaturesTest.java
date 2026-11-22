@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -153,7 +154,13 @@ class KillCreaturesTest {
         RoomInstance heartRoom = new RoomInstance(new Room());
         heartRoom.addCoordinate(HEART_CENTRE);
         IRoomController roomController = stub(IRoomController.class, (name, args) -> "getRoomInstance".equals(name) ? heartRoom : null);
-        return stub(IMapController.class, (name, args) -> "getRoomControllerByCoordinates".equals(name) ? roomController : null);
+        // A map without tiles, the hero has nowhere to walk from
+        IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (name, args) -> null);
+        return stub(IMapController.class, (name, args) -> switch (name) {
+            case "getRoomControllerByCoordinates" -> roomController;
+            case "getMapData" -> mapData;
+            default -> null;
+        });
     }
 
     /**
