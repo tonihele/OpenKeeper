@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
+import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
@@ -60,11 +61,14 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.logic.CreatureAiSystem;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
 import toniarts.openkeeper.game.logic.CreatureMoodSystem;
 import toniarts.openkeeper.game.logic.CreatureSleepSystem;
 import toniarts.openkeeper.game.logic.HealthSystem;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
@@ -106,7 +110,9 @@ class CreatureControllerTest {
 
     @Test
     void fatigueInterruptsRoomWorkAndKeepsTheNewSleepTaskAssigned() {
-        for (TaskType type : List.of(TaskType.TRAIN, TaskType.RESEARCH)) {
+        // The job groups DK II lets fatigue interrupt (mask 0x800A3C3B, 0x477C20)
+        for (TaskType type : List.of(TaskType.RESEARCH, TaskType.MANUFACTURE, TaskType.GUARD, TaskType.PRAY, TaskType.TRAIN,
+                TaskType.GAMBLE)) {
             try (Fixture f = new Fixture(9)) {
                 f.startWork(type);
                 f.data.setComponent(f.entity, new CreatureSleep(f.bed, -20, 0, 0));
@@ -148,6 +154,35 @@ class CreatureControllerTest {
     }
 
     @Test
+    void guardWithoutLairLooksForOneNowAndThenButOtherWorkKeepsGoing() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new CreatureSleep(null, 0, 0, 0));
+            f.startWork(TaskType.GUARD);
+            for (int i = 0; i < 19; i++) {
+                f.tick();
+            }
+            assertEquals(0, f.lairSearches);
+            f.tick();
+            assertEquals(1, f.lairSearches);
+            for (int i = 0; i < 19; i++) {
+                f.tick();
+            }
+            assertEquals(1, f.lairSearches);
+            f.tick();
+            assertEquals(2, f.lairSearches);
+            assertEquals(CreatureState.WORK, f.state());
+        }
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new CreatureSleep(null, 0, 0, 0));
+            f.startWork(TaskType.TRAIN);
+            for (int i = 0; i < 40; i++) {
+                f.tick();
+            }
+            assertEquals(0, f.lairSearches);
+        }
+    }
+
+    @Test
     void slapDoesNotInterruptANonWorker() {
         try (Fixture f = new Fixture(9)) {
             f.startWork(TaskType.TRAIN);
@@ -155,6 +190,21 @@ class CreatureControllerTest {
             f.tick();
             assertEquals(CreatureState.WORK, f.state());
             assertTrue(f.data.getComponent(f.entity, Slapped.class).reacted);
+        }
+    }
+
+    @Test
+    void creatureTakenToTheHandGivesUpItsTask() {
+        try (Fixture f = new Fixture(9)) {
+            f.startWork(TaskType.GUARD);
+            CreatureAiSystem system = new CreatureAiSystem(f.data, proxy(ICreaturesController.class,
+                    (method, args) -> f.controller), proxy(ITaskManager.class, (method, args) -> null));
+            system.processTick(.25f);
+            f.data.removeComponent(f.entity, CreatureAi.class);
+            system.processTick(.25f);
+            assertEquals(1, f.oldJobUnassignments);
+            assertNull(f.data.getComponent(f.entity, TaskComponent.class));
+            system.stop();
         }
     }
 
@@ -438,6 +488,36 @@ class CreatureControllerTest {
         assertEquals(CreatureState.FLEE, stateWhenThreatenedInHeart((short) 4, false));
         assertEquals(CreatureState.FLEE, stateWhenThreatenedInHeart((short) 3, true));
         assertNotEquals(CreatureState.FLEE, stateWhenThreatenedInHeart((short) 3, false));
+    }
+
+    @Test
+    void workerNearItsOwnHeartOnlyFightsAnEnemyInReach() {
+        assertNull(workerStateWithHeroAt(6, 3, 1)); // Neither fights nor flees, keeps working
+        assertEquals(CreatureState.FIGHT, workerStateWithHeroAt(3.5f, 3, 1));
+
+        // 3 tiles from the heart's centre is still near it, and the reach is a tile whatever the melee range
+        assertEquals(CreatureState.FIGHT, workerStateWithHeroAt(4, 6, .3f));
+
+        // 4 tiles away it isn't
+        assertEquals(CreatureState.FLEE, workerStateWithHeroAt(3.5f, 7, 1));
+    }
+
+    private static CreatureState workerStateWithHeroAt(float x, int heartX, float meleeRange) {
+        try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
+            EntityId hero = f.data.createEntity();
+            f.data.setComponents(hero, new Owner((short) 1, (short) 1), new Health(1000, 1000), new Threat(100),
+                    new Position(0, new Vector3f(x, WorldUtils.FLOOR_HEIGHT, 4)));
+            f.data.setComponent(f.entity, new CreatureMeleeAttack(0, 30, 1.2f, meleeRange));
+            f.data.removeComponent(f.entity, Fearless.class);
+            f.sensed = Set.of(hero);
+            f.keeper.setDungeonHeartLocation(new Point(heartX, 4));
+            f.roomHere = proxy(IRoomController.class, (method, args) -> switch (method) {
+                case "isDestroyed" -> false;
+                default -> throw new UnsupportedOperationException(method);
+            });
+            f.controller.shouldFleeOrAttack();
+            return f.state();
+        }
     }
 
     private static CreatureState stateWhenThreatenedInHeart(short heartOwner, boolean destroyed) {
@@ -734,6 +814,7 @@ class CreatureControllerTest {
         final Map<Long, Task> tasks = new HashMap<>();
         final AtomicBoolean reachable = new AtomicBoolean(true);
         final Creature definition;
+        final Keeper keeper = new Keeper(false, (short) 3);
         IRoomController roomHere;
         Set<EntityId> sensed = Set.of();
         CreatureController controller;
@@ -750,6 +831,7 @@ class CreatureControllerTest {
         final List<Double> eatAttempts = new java.util.ArrayList<>();
         final List<Double> objectiveAttempts = new java.util.ArrayList<>();
         int sleepAssignments;
+        int lairSearches;
         int oldJobUnassignments;
         int targetQueries;
         double time;
@@ -789,6 +871,10 @@ class CreatureControllerTest {
                     yield false;
                 }
                 case "isTaskAvailable" -> false;
+                case "assignClosestRoomTask" -> {
+                    lairSearches++;
+                    yield false;
+                }
                 case "assignSleepTask" -> {
                     sleepAssignments++;
                     if (!reachable.get()) {
@@ -833,11 +919,6 @@ class CreatureControllerTest {
                 case "getBlockingDoor" -> null;
                 default -> throw new UnsupportedOperationException(method);
             });
-            Keeper keeper = new Keeper(false, (short) 3);
-            ICreaturesController creatures = proxy(ICreaturesController.class, (method, args) -> switch (method) {
-                case "isValidEntity" -> false;
-                default -> throw new UnsupportedOperationException(method);
-            });
             IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
                 case "getCreature" -> definition;
                 case "getGameLevel" -> CreatureSleepFixtures.level(4);
@@ -850,7 +931,20 @@ class CreatureControllerTest {
                 case "getPlayer" -> keeper;
                 default -> throw new UnsupportedOperationException(method);
             });
-            controllers = () -> new CreatureController(entity, data, definition, null, taskManager, () -> time,
+            ICreaturesController creatures = proxy(ICreaturesController.class, (method, args) -> switch (method) {
+                case "isValidEntity" -> data.getComponent((EntityId) args[0], Position.class) != null;
+                case "createController" -> proxy(ICreatureController.class, (method2, args2) -> switch (method2) {
+                    case "getEntityId" -> args[0];
+                    case "isWorker" -> false;
+                    default -> throw new UnsupportedOperationException(method2);
+                });
+                default -> throw new UnsupportedOperationException(method);
+            });
+            INavigationService navigation = proxy(INavigationService.class, (method, args) -> switch (method) {
+                case "findPath" -> new DefaultGraphPath<>();
+                default -> throw new UnsupportedOperationException(method);
+            });
+            controllers = () -> new CreatureController(entity, data, definition, navigation, taskManager, () -> time,
                     settings, creatures, lookup, map, levelInfo, null, null, eventService);
             controller = controllers.get();
             sleepSystem = new CreatureSleepSystem(data, kwd, () -> time);
@@ -863,6 +957,7 @@ class CreatureControllerTest {
                 case "getId" -> id;
                 case "getTaskType" -> type;
                 case "isValid" -> true;
+                case "moveToOtherSpot" -> false;
                 case "getTarget" -> { targetQueries++; yield new Vector2f(3, 4); }
                 case "getWorkPosition" -> null;
                 case "getTaskTarget", "getTaskLocation", "executeTask" -> null;

@@ -20,6 +20,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
@@ -53,6 +54,7 @@ class ChangeRoomOwnerTest {
                 }
                 var data = proxy(IKwdFile.class, (name, args) -> switch (name) {
                     case "getMap" -> map;
+                    case "getThings" -> List.of();
                     case "getTerrain" -> (short) args[0] == 1 ? floor : roomTerrain;
                     default -> null;
                 });
