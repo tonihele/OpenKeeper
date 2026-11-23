@@ -700,7 +700,7 @@ class ShotsControllerTest {
     private void hitWithPoisonSpit(EntityId target, int shotData1, int shotData2) {
         EntityId shot = entityData.createEntity();
         entityData.setComponents(shot, new Position(0, new Vector3f(10, 1, 10)), new ShotFlight(POISON_SPIT_ID, PLAYER_ID,
-                entityData.createEntity(), shotData1, shotData2, new Vector3f(), new Vector3f(10, 1, 10), 3, 20));
+                entityData.createEntity(), null, shotData1, shotData2, new Vector3f(), new Vector3f(10, 1, 10), 3, 20));
 
         shotsController.hit(shot, target);
     }
