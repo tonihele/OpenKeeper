@@ -78,6 +78,7 @@ import toniarts.openkeeper.game.component.GraveyardDecompose;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.HealthGain;
+import toniarts.openkeeper.game.component.IdleAnimation;
 import toniarts.openkeeper.game.component.ImpGenerator;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
@@ -258,6 +259,7 @@ public final class NetworkServer {
             Serializer.registerClass(HauledBy.class, new FieldSerializer());
             Serializer.registerClass(Health.class, new FieldSerializer());
             Serializer.registerClass(HealthGain.class, new FieldSerializer());
+            Serializer.registerClass(IdleAnimation.class, new FieldSerializer());
             Serializer.registerClass(InHand.class, new FieldSerializer());
             Serializer.registerClass(Interaction.class, new FieldSerializer());
             Serializer.registerClass(InfernoArea.class, new FieldSerializer());
