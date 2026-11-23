@@ -251,6 +251,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             processDeletedTasks(taskEntities.getRemovedEntities());
             processAddedTasks(taskEntities.getAddedEntities());
             processChangedTasks(taskEntities.getChangedEntities());
+            removeUnusedTasks();
         }
         if (unconsciousEntities.applyChanges()) {
             processDeletedUnconsciousEntities(unconsciousEntities.getRemovedEntities());
@@ -384,9 +385,6 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             Task task = tasksByIds.get(taskId);
             if (task != null && creature != null) {
                 task.unassign(creature);
-                if (task.getAssigneeCount() == 0 && task.isRemovable()) {
-                    //tasksByIds.remove(taskId);
-                }
             }
         }
     }
@@ -404,11 +402,24 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             Task task = tasksByIds.get(oldTaskId);
             if (task != null && creature != null) {
                 task.unassign(creature);
-                if (task.getAssigneeCount() == 0 && task.isRemovable()) {
-                    //tasksByIds.remove(taskId);
-                }
             }
         }
+    }
+
+    /**
+     * Forgets the tasks that nobody has and that can't be given out anymore.
+     * Most tasks, such as the room, sleep and objective tasks, are made for
+     * one creature and are only looked up by the ID in its task component.
+     * Kept, they would pile up for the whole game
+     */
+    private void removeUnusedTasks() {
+        Set<Long> usedTaskIds = new HashSet<>(tasksIdsByEntities.values());
+        for (Set<Task> tasks : taskQueues.values()) {
+            for (Task task : tasks) {
+                usedTaskIds.add(task.getId());
+            }
+        }
+        tasksByIds.values().removeIf(task -> task.getAssigneeCount() == 0 && !usedTaskIds.contains(task.getId()));
     }
 
     private void processAddedUnconsciousEntities(Set<Entity> entities) {
@@ -678,9 +689,6 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             Task task = iter.next();
             if (task instanceof AbstractTileTask tileTask && tileTask.isRemovable()) {
                 iter.remove();
-                if (tileTask.getAssigneeCount() == 0) {
-                    //tasksByIds.remove(task.getId());
-                }
             }
         }
     }
@@ -940,9 +948,6 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             taskPoints.remove(task.getId());
             if (taskPoints.isEmpty()) {
                 roomTasks.remove(task.getRoom());
-                if (task.getAssigneeCount() == 0) {
-                    //tasksByIds.remove(task.getId(), task);
-                }
             }
         }
     }
