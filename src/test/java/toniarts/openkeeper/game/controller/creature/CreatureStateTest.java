@@ -261,7 +261,11 @@ class CreatureStateTest {
 
     @Test
     void creatureOwedPayLeavesItsRoomJob() {
-        for (TaskType taskType : List.of(TaskType.TRAIN, TaskType.RESEARCH, TaskType.MANUFACTURE)) {
+
+        // DK II's pay day takes a creature out of the same job groups as hunger and fatigue (mask 0x800A3C3B, 0x477C20),
+        // but not out of the Torture Chamber
+        for (TaskType taskType : List.of(TaskType.RESEARCH, TaskType.MANUFACTURE, TaskType.GUARD, TaskType.PRAY, TaskType.TRAIN,
+                TaskType.GAMBLE, TaskType.TORTURE)) {
             AtomicBoolean wentToCollect = new AtomicBoolean();
             Task task = (Task) Proxy.newProxyInstance(Task.class.getClassLoader(), new Class<?>[]{Task.class},
                     (proxy, method, args) -> method.getName().equals("getTaskType") ? taskType : defaultValue(method.getReturnType()));
@@ -278,7 +282,7 @@ class CreatureStateTest {
 
             CreatureState.WORK.update(creature);
 
-            assertTrue(wentToCollect.get(), taskType.toString());
+            assertEquals(taskType != TaskType.TORTURE, wentToCollect.get(), taskType.toString());
         }
     }
 
@@ -325,6 +329,29 @@ class CreatureStateTest {
                 assertTrue(lookedForWork.get());
                 assertTrue(walked.get());
             }
+        }
+    }
+
+    @Test
+    void hungryCreatureLeavesItsRoomJobToEat() {
+        for (TaskType taskType : List.of(TaskType.TRAIN, TaskType.RESEARCH, TaskType.MANUFACTURE)) {
+            AtomicBoolean wentToEat = new AtomicBoolean();
+            Task task = (Task) Proxy.newProxyInstance(Task.class.getClassLoader(), new Class<?>[]{Task.class},
+                    (proxy, method, args) -> method.getName().equals("getTaskType") ? taskType : defaultValue(method.getReturnType()));
+            ICreatureController creature = (ICreatureController) Proxy.newProxyInstance(
+                    ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                        case "getAssignedTask" -> task;
+                        case "isHungry", "isAssignedTaskValid" -> true;
+                        case "goToEat" -> {
+                            wentToEat.set(true);
+                            yield true;
+                        }
+                        default -> defaultValue(method.getReturnType());
+                    });
+
+            CreatureState.WORK.update(creature);
+
+            assertTrue(wentToEat.get(), taskType.toString());
         }
     }
 
