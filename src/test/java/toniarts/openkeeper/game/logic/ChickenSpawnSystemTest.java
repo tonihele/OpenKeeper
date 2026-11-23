@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.logic;
 
 import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -85,8 +86,17 @@ class ChickenSpawnSystemTest {
         assertEquals(List.of(), spawnSeconds(5, 20, 5));
     }
 
+    @Test
+    void fullHatcheryLaysNoFreeRangeChickensOnceItsCoopsAreGone() {
+        assertEquals(List.of(), spawnSeconds(5, 20, 0, true));
+    }
+
     private static List<Integer> spawnSeconds(int tiles, int seconds) {
         return spawnSeconds(tiles, seconds, -1);
+    }
+
+    private static List<Integer> spawnSeconds(int tiles, int seconds, int freeRangeChickens) {
+        return spawnSeconds(tiles, seconds, freeRangeChickens, false);
     }
 
     /**
@@ -95,8 +105,9 @@ class ChickenSpawnSystemTest {
      * @param freeRangeChickens negative for a hatchery with room for chickens,
      * otherwise a full hatchery with a coop and this many free range chickens
      * already around
+     * @param coopRemoved whether the coop is removed after the first tick
      */
-    private static List<Integer> spawnSeconds(int tiles, int seconds, int freeRangeChickens) {
+    private static List<Integer> spawnSeconds(int tiles, int seconds, int freeRangeChickens, boolean coopRemoved) {
         List<Integer> spawns = new ArrayList<>();
         int[] second = new int[1];
         double[] lastSpawn = {0.0};
@@ -157,8 +168,10 @@ class ChickenSpawnSystemTest {
         settings.put(MiscType.MAX_FREE_RANGE_CHICKENS_PER_PLAYER,
                 ChickenSpawnFixtures.miscVariable(MiscType.MAX_FREE_RANGE_CHICKENS_PER_PLAYER, 5));
         DefaultEntityData entityData = new DefaultEntityData();
+        EntityId coop = null;
         if (freeRangeChickens >= 0) {
-            entityData.setComponents(entityData.createEntity(), new ChickenGenerator(), new Position(0, new Vector3f(0.5f, 0, 0.5f)));
+            coop = entityData.createEntity();
+            entityData.setComponents(coop, new ChickenGenerator(), new Position(0, new Vector3f(0.5f, 0, 0.5f)));
         }
         for (int i = 0; i < freeRangeChickens; i++) {
             entityData.setComponents(entityData.createEntity(), new Food(), new Decay(), new Owner(PLAYER, PLAYER));
@@ -170,6 +183,9 @@ class ChickenSpawnSystemTest {
         for (int tick = 1; tick <= seconds * TICKS_PER_SECOND; tick++) {
             second[0] = tick / TICKS_PER_SECOND;
             system.processTick(1.0f / TICKS_PER_SECOND);
+            if (coopRemoved && tick == 1) {
+                entityData.removeEntity(coop);
+            }
         }
         return spawns;
     }

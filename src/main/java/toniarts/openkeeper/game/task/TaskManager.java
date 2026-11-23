@@ -514,6 +514,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
             @Override
+            public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+                // Not interested
+            }
+
+            @Override
             public void onFogOfWarDisabled(short keeperId) {
                 // Not interested
             }
@@ -774,7 +779,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         List<IRoomController> rooms = mapController.getRoomsByFunction(objectType, creature.getOwnerId());
         Map<Integer, IRoomController> distancesToRooms = new TreeMap<>();
         for (IRoomController room : rooms) {
-            if (!spots.apply(room).isEmpty()) {
+
+            // A destroyed room serves nobody, like a claimed ruined Dungeon Heart that no longer stores gold
+            if (!room.isDestroyed() && !spots.apply(room).isEmpty()) {
                 distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])), room
                 );
             }
@@ -874,7 +881,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new CarryGoldToTreasuryTask(navigationService, mapController, target, creature.getOwnerId(), room, gameWorldController);
             }
             case LAIR -> {
-                return new ClaimLair(navigationService, mapController, target, creature.getOwnerId(), room, this);
+                return new ClaimLair(navigationService, mapController, target, creature.getOwnerId(), room, this, gameSettings);
             }
             case RESEARCHER -> {
                 return new Research(navigationService, mapController, target, creature.getOwnerId(), room, this, playerControllers.get(creature.getOwnerId()).getResearchControl(), objectsController);
