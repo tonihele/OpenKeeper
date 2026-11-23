@@ -20,6 +20,16 @@ import com.jme3.math.Vector2f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.utils.Point;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -37,6 +47,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.data.PlayerMessageType;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -64,6 +75,8 @@ import java.util.Set;
  */
 public final class CreatureSpawnSystem extends GameTimeCounter {
 
+    private static final double LIMIT_MESSAGE_INTERVAL = 420;
+
     /**
      * A hero portal the keeper has captured, the "Mercenary Portal", counts as a portal for the creature limit
      */
@@ -80,6 +93,8 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
     private final Map<Short, IPlayerController> playerControllersById;
     private final SafeArrayList<ICreatureEntrance> entrances = new SafeArrayList<>(ICreatureEntrance.class);
     private final IKwdFile kwdFile;
+    private final Map<Short, Double> lastLimitMessageTimes = new HashMap<>();
+    private final Map<Short, Set<Short>> arrivedCreatureTypes = new HashMap<>();
     private final PortalCreatureChoice creatureChoice;
     private boolean uniqueLayouts = false;
     private final Map<Short, EntityId> portalLimitEntities = new HashMap<>();
@@ -160,12 +175,15 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
         }
         double timeSinceLastSpawn = timeElapsed - entrance.getLastSpawnTime();
         IPlayerController player = playerControllersById.get(entrance.getOwnerId());
+        boolean entranceReady = timeSinceLastSpawn >= Math.max(entranceCooldownTime, entranceCooldownTime * player.getCreatureControl().getTypeCount() * 0.5);
         if (entrance.isDungeonHeart()) {
             if (timeSinceLastSpawn >= freeImpCoolDownTime
                     && player.getCreatureControl().getImpCount() < minimumImpCount
                     && !player.getKeeper().isDestroyed()) {
                 spawnFreeImp(entrance, player);
             }
+        } else if (entranceReady && player.getRoomControl().isPortalsOpen() && isCreatureLimitReached(player)) {
+            notifyCreatureLimitReached(player);
         } else {
             evaluatePortalSpawn(entrance, player, timeSinceLastSpawn);
         }
@@ -238,6 +256,38 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
         Map<Integer, CreaturePool> pool = kwdFile.getCreaturePool(player.getKeeper().getId());
         return creatureChoice.canChooseCreature(player, entrance, creaturesController,
                 type -> isCreatureAvailableFromPool(type, player, pool) && isCreatureRequirementsSatisfied(type, player));
+    }
+
+    /**
+     * Tells the player that the portals can't attract more creatures, at most
+     * once per {@link #LIMIT_MESSAGE_INTERVAL} seconds
+     */
+    private void notifyCreatureLimitReached(IPlayerController player) {
+        short playerId = player.getKeeper().getId();
+        Double last = lastLimitMessageTimes.get(playerId);
+        if (last != null && timeElapsed - last < LIMIT_MESSAGE_INTERVAL) {
+            return;
+        }
+        lastLimitMessageTimes.put(playerId, timeElapsed);
+        player.postMessage(player.getRoomControl().getTypeCount(kwdFile.getPortal()) > 1
+                ? PlayerMessageType.PORTALS_FULL : PlayerMessageType.PORTAL_FULL, 0, 0, 0);
+    }
+
+    /**
+     * Tells the player about a creature type arriving for the first time. The
+     * level can have its own introduction text for the type. The message of a
+     * new species points to the creature.
+     */
+    private void notifyCreatureArrived(IPlayerController player, short creatureId, EntityId entityId) {
+        if (!arrivedCreatureTypes.computeIfAbsent(player.getKeeper().getId(), k -> new HashSet<>()).add(creatureId)) {
+            return;
+        }
+        Integer introductionTextId = kwdFile.getGameLevel().getIntroductionOverrideTextIds().get(creatureId);
+        if (introductionTextId != null) {
+            player.postMessage(PlayerMessageType.LEVEL_CREATURE_INTRO, 0, creatureId, introductionTextId);
+        } else {
+            player.postMessage(PlayerMessageType.NEW_SPECIES, 0, creatureId, entityId.getId());
+        }
     }
 
     private boolean isCreatureLimitReached(IPlayerController player) {

@@ -33,6 +33,7 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.function.Supplier;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.PlayerMessageType;
 import toniarts.openkeeper.game.controller.GameController;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.data.Settings;
@@ -209,6 +210,16 @@ public final class MapLoaderAppState extends AbstractAppState {
 
         @Override
         public void setWidescreen(boolean enable, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void setSystemMessages(boolean enable, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void postMessage(PlayerMessageType type, int key, long data1, long data2, short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 

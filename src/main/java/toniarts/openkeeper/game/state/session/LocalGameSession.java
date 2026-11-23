@@ -14,6 +14,20 @@ import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import toniarts.openkeeper.game.data.PlayerMessageType;
+import toniarts.openkeeper.utils.Point;
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.data.CampaignLevel;
@@ -171,6 +185,24 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
         if (playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {
                 listener.onSetWidescreen(enable);
+            }
+        }
+    }
+
+    @Override
+    public void setSystemMessages(boolean enable, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onSetSystemMessages(enable);
+            }
+        }
+    }
+
+    @Override
+    public void postMessage(PlayerMessageType type, int key, long data1, long data2, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onPlayerMessage(type.getId(), key, data1, data2);
             }
         }
     }

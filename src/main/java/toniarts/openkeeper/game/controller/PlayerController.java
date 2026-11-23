@@ -30,6 +30,8 @@ import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.PlayerMessageType;
+import toniarts.openkeeper.game.listener.PlayerMessageListener;
 import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.game.listener.PlayerResearchableEntityListener;
 import toniarts.openkeeper.game.listener.PlayerSpellListener;
@@ -57,6 +59,7 @@ public final class PlayerController implements IPlayerController {
     private final PlayerTrapControl trapControl;
     private final PlayerResearchControl researchControl;
     private final PlayerManufactureControl manufactureControl;
+    private PlayerMessageListener messageListener;
 
     public PlayerController(IKwdFile kwdFile, Keeper keeper, Creature imp, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.keeper = keeper;
@@ -74,7 +77,7 @@ public final class PlayerController implements IPlayerController {
         if (keeper.getId() != Player.GOOD_PLAYER_ID && keeper.getId() != Player.NEUTRAL_PLAYER_ID) {
             manaControl = new PlayerManaControl(keeper, gameSettings);
             handControl = new PlayerHandControl(keeper, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_NUMBER_OF_THINGS_IN_HAND).getValue(), entityData);
-            researchControl = new PlayerResearchControl(keeper, kwdFile);
+            researchControl = new PlayerResearchControl(keeper, kwdFile, this::postMessage);
             manufactureControl = new PlayerManufactureControl();
         } else {
             manaControl = null;
@@ -82,6 +85,18 @@ public final class PlayerController implements IPlayerController {
             researchControl = null;
             manufactureControl = null;
         }
+    }
+
+    @Override
+    public void postMessage(PlayerMessageType type, int key, long data1, long data2) {
+        if (messageListener != null) {
+            messageListener.onPlayerMessage(type, key, data1, data2);
+        }
+    }
+
+    @Override
+    public void setMessageListener(PlayerMessageListener listener) {
+        this.messageListener = listener;
     }
 
     @Override
