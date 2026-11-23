@@ -91,8 +91,10 @@ public final class LibraryController extends NormalRoomController {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
-                return getCoordinates().size();
+                return getFloorFurnitureCount();
             }
         });
+        ((RoomSpellBookControl) getObjectControl(ObjectType.SPELL_BOOK)).furnitureChanged();
+        ((RoomSpecialControl) getObjectControl(ObjectType.SPECIAL)).furnitureChanged();
     }
 }
