@@ -29,12 +29,13 @@ import toniarts.openkeeper.tools.convert.map.Shot;
  * @param playerId the player firing the shot
  * @param position where the shot was fired at
  * @param target the targeted entity, may be {@code null}
- * @param shooter the creature that fired the shot, {@code null} if not known
+ * @param shooter the creature that fired the shot, {@code null} when a
+ * keeper cast it
  */
 public record ShotRequest(Shot shot, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target, EntityId shooter) {
 
     /**
-     * A shot nobody is known to have fired, a keeper's for one
+     * A shot that no creature fired
      */
     public ShotRequest(Shot shot, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target) {
         this(shot, shotData1, shotData2, playerId, position, target, null);

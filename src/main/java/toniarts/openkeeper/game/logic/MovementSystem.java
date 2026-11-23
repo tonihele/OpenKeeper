@@ -28,6 +28,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
@@ -87,7 +89,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
         for (EntitySteeringBehavior steeringBehavior : steeringBehaviors.getArray()) {
             EntityId entityId = entityIdsBySteeringBehavior.get(steeringBehavior);
             ISteerableEntity steerableEntity = steerableEntitiesBySteeringBehavior.get(steeringBehavior);
-            steerableEntity.setMaxLinearSpeed(getMaxSpeed(movableEntities.getEntity(entityId).get(Mobile.class), steerableEntity.getPosition()));
+            steerableEntity.setMaxLinearSpeed(getMaxSpeed(entityId, movableEntities.getEntity(entityId).get(Mobile.class), steerableEntity.getPosition()));
 
             // Calculate steering acceleration
             SteeringAcceleration<Vector2> steeringOutput = steeringOutputsBySteeringBehaviors.get(steeringBehavior);
@@ -106,24 +108,31 @@ public final class MovementSystem implements IGameLogicUpdatable {
     }
 
     /**
-     * Get the speed for the tile the entity is on. Walking through water halves
-     * the speed and lava speeds it up by half, flying is not affected
+     * Get the speed of the entity for this step. A creature other than a worker
+     * walks at half speed below a fifth of its health. Walking through water
+     * halves the speed and lava speeds it up by half, flying is not affected
      *
+     * @param entityId the entity
      * @param mobile the mobility of the entity
      * @param position the position of the entity
      * @return the maximum speed
      */
-    private float getMaxSpeed(Mobile mobile, Vector2 position) {
+    private float getMaxSpeed(EntityId entityId, Mobile mobile, Vector2 position) {
+        float speed = mobile.maxSpeed;
+        Health health = entityData.getComponent(entityId, Health.class);
+        CreatureComponent creature = entityData.getComponent(entityId, CreatureComponent.class);
+        if (health != null && creature != null && !creature.worker && health.health < health.maxHealth * 20 / 100) {
+            speed *= 0.5f;
+        }
         if (!mobile.canFly) {
             Point p = WorldUtils.vectorToPoint(position);
             if (mapInformation.isWater(p)) {
-                return mobile.maxSpeed * 0.5f;
-            }
-            if (mapInformation.isLava(p)) {
-                return mobile.maxSpeed * 1.5f;
+                speed *= 0.5f;
+            } else if (mapInformation.isLava(p)) {
+                speed *= 1.5f;
             }
         }
-        return mobile.maxSpeed;
+        return speed;
     }
 
     private void processAddedEntities(Set<Entity> addedEntities) {
