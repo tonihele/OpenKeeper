@@ -24,31 +24,6 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
-import toniarts.openkeeper.utils.Point;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.SequencedMap;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -132,8 +107,34 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
+
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.SequencedMap;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Task manager for several players. Can assign creatures to different tasks.
@@ -834,11 +835,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
      * @return true if the creature was given a new task
      */
     public boolean assignFreeRoomTask(ICreatureController creature, IRoomController room, ObjectType objectType) {
-        Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.computeIfAbsent(room, r -> new HashMap<>());
+        Map<Long, Point> taskPoints = roomTasks.computeIfAbsent(room, r -> new HashMap<>());
+        Set<Point> points = new HashSet<>(taskPoints.values());
         Point currentPosition = creature.getCreatureCoordinates();
         IRoomObjectControl<?> control = room.getObjectControl(objectType);
         Point target = control.getAvailableCoordinates().stream()
-                .filter(p -> !taskPoints.containsKey(p) && room.isTileAccessible(null, p))
+                .filter(p -> !points.contains(p) && room.isTileAccessible(null, p))
                 .min(Comparator.comparingInt(p -> WorldUtils.calculateDistance(currentPosition, p)))
                 .orElse(null);
         if (target == null || navigationService.findPath(currentPosition, target, creature) == null) {
@@ -846,7 +848,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
 
         AbstractCapacityCriticalRoomTask task = (AbstractCapacityCriticalRoomTask) getRoomTask(objectType, target, null, creature, room);
-        taskPoints.put(target, task);
+        taskPoints.put(task.getId(), target);
         task.assign(creature, true);
         tasksByIds.put(task.getId(), task);
         return true;
