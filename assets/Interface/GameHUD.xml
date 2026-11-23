@@ -57,8 +57,8 @@
                                 <onHover name="simpleHintEx" hintText="${menu.2134}" targetElement="tooltip" />
                                 <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                             </effect>
-                            <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-00.png" />
-                            <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-01.png" />
+                            <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-00.png" width="128px" height="64px" />
+                            <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-01.png" width="128px" height="64px" />
                         </panel>
                         <panel childLayout="horizontal" valign="center">
                             <panel backgroundImage="Textures/GUI/Windows/heart-hp.png" childLayout="center" valign="center">
@@ -67,7 +67,7 @@
                                     <onHover name="simpleHintEx" hintText="${menu.2140}" targetElement="tooltip" />
                                     <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                 </effect>
-                                <image filename="Textures/GUI/Windows/heart-bg.png" align="left" valign="center">
+                                <image filename="Textures/GUI/Windows/heart-bg.png" width="64px" height="64px" align="left" valign="center">
                                     <interact onSecondaryClick="zoomToDungeon()" />
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Windows/heart-alarm.png" post="true" neverStopRendering="true" />
@@ -92,8 +92,8 @@
                                 <onHover name="simpleHintEx" hintText="${menu.2142}" targetElement="tooltip" />
                                 <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                             </effect>
-                            <image valign="center" filename="Textures/GUI/Windows/gold-bg-00.png" />
-                            <image valign="center" filename="Textures/GUI/Windows/gold-bg-01.png" />
+                            <image valign="center" filename="Textures/GUI/Windows/gold-bg-00.png" width="128px" height="64px" />
+                            <image valign="center" filename="Textures/GUI/Windows/gold-bg-01.png" width="128px" height="64px" />
                         </panel>
                         <panel childLayout="horizontal" valign="center">
                             <panel backgroundImage="Textures/GUI/Windows/payday-Hp.png" childLayout="center" valign="center">
@@ -102,7 +102,7 @@
                                     <onHover name="simpleHintEx" hintText="${menu.2144}" targetElement="tooltip" />
                                     <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                 </effect>
-                                <image filename="Textures/GUI/Windows/payday-BG.png" align="left" valign="center" />
+                                <image filename="Textures/GUI/Windows/payday-BG.png" width="64px" height="64px" align="left" valign="center" />
                             </panel>
                             <panel childLayout="center" valign="center" align="center" padding="0px,14px,0px,36px">
                                 <control name="label" id="gold" color="#D3B000" text="0" style="text" width="100%" textHAlign="right" valign="center" />
@@ -294,7 +294,7 @@
                                     </effect>
                                 </image>
                                 <!-- Objective -->
-                                <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-objective-00.png" visibleToMouse="true">
+                                <image valign="center" filename="Textures/GUI/Tabs/Messages/mt-objective-00.png" width="32px" height="64px" visibleToMouse="true">
                                     <interact onClick="toggleObjective()" />
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-objective-01.png" post="true"/>
@@ -369,9 +369,9 @@
                     <panel width="128px" height="100%" valign="center" align="right" childLayout="vertical">
                         <panel height="64px" childLayout="horizontal">
                             <!-- place for fight or call to arm -->
-                            <control name="fight" visible="false" />
+                            <control name="fight" id="battleButton" visible="false" />
                             <!-- Call to Arms banner raised, as in the original: click to take it down, right-click to zoom -->
-                            <image id="callToArms" filename="Textures/GUI/Spells/call_to_arms-kill.png" valign="center"
+                            <image id="callToArms" filename="Textures/GUI/Spells/call_to_arms-kill.png" width="64px" height="64px" valign="center"
                                    visible="false" visibleToMouse="true">
                                 <interact onPrimaryClick="cancelCallToArms()" onSecondaryClick="zoomToCallToArms()" />
                                 <effect>
@@ -409,7 +409,7 @@
         <layer childLayout="vertical">
             <!--The upper panel-->
             <panel height="12%" width="100%" valign="top" childLayout="center" backgroundColor="#000f">
-                <image align="right" filename="Textures/GUI/Icons/i-camera-no_go.png"  marginRight="10px" />
+                <image align="right" filename="Textures/GUI/Icons/i-camera-no_go.png" width="64px" height="64px" marginRight="10px" />
             </panel>
             <!--Empty center-->
             <panel height="*" width="100%" childLayout="horizontal" />
@@ -436,12 +436,12 @@
                 <panel width="100%" childLayout="horizontal">
                     <panel width="256px" align="left" valign="center" childLayout="overlay">
                         <panel childLayout="horizontal" align="left" valign="center">
-                            <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-00.png" />
-                            <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-01.png" />
+                            <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-00.png" width="128px" height="64px" />
+                            <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-01.png" width="128px" height="64px" />
                         </panel>
                         <panel childLayout="horizontal" valign="center">
                             <panel backgroundImage="Textures/GUI/Windows/heart-hp.png" childLayout="center" valign="center">
-                                <image filename="Textures/GUI/Windows/heart-bg.png" align="left" valign="center">
+                                <image filename="Textures/GUI/Windows/heart-bg.png" width="64px" height="64px" align="left" valign="center">
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Windows/heart-alarm.png" post="true" neverStopRendering="true" />
                                     </effect>
@@ -458,22 +458,22 @@
                     </panel>
                     <!-- creature icon -->
                     <panel paddingLeft="6px" childLayout="center" id="creature-icon" height="*">
-                        <image valign="center" filename="Textures/GUI/Creatures/Evil/goblin.png" />
+                        <image valign="center" filename="Textures/GUI/Creatures/Evil/goblin.png" width="64px" height="64px" />
                     </panel>
                     <!-- creature health -->
                     <panel align="left" valign="center" childLayout="overlay" height="64px">
-                        <image filename="Textures/GUI/Map/m-h-bg.png" imageMode="resize:0,111,0,0,0,111,0,32,0,111,0,0" />
+                        <image filename="Textures/GUI/Map/m-h-bg.png" width="128px" height="32px" imageMode="resize:0,111,0,0,0,111,0,32,0,111,0,0" />
                         <panel childLayout="center" padding="6px">
-                            <image filename="Textures/GUI/Map/m-hp.png" imageMode="repeat:0,0,16,16" width="100%" height="100%" id="creature-health" />
+                            <image filename="Textures/GUI/Map/m-hp.png" imageMode="repeat:0,0,16,16" align="left" width="100%" height="100%" id="creature-health" />
                         </panel>
                         <image filename="Textures/GUI/Map/M-H-Tone-BG.png" />
                     </panel>
                     <!-- creature gold -->
                     <panel width="6px" />
                     <panel childLayout="horizontal" valign="center" height="64px">
-                        <image valign="center" filename="Textures/GUI/Rooms/Treasury.png" />
+                        <image valign="center" filename="Textures/GUI/Rooms/Treasury.png" width="64px" height="64px" />
                         <panel align="left" valign="center" childLayout="overlay">
-                            <image valign="center" filename="Textures/GUI/Map/m-h-bg.png" imageMode="resize:0,111,0,0,0,111,0,32,0,111,0,0" />
+                            <image valign="center" filename="Textures/GUI/Map/m-h-bg.png" width="128px" height="32px" imageMode="resize:0,111,0,0,0,111,0,32,0,111,0,0" />
                             <panel childLayout="center" align="right" valign="center" paddingRight="10px">
                                 <control name="label" id="creature-gold" text="0" style="text" textHAlign="right" width="100%"/>
                             </panel>
@@ -508,7 +508,7 @@
                         <panel childLayout="horizontal" align="left" valign="top" id="creature-abilities" />
 
                         <panel childLayout="center" align="left" valign="bottom" height="*" paddingBottom="6px">
-                            <image id="creature-group" valign="bottom" filename="Textures/GUI/Icons/1st-person/group-mode.png" focusable="true">
+                            <image id="creature-group" valign="bottom" filename="Textures/GUI/Icons/1st-person/group-mode.png" width="64px" height="128px" focusable="true">
                                 <effect>
                                     <onFocus name="imageOverlay" filename="Textures/GUI/Icons/selected_group.png" post="true" />
                                 </effect>

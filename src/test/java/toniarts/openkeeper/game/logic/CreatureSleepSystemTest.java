@@ -16,14 +16,63 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.base.DefaultEntityData;
+import java.lang.reflect.Proxy;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
+import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class CreatureSleepSystemTest {
+
+    @Test
+    void noFatigueLatchesWhileGamblingButItDoesOnceItStops() {
+
+        // DK II's Casino states have flag 0x10, so 0x477C20 doesn't latch the fatigue while gambling
+        EntityData data = new DefaultEntityData();
+        EntityId elf = data.createEntity();
+        CreatureComponent creature = new CreatureComponent();
+        creature.creatureId = 6;
+        data.setComponents(elf, creature, new CreatureSleep(null, 0, 0, 0), new CreatureAi(0, CreatureState.WORK, (short) 6),
+                new TaskComponent(1, null, new Point(1, 1), TaskType.GAMBLE, 0, true));
+        IKwdFile kwd = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getGameLevel" -> CreatureSleepFixtures.level(4);
+                    case "getCreature" -> CreatureSleepFixtures.sleeper(9);
+                    case "getVariables" -> Map.of(MiscType.CANNOT_SLEEP_MODIFY_CREATURE_HEALTH_PER_SECOND,
+                            CreatureSleepFixtures.variable(MiscType.CANNOT_SLEEP_MODIFY_CREATURE_HEALTH_PER_SECOND, 0));
+                    default -> null;
+                });
+        double[] time = {30};
+        CreatureSleepSystem system = new CreatureSleepSystem(data, kwd, () -> time[0]);
+
+        system.processTick(0.25f);
+        assertEquals(0, data.getComponent(elf, CreatureSleep.class).sleepNeed);
+
+        data.removeComponent(elf, TaskComponent.class);
+        time[0] = 30.25;
+        system.processTick(0.25f);
+        assertEquals(36, data.getComponent(elf, CreatureSleep.class).sleepNeed);
+        assertEquals(30.25, data.getComponent(elf, CreatureSleep.class).lastSleepTime);
+        data.close();
+    }
 
     @Test
     void awakeIntervalLatchesFourRuntimeAuthoredSleepTime() {
@@ -86,5 +135,42 @@ class CreatureSleepSystemTest {
 
         assertEquals(100, updated.lastSleepTime);
         assertEquals(4, updated.sleepNeed);
+    }
+
+    @Test
+    void tiredKeeperCreatureOutOfBedHasItsHealthChangedEveryTick() {
+        EntityData data = new DefaultEntityData();
+        Creature definition = CreatureSleepFixtures.sleeper(9);
+        IKwdFile kwd = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> switch (method.getName()) {
+            case "getCreature" -> definition;
+            case "getGameLevel" -> CreatureSleepFixtures.level(4);
+            case "getVariables" -> Map.of(MiscType.CANNOT_SLEEP_MODIFY_CREATURE_HEALTH_PER_SECOND,
+                    CreatureSleepFixtures.variable(MiscType.CANNOT_SLEEP_MODIFY_CREATURE_HEALTH_PER_SECOND, -8));
+            default -> throw new UnsupportedOperationException(method.getName());
+        });
+        CreatureSleepSystem system = new CreatureSleepSystem(data, kwd, () -> 0);
+        EntityId awake = tiredCreature(data, CreatureState.IDLE, Player.KEEPER1_ID);
+        EntityId asleep = tiredCreature(data, CreatureState.SLEEPING, Player.KEEPER1_ID);
+        EntityId goingToBed = tiredCreature(data, CreatureState.WORK, Player.KEEPER1_ID);
+        data.setComponent(goingToBed, new TaskComponent(-1, null, null, TaskType.GO_TO_SLEEP, 0, false));
+        EntityId hero = tiredCreature(data, CreatureState.IDLE, Player.GOOD_PLAYER_ID);
+
+        system.processTick(.25f);
+
+        // -8 per second at 4 ticks per second
+        assertEquals(2, data.getComponent(awake, Damage.class).damage);
+        assertNull(data.getComponent(asleep, Damage.class));
+        assertNull(data.getComponent(goingToBed, Damage.class));
+        assertNull(data.getComponent(hero, Damage.class));
+    }
+
+    private static EntityId tiredCreature(EntityData data, CreatureState state, short ownerId) {
+        EntityId entity = data.createEntity();
+        CreatureComponent creature = new CreatureComponent();
+        creature.creatureId = 6;
+        data.setComponents(entity, creature, new CreatureAi(0, state, (short) 6),
+                new CreatureSleep(null, 0, 0, 36), new Owner(ownerId, ownerId));
+        return entity;
     }
 }
