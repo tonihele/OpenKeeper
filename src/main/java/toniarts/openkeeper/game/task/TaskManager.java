@@ -72,6 +72,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.TrapDeliveries;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
@@ -267,6 +268,19 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
         boolean trapBlueprintsChanged = trapBlueprintEntities.applyChanges();
         boolean doorBlueprintsChanged = doorBlueprintEntities.applyChanges();
+
+        // Placing a trap or a door sends the creatures on their way to work, and the idle ones, back to choose again,
+        // like a room change does (0x4C3860 and 0x4C33B0 call 0x4E8D30)
+        for (Entity entity : trapBlueprintEntities.getAddedEntities()) {
+            if (entity.get(TrapViewState.class).blueprint) {
+                resetCreatures(entity.get(Owner.class).ownerId);
+            }
+        }
+        for (Entity entity : doorBlueprintEntities.getAddedEntities()) {
+            if (entity.get(DoorComponent.class).blueprint) {
+                resetCreatures(entity.get(Owner.class).ownerId);
+            }
+        }
         if (crateEntities.applyChanges() || trapBlueprintsChanged || doorBlueprintsChanged || !crateDeliveryTasksScanned) {
             updateCrateDeliveryTasks();
             crateDeliveryTasksScanned = true;
@@ -592,6 +606,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             @Override
             public void onBuild(short keeperId, List<Point> tiles) {
                 scanBridgeSurroundings(tiles);
+                resetCreatures(keeperId);
             }
 
             @Override
@@ -600,6 +615,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 for (Point tile : tiles) {
                     scanFetchObjectTasks(tile);
                 }
+                resetCreatures(keeperId);
             }
 
             private void scanBridgeSurroundings(List<Point> tiles) {
@@ -635,6 +651,49 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
         });
+    }
+
+    /**
+     * Stops the keeper's creatures that are on their way to a job, or idle,
+     * and sends them back to choose what to do. The original does this every
+     * time the keeper's rooms change (CPlayer::resetCreaturesState 0x4E8D30,
+     * called from the room list update 0x4F04F0) and when the keeper places a
+     * door or a trap (0x4C33B0, 0x4C3860). It resets a creature doing nothing
+     * (states 3 and 4), on an idle walk (state 6 going back to state 1), which a
+     * worker takes too, or walking to a room (state 7). A worker's other idle
+     * time and its work are left alone, and so are creatures on their way to
+     * make their lair: the original sends those back too, a mistake Flame's
+     * creatures_setup_lair_fix corrects. Creatures already in the room of
+     * their job carry on too, as the original only resets the walk to a room.
+     *
+     * @param playerId the keeper whose rooms changed
+     */
+    private void resetCreatures(short playerId) {
+        for (EntityId entityId : entityData.findEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class)) {
+            ICreatureController creature = creaturesController.createController(entityId);
+            boolean reset;
+            if (creature.getStateMachine().isInState(CreatureState.IDLE)) {
+                reset = !creature.isWorker() || !creature.isStopped();
+            } else {
+                reset = !creature.isWorker() && creature.getStateMachine().isInState(CreatureState.WORK)
+                        && isWalkingToJobRoom(creature, entityData.getComponent(entityId, TaskComponent.class));
+            }
+            if (reset) {
+                creature.stopCreature();
+                creature.getStateMachine().changeState(CreatureState.IDLE);
+            }
+        }
+    }
+
+    private boolean isWalkingToJobRoom(ICreatureController creature, TaskComponent task) {
+        if (task == null || task.taskType == TaskType.CLAIM_LAIR || creature.isAtAssignedTaskTarget()) {
+            return false;
+        }
+
+        // A creature already in the room starts the job without the walk (0x471A70), and moving about inside the room
+        // is part of the job
+        IRoomController room = task.targetLocation != null ? mapController.getRoomControllerByCoordinates(task.targetLocation) : null;
+        return room == null || room != mapController.getRoomControllerByCoordinates(creature.getCreatureCoordinates());
     }
 
     private void scanInitialTasks() {
