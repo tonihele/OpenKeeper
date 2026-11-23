@@ -1033,7 +1033,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case KILL_CREATURES: {
                 task = KillCreatures.create(navigationService, mapController, levelInfo, creature,
-                        getCreatures(creature.getObjectiveTargetPlayerId()));
+                        () -> getCreatures(creature.getObjectiveTargetPlayerId()));
                 break;
             }
             case STEAL_GOLD: {
