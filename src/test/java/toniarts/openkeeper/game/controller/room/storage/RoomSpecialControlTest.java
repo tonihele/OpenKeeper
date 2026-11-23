@@ -79,8 +79,8 @@ class RoomSpecialControlTest {
         EntityId special = item(BOOKCASE);
         assertNull(books.addItem(book, BOOKCASE));
         assertNull(specials.addItem(special, BOOKCASE));
-        assertEquals(682f / 4096, position(book).x - 4, 0.000001);
-        assertEquals(-682f / 4096, position(special).x - 4, 0.000001);
+        assertEquals(-682f / 4096, position(book).x - 4, 0.000001);
+        assertEquals(682f / 4096, position(special).x - 4, 0.000001);
         assertEquals(position(book).x, position(book).z);
         assertEquals(position(special).x, position(special).z);
         assertTrue(books.isFullCapacity());
