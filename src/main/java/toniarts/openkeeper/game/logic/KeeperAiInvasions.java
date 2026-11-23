@@ -80,8 +80,11 @@ final class KeeperAiInvasions {
     private static final int RALLY_FROM_HEART = 2;
 
     /**
-     * On the way to the enemy the flag moves 2 tiles on once 4 in 5 of the
-     * creatures are within 10 tiles of it
+     * On the way to the enemy the flag moves on once 4 in 5 of the creatures
+     * are within 10 tiles of it. DK II (0x4FE9C0) moves it to the middle of
+     * the first gate between its navigation regions on the way, so a step
+     * can be anything from 0 to over 20 tiles; OpenKeeper has no navigation
+     * regions and steps 2 tiles along the path.
      */
     private static final int RALLY_GATHER_TILES = 10;
     private static final int RALLY_STEP_TILES = 2;
@@ -386,8 +389,9 @@ final class KeeperAiInvasions {
     /**
      * Where to call the creatures to arms: a corner of the Dungeon Heart, or
      * the nearest room when the enemy has no Heart. On the way there the flag
-     * starts at its own room and moves 2 tiles on each time enough of its
-     * creatures have come.
+     * starts at its own room and moves on each time enough of its creatures
+     * have come. Once it is at the Heart it is cast there again each time,
+     * which starts its time over, as in DK II.
      */
     private Point getRallyTile(KeeperAi keeperAi, Map<Short, IPlayerController> playerControllers, AI.CallToArmsUsagePolicy policy) {
         List<Entity> creatures = battles.getCreatures(keeperAi.playerId);
