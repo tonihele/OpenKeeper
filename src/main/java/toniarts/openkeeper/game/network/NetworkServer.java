@@ -31,6 +31,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import com.simsilica.es.server.EntityDataHostedService;
 import com.simsilica.ethereal.EtherealHost;
 import toniarts.openkeeper.game.component.Alarm;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.BackOff;
@@ -82,6 +83,8 @@ import toniarts.openkeeper.game.component.ImpGenerator;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.InfernoArea;
+import toniarts.openkeeper.game.component.Invisible;
+import toniarts.openkeeper.game.component.Invulnerable;
 import toniarts.openkeeper.game.component.KeeperSpellCast;
 import toniarts.openkeeper.game.component.LevelIndicator;
 import toniarts.openkeeper.game.component.Mana;
@@ -209,6 +212,7 @@ public final class NetworkServer {
 
             // Our entity components
             Serializer.registerClass(Alarm.class, new FieldSerializer());
+            Serializer.registerClass(Armour.class, new FieldSerializer());
             Serializer.registerClass(Attack.class, new FieldSerializer());
             Serializer.registerClass(AttackTarget.class, new FieldSerializer());
             Serializer.registerClass(BackOff.class, new FieldSerializer());
@@ -261,6 +265,8 @@ public final class NetworkServer {
             Serializer.registerClass(InHand.class, new FieldSerializer());
             Serializer.registerClass(Interaction.class, new FieldSerializer());
             Serializer.registerClass(InfernoArea.class, new FieldSerializer());
+            Serializer.registerClass(Invisible.class, new FieldSerializer());
+            Serializer.registerClass(Invulnerable.class, new FieldSerializer());
             Serializer.registerClass(KeeperSpellCast.class, new FieldSerializer());
             Serializer.registerClass(LevelIndicator.class, new FieldSerializer());
             Serializer.registerClass(Mana.class, new FieldSerializer());
