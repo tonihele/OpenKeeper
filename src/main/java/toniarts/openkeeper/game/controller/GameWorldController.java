@@ -881,6 +881,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private void notifyDestroyedTiles(Map<Short, List<Point>> destroyedTilesByOwner) {
         for (Map.Entry<Short, List<Point>> entry : destroyedTilesByOwner.entrySet()) {
             notifyOnSold(entry.getKey(), entry.getValue());
+            notifyOnRoomSelectionComplete(entry.getKey(), entry.getValue());
         }
     }
 
