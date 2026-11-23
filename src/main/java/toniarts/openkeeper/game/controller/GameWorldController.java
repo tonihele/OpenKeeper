@@ -1327,9 +1327,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     public void interact(EntityId entity, short playerId) {
 
         // Creatures can only be slapped, also enemies held in our prison
-        // TODO: Slap limit
         if (entityData.getComponent(entity, CreatureComponent.class) != null) {
-            if (canSlapCreature(entity, playerId)) {
+            if (canSlapCreature(entity, playerId) && tryUseSlap(playerId)) {
                 entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
                 notifySlap(entity, playerId);
             }
@@ -1356,12 +1355,23 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // Objects
         ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
-        if (objectComponent != null && interaction.slappable) {
+        if (objectComponent != null && interaction.slappable && tryUseSlap(playerId)) {
             entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
             notifySlap(entity, playerId);
             turnLevelIndicator(entity, -1);
             return;
         }
+    }
+
+    @Override
+    public void setSlapsLimit(int limit) {
+        for (IPlayerController playerController : playerControllers.values()) {
+            playerController.getStatsControl().setSlapsLimit(limit);
+        }
+    }
+
+    private boolean tryUseSlap(short playerId) {
+        return playerControllers.get(playerId).getStatsControl().tryUseSlap();
     }
 
     private void notifySlap(EntityId entity, short playerId) {
