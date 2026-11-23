@@ -47,6 +47,7 @@ public final class SendToActionPoint extends GoToTask {
     private final int ticksPerSecond;
     private boolean executed = false;
     private Point spot;
+    private Vector2f spotPosition;
 
     /**
      * Sends the creature to the action point
@@ -111,6 +112,11 @@ public final class SendToActionPoint extends GoToTask {
     }
 
     @Override
+    public Vector2f getWorkPosition(ICreatureController creature) {
+        return spotPosition != null ? spotPosition : getTarget(creature);
+    }
+
+    @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
 
         // The creature mills about at the point for its wait delay before moving on. The delay is in game ticks,
@@ -128,7 +134,8 @@ public final class SendToActionPoint extends GoToTask {
     /**
      * Steps to one of the four side neighbours, trying them in turn from a
      * random one, and takes the first the creature can get to. With none it
-     * stays (0x4721C0)
+     * stays (0x4721C0). It stops at one of nine places in the tile, a third of
+     * a tile apart (DKII.EXE table 0x698EC8)
      */
     private void millAbout(ICreatureController creature) {
         int start = Utils.getRandom().nextInt(SIDE_NEIGHBOURS.length);
@@ -138,6 +145,8 @@ public final class SendToActionPoint extends GoToTask {
             if (mapController.getMapData().getTile(neighbour) != null && !isSolid(mapController, neighbour)
                     && navigationService.findPath(spot, neighbour, creature) != null) {
                 spot = neighbour;
+                spotPosition = WorldUtils.pointToVector2f(neighbour).addLocal((Utils.getRandom().nextInt(3) - 1) * WorldUtils.TILE_WIDTH / 3,
+                        (Utils.getRandom().nextInt(3) - 1) * WorldUtils.TILE_WIDTH / 3);
                 return;
             }
         }

@@ -177,8 +177,12 @@ class SendToActionPointTest {
 
         task.executeTask(creature, 0f);
 
-        // Only the tile to the east is open, so that is where it steps, and from there back
+        // Only the tile to the east is open, so that is where it steps, to one of nine places in it, and from there back
         assertEquals(WorldUtils.pointToVector2f(open), task.getTarget(creature));
+        Vector2f place = task.getWorkPosition(creature).subtract(WorldUtils.pointToVector2f(open)).multLocal(3);
+        assertEquals(Math.round(place.x), place.x, 0.001f);
+        assertEquals(Math.round(place.y), place.y, 0.001f);
+        assertTrue(Math.abs(place.x) <= 1.001f && Math.abs(place.y) <= 1.001f);
 
         task.executeTask(creature, 1f);
 
