@@ -606,7 +606,6 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             @Override
             public void onBuild(short keeperId, List<Point> tiles) {
                 scanBridgeSurroundings(tiles);
-                resetCreatures(keeperId);
             }
 
             @Override
@@ -615,6 +614,10 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 for (Point tile : tiles) {
                     scanFetchObjectTasks(tile);
                 }
+            }
+
+            @Override
+            public void onRoomSelectionComplete(short keeperId, List<Point> tiles) {
                 resetCreatures(keeperId);
             }
 
