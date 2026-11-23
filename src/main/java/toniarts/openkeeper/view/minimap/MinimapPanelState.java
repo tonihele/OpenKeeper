@@ -35,6 +35,7 @@ import de.lessvoid.nifty.elements.Element;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.Set;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapInformation;
@@ -90,6 +91,8 @@ public final class MinimapPanelState extends AbstractAppState {
     private final Keeper localKeeper;
     private final short neutralPlayerNumber;
     private final float dungeonHeartReportingDistanceTiles;
+    private final Set<Short> guardPostTrapIds;
+    private final float guardPostReportingDistanceTiles;
 
     private AppStateManager stateManager;
     private MinimapAssets assets;
@@ -123,13 +126,16 @@ public final class MinimapPanelState extends AbstractAppState {
 
     public MinimapPanelState(Main app, IMapInformation<? extends IMapTileInformation> mapInformation,
             IFogOfWarInformation fogOfWarInformation, IRoomsInformation<? extends IRoomInformation> roomsInformation,
-            EntityData entityData, Keeper localKeeper, float dungeonHeartReportingDistanceTiles) {
+            EntityData entityData, Keeper localKeeper, float dungeonHeartReportingDistanceTiles,
+            Set<Short> guardPostTrapIds, float guardPostReportingDistanceTiles) {
         this.app = app;
         this.mapInformation = mapInformation;
         this.fogOfWarInformation = fogOfWarInformation;
         this.entityData = entityData;
         this.localKeeper = localKeeper;
         this.dungeonHeartReportingDistanceTiles = dungeonHeartReportingDistanceTiles;
+        this.guardPostTrapIds = guardPostTrapIds;
+        this.guardPostReportingDistanceTiles = guardPostReportingDistanceTiles;
         MapColourClassifier classifier = new MapColourClassifier(mapInformation, fogOfWarInformation, roomsInformation);
         this.grid = new MapColourGrid(mapInformation.getMapData().getWidth(), mapInformation.getMapData().getHeight(),
                 classifier, fogOfWarInformation);
@@ -151,7 +157,8 @@ public final class MinimapPanelState extends AbstractAppState {
         rasterBgr = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
         view = new MinimapView(app.getAssetManager(), app.getGuiNode());
         view.attach();
-        markerPainter = new MinimapMarkerPainter(entityData, assets.getPalette(), localKeeper.getId());
+        markerPainter = new MinimapMarkerPainter(entityData, assets.getPalette(), localKeeper.getId(),
+                guardPostTrapIds, guardPostReportingDistanceTiles);
 
         inputListener = new MinimapInputListener();
         app.getInputManager().addRawInputListener(inputListener);

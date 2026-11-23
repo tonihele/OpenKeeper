@@ -27,6 +27,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
@@ -126,20 +127,24 @@ public class EntityController implements IEntityController {
 
     @Override
     public void removePossession() {
-        handleLootDrop();
+        dropLoot();
         handleAssociatedEntities();
     }
 
-    private void handleLootDrop() {
+    @Override
+    public void dropLoot() {
 
-        // Drop gold
+        // Drop gold, in one pile below 1000, two below 3000 and three from
+        // that up. The piles share the gold evenly, the remainder is lost (0x48F930)
         Gold gold = entityData.getComponent(entityId, Gold.class);
         if (gold != null && gold.gold > 0) {
             Position position = entityData.getComponent(entityId, Position.class);
             Point point = WorldUtils.vectorToPoint(position.position);
-            // TODO: some central place, we need to add more than one pile if it exceeds the max
-            objectsController.addLooseGold(point.x, point.y, gold.gold, gold.maxGold);
-            entityData.removeComponent(entityId, Gold.class);
+            int piles = gold.gold < 1000 ? 1 : gold.gold < 3000 ? 2 : 3;
+            for (int i = 0; i < piles; i++) {
+                objectsController.addLooseGold(point.x, point.y, gold.gold / piles, gold.maxGold);
+            }
+            entityData.setComponent(entityId, new Gold(0, gold.maxGold));
         }
 
         // Drop Portal Gem
@@ -232,8 +237,9 @@ public class EntityController implements IEntityController {
 
     /**
      * Scales the damage a creature takes by what it is doing. DK II counts in
-     * 128ths: a possessed creature takes half, and one that lies stunned or is
-     * getting up takes double. Healing is never scaled
+     * 128ths: a possessed creature takes half, a frozen one a quarter more
+     * (DKII.EXE 0x4B2CE0), and one that lies stunned or is getting up takes
+     * double. Healing is never scaled
      *
      * @param entityData the entity data
      * @param entityId the entity that is hit
@@ -250,10 +256,16 @@ public class EntityController implements IEntityController {
         if (entityData.getComponent(entityId, Possessed.class) != null) {
             multiplier -= 64;
         }
+
+        // A frozen creature stands in the stunned state, but it doesn't lie stunned
+        boolean frozen = entityData.getComponent(entityId, Frozen.class) != null;
+        if (frozen) {
+            multiplier += 32;
+        }
         CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
         if (creatureAi != null) {
             CreatureState state = creatureAi.getCreatureState();
-            if (state == CreatureState.STUNNED || state == CreatureState.FALLEN || state == CreatureState.GETTING_UP) {
+            if ((state == CreatureState.STUNNED && !frozen) || state == CreatureState.FALLEN || state == CreatureState.GETTING_UP) {
                 multiplier += 128;
             }
         }
