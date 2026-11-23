@@ -190,6 +190,18 @@ public final class HealthSystem extends GameTimeCounter {
                     entityData.setComponent(entityId, new Unconscious(unconscious.startTime + tpf));
                 } else if (timeElapsed - unconscious.startTime >= timeToDeath) {
                     processDeath(entityId);
+                } else {
+                    Health health = entityData.getComponent(entityId, Health.class);
+                    if (health != null && health.health > 0) {
+                        // Editor START_AS_DYING keeps a positive health budget.
+                        // Keep the flower and later rescue in step with the same timer.
+                        int ticksPerSecond = levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+                        double remaining = timeToDeath - (timeElapsed - unconscious.startTime);
+                        int remainingHealth = (int) Math.ceil(remaining * ticksPerSecond - 1e-6);
+                        if (remainingHealth < health.health) {
+                            entityData.setComponent(entityId, new Health(Math.max(0, remainingHealth), health.maxHealth));
+                        }
+                    }
                 }
                 continue;
             }
