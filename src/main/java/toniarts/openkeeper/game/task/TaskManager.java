@@ -821,6 +821,35 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     /**
+     * Sends a creature working in a room to the closest point of the same room
+     * that has no task. The point the creature is at still has its task, so it
+     * is never picked
+     *
+     * @param creature the working creature
+     * @param room the room the creature works in
+     * @param objectType the type of room service
+     * @return true if the creature was given a new task
+     */
+    public boolean assignFreeRoomTask(ICreatureController creature, IRoomController room, ObjectType objectType) {
+        Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.computeIfAbsent(room, r -> new HashMap<>());
+        Point currentPosition = creature.getCreatureCoordinates();
+        IRoomObjectControl<?> control = room.getObjectControl(objectType);
+        Point target = control.getAvailableCoordinates().stream()
+                .filter(p -> !taskPoints.containsKey(p) && room.isTileAccessible(null, p))
+                .min(Comparator.comparingInt(p -> WorldUtils.calculateDistance(currentPosition, p)))
+                .orElse(null);
+        if (target == null || navigationService.findPath(currentPosition, target, creature) == null) {
+            return false;
+        }
+
+        AbstractCapacityCriticalRoomTask task = (AbstractCapacityCriticalRoomTask) getRoomTask(objectType, target, null, creature, room);
+        taskPoints.put(target, task);
+        task.assign(creature, true);
+        tasksByIds.put(task.getId(), task);
+        return true;
+    }
+
+    /**
      * Assigns closest room task to a given creature of requested type or check
      * for validity
      *
