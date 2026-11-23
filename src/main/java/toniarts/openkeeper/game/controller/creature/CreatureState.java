@@ -23,6 +23,7 @@ import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Thing;
 
 /**
  * State machine for creature AI. TODO: needs to be hierarchial so that this
@@ -84,6 +85,15 @@ public enum CreatureState implements State<ICreatureController> {
             if (entity.getParty() != null && !entity.getParty().isPartyLeader(entity)) {
                 entity.setFollowTarget(entity.getParty().getPartyLeader().getEntityId());
                 entity.getStateMachine().changeState(CreatureState.FOLLOW);
+                workResult.accept(true);
+                return;
+            }
+
+            // A creature told to wait, or sent to an action point when there is none (it has passed its
+            // last waypoint), stays where it is. The original only shuffles about on the creature's own tile
+            Thing.HeroParty.Objective objective = entity.getObjective();
+            if (objective == Thing.HeroParty.Objective.WAIT || (objective == Thing.HeroParty.Objective.SEND_TO_ACTION_POINT
+                    && entity.getObjectiveTargetActionPointId() == 0)) {
                 workResult.accept(true);
                 return;
             }
@@ -293,26 +303,32 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            // Native hunger and fatigue can interrupt compatible room work, including travel to it.
+            // Hunger, then fatigue, then pay day interrupt a room job, including travel to it. DK II gives the three
+            // one mask of job groups (0x800A3C3B, set in 0x4798F0 and checked in 0x477C20): research, the Workshop,
+            // guard duty, the Temple, training and the Casino, but not the Prison, the Torture Chamber or a fight
             Task task = entity.getAssignedTask();
-            if (task != null && (task.getTaskType() == TaskType.TRAIN
-                    || task.getTaskType() == TaskType.RESEARCH
-                    || task.getTaskType() == TaskType.GAMBLE)
-                    && ((entity.isHungry() && entity.goToEat())
-                    || (entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()))) {
+            boolean interruptible = task != null && switch (task.getTaskType()) {
+                case RESEARCH, MANUFACTURE, GUARD, PRAY, TRAIN, GAMBLE -> true;
+                default -> false;
+            };
+            if (interruptible && ((entity.isHungry() && entity.goToEat())
+                    || (entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep())
+                    || entity.goToCollectPay())) {
                 // setAssignedTask released the previous job. Keep WORK so its exit cannot
-                // unassign the newly selected eat or sleep task.
+                // unassign the newly selected eat, sleep or pay task.
                 entity.navigateToAssignedTask();
                 return;
             }
 
-            // Pay day takes a creature out of any room job, the Workshop included
-            if (task != null && (task.getTaskType() == TaskType.TRAIN
-                    || task.getTaskType() == TaskType.RESEARCH
-                    || task.getTaskType() == TaskType.MANUFACTURE)
-                    && entity.goToCollectPay()) {
-                entity.navigateToAssignedTask();
-                return;
+            // A guard never finishes its duty, so a creature that took it up while no lair was
+            // to be had (a Dark Elf prefers it) looks for a home now and then
+            if (task != null && task.getTaskType() == TaskType.GUARD && entity.needsLair() && !entity.hasLair()
+                    && entity.isTimeToReEvaluate()) {
+                entity.resetReEvaluationTimer();
+                if (entity.findLair()) {
+                    entity.navigateToAssignedTask();
+                    return;
+                }
             }
 
             // Check validity
@@ -548,6 +564,9 @@ public enum CreatureState implements State<ICreatureController> {
         public void enter(ICreatureController entity) {
             entity.stopCreature();
             entity.unassingCurrentTask();
+
+            // A knocked out creature drops its gold at once, even if it is rescued later (0x4596D0)
+            entity.dropLoot();
         }
 
         @Override

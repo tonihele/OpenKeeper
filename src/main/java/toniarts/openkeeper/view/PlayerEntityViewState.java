@@ -21,8 +21,11 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.RenderManager;
+import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.control.AbstractControl;
 import com.jme3.system.Timer;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityContainer;
@@ -56,6 +59,7 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Light;
@@ -68,6 +72,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.control.CreatureFlowerControl;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.DoorFlowerControl;
@@ -76,6 +81,7 @@ import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.IUnitFlowerControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import toniarts.openkeeper.view.control.SpecialObjectViewControl;
 import toniarts.openkeeper.view.control.ShotFlightControl;
 import toniarts.openkeeper.view.control.TortureWheelSpinControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
@@ -102,6 +108,16 @@ import toniarts.openkeeper.view.text.TextParser;
 public class PlayerEntityViewState extends AbstractAppState {
 
     private static final Logger logger = System.getLogger(PlayerEntityViewState.class.getName());
+
+    /**
+     * "Creature Dazed Effect", the stars over a creature lying stunned after it was dropped
+     */
+    private static final int DAZED_EFFECT_ID = 101;
+    private static final String DAZED_NODE_NAME = "Dazed";
+    /**
+     * The control point of the creature animations at the head
+     */
+    private static final int HEAD_CONTROL_POINT = 5000;
 
     /**
      * "Level up Effect", the sparkles around a creature that gained a level
@@ -166,6 +182,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final TrapModelContainer trapModelContainer;
     private final RoomEffectContainer roomEffectContainer;
     private final PortalEffectState portalEffects;
+    private final HaulingSoundState haulingSounds;
     private final ShotModelContainer shotModelContainer;
     private final EventListener<GameEvent> gameEventListener = this::onGameEvent;
     private final EventListener<GeneratedEffect> generatedEffectListener = (type, effect) ->
@@ -246,6 +263,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer = new TrapModelContainer(entityData);
         roomEffectContainer = new RoomEffectContainer(entityData);
         portalEffects = new PortalEffectState(kwdFile, entityData, rootNode, fogOfWarInformation);
+        haulingSounds = new HaulingSoundState(kwdFile, entityData, fogOfWarInformation);
         shotModelContainer = new ShotModelContainer(entityData);
     }
 
@@ -266,6 +284,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.start();
         roomEffectContainer.start();
         stateManager.attach(portalEffects);
+        stateManager.attach(haulingSounds);
         shotModelContainer.start();
         EventBus.addListener(ClientEvents.GAME_EVENT, gameEventListener);
         EventBus.addListener(ClientEvents.GENERATED_EFFECT, generatedEffectListener);
@@ -275,6 +294,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
         portalEffects.setEnabled(enabled);
+        haulingSounds.setEnabled(enabled);
     }
 
     @Override
@@ -353,6 +373,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.stop();
         roomEffectContainer.stop();
         stateManager.detach(portalEffects);
+        stateManager.detach(haulingSounds);
         shotModelContainer.stop();
         EventBus.removeListener(ClientEvents.GAME_EVENT, gameEventListener);
         EventBus.removeListener(ClientEvents.GENERATED_EFFECT, generatedEffectListener);
@@ -453,10 +474,17 @@ public class PlayerEntityViewState extends AbstractAppState {
                         ? kwdFile.getCreature(objectViewState.lairCreatureTypeId) : null;
                 boolean uniqueCreatureBed = lairCreatureType != null
                         && lairCreatureType.getFlags().contains(CreatureFlag.IS_UNIQUE);
-                EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
-                        kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager,
-                        textParser != null ? textParser.getObjectTextParser() : null, mapData,
-                        uniqueCreatureBed, kwdFile.getGameLevel().getTicksPerSec());
+                GameObject object = kwdFile.getObject(objectViewState.objectId);
+                var objectTextParser = textParser != null ? textParser.getObjectTextParser() : null;
+                int ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
+                ObjectViewControl control;
+                if (object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPECIAL)) {
+                    control = new SpecialObjectViewControl(e.getId(), entityData, object, objectViewState,
+                            assetManager, objectTextParser, mapData, uniqueCreatureBed, ticksPerSecond);
+                } else {
+                    control = new ObjectViewControl(e.getId(), entityData, object, objectViewState,
+                            assetManager, objectTextParser, mapData, uniqueCreatureBed, ticksPerSecond);
+                }
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
@@ -611,8 +639,10 @@ public class PlayerEntityViewState extends AbstractAppState {
             return;
         }
 
-        VisualEffect trail = effectManagerState.load(flyingShot, null, shot.getGeneralEffectId(), true);
+        // The effect generates its elements every turn it lives, the fire around the cannon ball for one
+        VisualEffect trail = effectManagerState.load(flyingShot, null, shot.getGeneralEffectId(), false);
         if (trail != null) {
+            trail.generateThroughoutLifetime();
             shotTrails.put(entityId, trail);
         }
     }
@@ -657,6 +687,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         control.setTargetState(viewState.state);
         setTortureWheelSpin(object, viewState.state == Creature.AnimationType.TORTURED_WHEEL);
 
+        updateDazedEffect(object, viewState, e.get(Position.class));
+
         // Trigger the death effect once, when the creature actually dies
         if (!wasAlreadyDead && viewState.state == Creature.AnimationType.DEATH_POSE) {
             int deathEffectId = control.getDeathEffectId();
@@ -672,6 +704,78 @@ public class PlayerEntityViewState extends AbstractAppState {
             CharredOverlay.apply(object, assetManager);
         }
         applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
+    }
+
+    /**
+     * A creature that lands stunned from the hand gets the dazed stars over its head, once per landing. The
+     * creature gets a new model when it is dropped, so whether the stars were already played is remembered on the
+     * model until the creature gets up.
+     */
+    private void updateDazedEffect(Spatial object, CreatureViewState viewState, Position position) {
+        if (viewState.state != Creature.AnimationType.FALLBACK) {
+            object.setUserData(DAZED_NODE_NAME, null);
+            return;
+        }
+        Creature creature = kwdFile.getCreature(viewState.creatureId);
+        if (position.position.y > WorldUtils.FLOOR_HEIGHT || creature.getAttributes().getStunDuration() == 0
+                || object.getUserData(DAZED_NODE_NAME) != null || !(object instanceof Node creatureNode)) {
+            return;
+        }
+        object.setUserData(DAZED_NODE_NAME, true);
+        Node dazedNode = getDazedEffectNode(creatureNode, creature);
+        stateManager.getState(EffectManagerState.class).load(dazedNode, null, DAZED_EFFECT_ID, false);
+
+        // Like the original, the stars follow the head's control point while the creature falls over
+        HeadFollowControl headFollowControl = dazedNode.getControl(HeadFollowControl.class);
+        headFollowControl.setEnabled(true);
+        headFollowControl.update(0);
+    }
+
+    /**
+     * The node at the creature's head that holds its dazed stars. Changing the animation removes all the
+     * creature's children that aren't marked as kept, so the stars get a kept node of their own.
+     */
+    private static Node getDazedEffectNode(Node creatureNode, Creature creature) {
+        Node dazedNode = (Node) creatureNode.getChild(DAZED_NODE_NAME);
+        if (dazedNode == null) {
+            dazedNode = new Node(DAZED_NODE_NAME);
+            dazedNode.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
+            dazedNode.addControl(new HeadFollowControl(creature.getAttributes().getHeight()));
+            creatureNode.attachChild(dazedNode);
+        }
+        return dazedNode;
+    }
+
+    /**
+     * Keeps a node at the head's control point while the creature moves, like the original ties the dazed stars to
+     * the control point. Some creatures, like the knights, have no head point, for them the front of the fallen
+     * body is used. Stops once the effects on the node are gone.
+     */
+    private static final class HeadFollowControl extends AbstractControl {
+
+        private final float height;
+        private final Vector3f head = new Vector3f();
+
+        private HeadFollowControl(float height) {
+            this.height = height;
+        }
+
+        @Override
+        protected void controlUpdate(float tpf) {
+            if (((Node) spatial).getQuantity() == 0) {
+                setEnabled(false);
+                return;
+            }
+            if (AnimationLoader.getControlPoint(spatial.getParent(), HEAD_CONTROL_POINT, head) == null
+                    && AnimationLoader.getFrontPoint(spatial.getParent(), head) == null) {
+                head.set(0, height, 0);
+            }
+            spatial.setLocalTranslation(head);
+        }
+
+        @Override
+        protected void controlRender(RenderManager rm, ViewPort vp) {
+        }
     }
 
     private void updateDoorModelState(Spatial object, Entity e) {
@@ -711,6 +815,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         VisualEffect visual = stateManager.getState(EffectManagerState.class)
                 .load(root, effect.position(), effect.effectId(), false);
         if (visual != null) {
+            if (kwdFile.getEffect(effect.effectId()).getGenerationType() == Effect.GenerationType.CUBE_GEN) {
+                visual.generateThroughoutLifetime();
+            }
             visual.getEffectNode().rotate(0, effect.yaw(), 0);
         }
     }

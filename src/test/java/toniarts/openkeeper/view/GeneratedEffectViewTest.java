@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.event.GeneratedEffect;
 import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.effect.VisualEffect;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
@@ -36,7 +37,11 @@ class GeneratedEffectViewTest {
     @Test
     void finiteEffectsUseExactCoordinatesAndAreSuppressedInFog() throws Exception {
         var data = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(),
-                new Class<?>[]{IKwdFile.class}, (p, m, a) -> m.getName().equals("getEffect") ? new Effect() : null);
+                new Class<?>[]{IKwdFile.class}, (p, m, a) -> switch (m.getName()) {
+                    case "getEffect" -> new Effect();
+                    case "getGameLevel" -> new GameLevel();
+                    default -> null;
+                });
         boolean[] visible = {false};
         var fog = (IFogOfWarInformation) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{IFogOfWarInformation.class}, (p, m, a) -> visible[0]);

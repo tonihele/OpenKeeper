@@ -64,7 +64,8 @@ public interface IFogOfWarInformation {
     boolean isVisible(Point p);
 
     /**
-     * Has this tile been explored at some point? Sticky.
+     * Is this tile explored, including an active scripted reveal? Permanent
+     * exploration survives when the scripted reveal ends.
      */
     boolean isExplored(Point p);
 

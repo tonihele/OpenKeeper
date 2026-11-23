@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.logic.BattleSystem;
 import toniarts.openkeeper.game.logic.CallToArmsSystem;
 import toniarts.openkeeper.game.logic.CasinoSystem;
 import toniarts.openkeeper.game.logic.ChickenAiSystem;
@@ -63,9 +64,12 @@ import toniarts.openkeeper.game.logic.PossessedSystem;
 import toniarts.openkeeper.game.logic.PrisonOvercrowdingSystem;
 import toniarts.openkeeper.game.logic.ShotSystem;
 import toniarts.openkeeper.game.logic.SlapSystem;
+import toniarts.openkeeper.game.logic.SpecialIdleEffectSystem;
 import toniarts.openkeeper.game.logic.SpinSystem;
 import toniarts.openkeeper.game.logic.SummonedReaperSystem;
+import toniarts.openkeeper.game.logic.TremorSystem;
 import toniarts.openkeeper.game.logic.TrapSystem;
+import toniarts.openkeeper.game.logic.TurncoatSystem;
 import toniarts.openkeeper.game.logic.WoodenBridgeDecaySystem;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.task.ITaskManager;
@@ -89,6 +93,7 @@ public final class GameLoopManager {
 
     private final IGameController gameController;
 
+    private final GameLogicManager gameLogicThread;
     private final PayDaySystem payDaySystem;
 
     /**
@@ -115,12 +120,13 @@ public final class GameLoopManager {
                 playerControllers.values(), gameSettings);
 
         // Game logic
-        final GameLogicManager gameLogicThread = new GameLogicManager(
+        gameLogicThread = new GameLogicManager(
                 gameWorldController.getMapController(),
                 new DecaySystem(entityData),
                 new WoodenBridgeDecaySystem(entityData, gameController.getGameTimer(), gameWorldController,
                         level, gameWorldController.getMapController(),
                         gameController.getLevelVariable(Variable.MiscVariable.MiscType.WOOD_BRIDGE_LIFE_ON_LAVA_SECONDS)),
+                new TremorSystem(entityData, gameController.getGameTimer(), gameWorldController.getMapController(), gameSettings),
                 new CreatureExperienceSystem(entityData, levelInfo.getLevelData(), gameSettings,
                         gameWorldController.getCreaturesController()),
                 new CreatureSleepSystem(entityData, levelInfo.getLevelData(),
@@ -130,6 +136,7 @@ public final class GameLoopManager {
                 payDaySystem,
                 new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings,
                         gameWorldController.getObjectsController()),
+                new TurncoatSystem(entityData, gameController.getGameTimer()),
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
                         levelInfo, playerControllers.values(), gameWorldController.getMapController(),
                         gameController.getGameTimer(), gameEventService),
@@ -164,9 +171,12 @@ public final class GameLoopManager {
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData, levelInfo.getLevelData()),
                 new DoorViewSystem(entityData, positionSystem),
+                new BattleSystem(entityData, gameController.getGameTimer()),
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
+                new SpecialIdleEffectSystem(entityData, gameController.getGameTimer(),
+                        level.getGameLevel().getTicksPerSec(), gameWorldController.getMapController(), gameEventService),
                 new TrapSystem(entityData, level, gameController.getGameTimer(), positionSystem, playerControllers,
                         gameWorldController.getShotsController(), gameEventService),
                 new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
@@ -214,6 +224,17 @@ public final class GameLoopManager {
 
     public IGameController getGameController() {
         return gameController;
+    }
+
+    /**
+     * Queues a player action to run at the start of the next game logic tick.
+     * Player actions come from the render thread (or the network thread) and
+     * change the same state as the game logic does
+     *
+     * @param action the player action
+     */
+    public void runPlayerAction(Runnable action) {
+        gameLogicThread.enqueueAction(action);
     }
 
     public PayDaySystem getPayDaySystem() {
