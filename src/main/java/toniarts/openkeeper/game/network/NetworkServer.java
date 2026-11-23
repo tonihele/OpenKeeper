@@ -113,6 +113,7 @@ import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.Spellbook;
 import toniarts.openkeeper.game.component.Spin;
 import toniarts.openkeeper.game.component.StolenGold;
@@ -295,6 +296,7 @@ public final class NetworkServer {
             Serializer.registerClass(ShotFlight.class, new FieldSerializer());
             Serializer.registerClass(ShotViewState.class, new FieldSerializer());
             Serializer.registerClass(Slapped.class, new FieldSerializer());
+            Serializer.registerClass(SpeedChange.class, new FieldSerializer());
             Serializer.registerClass(Spellbook.class, new FieldSerializer());
             Serializer.registerClass(Spin.class, new FieldSerializer());
             Serializer.registerClass(TaskComponent.class, new FieldSerializer());
