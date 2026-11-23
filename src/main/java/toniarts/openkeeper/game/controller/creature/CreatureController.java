@@ -99,6 +99,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
@@ -2452,19 +2453,36 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isHungry() {
         CreatureHunger creatureHunger = entityData.getComponent(entityId, CreatureHunger.class);
-        if (creatureHunger != null) {
-            if (creatureHunger.amountNeeded > 0) {
-                return true;
-            } else if (gameTimer.getGameTime() - creatureHunger.lastEatTime >= creature.getAttributes().getHungerRate()) {
-
-                // We are hungry now, mark the amount of food we need
-                makeHungry(creatureHunger);
-
-                return true;
-            }
+        if (creatureHunger == null) {
+            return false;
         }
 
-        return false;
+        // Every hunger rate seconds without a meal adds another meal to the need, and the clock starts again
+        float hungerRate = creature.getAttributes().getHungerRate();
+        int mealsMissed = hungerRate > 0 ? (int) ((gameTimer.getGameTime() - creatureHunger.lastEatTime) / hungerRate) : 0;
+        TaskComponent task = entityData.getComponent(entityId, TaskComponent.class);
+        if (mealsMissed > 0 && task != null && task.taskType == TaskType.GAMBLE && task.taskStarted) {
+
+            // No hunger builds up while gambling: DK II's Casino states have flag 8 in the state table (0x47BBE0),
+            // and 0x477C20 adds no meal while it is set. Its clock runs on, so we hold it at one meal due, which
+            // the creature owes as soon as it stops
+            CreatureHunger held = new CreatureHunger(gameTimer.getGameTime() - hungerRate, creatureHunger.amountNeeded);
+            held.lastEatAttemptTime = creatureHunger.lastEatAttemptTime;
+            entityData.setComponent(entityId, held);
+
+            return creatureHunger.amountNeeded > 0;
+        }
+        if (mealsMissed > 0) {
+            CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+            CreatureHunger updated = new CreatureHunger(creatureHunger.lastEatTime + mealsMissed * hungerRate,
+                    creatureHunger.amountNeeded + mealsMissed * creatureComponent.hungerFill);
+            updated.lastEatAttemptTime = creatureHunger.lastEatAttemptTime;
+            entityData.setComponent(entityId, updated);
+
+            return true;
+        }
+
+        return creatureHunger.amountNeeded > 0;
     }
 
     @Override
@@ -2534,12 +2552,10 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
         CreatureHunger creatureHunger = entityData.getComponent(entityId, CreatureHunger.class);
-        if (creatureHunger.amountNeeded == 1) {
+        if (creatureHunger.amountNeeded > 0) {
 
-            // We are full
-            entityData.setComponent(entityId, new CreatureHunger(gameTimer.getGameTime(), 0));
-        } else if (creatureHunger.amountNeeded > 0) {
-            entityData.setComponent(entityId, new CreatureHunger(creatureHunger.lastEatTime, creatureHunger.amountNeeded - 1));
+            // Every chicken starts the hunger clock again
+            entityData.setComponent(entityId, new CreatureHunger(gameTimer.getGameTime(), creatureHunger.amountNeeded - 1));
         }
 
         // Increase health
