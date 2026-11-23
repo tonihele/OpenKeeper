@@ -93,6 +93,7 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     /**
      * Handles the manual rest target after landing and getting up. Rest can be
      * assigned without fatigue debt, provided the creature's bed is in that Lair.
+     * Also sends a hurt creature to bed right after it has made its home.
      *
      * @return whether a sleep task was assigned
      */
@@ -512,5 +513,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @param playerId the new player ID
      */
     public void convertCreature(short playerId);
+
+    /**
+     * Makes the creature fight for another player for a while, as by the
+     * Turncoat spell. It stays owned by its keeper. Creatures immune to the
+     * spell stay as they are
+     *
+     * @param playerId the player the creature fights for
+     * @param duration how long, in seconds
+     */
+    public void turncoat(short playerId, double duration);
 
 }
