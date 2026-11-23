@@ -26,10 +26,12 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.Tremor;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.IShotProcessor;
 import toniarts.openkeeper.game.controller.shot.InfernoShotProcessor;
@@ -58,11 +60,16 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.ALARM;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CHICKEN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.DRAIN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SIGHT_OF_EVIL;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SUMMON_REAPER;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TREMOR;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TURNCOAT;
 
 /**
  * Fires shots. What a shot does is decided by its process type, each
@@ -82,6 +89,13 @@ public final class ShotsController implements IShotsController {
      * queues through the message queue (0x4C4600)
      */
     private static final double ALARM_DURATION = 50;
+
+    /**
+     * How many game ticks a creature burns after a fire shot set it alight
+     * (0x4AC420). The shots' burn duration in the data is 0 for every shot and
+     * the original doesn't read it
+     */
+    private static final int ON_FIRE_TICKS = 10;
 
     private final IKwdFile kwdFile;
     private final EntityData entityData;
@@ -134,7 +148,38 @@ public final class ShotsController implements IShotsController {
                 creaturesController.createController(request.target()).turnIntoChicken(request.shotData1());
             }
         });
+        result.put(SIGHT_OF_EVIL, request -> {
+
+            // Shot data 1 is the radius, the shot lifetime (in game ticks) the duration
+            if (request.shotData1() > 0) {
+                mapController.revealSightOfEvil(WorldUtils.vectorToPoint(request.position()), request.shotData1(), request.shot().getHealth(), request.playerId());
+            }
+        });
+        result.put(TREMOR, request -> {
+
+            // Shot data 1 is the duration in seconds, shot data 2 the radius in tiles
+            double now = gameTimer.getGameTime();
+            entityData.setComponent(entityData.createEntity(), new Tremor(WorldUtils.vectorToPoint(request.position()), request.shotData2(), now, now + request.shotData1()));
+        });
+        result.put(TURNCOAT, request -> {
+            if (request.target() != null && creaturesController.isValidEntity(request.target())) {
+                creaturesController.createController(request.target()).turncoat(request.playerId(), request.shotData1());
+            }
+        });
+        result.put(SUMMON_REAPER, request -> new ReaperSummoner(kwdFile, entityData, gameTimer, creaturesController).summon(request.shot().getShotId(),
+                request.shotData1(), request.playerId(), WorldUtils.vector3fToVector2f(request.position())));
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
+        // Drain: the first value is how much of the shooter's full health it takes off the target, as a percentage,
+        // but no more than the target has left. The shooter gets it
+        result.put(DRAIN, request -> {
+            Health health = entityData.getComponent(request.target(), Health.class);
+            Health shooterHealth = request.shooter() != null ? entityData.getComponent(request.shooter(), Health.class) : null;
+            if (health != null && shooterHealth != null) {
+                int amount = Math.min(health.health, shooterHealth.maxHealth * request.shotData1() / 100);
+                EntityController.setDamage(entityData, request.target(), amount);
+                EntityController.setDamage(entityData, request.shooter(), -amount);
+            }
+        });
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
         result.put(FREEZE, this::freeze);
         result.put(ALARM, this::raiseAlarm);
@@ -213,7 +258,11 @@ public final class ShotsController implements IShotsController {
                         continue;
                     }
 
+                    // One picked up this tick is still in the lookup, but not on the map
                     Vector3f position = EntityController.getPosition(entityData, entityId);
+                    if (position == null) {
+                        continue;
+                    }
                     float dx = position.x - origin.x;
                     float dz = position.z - origin.z;
                     if (radius == 0 || dx * dx + dz * dz <= radius * radius) {
@@ -318,11 +367,35 @@ public final class ShotsController implements IShotsController {
 
         // The shot's data 1 is its damage (0x4AC420)
         if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0) {
+            if (shot.getAttackCategory() == Shot.AttackCategory.FIRE) {
+                setAlight(thing);
+            }
             EntityController.setDamage(entityData, thing, flight.shotData1);
         }
 
         process(new ShotRequest(shot, flight.shotData1, flight.shotData2, flight.ownerId,
-                EntityController.getPosition(entityData, shotEntity), thing));
+                EntityController.getPosition(entityData, shotEntity), thing, flight.shooter));
+    }
+
+    /**
+     * A fire shot sets a creature alight when the creature has less than 21 %
+     * of its health left before the hit and doesn't stand on water (0x4AC420).
+     * Another hit lights the fire again for the full time
+     *
+     * @param thing the thing the shot hit
+     */
+    private void setAlight(EntityId thing) {
+        Health health = entityData.getComponent(thing, Health.class);
+        Position position = entityData.getComponent(thing, Position.class);
+        if (health == null || health.maxHealth <= 0 || position == null
+                || entityData.getComponent(thing, CreatureComponent.class) == null
+                || health.health * 100 / health.maxHealth >= 21
+                || mapController.isWater(WorldUtils.vectorToPoint(position.position))) {
+            return;
+        }
+
+        int ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
+        entityData.setComponent(thing, new OnFire(gameTimer.getGameTime() + (double) ON_FIRE_TICKS / ticksPerSecond));
     }
 
 }
