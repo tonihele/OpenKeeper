@@ -39,6 +39,8 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -107,7 +109,13 @@ class TaskManagerUnusedTaskTest {
         IMapController mapController = stub(IMapController.class, (proxy, method, args) -> method.getName().equals("getMapData") ? mapData : defaultValue(proxy, method));
         ICreaturesController creaturesController = stub(ICreaturesController.class, (proxy, method, args) -> method.getName().equals("createController") ? creature : defaultValue(proxy, method));
         ActionPoint actionPoint = new ActionPoint(new Thing.ActionPoint());
-        ILevelInfo levelInfo = stub(ILevelInfo.class, (proxy, method, args) -> method.getName().equals("getActionPoint") ? actionPoint : defaultValue(proxy, method));
+        IKwdFile levelData = stub(IKwdFile.class, (proxy, method, args) ->
+                method.getName().equals("getGameLevel") ? CreatureSleepFixtures.level(4) : defaultValue(proxy, method));
+        ILevelInfo levelInfo = stub(ILevelInfo.class, (proxy, method, args) -> switch (method.getName()) {
+            case "getActionPoint" -> actionPoint;
+            case "getLevelData" -> levelData;
+            default -> defaultValue(proxy, method);
+        });
         TaskManager manager = new TaskManager(entityData, stub(IGameWorldController.class, TaskManagerUnusedTaskTest::defaultHandler),
                 mapController, stub(IObjectsController.class, TaskManagerUnusedTaskTest::defaultHandler), creaturesController,
                 stub(INavigationService.class, TaskManagerUnusedTaskTest::defaultHandler), List.of(player), levelInfo,

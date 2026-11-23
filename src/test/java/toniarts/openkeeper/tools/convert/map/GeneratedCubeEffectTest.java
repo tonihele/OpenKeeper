@@ -34,7 +34,11 @@ class GeneratedCubeEffectTest {
         definition.setMinHp(5);
         definition.setMaxHp(5);
         var data = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(),
-                new Class<?>[]{IKwdFile.class}, (p, m, a) -> m.getName().equals("getEffect") ? definition : null);
+                new Class<?>[]{IKwdFile.class}, (p, m, a) -> switch (m.getName()) {
+                    case "getEffect" -> definition;
+                    case "getGameLevel" -> CreatureSleepFixtures.level(4);
+                    default -> null;
+                });
         var fog = (IFogOfWarInformation) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{IFogOfWarInformation.class}, (p, m, a) -> true);
         var emitter = new ParticleEmitter("synthetic stars", ParticleMesh.Type.Triangle, 3);
