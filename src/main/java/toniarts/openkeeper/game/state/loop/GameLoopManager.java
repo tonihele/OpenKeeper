@@ -92,6 +92,7 @@ public final class GameLoopManager {
 
     private final IGameController gameController;
 
+    private final GameLogicManager gameLogicThread;
     private final PayDaySystem payDaySystem;
 
     /**
@@ -118,7 +119,7 @@ public final class GameLoopManager {
                 playerControllers.values(), gameSettings);
 
         // Game logic
-        final GameLogicManager gameLogicThread = new GameLogicManager(
+        gameLogicThread = new GameLogicManager(
                 gameWorldController.getMapController(),
                 new DecaySystem(entityData),
                 new WoodenBridgeDecaySystem(entityData, gameController.getGameTimer(), gameWorldController,
@@ -220,6 +221,17 @@ public final class GameLoopManager {
 
     public IGameController getGameController() {
         return gameController;
+    }
+
+    /**
+     * Queues a player action to run at the start of the next game logic tick.
+     * Player actions come from the render thread (or the network thread) and
+     * change the same state as the game logic does
+     *
+     * @param action the player action
+     */
+    public void runPlayerAction(Runnable action) {
+        gameLogicThread.enqueueAction(action);
     }
 
     public PayDaySystem getPayDaySystem() {
