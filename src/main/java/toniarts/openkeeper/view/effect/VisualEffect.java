@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.view.effect;
 
-import com.jme3.animation.AnimControl;
 import com.jme3.asset.AssetManager;
 import com.jme3.effect.ParticleEmitter;
 import com.jme3.effect.ParticleMesh;
@@ -229,30 +228,19 @@ public class VisualEffect {
                 logger.log(Level.WARNING, "Not supported effect type {0}", resource.getType());
         }
 
-        applyMeshScaleOrAnimation(model, resource);
+        applyMeshScale(model, resource);
+        if (resource.getType() == ArtResourceType.ANIMATING_MESH) {
+            Number fps = resource.getData(ArtResource.KEY_FPS);
+            // KmfModelLoader bakes the pose tracks at 30 frames per second.
+            float speed = fps != null && fps.floatValue() > 0f ? fps.floatValue() / 30f : 1f;
+            EffectEmitter.startAnimation(model, speed);
+        }
         return model;
     }
 
-    /**
-     * Applies the fixed-point mesh scale for a static {@code MESH}, or
-     * enables the baked animation for an {@code ANIMATING_MESH}. Shared by
-     * both the top-level effect model and generated mesh effect elements.
-     */
-    private void applyMeshScaleOrAnimation(Spatial model, ArtResource resource) {
+    private void applyMeshScale(Spatial model, ArtResource resource) {
         if (resource.getType() == ArtResourceType.MESH) {
             model.setLocalScale(resource.getData(ArtResource.KEY_SCALE));
-
-        } else if (resource.getType() == ArtResourceType.ANIMATING_MESH) {
-            AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
-            if (animControl != null) {
-//                    AnimChannel channel = animControl.getChannel(0);
-//                    channel.setAnim(ANIM_NAME);
-//                    resource.getData(ArtResource.KEY_FPS);
-//                    resource.getData(ArtResource.KEY_FRAMES);
-//                    channel.setSpeed(speed);
-//                    channel.setTime(time);
-                animControl.setEnabled(true);
-            }
         }
     }
 
@@ -547,7 +535,7 @@ public class VisualEffect {
             model = (Node) AssetUtils.loadModel(assetManager, resource.getName(), resource);
         }
 
-        applyMeshScaleOrAnimation(model, resource);
+        applyMeshScale(model, resource);
         emitter.setSpatial(model);
         return emitter;
     }
