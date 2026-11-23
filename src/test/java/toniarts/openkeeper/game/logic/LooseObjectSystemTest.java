@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Placeable;
@@ -52,9 +53,13 @@ class LooseObjectSystemTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final Keeper heroKeeper = new Keeper(false, Player.GOOD_PLAYER_ID);
-    private final PlayerGoldControl heroGold = new PlayerGoldControl(heroKeeper);
+    private final PlayerGoldControl heroGold = new PlayerGoldControl(heroKeeper, entityData);
     private final List<Object> storedInRoom = new ArrayList<>();
     private short roomOwner = Player.GOOD_PLAYER_ID;
+
+    {
+        entityData.setComponents(entityData.createEntity(), new KeeperComponent(Player.GOOD_PLAYER_ID), new Gold(0, 0));
+    }
 
     @Test
     void heroTreasuryTakesInTheGoldLyingOnIt() {
@@ -68,7 +73,7 @@ class LooseObjectSystemTest {
 
         assertNull(entityData.getComponent(gold, ObjectComponent.class));
         assertEquals(List.of(3000), storedInRoom);
-        assertEquals(3000, heroKeeper.getGold());
+        assertEquals(3000, heroGold.getGold());
     }
 
     @Test
@@ -84,7 +89,7 @@ class LooseObjectSystemTest {
 
         assertNull(entityData.getComponent(gold, ObjectComponent.class));
         assertEquals(List.of(500), storedInRoom);
-        assertEquals(500, heroKeeper.getGold());
+        assertEquals(500, heroGold.getGold());
     }
 
     @Test

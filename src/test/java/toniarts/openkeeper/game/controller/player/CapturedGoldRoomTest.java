@@ -16,8 +16,12 @@
  */
 package toniarts.openkeeper.game.controller.player;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 
@@ -34,10 +38,13 @@ class CapturedGoldRoomTest {
 
     private final Keeper keeper = new Keeper(false, KEEPER_ID);
     private final Keeper enemy = new Keeper(false, ENEMY_ID);
-    private final PlayerGoldControl keeperGold = new PlayerGoldControl(keeper);
-    private final PlayerGoldControl enemyGold = new PlayerGoldControl(enemy);
+    private final EntityData entityData = new DefaultEntityData();
+    private final PlayerGoldControl keeperGold = new PlayerGoldControl(keeper, entityData);
+    private final PlayerGoldControl enemyGold = new PlayerGoldControl(enemy, entityData);
 
     CapturedGoldRoomTest() {
+        entityData.setComponents(entityData.createEntity(), new KeeperComponent(KEEPER_ID), new Gold(0, 0));
+        entityData.setComponents(entityData.createEntity(), new KeeperComponent(ENEMY_ID), new Gold(0, 0));
         keeperGold.setGoldMax(16000);
         keeperGold.addGold(4270);
         enemyGold.setGoldMax(43000);
@@ -51,9 +58,9 @@ class CapturedGoldRoomTest {
         enemyGold.onCapturedByEnemy(treasury);
         keeperGold.onCaptured(treasury);
 
-        assertEquals(2000, enemy.getGold());
+        assertEquals(2000, enemyGold.getGold());
         assertEquals(16000, enemyGold.getGoldMax());
-        assertEquals(7270, keeper.getGold());
+        assertEquals(7270, keeperGold.getGold());
         assertEquals(43000, keeperGold.getGoldMax());
     }
 
@@ -71,9 +78,9 @@ class CapturedGoldRoomTest {
         enemyGold.onCapturedByEnemy(lair);
         keeperGold.onCaptured(lair);
 
-        assertEquals(5000, enemy.getGold());
+        assertEquals(5000, enemyGold.getGold());
         assertEquals(43000, enemyGold.getGoldMax());
-        assertEquals(4270, keeper.getGold());
+        assertEquals(4270, keeperGold.getGold());
         assertEquals(16000, keeperGold.getGoldMax());
     }
 
