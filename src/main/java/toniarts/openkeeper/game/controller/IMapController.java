@@ -86,6 +86,15 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
     public IRoomController getRoomControllerByCoordinates(Point p);
 
     /**
+     * Transfers the entire room at the given tile to another player. Missing
+     * rooms and rooms already owned by that player are left unchanged.
+     *
+     * @param point a tile in the room
+     * @param playerId the new owner
+     */
+    void changeRoomOwner(Point point, short playerId);
+
+    /**
      * Get room controller by entity ID
      *
      * @param entityId the room entity ID
@@ -130,6 +139,15 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
     int damageTile(Point point, short playerId, ICreatureController creature);
 
     /**
+     * Damage a tile by a set amount of health, e.g. from a spell. A tile that
+     * runs out of health turns into its destroyed terrain type.
+     *
+     * @param point the point
+     * @param damage the amount of health to take
+     */
+    void applyTerrainDamage(Point point, int damage);
+
+    /**
      * Attempt to claim the tile or room, applies either damage or heal,
      * depending on whose tile is it
      *
@@ -157,6 +175,15 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
      * @param playerId the new tile owner
      */
     void alterTerrain(Point pos, short terrainId, short playerId);
+
+    /**
+     * Hands a whole room, with what it holds, over to another player, as
+     * when it is claimed
+     *
+     * @param room the room
+     * @param playerId the new owner
+     */
+    void transferRoom(IRoomController room, short playerId);
 
     /**
      * Set specified tiles flashing for certain period of time
@@ -193,6 +220,18 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
      * @param playerId the player whose fog of war is affected
      */
     public void concealTiles(List<Point> points, short playerId);
+
+    /**
+     * The Sight of Evil keeper spell: reveal an area through the fog of war
+     * for a while. Like {@link #revealTiles(List, short)} this only notifies
+     * the given player's client, fog of war is per-viewer view state.
+     *
+     * @param centre the cast tile
+     * @param radius the radius of the revealed area, in tiles
+     * @param durationTicks how long the area stays revealed, in game ticks
+     * @param playerId the player whose fog of war is affected
+     */
+    public void revealSightOfEvil(Point centre, int radius, int durationTicks, short playerId);
 
     /**
      * The {@code REMOVE_FOW} cheat: disable fog of war for the given player

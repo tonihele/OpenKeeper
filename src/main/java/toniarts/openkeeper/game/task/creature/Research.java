@@ -30,7 +30,6 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Research researchable entities for the keeper
@@ -52,12 +51,26 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return (researchControl.isAnythingToReaseach() && !getRoom().getObjectControl(getRoomObjectType()).isFullCapacity());
+        return super.isValid(creature) && researchControl.isAnythingToReaseach();
     }
 
     @Override
     public Vector2f getTarget(ICreatureController creature) {
-        return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
+
+        // Next to the bookcase, it takes up the middle of its tile
+        return getTargetNextToFurniture(creature);
+    }
+
+    @Override
+    public boolean isFaceTarget() {
+        return true;
+    }
+
+    @Override
+    public Vector2f getWorkPosition(ICreatureController creature) {
+
+        // DK II puts the researcher right in front of the bookcase
+        return getWorkPositionAtFurniture(creature);
     }
 
     @Override
@@ -68,24 +81,25 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
 
-        // TODO: is this a general case or even smart to do this like this...?
-        if (executionDuration - getExecutionDuration(creature) < 1.0f) {
-            return;
-        }
-
-        setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
-
-        // Advance players spell research
-        ResearchableEntity researchableEntity = researchControl.research(creature.getResearchPerSecond());
+        // Advance players spell research, DK II adds the creature's research
+        // points per tick on every game tick
+        ResearchableEntity researchableEntity = researchControl.research(creature.getResearchPerTick());
         if (researchableEntity != null) {
+
+            // Wait if the room filled up meanwhile, the research stays complete
+            if (getRoom().getObjectControl(getRoomObjectType()).isFullCapacity()) {
+                return;
+            }
 
             // Create a spell book
             EntityId entityId = objectsController.addRoomSpellBook((short) 0, getTaskLocation().x, getTaskLocation().y, researchableEntity);
             entityId = (EntityId) getRoomObjectControl().addItem(entityId, null);
             if (entityId != null) {
 
-                // Failed add, wut
+                // No room, the research stays complete and the book is tried again later
                 objectsController.createController(entityId).remove();
+            } else {
+                researchControl.completeResearch();
             }
         }
     }

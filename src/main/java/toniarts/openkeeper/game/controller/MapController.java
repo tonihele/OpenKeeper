@@ -43,9 +43,12 @@ import toniarts.openkeeper.game.map.MapInformation;
 import toniarts.openkeeper.game.map.MapTileController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.game.map.WallSection;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -131,6 +134,7 @@ public final class MapController extends Container implements IMapController {
         roomInstance.setDestroyed(roomInstance.getRoom() == kwdFile.getDungeonHeart() && (owner == null || owner.isDestroyed()));
         roomInstance.setOwnerId(mapTile.getOwnerId());
         findRoom(p, roomInstance);
+        roomInstance.setWallSections(WallSection.findWallSections(roomInstance, mapData, kwdFile));
         int health = 0;
         int maxHealth = 0;
         for (Point coordinate : roomInstance.getCoordinates()) {
@@ -275,6 +279,9 @@ public final class MapController extends Container implements IMapController {
                 }
                 Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
                 if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+                    continue;
+                }
+                if (select && !TileWork.canDamageTile(terrain, tile.getOwnerId(), playerId)) {
                     continue;
                 }
                 tile.setSelected(select, playerId);
@@ -487,7 +494,14 @@ public final class MapController extends Container implements IMapController {
     @Override
     public int damageTile(Point point, short playerId, ICreatureController creature) {
         IMapTileController tile = getMapData().getTile(point);
+        if (tile == null) {
+            throw new IllegalArgumentException("Cannot damage a missing tile at " + point + "!");
+        }
         Terrain terrain = getTerrain(tile);
+        if (!TileWork.canDamageTile(terrain, tile.getOwnerId(), playerId)) {
+            String terrainName = terrain != null ? terrain.getName() : "unknown terrain";
+            throw new UnsupportedOperationException("Wat?! Tried to damage tile " + terrainName + " at " + point + "!");
+        }
 
         // Calculate the damage, the work variables are rates per game second
         float rate;
@@ -502,17 +516,15 @@ public final class MapController extends Container implements IMapController {
                 }
             } else if (tile.getGold() > 0) {
 
-                // Mining damages the seam like any dig, the gold comes out in proportion, gems included
+                // Mining damages the seam like any dig, the gold comes out in proportion
                 rate = getLevelVariable(Variable.MiscVariable.MiscType.MINE_GOLD_HEALTH);
             } else {
                 rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_ROCK_HEALTH) * multiplier;
             }
-        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() != playerId) {
+        } else {
 
             // Attack enemy tile
             rate = getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_TILE_HEALTH);
-        } else {
-            throw new UnsupportedOperationException("Wat?! Tried to damage tile " + terrain.getName() + " at " + point + "!");
         }
         int damage = TileWork.perApplication(rate, getEfficiency(creature));
 
@@ -521,10 +533,9 @@ public final class MapController extends Container implements IMapController {
         if (tile.getGold() > 0) { // Mine
             if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
 
-                // Gems never run out: the face collapses, comes back at full health, and every collapse yields the
-                // same small amount
-                tileDestroyed = applyDamage(tile, damage);
-                returnedGold = tileDestroyed ? (int) getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS) : 0;
+                // Gems never run out: a blow does no damage and always yields the same small amount
+                tileDestroyed = false;
+                returnedGold = (int) getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS);
             } else {
                 TileWork.Mining mining = TileWork.mine(terrain.getGoldValue(), tile.getMaxHealth(), tile.getHealth(), tile.getGold(), damage);
                 tile.setHealth(mining.health());
@@ -561,6 +572,20 @@ public final class MapController extends Container implements IMapController {
         }
 
         return returnedGold;
+    }
+
+    @Override
+    public void applyTerrainDamage(Point point, int damage) {
+        IMapTileController tile = getMapData().getTile(point);
+        if (tile == null) {
+            return;
+        }
+
+        Terrain terrain = getTerrain(tile);
+        if (applyDamage(tile, damage)) {
+            changeTerrain(tile, terrain.getDestroyedTypeTerrainId());
+            notifyTileChange(tile.getLocation());
+        }
     }
 
     /**
@@ -606,6 +631,9 @@ public final class MapController extends Container implements IMapController {
                 changeTerrain(tile, terrain.getMaxHealthTypeTerrainId());
                 tile.setOwnerId(playerId);
             }
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                reinforceCorners(point, playerId);
+            }
 
 //            updateRoomWalls(tile);
 //            mapLoader.updateTiles(mapLoader.getSurroundingTiles(tile.getLocation(), true));
@@ -616,6 +644,47 @@ public final class MapController extends Container implements IMapController {
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
 //            mapLoader.updateTiles(point);
         }
+    }
+
+    /**
+     * A finished wall also finishes the outer corners it closes with a
+     * diagonal wall of the player's. Such a corner touches the floor only
+     * diagonally, so no worker can stand next to it. As in the original
+     * (DKII.EXE 0x466390), the corner is a neutral wall that isn't finished,
+     * and the other tile shared by the two walls is open.
+     *
+     * @param point the wall just finished
+     * @param playerId the player who finished it
+     */
+    private void reinforceCorners(Point point, short playerId) {
+        for (int dx = -1; dx <= 1; dx += 2) {
+            for (int dy = -1; dy <= 1; dy += 2) {
+                IMapTileController diagonal = getMapData().getTile(point.x + dx, point.y + dy);
+                if (diagonal != null && diagonal.getOwnerId() == playerId && diagonal.isAtFullHealth()
+                        && getTerrain(diagonal).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                    reinforceCorner(getMapData().getTile(point.x + dx, point.y), getMapData().getTile(point.x, point.y + dy), playerId);
+                    reinforceCorner(getMapData().getTile(point.x, point.y + dy), getMapData().getTile(point.x + dx, point.y), playerId);
+                }
+            }
+        }
+    }
+
+    private void reinforceCorner(IMapTileController corner, IMapTileController open, short playerId) {
+        if (corner == null || open == null || corner.getOwnerId() != Player.NEUTRAL_PLAYER_ID || corner.isAtFullHealth()
+                || getTerrain(open).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            return;
+        }
+        Terrain terrain = getTerrain(corner);
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) || terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)
+                || terrain.getGoldValue() != 0) {
+            return;
+        }
+        applyHealing(corner, corner.getMaxHealth());
+        if (TileWork.convertsAtFullHealth(terrain)) {
+            changeTerrain(corner, terrain.getMaxHealthTypeTerrainId());
+        }
+        corner.setOwnerId(playerId);
+        notifyTileChange(corner.getLocation());
     }
 
     /**
@@ -649,34 +718,46 @@ public final class MapController extends Container implements IMapController {
             if (applyDamage(roomTile, damagePerTile)) {
 
                 // If one of the tiles runs out (everyone should run out of the same time, unless a new tile has recently being added..)
-                for (Point p2 : roomTiles) {
-                    roomTile = getMapData().getTile(p2);
-                    roomTile.setOwnerId(playerId); // Claimed!
-                    applyHealing(roomTile, tile.getMaxHealth());
-
-//                    effectManager.load(worldNode,
-//                            WorldUtils.pointToVector3f(point).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
-//                            tile.getTerrain().getMaxHealthEffectId(), false);
-//
-//                    // FIXME ROOM_CLAIM_ID is realy claim effect?
-//                    effectManager.load(worldNode,
-//                            WorldUtils.pointToVector3f(p2).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
-//                            room.getRoom().getEffects().get(EffectManagerState.ROOM_CLAIM_ID), false);
-                    // TODO: Claimed room wall tiles lose the claiming I think?
-                }
-
-                // Notify
-                notifyTileChange(roomTiles);
-                room.captured(playerId);
-                room.setHealth(room.getMaxHealth());
-                notifyOnCapturedByEnemy(owner, room);
-                notifyOnCaptured(playerId, room);
+                captureRoom(room, playerId);
                 return;
             }
             currentHealth += roomTile.getHealth();
         }
 
         room.setHealth(currentHealth);
+    }
+
+    @Override
+    public void changeRoomOwner(Point point, short playerId) {
+        IRoomController room = getRoomControllerByCoordinates(point);
+        if (room == null || getMapData().getTile(point).getOwnerId() == playerId) {
+            return;
+        }
+        captureRoom(room, playerId);
+    }
+
+    private void captureRoom(IRoomController room, short playerId) {
+        List<Point> roomTiles = room.getRoomInstance().getCoordinates();
+        short owner = getMapData().getTile(roomTiles.getFirst()).getOwnerId();
+        for (Point p2 : roomTiles) {
+            IMapTileController roomTile = getMapData().getTile(p2);
+            roomTile.setOwnerId(playerId); // Claimed!
+            applyHealing(roomTile, roomTile.getMaxHealth());
+
+            // The client plays claim effects from these ownership transitions.
+            // TODO: Claimed room wall tiles lose the claiming I think?
+        }
+
+        // Notify
+        notifyTileChange(roomTiles);
+        room.captured(playerId);
+        room.setHealth(room.getMaxHealth());
+        notifyOnCapturedByEnemy(owner, room);
+        notifyOnCaptured(playerId, room);
+        if (playerId != owner && playerId != 0 && playerId != Player.NEUTRAL_PLAYER_ID) {
+            gameEventService.emitToPlayer(GameEventType.ROOM_CAPTURED, ThingFlag.ROOM,
+                    room.getRoom().getRoomId(), playerId);
+        }
     }
 
     /**
@@ -713,12 +794,24 @@ public final class MapController extends Container implements IMapController {
         }
 
         // If the terrain is not taggable anymore, reset the tagging data
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)
+                || !TileWork.canDamageTile(terrain, tile.getOwnerId(), Player.KEEPER1_ID)) {
             tile.setSelected(false, Player.KEEPER1_ID);
+        }
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)
+                || !TileWork.canDamageTile(terrain, tile.getOwnerId(), Player.KEEPER2_ID)) {
             tile.setSelected(false, Player.KEEPER2_ID);
+        }
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)
+                || !TileWork.canDamageTile(terrain, tile.getOwnerId(), Player.KEEPER3_ID)) {
             tile.setSelected(false, Player.KEEPER3_ID);
+        }
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)
+                || !TileWork.canDamageTile(terrain, tile.getOwnerId(), Player.KEEPER4_ID)) {
             tile.setSelected(false, Player.KEEPER4_ID);
         }
+
+        updateRoomWalls(tile.getLocation());
     }
 
     @Override
@@ -737,6 +830,20 @@ public final class MapController extends Container implements IMapController {
         changeTerrain(tile, terrainId);
 
         notifyTileChange(tile.getLocation());
+    }
+
+    @Override
+    public void transferRoom(IRoomController room, short playerId) {
+        short previousOwner = room.getOwnerId();
+        List<Point> roomTiles = room.getRoomInstance().getCoordinates();
+        for (Point p : roomTiles) {
+            getMapData().getTile(p).setOwnerId(playerId);
+        }
+
+        notifyTileChange(roomTiles);
+        room.captured(playerId);
+        notifyOnCapturedByEnemy(previousOwner, room);
+        notifyOnCaptured(playerId, room);
     }
 
     private float getLevelVariable(Variable.MiscVariable.MiscType variable) {
@@ -801,6 +908,13 @@ public final class MapController extends Container implements IMapController {
     public void concealTiles(List<Point> points, short playerId) {
         for (MapListener mapListener : mapListeners.getArray()) {
             mapListener.onTilesReveal(points, false, playerId);
+        }
+    }
+
+    @Override
+    public void revealSightOfEvil(Point centre, int radius, int durationTicks, short playerId) {
+        for (MapListener mapListener : mapListeners.getArray()) {
+            mapListener.onSightOfEvil(centre, radius, durationTicks, playerId);
         }
     }
 
@@ -891,9 +1005,33 @@ public final class MapController extends Container implements IMapController {
 
     @Override
     public void addRoomCoordinate(EntityId roomInstance, Collection<Point> points) {
-        roomControllers.get(roomInstance).getRoomInstance().addCoordinates(points);
+        RoomInstance instance = roomControllers.get(roomInstance).getRoomInstance();
+        instance.addCoordinates(points);
+        instance.setWallSections(WallSection.findWallSections(instance, mapData, kwdFile));
         for (Point point : points) {
             getMapData().getTile(point).setRoomId(roomInstance);
+        }
+    }
+
+    /**
+     * A tile next to rooms has become a wall or stopped being one. Like in DK
+     * II (MyRooms_4ECDB0, 0x4ECDB0), the rooms next to it that have wall
+     * furniture lay out their furniture again.
+     *
+     * @param p the changed tile
+     */
+    private void updateRoomWalls(Point p) {
+        Set<IRoomController> rooms = new HashSet<>();
+        for (Point neighbour : WorldUtils.getSurroundingTiles(mapData, p, false)) {
+            IRoomController roomController = getRoomControllerByCoordinates(neighbour);
+            if (roomController != null && roomController.getRoom().getFlags().contains(Room.RoomFlag.SPECIAL_WALLS)) {
+                rooms.add(roomController);
+            }
+        }
+        for (IRoomController roomController : rooms) {
+            RoomInstance instance = roomController.getRoomInstance();
+            instance.setWallSections(WallSection.findWallSections(instance, mapData, kwdFile));
+            roomController.construct();
         }
     }
 }

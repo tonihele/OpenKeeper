@@ -24,6 +24,7 @@ import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
+import java.io.IOException;
 import java.lang.System.Logger.Level;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -34,9 +35,13 @@ import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.NoopCheatController;
+import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.SecretLevels;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
+import toniarts.openkeeper.game.listener.SpecialListener;
 import toniarts.openkeeper.game.state.loop.GameLoopManager;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
@@ -69,6 +74,7 @@ public final class GameServerState extends AbstractAppState {
     private final MapListener mapListener = new MapListenerImpl();
     private final GameSessionServiceListener gameSessionListener = new GameSessionServiceListenerImpl();
     private final PlayerActionListener playerActionListener = new PlayerActionListenerImpl();
+    private final SpecialListener specialListener = new SpecialListenerImpl();
     private GameLoopManager game;
     private IGameWorldController gameWorldController;
     private ICheatController cheatController;
@@ -175,7 +181,8 @@ public final class GameServerState extends AbstractAppState {
             gameWorldController = game.getGameController().getGameWorldController();
             mapController = gameWorldController.getMapController();
             gameWorldController.addListener(playerActionListener);
-            cheatController = multiplayer ? new NoopCheatController() : new CheatController(kwdFile, game.getGameController());
+            gameWorldController.addSpecialListener(specialListener);
+            cheatController = multiplayer ? new NoopCheatController() : new CheatController(kwdFile, game.getGameController(), gameService.getServerEntityData(), game.getPayDaySystem());
 
             // Send the the initial game data
             gameService.sendGameData(game.getGameController().getLevelInfo().getPlayers().values());
@@ -204,6 +211,17 @@ public final class GameServerState extends AbstractAppState {
      */
     private final class GameSessionServiceListenerImpl implements GameSessionServiceListener {
 
+        // The actions are queued for the next tick, and the client may reuse the points it passed in (the selection
+        // area does), so the queued action gets its own copies
+
+        private static Vector2f copy(Vector2f vector) {
+            return vector != null ? vector.clone() : null;
+        }
+
+        private static Point copy(Point point) {
+            return point != null ? new Point(point.x, point.y) : null;
+        }
+
         @Override
         public void onStartGame() {
 
@@ -226,47 +244,59 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onSelectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
-            mapController.selectTiles(start, end, select, playerId);
+            Vector2f from = start.clone();
+            Vector2f to = end.clone();
+            game.runPlayerAction(() -> mapController.selectTiles(from, to, select, playerId));
         }
 
         @Override
         public void onBuild(Vector2f start, Vector2f end, short roomId, short playerId) {
-            gameWorldController.build(start, end, playerId, roomId);
+            Vector2f from = start.clone();
+            Vector2f to = end.clone();
+            game.runPlayerAction(() -> gameWorldController.build(from, to, playerId, roomId));
         }
 
         @Override
         public void onSell(Vector2f start, Vector2f end, short playerId) {
-            gameWorldController.sell(start, end, playerId);
+            Vector2f from = start.clone();
+            Vector2f to = end.clone();
+            game.runPlayerAction(() -> gameWorldController.sell(from, to, playerId));
         }
 
         @Override
         public void onInteract(EntityId entity, short playerId) {
-            gameWorldController.interact(entity, playerId);
+            game.runPlayerAction(() -> gameWorldController.interact(entity, playerId));
         }
 
         @Override
         public void onPickUp(EntityId entity, short playerId) {
-            gameWorldController.pickUp(entity, playerId);
+            game.runPlayerAction(() -> gameWorldController.pickUp(entity, playerId));
         }
 
         @Override
         public void onDrop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId) {
-            gameWorldController.drop(entity, tile, coordinates, dropOnEntity, playerId);
+            Point dropTile = copy(tile);
+            Vector2f dropCoordinates = copy(coordinates);
+            game.runPlayerAction(() -> gameWorldController.drop(entity, dropTile, dropCoordinates, dropOnEntity, playerId));
         }
 
         @Override
         public void onCastKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position, short playerId) {
-            gameWorldController.castKeeperSpell(keeperSpellId, target, tile, position, playerId);
+            Point castTile = copy(tile);
+            Vector2f castPosition = copy(position);
+            game.runPlayerAction(() -> gameWorldController.castKeeperSpell(keeperSpellId, target, castTile, castPosition, playerId));
         }
 
         @Override
         public void onPlaceDoor(short doorId, Point tile, short playerId) {
-            gameWorldController.placeDoor(doorId, tile, playerId);
+            Point doorTile = copy(tile);
+            game.runPlayerAction(() -> gameWorldController.placeDoor(doorId, doorTile, playerId));
         }
 
         @Override
         public void onPlaceTrap(short trapId, Point tile, short playerId) {
-            gameWorldController.placeTrap(trapId, tile, playerId);
+            Point trapTile = copy(tile);
+            game.runPlayerAction(() -> gameWorldController.placeTrap(trapId, trapTile, playerId));
         }
 
         @Override
@@ -295,17 +325,22 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onGetGold(int amount, short playerId) {
-            gameWorldController.getGold(amount, playerId);
+            game.runPlayerAction(() -> gameWorldController.getGold(amount, playerId));
+        }
+
+        @Override
+        public void onCancelCallToArms(short playerId) {
+            gameWorldController.getObjectsController().cancelCallToArms(playerId);
         }
 
         @Override
         public void onCheatTriggered(CheatState.CheatType cheat, short playerId) {
-            cheatController.onCheat(cheat, playerId);
+            game.runPlayerAction(() -> cheatController.onCheat(cheat, playerId));
         }
 
         @Override
         public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short playerId) {
-            cheatController.spawnCreature(creatureId, level, amount, playerId);
+            game.runPlayerAction(() -> cheatController.spawnCreature(creatureId, level, amount, playerId));
         }
 
         @Override
@@ -327,11 +362,21 @@ public final class GameServerState extends AbstractAppState {
         }
 
         @Override
-        public void onEndPossession(short playerId) {
+        public void onSetPossessedAttack(boolean attacking, short playerId) {
             EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
             if (possessed != null) {
-                gameWorldController.getCreaturesController().createController(possessed).setPossession(false);
+                gameWorldController.getCreaturesController().createController(possessed).setPossessedAttack(attacking);
             }
+        }
+
+        @Override
+        public void onEndPossession(short playerId) {
+            game.runPlayerAction(() -> {
+                EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+                if (possessed != null) {
+                    gameWorldController.getCreaturesController().createController(possessed).setPossession(false);
+                }
+            });
         }
     }
 
@@ -356,6 +401,11 @@ public final class GameServerState extends AbstractAppState {
         }
 
         @Override
+        public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+            gameService.revealSightOfEvil(centre, radius, durationTicks, keeperId);
+        }
+
+        @Override
         public void onFogOfWarDisabled(short keeperId) {
             gameService.disableFogOfWar(keeperId);
         }
@@ -364,6 +414,30 @@ public final class GameServerState extends AbstractAppState {
         public void onFogOfWarReset(short keeperId) {
             gameService.resetFogOfWar(keeperId);
         }
+    }
+
+    /**
+     * Locate Hidden Land discovers the secret level of a campaign level. This
+     * is stored right away in the user's campaign progress, as in the original.
+     */
+    private final class SpecialListenerImpl implements SpecialListener {
+
+        @Override
+        public void onSpecialActivated(short playerId, short objectId) {
+            if (levelObject == null || objectId != ObjectsController.OBJECT_SPECIAL_LOCATE_HIDDEN_LAND_ID) {
+                return;
+            }
+
+            Settings settings = Main.getUserSettings();
+            if (SecretLevels.discover(levelObject, settings::getSecredLevelStatus, settings::setSecredLevelStatus).isPresent()) {
+                try {
+                    settings.save();
+                } catch (IOException ex) {
+                    logger.log(Level.ERROR, "Failed to save the discovered secret level!", ex);
+                }
+            }
+        }
+
     }
 
     /**
