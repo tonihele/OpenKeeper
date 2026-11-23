@@ -48,7 +48,10 @@ public final class TrainingRoomController extends NormalRoomController {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
-                return getFurnitureCount();
+
+                // One trainee per Training Dummy or Training Target, plus one, like in DK II
+                int furnitureCount = getFurnitureCount();
+                return furnitureCount > 0 ? furnitureCount + 1 : 0;
             }
         });
     }
