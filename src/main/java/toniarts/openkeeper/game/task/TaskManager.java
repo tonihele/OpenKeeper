@@ -78,6 +78,7 @@ import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableType;
@@ -165,7 +166,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
     private final Map<EntityId, ICreatureController> creaturesByEntities = new HashMap<>();
     private final Map<Short, IPlayerController> playerControllers;
-    private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
+    private final Map<IRoomController, Map<Long, Point>> roomTasks = new HashMap<>();
     private final Map<ICreatureController, Consumer<Boolean>> unemployedCreatures = new HashMap<>();
     private final Set<ICreatureController> escapedThieves = new HashSet<>();
     private final TaskWorkerPriorityComparator taskWorkerPriorityComparator = new TaskWorkerPriorityComparator();
@@ -512,6 +513,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
             @Override
+            public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+                // Not interested
+            }
+
+            @Override
             public void onFogOfWarDisabled(short keeperId) {
                 // Not interested
             }
@@ -772,7 +778,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         List<IRoomController> rooms = mapController.getRoomsByFunction(objectType, creature.getOwnerId());
         Map<Integer, IRoomController> distancesToRooms = new TreeMap<>();
         for (IRoomController room : rooms) {
-            if (!spots.apply(room).isEmpty()) {
+
+            // A destroyed room serves nobody, like a claimed ruined Dungeon Heart that no longer stores gold
+            if (!room.isDestroyed() && !spots.apply(room).isEmpty()) {
                 distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])), room
                 );
             }
@@ -781,15 +789,25 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // See that are they really accessible starting from the least distance one
         for (IRoomController room : distancesToRooms.values()) {
 
-            // FIXME: if we are to have more capacity than one per tile, we need to refactor
             // The whole rooms are always accessible, take a random point from the room like DK II seems to do
+            IRoomObjectControl control = room.getObjectControl(objectType);
             List<Point> coordinates = new ArrayList<>(spots.apply(room));
             Iterator<Point> iter = coordinates.iterator();
-            Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.get(room);
+            Map<Long, Point> taskPoints = roomTasks.get(room);
             while (iter.hasNext()) {
                 Point p = iter.next();
-                if (!room.isTileAccessible(null, p) || (taskPoints != null && taskPoints.containsKey(p))) {
+                if (!room.isTileAccessible(null, p)) {
                     iter.remove();
+                }
+            }
+
+            // Take a free point first. A room can take more than it has points, like one more
+            // trainee than the Training Room has dummies, so then the points are shared until it is full
+            if (taskPoints != null) {
+                List<Point> freeCoordinates = new ArrayList<>(coordinates);
+                freeCoordinates.removeAll(taskPoints.values());
+                if (!freeCoordinates.isEmpty() || taskPoints.size() + control.getCurrentCapacity() >= control.getMaxCapacity()) {
+                    coordinates = freeCoordinates;
                 }
             }
 
@@ -823,7 +841,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                         if (taskPoints == null) {
                             taskPoints = new HashMap<>();
                         }
-                        taskPoints.put(target, abstractCapacityCriticalRoomTask);
+                        taskPoints.put(abstractCapacityCriticalRoomTask.getId(), target);
                         roomTasks.put(room, taskPoints);
                     }
                     task.assign(creature, true);
@@ -872,7 +890,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new CarryGoldToTreasuryTask(navigationService, mapController, target, creature.getOwnerId(), room, gameWorldController);
             }
             case LAIR -> {
-                return new ClaimLair(navigationService, mapController, target, creature.getOwnerId(), room, this);
+                return new ClaimLair(navigationService, mapController, target, creature.getOwnerId(), room, this, gameSettings);
             }
             case RESEARCHER -> {
                 return new Research(navigationService, mapController, target, creature.getOwnerId(), room, this, playerControllers.get(creature.getOwnerId()).getResearchControl(), objectsController);
@@ -919,9 +937,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     protected void removeRoomTask(AbstractCapacityCriticalRoomTask task) {
-        Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.get(task.getRoom());
+        Map<Long, Point> taskPoints = roomTasks.get(task.getRoom());
         if (taskPoints != null) {
-            taskPoints.remove(task.getTaskLocation());
+            taskPoints.remove(task.getId());
             if (taskPoints.isEmpty()) {
                 roomTasks.remove(task.getRoom());
                 if (task.getAssigneeCount() == 0) {
@@ -936,9 +954,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         AbstractObjectiveTask task = null;
         switch (objective) {
             case SEND_TO_ACTION_POINT: {
+
+                // Past his last waypoint the creature has no action point left to go to
+                if (creature.getObjectiveTargetActionPointId() == 0) {
+                    break;
+                }
                 ActionPoint actionPoint = levelInfo.getActionPoint(creature.getObjectiveTargetActionPointId());
                 if (actionPoint != null) {
-                    task = new SendToActionPoint(navigationService, mapController, actionPoint, creature.getOwnerId());
+                    task = new SendToActionPoint(navigationService, mapController, actionPoint, creature,
+                            levelInfo.getLevelData().getGameLevel().getTicksPerSec());
                 } else {
                     logger.log(Level.ERROR, "Creature is sent to action point {0}, but the level doesn't have it!", creature.getObjectiveTargetActionPointId());
                 }
