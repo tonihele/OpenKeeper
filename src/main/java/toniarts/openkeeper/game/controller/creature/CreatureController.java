@@ -60,6 +60,7 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
+import toniarts.openkeeper.game.component.PathRetry;
 import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
@@ -270,9 +271,10 @@ public final class CreatureController extends EntityController implements ICreat
         boolean inDHeart = false;
         if (entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter() && isThreatTooHigh()) {
 
-            // No longer flee from DHeart
+            // No longer flee from DHeart, our own one that still stands
             IRoomController roomController = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
-            if (roomController == null || !roomController.isDungeonHeart()) {
+            if (roomController == null || !roomController.isDungeonHeart()
+                    || roomController.getOwnerId() != getOwnerId() || roomController.isDestroyed()) {
                 if (!stateMachine.isInState(CreatureState.FLEE)) {
 
                     stateMachine.changeState(CreatureState.FLEE);
@@ -636,6 +638,9 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void navigateToAssignedTask() {
+        if (isWaitingToRetryPath()) {
+            return;
+        }
         Task assignedTask = getAssignedTask();
         if (assignedTask != null) {
             Vector2f loc = assignedTask.getTarget(this);
@@ -662,6 +667,7 @@ public final class CreatureController extends EntityController implements ICreat
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, Vector2f workPosition) {
         GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
+            entityData.setComponent(entityId, new PathRetry(destination, gameTimer.getGameTime()));
             logger.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
             return true;
         }
@@ -687,6 +693,17 @@ public final class CreatureController extends EntityController implements ICreat
         }
         entityData.setComponent(entityId, new Navigation(destination, faceTarget, navigationPath));
         return false;
+    }
+
+    /**
+     * Tells if the assigned task is where a search for a path found nothing
+     * lately. Searching again at once, on every tick, would only fail again
+     */
+    private boolean isWaitingToRetryPath() {
+        Task assignedTask = getAssignedTask();
+        Vector2f target = assignedTask != null ? assignedTask.getTarget(this) : null;
+        PathRetry pathRetry = entityData.getComponent(entityId, PathRetry.class);
+        return target != null && pathRetry != null && pathRetry.isWaiting(WorldUtils.vectorToPoint(target), gameTimer.getGameTime());
     }
 
     @Override
