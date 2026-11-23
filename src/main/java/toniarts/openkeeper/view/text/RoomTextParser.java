@@ -58,13 +58,17 @@ public class RoomTextParser {
         this.roomsInformation = roomsInformation;
     }
 
+    /**
+     * Parses the room tooltip. A destroyed Dungeon Heart has no tooltip text,
+     * as in the original.
+     */
     public String parseText(String text, EntityId room, Keeper roomOwner) {
         // Room entities can disappear before the tile's room reference is replicated.
-        IRoomInformation information = roomsInformation.getRoomInformation(room);
-        if (information == null) {
+        IRoomInformation roomInformation = roomsInformation.getRoomInformation(room);
+        if (roomInformation == null || (roomInformation.isDungeonHeart() && roomInformation.isDestroyed())) {
             return "";
         }
-        return TextUtils.parseText(text, parameter -> getReplacement(parameter, information, roomOwner));
+        return TextUtils.parseText(text, parameter -> getReplacement(parameter, roomInformation, roomOwner));
     }
 
     protected String getReplacement(TextParameter parameter, IRoomInformation room, Keeper roomOwner) {
