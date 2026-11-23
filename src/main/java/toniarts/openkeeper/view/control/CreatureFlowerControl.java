@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.Turncoat;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -47,6 +48,7 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
     private static final float CHANGE_STATUS_INTERVAL = 0.5f;
     private static final float REDRAW_INTERVAL = 0.1f;
+    private static final long TURNCOAT_BLINK_MILLIS = 333;
 
     private short currentDrawnOwnerId;
     private float timeCurrentStatusVisible = 0;
@@ -69,7 +71,40 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
         components.add(PortalGem.class);
         components.add(CreatureExperience.class);
         components.add(CreatureMood.class);
+        components.add(Turncoat.class);
         return components;
+    }
+
+    /**
+     * Get the player whose color the flower shows. A turncoat blinks between
+     * its owner's and the caster's colors
+     *
+     * @return the player id for the flower color
+     */
+    @Override
+    protected short getOwnerId() {
+        return getFlowerColorPlayerId(super.getOwnerId(), getEntity().get(Turncoat.class), System.currentTimeMillis());
+    }
+
+    /**
+     * Get the player whose color the flower shows. A turncoat shows the
+     * caster's color every other {@value #TURNCOAT_BLINK_MILLIS} milliseconds
+     * and its owner's color in between. A neutral creature keeps cycling the
+     * neutral colors
+     *
+     * @param ownerId the creature owner
+     * @param turncoat the turncoat spell on the creature, can be {@code null}
+     * @param timeMillis the current time in milliseconds
+     * @return the player id for the flower color
+     */
+    static short getFlowerColorPlayerId(short ownerId, Turncoat turncoat, long timeMillis) {
+        if (turncoat == null || ownerId == Player.NEUTRAL_PLAYER_ID) {
+            return ownerId;
+        }
+        if ((timeMillis / TURNCOAT_BLINK_MILLIS) % 2 == 1) {
+            return turncoat.playerId;
+        }
+        return ownerId;
     }
 
     @Override
@@ -250,13 +285,19 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
             case CAPTURE_ENEMY_CREATURE:
             case CARRY_CREATURE_TO_JAIL:
             case CARRY_OBJECT_TO_STORAGE:
+            case CARRY_CORPSE_TO_GRAVEYARD:
             case RESCUE_CREATURE:
+            case FETCH_TRAP_CRATE:
+            case DELIVER_TRAP_CRATE:
+            case FETCH_DOOR_CRATE:
+            case DELIVER_DOOR_CRATE:
                 return "Textures/GUI/moods/SJ-Take_Crate.png";
             case CARRY_GOLD_TO_TREASURY:
                 return "Textures/GUI/moods/SJ-Take_Gold.png";
             case CLAIM_TILE:
             case CLAIM_ROOM:
             case FETCH_OBJECT:
+            case FETCH_CORPSE:
                 return "Textures/GUI/moods/SJ-Claim.png";
             case REPAIR_WALL:
             case CLAIM_WALL:
@@ -280,6 +321,8 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
                 return "Textures/GUI/moods/SJ-Guarding.png";
             case GAMBLE:
                 return "Textures/GUI/moods/SJ-Casino.png";
+            case TORTURE:
+                return "Textures/GUI/moods/SJ-Torture.png";
             default:
                 return null;
         }

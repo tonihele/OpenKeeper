@@ -542,6 +542,20 @@ public final class MapController extends Container implements IMapController {
         return returnedGold;
     }
 
+    @Override
+    public void applyTerrainDamage(Point point, int damage) {
+        IMapTileController tile = getMapData().getTile(point);
+        if (tile == null) {
+            return;
+        }
+
+        Terrain terrain = getTerrain(tile);
+        if (applyDamage(tile, damage)) {
+            changeTerrain(tile, terrain.getDestroyedTypeTerrainId());
+            notifyTileChange(tile.getLocation());
+        }
+    }
+
     /**
      * How much one application of work damages a tile
      *
@@ -635,6 +649,9 @@ public final class MapController extends Container implements IMapController {
                 changeTerrain(tile, terrain.getMaxHealthTypeTerrainId());
                 tile.setOwnerId(playerId);
             }
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                reinforceCorners(point, playerId);
+            }
 
 //            updateRoomWalls(tile);
 //            mapLoader.updateTiles(mapLoader.getSurroundingTiles(tile.getLocation(), true));
@@ -645,6 +662,47 @@ public final class MapController extends Container implements IMapController {
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
 //            mapLoader.updateTiles(point);
         }
+    }
+
+    /**
+     * A finished wall also finishes the outer corners it closes with a
+     * diagonal wall of the player's. Such a corner touches the floor only
+     * diagonally, so no worker can stand next to it. As in the original
+     * (DKII.EXE 0x466390), the corner is a neutral wall that isn't finished,
+     * and the other tile shared by the two walls is open.
+     *
+     * @param point the wall just finished
+     * @param playerId the player who finished it
+     */
+    private void reinforceCorners(Point point, short playerId) {
+        for (int dx = -1; dx <= 1; dx += 2) {
+            for (int dy = -1; dy <= 1; dy += 2) {
+                IMapTileController diagonal = getMapData().getTile(point.x + dx, point.y + dy);
+                if (diagonal != null && diagonal.getOwnerId() == playerId && diagonal.isAtFullHealth()
+                        && getTerrain(diagonal).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                    reinforceCorner(getMapData().getTile(point.x + dx, point.y), getMapData().getTile(point.x, point.y + dy), playerId);
+                    reinforceCorner(getMapData().getTile(point.x, point.y + dy), getMapData().getTile(point.x + dx, point.y), playerId);
+                }
+            }
+        }
+    }
+
+    private void reinforceCorner(IMapTileController corner, IMapTileController open, short playerId) {
+        if (corner == null || open == null || corner.getOwnerId() != Player.NEUTRAL_PLAYER_ID || corner.isAtFullHealth()
+                || getTerrain(open).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            return;
+        }
+        Terrain terrain = getTerrain(corner);
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) || terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)
+                || terrain.getGoldValue() != 0) {
+            return;
+        }
+        applyHealing(corner, corner.getMaxHealth());
+        if (TileWork.convertsAtFullHealth(terrain)) {
+            changeTerrain(corner, terrain.getMaxHealthTypeTerrainId());
+        }
+        corner.setOwnerId(playerId);
+        notifyTileChange(corner.getLocation());
     }
 
     /**
@@ -769,6 +827,20 @@ public final class MapController extends Container implements IMapController {
         notifyTileChange(tile.getLocation());
     }
 
+    @Override
+    public void transferRoom(IRoomController room, short playerId) {
+        short previousOwner = room.getOwnerId();
+        List<Point> roomTiles = room.getRoomInstance().getCoordinates();
+        for (Point p : roomTiles) {
+            getMapData().getTile(p).setOwnerId(playerId);
+        }
+
+        notifyTileChange(roomTiles);
+        room.captured(playerId);
+        notifyOnCapturedByEnemy(previousOwner, room);
+        notifyOnCaptured(playerId, room);
+    }
+
     private float getLevelVariable(Variable.MiscVariable.MiscType variable) {
         return gameSettings.get(variable).getValue();
     }
@@ -831,6 +903,13 @@ public final class MapController extends Container implements IMapController {
     public void concealTiles(List<Point> points, short playerId) {
         for (MapListener mapListener : mapListeners.getArray()) {
             mapListener.onTilesReveal(points, false, playerId);
+        }
+    }
+
+    @Override
+    public void revealSightOfEvil(Point centre, int radius, int durationTicks, short playerId) {
+        for (MapListener mapListener : mapListeners.getArray()) {
+            mapListener.onSightOfEvil(centre, radius, durationTicks, playerId);
         }
     }
 

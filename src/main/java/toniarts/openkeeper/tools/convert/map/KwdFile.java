@@ -1425,7 +1425,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                     reader.readIntegerAsFloat(),
                     reader.readIntegerAsFloat()
             );
-            creature.setUnkea0(reader.readInteger());
+            creature.getAttributes().setWidth(reader.readIntegerAsFloat());
             creature.getAttributes().setHeight(reader.readIntegerAsFloat());
             creature.setUnkea8(reader.readIntegerAsFloat());
             creature.setUnk3ab(reader.readUnsignedInteger());
@@ -1886,8 +1886,9 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             }
             effect.setGenerateIds(generateIds);
             effect.setOuterOriginRange(reader.readUnsignedShort());
-            effect.setLowerHeightLimit(reader.readUnsignedShort());
-            effect.setUpperHeightLimit(reader.readUnsignedShort());
+            // Signed, a band below the effect's origin is common (e.g. -40..40 for the dazed stars)
+            effect.setLowerHeightLimit(reader.readShort());
+            effect.setUpperHeightLimit(reader.readShort());
             effect.setOrientationRange(reader.readUnsignedShort());
             effect.setSpriteSpinRateRange(reader.readUnsignedShort());
             effect.setWhirlpoolRate(reader.readUnsignedShort());
