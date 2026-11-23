@@ -143,5 +143,8 @@ public enum GameEventType {
     /**
      * Fireworks go off over a tile of a Casino that is in disco mode
      */
-    CASINO_FIREWORKS
+    CASINO_FIREWORKS,
+
+    /** A special was successfully activated; the subject is its object type. */
+    SPECIAL_ACTIVATED
 }
