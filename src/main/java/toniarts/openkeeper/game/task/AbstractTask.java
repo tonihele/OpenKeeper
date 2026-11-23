@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
@@ -161,6 +162,32 @@ public abstract class AbstractTask implements Task {
             }
         }
         return true;
+    }
+
+    /**
+     * Takes the task over for a worker nearer to it than the ones assigned to
+     * it, unless one of them is at the task already. A worker in the keeper's
+     * hand has no position and isn't on its way, it always loses the task
+     * (DKII.EXE 0x46AB50 for claiming, the same in the object and body
+     * finders)
+     *
+     * @param creature the worker that wants the task
+     * @return true if the task was taken over
+     */
+    protected boolean takeOverFromFartherWorker(ICreatureController creature) {
+        Vector2f target = WorldUtils.pointToVector2f(getTaskLocation());
+        for (ICreatureController assignee : getAssignees()) {
+            if (assignee.getPosition() != null && (assignee.isAtAssignedTaskTarget()
+                    || getDistanceSquared(assignee, target) <= getDistanceSquared(creature, target))) {
+                return false;
+            }
+        }
+        return takeOver(creature);
+    }
+
+    private static float getDistanceSquared(ICreatureController creature, Vector2f target) {
+        Vector3f position = creature.getPosition();
+        return target.distanceSquared(position.x, position.z);
     }
 
     @Override

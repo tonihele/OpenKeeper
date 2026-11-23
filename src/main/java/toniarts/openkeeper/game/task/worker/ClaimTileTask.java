@@ -18,7 +18,6 @@ package toniarts.openkeeper.game.task.worker;
 
 import toniarts.openkeeper.game.event.GameEventType;
 import com.jme3.math.Vector2f;
-import com.jme3.math.Vector3f;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -95,21 +94,7 @@ public class ClaimTileTask extends AbstractTileTask {
      */
     @Override
     public boolean makeRoomFor(ICreatureController creature) {
-        Vector2f tile = WorldUtils.pointToVector2f(getTaskLocation());
-        for (ICreatureController assignee : getAssignees()) {
-
-            // One in the keeper's hand isn't on its way, it has no position
-            if (assignee.getPosition() != null && (assignee.isAtAssignedTaskTarget()
-                    || getDistanceSquared(assignee, tile) <= getDistanceSquared(creature, tile))) {
-                return false;
-            }
-        }
-        return takeOver(creature);
-    }
-
-    private static float getDistanceSquared(ICreatureController creature, Vector2f tile) {
-        Vector3f position = creature.getPosition();
-        return tile.distanceSquared(position.x, position.z);
+        return takeOverFromFartherWorker(creature);
     }
 
     @Override

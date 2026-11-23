@@ -85,6 +85,15 @@ public final class FetchCorpseTask extends AbstractTileTask {
         return true;
     }
 
+    /**
+     * A worker nearer to the body than the one on its way to it takes the job
+     * over, and the other looks for work again (DKII.EXE 0x46D810)
+     */
+    @Override
+    public boolean makeRoomFor(ICreatureController creature) {
+        return takeOverFromFartherWorker(creature);
+    }
+
     @Override
     public boolean isRemovable() {
         return entityData.getComponent(corpse, Death.class) == null;
