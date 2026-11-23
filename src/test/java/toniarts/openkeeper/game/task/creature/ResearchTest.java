@@ -16,11 +16,14 @@
  */
 package toniarts.openkeeper.game.task.creature;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.RoomSpellBookControl;
@@ -38,6 +41,8 @@ class ResearchTest {
     void researchInSoldLibraryIsNoLongerValid() {
         EntityData entityData = new DefaultEntityData();
         EntityId roomEntity = entityData.createEntity();
+        EntityId bookcase = entityData.createEntity();
+        entityData.setComponent(bookcase, new Position(0, new Vector3f(1, 0, 1)));
         boolean[] removed = {false};
         RoomSpellBookControl[] spellBooks = new RoomSpellBookControl[1];
         IRoomController library = (IRoomController) Proxy.newProxyInstance(
@@ -47,6 +52,8 @@ class ResearchTest {
                     case "isRemoved" -> removed[0];
                     case "isDestroyed" -> false;
                     case "getObjectControl" -> spellBooks[0];
+                    case "getFloorFurniture" -> Set.of(bookcase);
+                    case "getFloorFurnitureCount" -> 1;
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
         spellBooks[0] = new RoomSpellBookControl(null, library, entityData, () -> 0) {

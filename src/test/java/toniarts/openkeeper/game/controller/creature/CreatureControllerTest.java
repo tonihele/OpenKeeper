@@ -585,6 +585,22 @@ class CreatureControllerTest {
         }
     }
 
+    @Test
+    void wakingAndImprisoningPreserveASeededDyingBudget() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponents(f.entity, new Health(50, 1000), new Unconscious(-47.5));
+            f.controller.wakeUp();
+            assertEquals(50, f.health());
+            assertNull(f.data.getComponent(f.entity, Unconscious.class));
+        }
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponents(f.entity, new Health(50, 1000), new Unconscious(-47.5));
+            f.controller.imprison((short) 4, f.room);
+            assertEquals(150, f.health());
+            assertNull(f.data.getComponent(f.entity, Unconscious.class));
+        }
+    }
+
     private static CreatureComponent workerComponent() {
         CreatureComponent component = new CreatureComponent();
         component.creatureId = 6;
