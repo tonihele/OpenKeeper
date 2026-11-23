@@ -37,7 +37,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 class CreatureFallSystemTest {
 
     private final DefaultEntityData entityData = new DefaultEntityData();
-    private final CreatureFallSystem fallSystem = new CreatureFallSystem(entityData, () -> 0,
+    private final CreatureFallSystem fallSystem = new CreatureFallSystem(entityData);
+    private final CreatureLandingSystem landingSystem = new CreatureLandingSystem(entityData, () -> 0,
             (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null));
 
     @Test
@@ -70,6 +71,7 @@ class CreatureFallSystemTest {
         entityData.setComponents(creature, creatureComponent, creatureFall,
                 new Position(0, new Vector3f(1, WorldUtils.DROP_HEIGHT, 1)));
         fallSystem.processTick(10f);
+        landingSystem.processTick(0f);
 
         return creature;
     }
