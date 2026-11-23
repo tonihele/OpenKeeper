@@ -184,6 +184,7 @@ public final class GameLoopManager {
                         positionSystem, gameWorldController.getCreaturesController())), GameLoop.INTERVAL_FPS_60, "Steering"));
     }
 
+    // Service callbacks can overlap; keep timeline changes and loop transitions ordered.
     public synchronized void pause() {
         loops.stream().forEach(GameLoop::pause);
         // Room reconstruction and timeline publication must not overlap.

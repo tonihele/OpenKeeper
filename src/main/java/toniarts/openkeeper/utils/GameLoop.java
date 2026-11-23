@@ -73,7 +73,7 @@ public final class GameLoop {
         loop.close();
     }
 
-    /** Pause at a tick boundary; no system update is running when this returns. */
+    /** Pause at a tick boundary, or defer system startup until the loop resumes. */
     public void pause() {
         synchronized (tickLock) {
             pauseFlag.set(true);
@@ -112,12 +112,9 @@ public final class GameLoop {
 
         @Override
         public void run() {
-            synchronized (tickLock) {
-                gameLoopManager.start();
-            }
-
             long frameRate = 0;
             long lastTime = System.nanoTime();
+            boolean systemsStarted = false;
             while (go.get()) {
                 // Check pause
                 if (pauseFlag.get()) {
@@ -133,6 +130,18 @@ public final class GameLoop {
                         }
                         continue;
                     }
+                }
+
+                if (!systemsStarted) {
+                    synchronized (tickLock) {
+                        // A pause that wins before startup must also defer system initialization.
+                        if (!pauseFlag.get()) {
+                            gameLoopManager.start();
+                            systemsStarted = true;
+                            lastTime = System.nanoTime();
+                        }
+                    }
+                    continue;
                 }
 
                 long time = System.nanoTime();
@@ -184,6 +193,11 @@ public final class GameLoop {
                 }
             }
 
+            if (!systemsStarted) {
+                synchronized (tickLock) {
+                    gameLoopManager.start();
+                }
+            }
             gameLoopManager.stop();
         }
     }

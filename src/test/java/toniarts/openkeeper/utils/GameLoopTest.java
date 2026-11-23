@@ -27,6 +27,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -100,6 +101,58 @@ class GameLoopTest {
         assertFalse(overruns.isEmpty(), "The slow tick is logged");
         long loggedMillis = ((Number) overruns.get(0).getParameters()[1]).longValue();
         assertTrue(loggedMillis >= SLOW_TICK_MILLIS, "Logged " + loggedMillis + " ms");
+    }
+
+    @Test
+    void pausedLoopDefersSystemStartupUntilResumed() throws InterruptedException {
+        CountDownLatch systemStarted = new CountDownLatch(1);
+        IGameLogicUpdatable updatable = new IGameLogicUpdatable() {
+
+            @Override
+            public void start() {
+                systemStarted.countDown();
+            }
+
+            @Override
+            public void stop() {
+            }
+
+            @Override
+            public void processTick(float tpf) {
+            }
+        };
+
+        GameLoop gameLoop = new GameLoop(updatable, UPDATE_RATE, "PausedStart");
+        try {
+            gameLoop.pause();
+            gameLoop.start();
+
+            assertTrue(awaitRunnerWaiting("Game PausedStart", 5, TimeUnit.SECONDS),
+                    "The runner should be waiting on the pause before system startup");
+            assertEquals(1L, systemStarted.getCount(), "Systems must not start while the loop is paused");
+
+            gameLoop.resume();
+            assertTrue(systemStarted.await(5, TimeUnit.SECONDS),
+                    "System startup should proceed after resume");
+        } finally {
+            gameLoop.stop();
+        }
+    }
+
+    private static boolean awaitRunnerWaiting(String threadName, long timeout, TimeUnit unit)
+            throws InterruptedException {
+        long deadline = System.nanoTime() + unit.toNanos(timeout);
+        while (System.nanoTime() < deadline) {
+            Thread runner = Thread.getAllStackTraces().keySet().stream()
+                    .filter(thread -> threadName.equals(thread.getName()))
+                    .findFirst()
+                    .orElse(null);
+            if (runner != null && runner.getState() == Thread.State.WAITING) {
+                return true;
+            }
+            Thread.sleep(1);
+        }
+        return false;
     }
 
 }
