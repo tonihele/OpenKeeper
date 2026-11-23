@@ -43,6 +43,12 @@ public final class WorkshopCameraCycler implements AutoCloseable {
         traps = entityData.getEntities(owner, TrapViewState.class, Owner.class, Position.class);
     }
 
+    /** Consume replicated changes every frame, even when no icon is clicked. */
+    public void update() {
+        doors.applyChanges();
+        traps.applyChanges();
+    }
+
     public Vector3f nextDoor(short doorId) {
         return next(doors, lastDoors, doorId, entity -> entity.get(DoorViewState.class).doorId);
     }

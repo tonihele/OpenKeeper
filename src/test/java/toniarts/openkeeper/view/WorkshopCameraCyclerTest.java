@@ -17,8 +17,12 @@
 package toniarts.openkeeper.view;
 
 import com.jme3.math.Vector3f;
+import com.simsilica.es.ComponentFilter;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
 import com.simsilica.es.base.DefaultEntityData;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,12 +37,12 @@ class WorkshopCameraCyclerTest {
     private static final short PLAYER = 3;
     private static final short ENEMY = 4;
     private static final short TYPE = 1;
-    private DefaultEntityData data;
+    private TrackingEntityData data;
     private WorkshopCameraCycler cycling;
 
     @BeforeEach
     void setUp() {
-        data = new DefaultEntityData();
+        data = new TrackingEntityData();
         // Rejects direct lookups and all client-side entity mutations.
         cycling = new WorkshopCameraCycler(new ClientEntityData(data), PLAYER);
     }
@@ -124,6 +128,52 @@ class WorkshopCameraCyclerTest {
         assertEquals(position(3), cycling.nextTrap(TYPE));
     }
 
+    @Test
+    void consumesBothSubscriptionsWithoutClicksAndKeepsCyclePosition() {
+        EntityId firstDoor = door(TYPE, PLAYER, true, 1);
+        EntityId secondDoor = door(TYPE, PLAYER, false, 2);
+        EntityId firstTrap = trap(TYPE, PLAYER, true, 3);
+        EntityId capturedTrap = trap(TYPE, ENEMY, false, 4);
+        assertEquals(2, data.subscriptions.size());
+
+        // No camera navigation is needed to consume either subscription.
+        cycling.update();
+        assertSubscriptionsDrained();
+        assertTrue(data.subscriptions.get(0).containsId(firstDoor));
+        assertTrue(data.subscriptions.get(1).containsId(firstTrap));
+        assertFalse(data.subscriptions.get(1).containsId(capturedTrap));
+
+        assertEquals(position(1), cycling.nextDoor(TYPE));
+        assertEquals(position(3), cycling.nextTrap(TYPE));
+        data.removeEntity(firstDoor);
+        data.setComponent(secondDoor, new Position(0, position(7)));
+        data.setComponent(firstTrap, new Owner(ENEMY, ENEMY));
+        data.setComponent(capturedTrap, new Owner(PLAYER, PLAYER));
+
+        cycling.update();
+        assertSubscriptionsDrained();
+        assertFalse(data.subscriptions.get(0).containsId(firstDoor));
+        assertFalse(data.subscriptions.get(1).containsId(firstTrap));
+        assertTrue(data.subscriptions.get(1).containsId(capturedTrap));
+        assertEquals(position(7), cycling.nextDoor(TYPE));
+        assertEquals(position(4), cycling.nextTrap(TYPE));
+
+        // Background updates must not advance the camera's per-type cursor.
+        door(TYPE, PLAYER, false, 8);
+        trap(TYPE, PLAYER, false, 9);
+        cycling.update();
+        cycling.update();
+        assertSubscriptionsDrained();
+        assertEquals(position(8), cycling.nextDoor(TYPE));
+        assertEquals(position(9), cycling.nextTrap(TYPE));
+    }
+
+    private void assertSubscriptionsDrained() {
+        for (EntitySet subscription : data.subscriptions) {
+            assertFalse(subscription.applyChanges(), "Pending changes must be consumed without clicking");
+        }
+    }
+
     private EntityId door(short type, short owner, boolean blueprint, int x) {
         EntityId id = data.createEntity();
         data.setComponents(id, new DoorViewState(type, false, blueprint, false),
@@ -140,5 +190,16 @@ class WorkshopCameraCyclerTest {
 
     private static Vector3f position(int x) {
         return new Vector3f(x, 1, x);
+    }
+
+    private static final class TrackingEntityData extends DefaultEntityData {
+        private final List<EntitySet> subscriptions = new ArrayList<>();
+
+        @Override
+        public EntitySet getEntities(ComponentFilter filter, Class... types) {
+            EntitySet entities = super.getEntities(filter, types);
+            subscriptions.add(entities);
+            return entities;
+        }
     }
 }

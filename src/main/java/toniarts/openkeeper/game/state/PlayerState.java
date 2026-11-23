@@ -130,7 +130,6 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     public void initialize(final AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
 
-        workshopCameraCycler = new WorkshopCameraCycler(entityData, playerId);
         assetManager = this.app.getAssetManager();
         this.stateManager = stateManager;
         heartEntities = entityData.getEntities(new AndFilter(ObjectComponent.class,
@@ -142,8 +141,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     @Override
     public void cleanup() {
         unregisterPauseKey();
-        workshopCameraCycler.close();
-        workshopCameraCycler = null;
+        releaseWorkshopCameraCycler();
         heartEntities.release();
         heartEntities = null;
 
@@ -186,6 +184,10 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         }
 
         if (enabled) {
+
+            if (workshopCameraCycler == null) {
+                workshopCameraCycler = new WorkshopCameraCycler(entityData, playerId);
+            }
 
             // Get the game state
             final GameClientState gameState = stateManager.getState(GameClientState.class);
@@ -268,6 +270,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             registerPauseKey();
         } else {
             unregisterPauseKey();
+            releaseWorkshopCameraCycler();
 
             // Detach states
             for (AbstractAppState state : appStates) {
@@ -283,7 +286,17 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     @Override
     public void update(float tpf) {
         heartEntities.applyChanges();
+        if (workshopCameraCycler != null) {
+            workshopCameraCycler.update();
+        }
         screen.update(tpf);
+    }
+
+    private void releaseWorkshopCameraCycler() {
+        if (workshopCameraCycler != null) {
+            workshopCameraCycler.close();
+            workshopCameraCycler = null;
+        }
     }
 
     /**
