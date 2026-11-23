@@ -35,6 +35,10 @@ import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.Peaceful;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -51,6 +55,8 @@ import toniarts.openkeeper.tools.convert.map.Player;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CreatureCombatTest {
 
@@ -63,12 +69,14 @@ class CreatureCombatTest {
     private Map<Short, Creature> creatures;
     private Map<EntityId, Set<EntityId>> sensed;
     private EntityId us;
+    private EntityId blockingDoor;
 
     @BeforeEach
     void setUp() {
         entityData = new DefaultEntityData();
         creatures = new HashMap<>();
-        creatures.put(FIGHTER, CombatCreatureFixtures.fighter(FIGHTER, Creature.FightStyle.BLOCKER));
+        creatures.put(FIGHTER, CombatCreatureFixtures.withSightDistance(
+                CombatCreatureFixtures.fighter(FIGHTER, Creature.FightStyle.BLOCKER), 10));
         creatures.put(HORNY, CombatCreatureFixtures.fighter(HORNY, Creature.FightStyle.BLITZER, Creature.CreatureFlag.IS_HORNY));
         sensed = new HashMap<>();
         us = createCreature(KEEPER, FIGHTER, new Vector3f(5, 0, 4), 0);
@@ -119,6 +127,86 @@ class CreatureCombatTest {
 
         assertNull(controller.getAttackTarget());
         assertNull(entityData.getComponent(us, AttackTarget.class));
+    }
+
+    @Test
+    void peacefulCreatureLeavesAnEnemyTrapAlone() {
+        EntityId trap = createTrap(new Vector3f(5.5f, 0, 4));
+        entityData.setComponent(us, new Peaceful());
+
+        assertFalse(createController(us).attackVisibleTrap());
+        assertNull(entityData.getComponent(trap, Damage.class));
+        assertNull(entityData.getComponent(us, Navigation.class));
+        assertNull(entityData.getComponent(us, AttackTarget.class));
+    }
+
+    @Test
+    void peacefulCreatureDoesNotNavigateTowardsADistantTrap() {
+        EntityId trap = createTrap(new Vector3f(8, 0, 4));
+        entityData.setComponent(us, new Peaceful());
+
+        assertFalse(createController(us).attackVisibleTrap());
+        assertNull(entityData.getComponent(us, Navigation.class));
+        assertNull(entityData.getComponent(trap, Damage.class));
+    }
+
+    @Test
+    void peacefulWorkerLeavesATrapWithinWorkerReachAlone() {
+        EntityId trap = createTrap(new Vector3f(5.5f, 0, 4));
+        entityData.getComponent(us, CreatureComponent.class).worker = true;
+        CreatureController controller = createController(us);
+        controller.setWillFight(false);
+
+        assertFalse(controller.attackVisibleTrap());
+        assertNull(entityData.getComponent(trap, Damage.class));
+
+        controller.setWillFight(true);
+        assertTrue(controller.attackVisibleTrap());
+        assertEquals(100, entityData.getComponent(trap, Damage.class).damage);
+    }
+
+    @Test
+    void fighterAttacksATrapUntilItsFightFlagIsCleared() {
+        EntityId trap = createTrap(new Vector3f(5.5f, 0, 4));
+        CreatureController controller = createController(us);
+        assertTrue(controller.attackVisibleTrap());
+        assertEquals(100, entityData.getComponent(trap, Damage.class).damage);
+        entityData.removeComponent(trap, Damage.class);
+
+        controller.setWillFight(false);
+        assertFalse(controller.attackVisibleTrap());
+        assertNull(entityData.getComponent(trap, Damage.class));
+
+        // Changing willingness must not leave a retained combat target behind either.
+        entityData.setComponent(us, new AttackTarget(trap));
+        assertNull(controller.getAttackTarget());
+        assertNull(entityData.getComponent(us, AttackTarget.class));
+    }
+
+    @Test
+    void peacefulCreatureDoesNotStartAnIdleDoorAttack() {
+        EntityId door = entityData.createEntity();
+        entityData.setComponents(door, new DoorComponent((short) 1, false, false),
+                new Owner(HERO, HERO), new Health(1000, 1000),
+                new Position(0, new Vector3f(6, 0, 4)));
+        blockingDoor = door;
+        CreatureController controller = createController(us);
+        controller.setWillFight(false);
+
+        assertFalse(controller.attackAdjacentDoor());
+        assertNull(entityData.getComponent(door, Damage.class));
+
+        controller.setWillFight(true);
+        assertTrue(controller.attackAdjacentDoor());
+        assertEquals(100, entityData.getComponent(door, Damage.class).damage);
+    }
+
+    private EntityId createTrap(Vector3f position) {
+        EntityId trap = entityData.createEntity();
+        entityData.setComponents(trap, new TrapViewState((short) 8, false), new Owner(HERO, HERO),
+                new Health(1000, 1000), new Position(0, position));
+        sensed.put(us, Set.of(trap));
+        return trap;
     }
 
     @Test
@@ -206,7 +294,11 @@ class CreatureCombatTest {
         });
         IGameTimer gameTimer = stub(IGameTimer.class, (name, args) -> "getGameTime".equals(name) ? 10.0 : null);
         IEntityPositionLookup positionLookup = stub(IEntityPositionLookup.class,
-                (name, args) -> "getSensedEntities".equals(name) ? sensed.getOrDefault((EntityId) args[0], Set.of()) : null);
+                (name, args) -> switch (name) {
+                    case "getSensedEntities" -> sensed.getOrDefault((EntityId) args[0], Set.of());
+                    case "getBlockingDoor" -> blockingDoor;
+                    default -> null;
+                });
         ICreaturesController creaturesController = stub(ICreaturesController.class, (name, args) -> switch (name) {
             case "isValidEntity" -> true;
             case "createController" -> createController((EntityId) args[0]);
