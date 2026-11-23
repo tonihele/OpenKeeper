@@ -38,6 +38,8 @@ public final class CreatureSleepFixtures {
         creature.getAttributes().setTimeAwake(20);
         creature.getAttributes().setTimeSleep(timeSleep);
         creature.getAttributes().setUnhappyThreshold((short) 50);
+        creature.getAttributes().setHungerRate(200);
+        creature.getAttributes().setHpFromChicken(250);
         return creature;
     }
 

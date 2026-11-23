@@ -78,6 +78,18 @@ public final class TrapFiringFixtures {
     }
 
     /**
+     * Sets the effect the trap shows when its keeper can't pay for a shot
+     *
+     * @param trap the trap
+     * @param powerlessEffectId the effect
+     * @return the same trap
+     */
+    public static Trap withPowerlessEffect(Trap trap, int powerlessEffectId) {
+        trap.setPowerlessEffectId(powerlessEffectId);
+        return trap;
+    }
+
+    /**
      * Sets the values the trap hands to its shot
      *
      * @param trap the trap

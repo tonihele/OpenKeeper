@@ -23,6 +23,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.TileWork;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -123,7 +124,8 @@ public class DigTileTask extends AbstractTileTask {
      */
     protected boolean isTileToDig() {
         IMapTileInformation tile = mapController.getMapData().getTile(getTaskLocation());
-        return tile.isSelected(playerId);
+        return tile != null && tile.isSelected(playerId)
+                && TileWork.canDamageTile(mapController.getTerrain(tile), tile.getOwnerId(), playerId);
     }
 
     @Override

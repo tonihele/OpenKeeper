@@ -34,6 +34,9 @@ import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
+import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -223,6 +226,8 @@ class DigTileTaskTest {
                     health > 0;
                 case "getLocation" ->
                     new Point(-1, -1);
+                case "getOwnerId" ->
+                    Player.NEUTRAL_PLAYER_ID;
                 default ->
                     throw new UnsupportedOperationException(method.getName());
             });
@@ -239,6 +244,8 @@ class DigTileTaskTest {
                     mapData;
                 case "isSolid" ->
                     false;
+                case "getTerrain" ->
+                    TerrainFixtures.terrain((short) 1, TerrainFixtures.flags(Terrain.TerrainFlag.SOLID), 0, DIRT_HEALTH, DIRT_HEALTH, (short) 1);
                 case "damageTile" -> {
                     hits.add(tick);
                     health = Math.max(0, health - damage);

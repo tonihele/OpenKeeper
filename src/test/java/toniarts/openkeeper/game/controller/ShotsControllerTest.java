@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
@@ -49,8 +50,11 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -63,6 +67,7 @@ class ShotsControllerTest {
     private static final short CREATE_OBJECT_ID = 2;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short SIGHT_OF_EVIL_ID = 33;
+    private static final short DRAIN_ID = 42;
     private static final short SPIKE_ID = 27;
     private static final short GAS_CLOUD_ID = 58;
     private static final short DOOR_FIREBALL_ID = 57;
@@ -77,6 +82,8 @@ class ShotsControllerTest {
     private final EntityData entityData = new DefaultEntityData();
     private final Map<Short, Shot> shotsById = new HashMap<>();
     private final List<Object[]> loadedObjects = new ArrayList<>();
+    private final Set<Point> waterTiles = new HashSet<>();
+    private final List<EntityId> pickedUpThings = new ArrayList<>();
     private final ShotsController shotsController;
     private double gameTime = 0;
 
@@ -86,6 +93,8 @@ class ShotsControllerTest {
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
+        // Drain does its process when it hits, as in the original data
+        shotsById.put(DRAIN_ID, ShotFixtures.shot(DRAIN_ID, Shot.ProcessType.DRAIN, 0, EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING)));
         shotsById.put(SPIKE_ID, TrapFiringFixtures.shot(SPIKE_ID, Shot.ProcessType.NONE, Shot.DamageType.CONSTANT));
         shotsById.put(GAS_CLOUD_ID, TrapFiringFixtures.shot(GAS_CLOUD_ID, Shot.ProcessType.GAS, Shot.DamageType.RANGE_FROM_ORIGIN));
         shotsById.put(DOOR_FIREBALL_ID, TrapFiringFixtures.shot(DOOR_FIREBALL_ID, Shot.ProcessType.NONE, Shot.DamageType.HIT_THING));
@@ -108,17 +117,21 @@ class ShotsControllerTest {
                     throw new UnsupportedOperationException(method.getName());
                 });
 
-        // A map without tiles, no strike lands on water
+        // A map without tiles, no strike lands on water. To a fire shot only the tiles in waterTiles are water
         IMapDataInformation<?> mapData = (IMapDataInformation<?>) Proxy.newProxyInstance(IMapDataInformation.class.getClassLoader(), new Class<?>[]{IMapDataInformation.class},
                 (proxy, method, args) -> null);
         IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(), new Class<?>[]{IMapController.class},
-                (proxy, method, args) -> method.getName().equals("getMapData") ? mapData : null);
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getMapData" -> mapData;
+                    case "isWater" -> waterTiles.contains((Point) args[0]);
+                    default -> null;
+                });
         GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null);
 
         IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class},
-                (proxy, method, args) -> entityData.findEntities(null, Position.class).stream()
-                        .filter(entity -> new Point((int) args[0], (int) args[1]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position)))
-                        .toList());
+                (proxy, method, args) -> Stream.concat(entityData.findEntities(null, Position.class).stream()
+                        .filter(entity -> new Point((int) args[0], (int) args[1]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position))),
+                        pickedUpThings.stream()).toList());
         IGameController gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(), new Class<?>[]{IGameController.class},
                 (proxy, method, args) -> method.getName().equals("getEntityLookupService") ? entityPositionLookup : null);
         shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, null, objectsController, null, gameEventService);
@@ -243,6 +256,39 @@ class ShotsControllerTest {
     }
 
     @Test
+    void fireballSetsABadlyHurtCreatureAlightForTenTicks() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        entityData.setComponent(target, new Health(20, 100));
+        gameTime = 5;
+
+        hitWithFireball(target);
+
+        assertEquals(5 + 10.0 / TICKS_PER_SECOND, entityData.getComponent(target, OnFire.class).endTime, DELTA);
+    }
+
+    @Test
+    void fireballDoesNotSetACreatureWithMoreHealthAlight() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        entityData.setComponent(target, new Health(21, 100));
+
+        hitWithFireball(target);
+
+        assertNull(entityData.getComponent(target, OnFire.class));
+    }
+
+    @Test
+    void creatureOnWaterDoesNotCatchFire() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        entityData.setComponent(target, new Health(10, 100));
+        waterTiles.add(new Point(10, 10));
+
+        hitWithFireball(target);
+
+        assertNull(entityData.getComponent(target, OnFire.class));
+        assertEquals(50, entityData.getComponent(target, Damage.class).damage);
+    }
+
+    @Test
     void shotThatHitsAThingHurtsItsTargetAtOnce() {
         EntityId target = createCreature(ENEMY_ID, 13, 10);
         EntityId bystander = createCreature(ENEMY_ID, 13, 10);
@@ -269,6 +315,20 @@ class ShotsControllerTest {
         assertEquals(750, entityData.getComponent(other, Damage.class).damage);
         assertNull(entityData.getComponent(own, Damage.class));
         assertNull(entityData.getComponent(nextTile, Damage.class));
+    }
+
+    @Test
+    void constantDamageShotPassesOverAThingPickedUpThisTick() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        // Still in the position lookup, but picked up so it has no position
+        EntityId pickedUp = entityData.createEntity();
+        entityData.setComponents(pickedUp, new CreatureComponent(), new Owner(ENEMY_ID, ENEMY_ID), new Health(100, 100));
+        pickedUpThings.add(pickedUp);
+
+        shotsController.createShot(SPIKE_ID, 750, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+
+        assertEquals(750, entityData.getComponent(target, Damage.class).damage);
+        assertNull(entityData.getComponent(pickedUp, Damage.class));
     }
 
     @Test
@@ -348,11 +408,51 @@ class ShotsControllerTest {
         assertEquals(2, entityData.findEntities(null, Alarm.class).size());
     }
 
+    @Test
+    void drainGivesTheShooterAQuarterOfItsFullHealthFromTheTarget() {
+        EntityId vampire = createCreature();
+        entityData.setComponent(vampire, new Health(500, 2000));
+        EntityId target = createCreature();
+        entityData.setComponent(target, new Health(900, 1000));
+
+        // Drain: 25 % of the Vampire's 2000
+        shotsController.hit(createDrainShot(vampire), target);
+
+        assertEquals(500, entityData.getComponent(target, Damage.class).damage);
+        assertEquals(-500, entityData.getComponent(vampire, Damage.class).damage);
+    }
+
+    @Test
+    void drainTakesNoMoreThanTheTargetHasLeft() {
+        EntityId vampire = createCreature();
+        entityData.setComponent(vampire, new Health(500, 2000));
+        EntityId target = createCreature();
+        entityData.setComponent(target, new Health(120, 1000));
+
+        shotsController.hit(createDrainShot(vampire), target);
+
+        assertEquals(120, entityData.getComponent(target, Damage.class).damage);
+        assertEquals(-120, entityData.getComponent(vampire, Damage.class).damage);
+    }
+
+    private EntityId createDrainShot(EntityId shooter) {
+        EntityId shot = entityData.createEntity();
+        entityData.setComponents(shot, new Position(0, new Vector3f(1.5f, 1f, 1.5f)),
+                new ShotFlight(DRAIN_ID, PLAYER_ID, shooter, 25, 0, new Vector3f(), new Vector3f(), 3, 128));
+        return shot;
+    }
+
     private EntityId createCreature(short ownerId, float x, float y) {
         EntityId creature = entityData.createEntity();
         entityData.setComponents(creature, new Position(0, new Vector3f(x, 1f, y)), new CreatureComponent(),
                 new Owner(ownerId, ownerId), new Health(100, 100));
         return creature;
+    }
+
+    private void hitWithFireball(EntityId target) {
+        shotsController.fireShot(ShotFixtures.FIREBALL_ID, 50, 0, PLAYER_ID, new Vector3f(12, 1f, 10), target,
+                entityData.createEntity(), 4);
+        shotsController.hit(entityData.findEntity(null, ShotFlight.class), target);
     }
 
     private ShotFlight getShotFlight() {

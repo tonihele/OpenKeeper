@@ -281,6 +281,9 @@ public final class MapController extends Container implements IMapController {
                 if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
                     continue;
                 }
+                if (select && !TileWork.canDamageTile(terrain, tile.getOwnerId(), playerId)) {
+                    continue;
+                }
                 tile.setSelected(select, playerId);
                 updatableTiles.add(tile.getLocation());
             }
@@ -491,7 +494,14 @@ public final class MapController extends Container implements IMapController {
     @Override
     public int damageTile(Point point, short playerId, ICreatureController creature) {
         IMapTileController tile = getMapData().getTile(point);
+        if (tile == null) {
+            throw new IllegalArgumentException("Cannot damage a missing tile at " + point + "!");
+        }
         Terrain terrain = getTerrain(tile);
+        if (!TileWork.canDamageTile(terrain, tile.getOwnerId(), playerId)) {
+            String terrainName = terrain != null ? terrain.getName() : "unknown terrain";
+            throw new UnsupportedOperationException("Wat?! Tried to damage tile " + terrainName + " at " + point + "!");
+        }
 
         // Calculate the damage
         int damage;
@@ -572,6 +582,20 @@ public final class MapController extends Container implements IMapController {
         return returnedGold;
     }
 
+    @Override
+    public void applyTerrainDamage(Point point, int damage) {
+        IMapTileController tile = getMapData().getTile(point);
+        if (tile == null) {
+            return;
+        }
+
+        Terrain terrain = getTerrain(tile);
+        if (applyDamage(tile, damage)) {
+            changeTerrain(tile, terrain.getDestroyedTypeTerrainId());
+            notifyTileChange(tile.getLocation());
+        }
+    }
+
     /**
      * Heal a tile
      *
@@ -615,6 +639,9 @@ public final class MapController extends Container implements IMapController {
                 changeTerrain(tile, terrain.getMaxHealthTypeTerrainId());
                 tile.setOwnerId(playerId);
             }
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                reinforceCorners(point, playerId);
+            }
 
 //            updateRoomWalls(tile);
 //            mapLoader.updateTiles(mapLoader.getSurroundingTiles(tile.getLocation(), true));
@@ -625,6 +652,47 @@ public final class MapController extends Container implements IMapController {
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
 //            mapLoader.updateTiles(point);
         }
+    }
+
+    /**
+     * A finished wall also finishes the outer corners it closes with a
+     * diagonal wall of the player's. Such a corner touches the floor only
+     * diagonally, so no worker can stand next to it. As in the original
+     * (DKII.EXE 0x466390), the corner is a neutral wall that isn't finished,
+     * and the other tile shared by the two walls is open.
+     *
+     * @param point the wall just finished
+     * @param playerId the player who finished it
+     */
+    private void reinforceCorners(Point point, short playerId) {
+        for (int dx = -1; dx <= 1; dx += 2) {
+            for (int dy = -1; dy <= 1; dy += 2) {
+                IMapTileController diagonal = getMapData().getTile(point.x + dx, point.y + dy);
+                if (diagonal != null && diagonal.getOwnerId() == playerId && diagonal.isAtFullHealth()
+                        && getTerrain(diagonal).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                    reinforceCorner(getMapData().getTile(point.x + dx, point.y), getMapData().getTile(point.x, point.y + dy), playerId);
+                    reinforceCorner(getMapData().getTile(point.x, point.y + dy), getMapData().getTile(point.x + dx, point.y), playerId);
+                }
+            }
+        }
+    }
+
+    private void reinforceCorner(IMapTileController corner, IMapTileController open, short playerId) {
+        if (corner == null || open == null || corner.getOwnerId() != Player.NEUTRAL_PLAYER_ID || corner.isAtFullHealth()
+                || getTerrain(open).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            return;
+        }
+        Terrain terrain = getTerrain(corner);
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) || terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)
+                || terrain.getGoldValue() != 0) {
+            return;
+        }
+        applyHealing(corner, corner.getMaxHealth());
+        if (TileWork.convertsAtFullHealth(terrain)) {
+            changeTerrain(corner, terrain.getMaxHealthTypeTerrainId());
+        }
+        corner.setOwnerId(playerId);
+        notifyTileChange(corner.getLocation());
     }
 
     /**
@@ -719,10 +787,20 @@ public final class MapController extends Container implements IMapController {
         }
 
         // If the terrain is not taggable anymore, reset the tagging data
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)
+                || !TileWork.canDamageTile(terrain, tile.getOwnerId(), Player.KEEPER1_ID)) {
             tile.setSelected(false, Player.KEEPER1_ID);
+        }
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)
+                || !TileWork.canDamageTile(terrain, tile.getOwnerId(), Player.KEEPER2_ID)) {
             tile.setSelected(false, Player.KEEPER2_ID);
+        }
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)
+                || !TileWork.canDamageTile(terrain, tile.getOwnerId(), Player.KEEPER3_ID)) {
             tile.setSelected(false, Player.KEEPER3_ID);
+        }
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)
+                || !TileWork.canDamageTile(terrain, tile.getOwnerId(), Player.KEEPER4_ID)) {
             tile.setSelected(false, Player.KEEPER4_ID);
         }
 
@@ -823,6 +901,13 @@ public final class MapController extends Container implements IMapController {
     public void concealTiles(List<Point> points, short playerId) {
         for (MapListener mapListener : mapListeners.getArray()) {
             mapListener.onTilesReveal(points, false, playerId);
+        }
+    }
+
+    @Override
+    public void revealSightOfEvil(Point centre, int radius, int durationTicks, short playerId) {
+        for (MapListener mapListener : mapListeners.getArray()) {
+            mapListener.onSightOfEvil(centre, radius, durationTicks, playerId);
         }
     }
 

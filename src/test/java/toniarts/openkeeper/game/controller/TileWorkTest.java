@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.OWNABLE;
 import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.SOLID;
+import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.TAGGABLE;
 
 /**
  * Values from the shipped GlobalVariables.kwd and Terrain.kwd, and the
@@ -131,6 +132,19 @@ class TileWorkTest {
         assertFalse(TileWork.convertsAtFullHealth(terrain(9, 9, SOLID, OWNABLE))); // Reinforced Wall
         assertFalse(TileWork.convertsAtFullHealth(terrain(6, 6, SOLID))); // Gold, itself
         assertFalse(TileWork.convertsAtFullHealth(terrain(4, 4))); // Water, itself
+    }
+
+    @Test
+    void damageEligibilityMatchesDiggingAndOwnershipRules() {
+        Terrain rock = terrain(2, 9, SOLID, TAGGABLE);
+        Terrain ownPath = terrain(8, 2, OWNABLE, TAGGABLE);
+        Terrain dirtPath = terrain(3, 8, TAGGABLE);
+
+        assertTrue(TileWork.canDamageTile(rock, (short) 3, (short) 3));
+        assertTrue(TileWork.canDamageTile(ownPath, (short) 4, (short) 3));
+        assertFalse(TileWork.canDamageTile(ownPath, (short) 3, (short) 3));
+        assertFalse(TileWork.canDamageTile(dirtPath, (short) 0, (short) 3));
+        assertFalse(TileWork.canDamageTile(null, (short) 0, (short) 3));
     }
 
     private static List<Integer> mine(int damagePerApplication) {

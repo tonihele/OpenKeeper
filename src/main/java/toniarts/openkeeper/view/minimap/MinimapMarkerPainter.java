@@ -21,6 +21,7 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
+import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.InHand;
@@ -55,15 +56,29 @@ public final class MinimapMarkerPainter {
 
     private final MinimapPalette palette;
     private final short viewerId;
+    private final Set<Short> guardPostTrapIds;
+    private final float guardPostReportingDistanceTiles;
 
     private final EntitySet creatures;
     private final EntitySet doors;
     private final EntitySet traps;
     private final EntitySet inHand;
 
-    public MinimapMarkerPainter(EntityData entityData, MinimapPalette palette, short viewerId) {
+    /**
+     * @param entityData the entity data to read the markers from
+     * @param palette the minimap palette
+     * @param viewerId the local player
+     * @param guardPostTrapIds the trap types that are guard posts
+     * @param guardPostReportingDistanceTiles
+     * {@code GUARD_POST_REPORTING_DISTANCE_TILES}, the radius of the ring
+     * drawn around the viewer's own guard posts
+     */
+    public MinimapMarkerPainter(EntityData entityData, MinimapPalette palette, short viewerId,
+            Set<Short> guardPostTrapIds, float guardPostReportingDistanceTiles) {
         this.palette = palette;
         this.viewerId = viewerId;
+        this.guardPostTrapIds = guardPostTrapIds;
+        this.guardPostReportingDistanceTiles = guardPostReportingDistanceTiles;
         creatures = entityData.getEntities(Position.class, Owner.class, CreatureComponent.class);
         doors = entityData.getEntities(Position.class, Owner.class, DoorComponent.class);
         traps = entityData.getEntities(Position.class, Owner.class, TrapViewState.class);
@@ -203,6 +218,13 @@ public final class MinimapMarkerPainter {
             }
             float px = toPixelX(position.position.x, fit, fitGeometry, cameraTileX, pixelsPerTile);
             float py = toPixelY(position.position.z, fit, fitGeometry, cameraTileY, pixelsPerTile);
+            TrapViewState trap = e.get(TrapViewState.class);
+            if (own && !trap.blueprint && guardPostTrapIds.contains(trap.trapId)) {
+                // Same colour as the Dungeon Heart's ring, like DK II
+                float pixelsPerTileScale = fit ? fitGeometry.pixelsPerTileScale() : pixelsPerTile;
+                int radius = Math.round(guardPostReportingDistanceTiles * pixelsPerTileScale);
+                MinimapMarkers.circleOutline(raster, Math.round(px), Math.round(py), radius, OWN_HEART_RING_COLOUR);
+            }
             int colour = MinimapMarkers.blink(wallColour(owner.ownerId), BLACK, blinkParity);
             MinimapMarkers.dot(raster, Math.round(px), Math.round(py), colour);
         }
