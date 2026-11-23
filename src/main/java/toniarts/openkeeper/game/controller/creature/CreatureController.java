@@ -271,9 +271,10 @@ public final class CreatureController extends EntityController implements ICreat
         boolean inDHeart = false;
         if (entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter() && isThreatTooHigh()) {
 
-            // No longer flee from DHeart
+            // No longer flee from DHeart, our own one that still stands
             IRoomController roomController = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
-            if (roomController == null || !roomController.isDungeonHeart()) {
+            if (roomController == null || !roomController.isDungeonHeart()
+                    || roomController.getOwnerId() != getOwnerId() || roomController.isDestroyed()) {
                 if (!stateMachine.isInState(CreatureState.FLEE)) {
 
                     stateMachine.changeState(CreatureState.FLEE);
