@@ -296,6 +296,11 @@ public final class DoorsController implements IDoorsController {
             // Not interested
         }
 
+        @Override
+        public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+            // Not interested
+        }
+
     }
 
 }
