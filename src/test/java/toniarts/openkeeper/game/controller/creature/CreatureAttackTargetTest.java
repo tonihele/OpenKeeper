@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.Health;
@@ -46,7 +47,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 /**
  * A fighting creature drops a target it can neither reach nor walk to, like
  * DK II's fight state picks its target again whenever it is out of reach,
- * only from those it can walk to (0x45F030, 0x45CB00)
+ * only from those it can walk to (0x45F030, 0x45CB00). One that runs away is
+ * kept like any other (0x45F030, 0x45BDF0)
  */
 class CreatureAttackTargetTest {
 
@@ -67,6 +69,18 @@ class CreatureAttackTargetTest {
     void aTargetOutOfReachWithAWayToItIsKept() {
         EntityId target = createCreature((short) 3, 14, 23);
         EntityId attacker = createCreature((short) 1, 13, 22);
+        entityData.setComponent(attacker, new AttackTarget(target));
+
+        createController(attacker, target, true).getAttackTarget();
+
+        assertEquals(target, entityData.getComponent(attacker, AttackTarget.class).entityId);
+    }
+
+    @Test
+    void aTargetInReachThatRunsAwayIsKept() {
+        EntityId target = createCreature((short) 3, 13.3f, 22);
+        EntityId attacker = createCreature((short) 1, 13, 22);
+        entityData.setComponent(target, new CreatureAi(0, CreatureState.FLEE, (short) 14));
         entityData.setComponent(attacker, new AttackTarget(target));
 
         createController(attacker, target, true).getAttackTarget();
