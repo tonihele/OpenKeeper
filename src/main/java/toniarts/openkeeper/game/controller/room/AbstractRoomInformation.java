@@ -20,6 +20,7 @@ import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.PrisonStatus;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.utils.Point;
@@ -96,6 +97,12 @@ public abstract class AbstractRoomInformation implements IRoomInformation {
     @Override
     public AbstractRoomController.ObjectType getDefaultStorageType() {
         return getEntityComponent(RoomComponent.class).defaultStorageType;
+    }
+
+    @Override
+    public boolean isPrisonOpen() {
+        PrisonStatus prisonStatus = getEntityComponent(PrisonStatus.class);
+        return prisonStatus != null && prisonStatus.open;
     }
 
     @Override

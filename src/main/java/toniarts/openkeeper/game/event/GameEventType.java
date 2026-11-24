@@ -77,6 +77,11 @@ public enum GameEventType {
      * gets this
      */
     CALL_TO_ARMS_UNREACHABLE,
+    /**
+     * An alarm was raised for a keeper (his Alarm Trap went off), only that
+     * keeper gets this
+     */
+    ALARM_RAISED,
 
     // The Torture Chamber
     /**
@@ -143,5 +148,8 @@ public enum GameEventType {
     /**
      * Fireworks go off over a tile of a Casino that is in disco mode
      */
-    CASINO_FIREWORKS
+    CASINO_FIREWORKS,
+
+    /** A special was successfully activated; the subject is its object type. */
+    SPECIAL_ACTIVATED
 }
