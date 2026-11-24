@@ -854,7 +854,7 @@ class CreatureControllerTest {
         }
 
         Fixture(Creature definition) {
-            fall = new CreatureFallSystem(data, () -> time, eventService);
+            fall = new CreatureFallSystem(data, () -> time, eventService, null);
             this.definition = definition;
             CreatureComponent component = new CreatureComponent();
             component.creatureId = 6;

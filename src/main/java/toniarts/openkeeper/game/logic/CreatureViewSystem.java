@@ -106,8 +106,13 @@ public final class CreatureViewSystem extends GameTimeCounter {
             CreatureFall creatureFall = entityData.getComponent(entityId, CreatureFall.class);
             if (creatureFall != null) {
 
-                // A conjured creature comes down standing, only a dropped one tumbles and lands dazed
-                targetState = creatureFall.conjured ? Creature.AnimationType.IDLE_1 : Creature.AnimationType.FALLBACK;
+                // A conjured creature comes down standing, only a dropped one tumbles and lands dazed. Falling
+                // into the portal, the creature struggles like in the hand instead of falling over
+                targetState = switch (creatureFall.fallType) {
+                    case DROPPED -> Creature.AnimationType.FALLBACK;
+                    case CONJURED -> Creature.AnimationType.IDLE_1;
+                    case PORTAL_DROP -> Creature.AnimationType.IN_HAND;
+                };
             } else if (entityData.getComponent(entityId, Navigation.class) != null) {
                 targetState = Creature.AnimationType.WALK;
             } else if (entityData.getComponent(entityId, Death.class) != null) {
@@ -130,7 +135,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
                 } else if (taskComponent != null) {
                     targetState = taskComponent.taskType == TaskType.MANUFACTURE
                             ? getManufactureAnimation(kwdFile.getCreature(state.creatureId))
-                            : getAnimation(taskComponent.taskType);
+                            : getAnimation(taskComponent);
                 } else {
                     CreatureAi aiState = entityData.getComponent(entityId, CreatureAi.class);
                     if (aiState != null && aiState.getCreatureState() == CreatureState.CELEBRATING) {
@@ -284,8 +289,8 @@ public final class CreatureViewSystem extends GameTimeCounter {
         }
     }
 
-    private static Creature.AnimationType getAnimation(TaskType taskType) {
-        switch (taskType) {
+    private static Creature.AnimationType getAnimation(TaskComponent taskComponent) {
+        switch (taskComponent.taskType) {
             case CLAIM_ROOM:
             case CLAIM_TILE:
                 return Creature.AnimationType.EATING;
@@ -295,7 +300,9 @@ public final class CreatureViewSystem extends GameTimeCounter {
             case DIG_TILE:
                 return Creature.AnimationType.DIG;
             case TRAIN:
-                return Creature.AnimationType.MELEE_ATTACK;
+
+                // Hitting a Training Dummy, or casting at a wall target
+                return taskComponent.targetEntity == null ? Creature.AnimationType.MELEE_ATTACK : Creature.AnimationType.CAST_SPELL;
             case RESEARCH:
                 return Creature.AnimationType.RESEARCHING;
             case PRAY:
