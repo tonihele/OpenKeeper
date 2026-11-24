@@ -186,7 +186,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController, levelInfo, saveGame);
 
         // Load the map
-        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo, gameEventService, saveGame);
+        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo, gameEventService,
+                gameController::onEnemyBreached, gameController::onDungeonBreached, saveGame);
 
         // Load creatures
         creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo, saveGame);
@@ -1270,7 +1271,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     private void putToKeeperHand(PlayerHandControl playerHandControl, EntityId entity, short playerId) {
-        playerHandControl.push(entity);
+        playerHandControl.push(entity, gameTimer.getGameTime());
 
         /**
          * TODO: Basically here we can have a concurrency problem, especially visible with things that have
