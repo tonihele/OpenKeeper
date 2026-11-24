@@ -153,6 +153,9 @@ public class SoundVoice {
         if (backend != null) {
             backend.setPosition(position.x, 0.0f, position.y);
         }
+        for (Child child : children) {
+            child.backend().setPosition(position.x, 0.0f, position.y);
+        }
     }
 
     public boolean isPositional() {
