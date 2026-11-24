@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.sound;
 
 import com.jme3.math.Vector3f;
 import javax.annotation.Nullable;
+import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -80,6 +81,9 @@ public final class ThingSounds {
     public static final int ROOM_WORKSHOP_STEAM = 0x2E9;
     public static final int ROOM_LIBRARY_PAPER = 0x2FD;
     public static final int ROOM_HEART_BEAT = 0x150;
+    public static final int ROOM_CASINO_DISCO_MUSIC = 0x316;
+    public static final int ROOM_CASINO_DISCO_OVER = 0x33E; // the needle comes off the record
+    public static final int FIREWORKS = 0x344; // in the global effects bank
     public static final String CATEGORY_WORKSHOP = "ROOM_WORKSHOP";
     public static final String CATEGORY_LIBRARY = "ROOM_LIBRARY";
     public static final String CATEGORY_DUNGEON_HEART = "ROOM_DUNGEON_HEART";
@@ -129,6 +133,31 @@ public final class ThingSounds {
             return SoundEngine.NO_HANDLE;
         }
         return SoundManager.playSound(category, eventId, position);
+    }
+
+    /**
+     * Sound events requested by the native special activation handlers
+     * (0x4A3FC0 and its callees). Resolve clips through the object's sound bank.
+     *
+     * @return the sound event, or -1 for an unsupported special
+     */
+    public static int getSpecialActivationEvent(int objectId) {
+        return switch (objectId) {
+            case ObjectsController.OBJECT_SPECIAL_INCREASE_LEVEL_ID -> 0x80;
+            case ObjectsController.OBJECT_SPECIAL_REVEAL_MAP_ID -> 0x84;
+            case ObjectsController.OBJECT_SPECIAL_MAKE_SAFE_ID -> 0x85;
+            case ObjectsController.OBJECT_SPECIAL_DESTROY_WALLS_ID -> 0x86;
+            case ObjectsController.OBJECT_SPECIAL_INCREASE_GOLD_ID -> 0x88;
+            case ObjectsController.OBJECT_SPECIAL_MANA_BOOST_ID -> 0x89;
+            case ObjectsController.OBJECT_SPECIAL_STUN_IMPS_ID -> 0x8A;
+            case ObjectsController.OBJECT_SPECIAL_RECEIVE_IMPS_ID -> 0x8B;
+            case ObjectsController.OBJECT_SPECIAL_MAKE_HAPPY_ID -> 0x8C;
+            case ObjectsController.OBJECT_SPECIAL_MAKE_UNHAPPY_ID -> 0x8D;
+            case ObjectsController.OBJECT_SPECIAL_KILL_CREATURES_ID -> 0x8E;
+            case ObjectsController.OBJECT_SPECIAL_HEAL_ALL_ID -> 0x310;
+            case ObjectsController.OBJECT_SPECIAL_LOCATE_HIDDEN_LAND_ID -> 0x8F;
+            default -> -1;
+        };
     }
 
     /**

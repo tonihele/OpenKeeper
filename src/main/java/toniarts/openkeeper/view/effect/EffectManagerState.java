@@ -107,6 +107,7 @@ public class EffectManagerState extends AbstractAppState {
      * @param effectId the effect ID to load
      * @param infinite the effect should restart always, infinite effect (room
      * effects...?)
+     * @return the effect, {@code null} if there is none
      */
     public VisualEffect load(Node node, Vector3f location, int effectId, boolean infinite) {
         return load(node, location, effectId, infinite, Player.NEUTRAL_PLAYER_ID);
@@ -123,16 +124,37 @@ public class EffectManagerState extends AbstractAppState {
      * @param infinite the effect should restart always, infinite effect (room
      * effects...?)
      * @param ownerId the player who owns the effect
+     * @return the effect, {@code null} if there is none
      */
     public VisualEffect load(Node node, Vector3f location, int effectId, boolean infinite, short ownerId) {
+        return load(node, location, effectId, infinite, ownerId, false);
+    }
+
+    /**
+     * Loads up an particle effect owned by a specific player
+     *
+     * @param emitOverLifetime emit the elements every effect tick for the
+     * effect's whole lifetime (hp), instead of a single burst
+     * @see #load(Node, Vector3f, int, boolean, short)
+     */
+    public VisualEffect load(Node node, Vector3f location, int effectId, boolean infinite, short ownerId,
+            boolean emitOverLifetime) {
 
         // Load the effect
         if (effectId == 0) {
             return null;
         }
-        VisualEffect visualEffect = new VisualEffect(this, node, location, kwdFile.getEffect(effectId), infinite, ownerId);
+        VisualEffect visualEffect = new VisualEffect(this, node, location, kwdFile.getEffect(effectId), infinite,
+                ownerId, emitOverLifetime);
         activeEffects.add(visualEffect);
         return visualEffect;
+    }
+
+    /** Spawns the value-dependent digit animation used by DK II for sale proceeds. */
+    public void loadGoldValue(Node parent, Vector3f location, int value, com.jme3.renderer.Camera camera) {
+        Node digits = GoldValueEffect.create(value, kwdFile, assetManager, camera);
+        digits.setLocalTranslation(location);
+        parent.attachChild(digits);
     }
 
     /**

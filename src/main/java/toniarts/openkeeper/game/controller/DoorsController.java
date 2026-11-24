@@ -22,7 +22,13 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
+import java.util.Set;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Health;
@@ -34,6 +40,9 @@ import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.door.DoorController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
+import toniarts.openkeeper.game.listener.MapListener;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -84,6 +93,9 @@ public final class DoorsController implements IDoorsController {
 
         // Load doors
         loadDoors();
+
+        // The doors fall when the terrain around them changes
+        mapController.addListener(new DoorFallListener());
     }
 
     private void loadDoors() {
@@ -92,7 +104,12 @@ public final class DoorsController implements IDoorsController {
                 if (levelInfo.getPlayer(door.getPlayerId()) == null) {
                     continue;
                 }
-                loadDoor(door);
+                EntityId entity = loadDoor(door);
+
+                // A door the level puts where it can't stand falls right away
+                if (!isStanding(entity)) {
+                    entityData.removeEntity(entity);
+                }
             } catch (Exception ex) {
                 logger.log(Level.WARNING, "Could not load Thing.", ex);
             }
@@ -172,6 +189,52 @@ public final class DoorsController implements IDoorsController {
         }
     }
 
+    /**
+     * A door, built or a blueprint, stands only on a tile of its keeper. A
+     * door that is not a barricade also needs the two walls it was turned to
+     * stand between, any solid tile does (DKII.EXE door tick 0x4A55F0)
+     */
+    private boolean isStanding(EntityId entity) {
+        Position position = entityData.getComponent(entity, Position.class);
+        Point tile = WorldUtils.vectorToPoint(position.position);
+        IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
+        if (mapTile == null || mapTile.getOwnerId() != entityData.getComponent(entity, Owner.class).ownerId) {
+            return false;
+        }
+
+        Door door = kwdFile.getDoorById(entityData.getComponent(entity, DoorComponent.class).doorId);
+        if (door.getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
+            return true;
+        }
+
+        // The door is turned to stand between walls north and south, otherwise it stands between east and west
+        if (position.rotation != 0) {
+            return DoorPlacementValidator.isBetweenWallsNorthAndSouth(mapController, tile.x, tile.y);
+        }
+        return DoorPlacementValidator.isBetweenWallsEastAndWest(mapController, tile.x, tile.y);
+    }
+
+    @Override
+    public OptionalInt sellDoor(Collection<EntityId> entitiesOnTile, short playerId) {
+        for (EntityId entity : entitiesOnTile) {
+            DoorComponent doorComponent = entityData.getComponent(entity, DoorComponent.class);
+            Owner owner = entityData.getComponent(entity, Owner.class);
+            if (doorComponent == null || owner == null || owner.ownerId != playerId) {
+                continue;
+            }
+
+            // A blueprint returns the same as a built door. The share is the one of the rooms, the original doesn't
+            // use DOOR_SELL_VALUE_PERCENTAGE_OF_COST
+            Door door = kwdFile.getDoorById(doorComponent.doorId);
+            int sellValuePercentage = (int) gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue();
+            entityData.removeEntity(entity);
+
+            return OptionalInt.of(door.getGoldCost() * sellValuePercentage / 100);
+        }
+
+        return OptionalInt.empty();
+    }
+
     @Override
     public IDoorController createController(EntityId entityId) {
         DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
@@ -185,6 +248,59 @@ public final class DoorsController implements IDoorsController {
     @Override
     public boolean isValidEntity(EntityId entityId) {
         return entityData.getComponent(entityId, DoorComponent.class) != null;
+    }
+
+    /**
+     * Lets the doors fall that lost their tile or their walls. A door depends
+     * only on its own tile and the tiles next to it, so only the doors on and
+     * next to the changed tiles are checked
+     */
+    private final class DoorFallListener implements MapListener {
+
+        @Override
+        public void onTilesChange(List<Point> updatedTiles) {
+            Set<Point> tiles = new HashSet<>();
+            for (Point updatedTile : updatedTiles) {
+                tiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), updatedTile, false)));
+            }
+
+            IEntityPositionLookup entityPositionLookup = gameController.getEntityLookupService();
+            for (Point tile : tiles) {
+                for (EntityId entity : entityPositionLookup.getEntitiesInLocation(tile)) {
+
+                    // Nothing is left of a fallen door, no crate and no gold
+                    if (isValidEntity(entity) && !isStanding(entity)) {
+                        entityData.removeEntity(entity);
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
+            // Not interested
+        }
+
+        @Override
+        public void onTilesReveal(List<Point> points, boolean explore, short keeperId) {
+            // Not interested
+        }
+
+        @Override
+        public void onFogOfWarDisabled(short keeperId) {
+            // Not interested
+        }
+
+        @Override
+        public void onFogOfWarReset(short keeperId) {
+            // Not interested
+        }
+
+        @Override
+        public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+            // Not interested
+        }
+
     }
 
 }

@@ -86,6 +86,13 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.CREATURE_REINFORCE, event.position);
             case MELEE_HIT ->
                 addMeleeHit(sounds, event, kwdFile);
+            case SPECIAL_ACTIVATED -> {
+                int sound = event.subjectKind == ThingFlag.OBJECT
+                        ? ThingSounds.getSpecialActivationEvent(event.subjectId) : -1;
+                if (sound >= 0) {
+                    add(sounds, subject, sound, event.position);
+                }
+            }
             case PICKED_UP ->
                 add(sounds, subject, ThingSounds.PICK_UP, event.position);
             case DROPPED ->
@@ -135,6 +142,17 @@ public final class GameEventSounds {
             }
             case TERRAIN_DESTROYED ->
                 add(sounds, subject, ThingSounds.DESTROYED, event.position);
+            case CASINO_JACKPOT_ANNOUNCED ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.CASIN001.getId(), null);
+            case CASINO_DISCO_END ->
+                add(sounds, subject, ThingSounds.ROOM_CASINO_DISCO_OVER, event.position);
+            case CASINO_FIREWORKS ->
+                add(sounds, GlobalCategory.EFFECTS, ThingSounds.FIREWORKS, event.position);
+            case CASINO_DISCO_START ->
+                add(sounds, subject, ThingSounds.ROOM_CASINO_DISCO_MUSIC, null); // Looped, DiscoViewState plays it and sets its volume
+            case CASINO_JACKPOT -> {
+                // The effect is the view's
+            }
             case CREATURE_SACRIFICED ->
                 add(sounds, subject, ThingSounds.CREATURE_SACRIFICE, event.position);
             case SACRIFICE_SPEECH ->

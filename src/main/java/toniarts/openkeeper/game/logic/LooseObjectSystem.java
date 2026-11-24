@@ -102,7 +102,12 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
                 // No position yet, we get it next time
                 continue;
             }
-            if (mapTile.getOwnerId() == Player.GOOD_PLAYER_ID || mapTile.getOwnerId() == Player.NEUTRAL_PLAYER_ID) {
+
+            // Like in DK II (0x49F730), a hero or neutral Treasury also takes in the gold lying on it
+            Entity entity = looseObjectEntities.getEntity(entityId);
+            ObjectComponent objectComponent = entity.get(ObjectComponent.class);
+            if ((mapTile.getOwnerId() == Player.GOOD_PLAYER_ID || mapTile.getOwnerId() == Player.NEUTRAL_PLAYER_ID)
+                    && objectComponent.objectType != AbstractRoomController.ObjectType.GOLD) {
                 continue;
             }
 
@@ -112,8 +117,6 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
                 continue;
             }
 
-            Entity entity = looseObjectEntities.getEntity(entityId);
-            ObjectComponent objectComponent = entity.get(ObjectComponent.class);
             if (objectComponent.objectType != null && roomController.hasObjectControl(objectComponent.objectType) && !roomController.getObjectControl(objectComponent.objectType).isFullCapacity()) {
                 short ownerId = roomController.getOwnerId();
                 if (objectComponent.objectType == AbstractRoomController.ObjectType.GOLD) {

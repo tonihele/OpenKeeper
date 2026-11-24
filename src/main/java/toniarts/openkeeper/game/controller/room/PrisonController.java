@@ -22,6 +22,8 @@ import toniarts.openkeeper.utils.Point;
 import java.util.Collection;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IGameTimer;
+import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.PrisonStatus;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomPrisonerControl;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -48,9 +50,26 @@ public final class PrisonController extends DoubleQuadController {
         this.gameTimer = gameTimer;
     }
 
+    /**
+     * Tells whether the tile is inside the cage, where the prisoners are
+     * held. Like in DK II (DKII.EXE 0x4E5A70, 0x454110), the tiles around the
+     * cage hold nobody
+     *
+     * @param tile the tile
+     * @return true if the tile is inside the cage
+     */
+    public boolean isCageTile(Point tile) {
+        return insideCoordinates.contains(tile);
+    }
+
     @Override
     public void construct() {
         super.construct();
+
+        // A new Prison is open, like in DK II
+        if (getEntityComponent(PrisonStatus.class) == null) {
+            setOpen(true);
+        }
 
         addObjectControl(new RoomPrisonerControl(kwdFile, this, entityData, gameTimer) {
             @Override
@@ -62,10 +81,47 @@ public final class PrisonController extends DoubleQuadController {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
-                return getCoordinates().size();
+
+                // One prisoner per inside tile, plus one, like in DK II
+                int insideTiles = getCoordinates().size();
+                return insideTiles > 0 ? insideTiles + 1 : 0;
+            }
+
+            @Override
+            public boolean isFullCapacity() {
+
+                // A closed Prison takes no captives, like in DK II
+                return !isPrisonOpen() || super.isFullCapacity();
             }
 
         });
+    }
+
+    @Override
+    public boolean isFullCapacity() {
+        return getObjectControl(ObjectType.PRISONER).isFullCapacity();
+    }
+
+    /**
+     * Opens or closes the Prison. In DK II the keeper does this by clicking
+     * the Prison Door Bar
+     *
+     * @param open true to open the Prison, false to close it
+     */
+    public void setOpen(boolean open) {
+        entityData.setComponent(entityId, new PrisonStatus(open));
+    }
+
+    @Override
+    public boolean switchFurniture(EntityId furniture) {
+        ObjectComponent objectComponent = entityData.getComponent(furniture, ObjectComponent.class);
+        if (objectComponent == null || objectComponent.objectId != OBJECT_DOORBAR_ID) {
+            return false;
+        }
+
+        // The Prison Door Bar opens and closes the Prison, like in DK II
+        setOpen(!isPrisonOpen());
+        return true;
     }
 
     @Override

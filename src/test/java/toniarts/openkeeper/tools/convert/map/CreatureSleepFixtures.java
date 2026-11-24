@@ -38,6 +38,17 @@ public final class CreatureSleepFixtures {
         creature.getAttributes().setTimeAwake(20);
         creature.getAttributes().setTimeSleep(timeSleep);
         creature.getAttributes().setUnhappyThreshold((short) 50);
+        creature.getAttributes().setHungerRate(200);
+        creature.getAttributes().setHpFromChicken(250);
+        return creature;
+    }
+
+    public static Creature worker() {
+        Creature creature = sleeper(0);
+        creature.setCreatureId((short) 1);
+        creature.setName("Imp");
+        creature.setFightStyle(Creature.FightStyle.NON_FIGHTER);
+        creature.setFlags(EnumSet.of(Creature.CreatureFlag.IS_WORKER, Creature.CreatureFlag.ALWAYS_FLEE));
         return creature;
     }
 

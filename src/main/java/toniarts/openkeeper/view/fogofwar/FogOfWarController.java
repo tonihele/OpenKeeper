@@ -25,13 +25,12 @@ import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
-import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.fogofwar.FogOfWarRules;
 import toniarts.openkeeper.game.fogofwar.FogState;
 import toniarts.openkeeper.game.fogofwar.LineOfSightTable;
+import toniarts.openkeeper.game.fogofwar.SightOfEvilReveal;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -41,18 +40,17 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
@@ -68,20 +66,6 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
     private static final float VISION_UPDATE_INTERVAL = 0.15f;
 
-    /**
-     * Dungeon-heart reveal disc radii, one per unfolding step (§6.6).
-     */
-    private static final int[] HEART_REVEAL_STEPS = {18, 37, 54, 73, 91, 110, 128};
-
-    /**
-     * Number of {@link #VISION_UPDATE_INTERVAL} passes before the heart
-     * reveal starts. The design document's timing (tick 56-62) is calibrated
-     * to the original's fixed simulation tick rate, which has no equivalent
-     * constant in this engine; this approximates it against our own update
-     * cadence instead.
-     */
-    private static final int HEART_REVEAL_START_INTERVALS = 56;
-
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final IMapDataInformation<? extends IMapTileInformation> mapData;
@@ -96,24 +80,24 @@ public final class FogOfWarController implements IFogOfWarInformation {
     private EntitySet imprisonedCreatures;
     private EntitySet deadCreatures;
     private EntitySet doorEntities;
-    private EntitySet heartRoomEntities;
-
-    /**
-     * Whether the heart rooms already in the set have been looked at.
-     * Render thread only.
-     */
-    private boolean heartRoomsChecked;
 
     private final Map<Point, Entity> doorsByPosition = new HashMap<>();
     private final Set<Point> closedDoorTiles = new HashSet<>();
     private final Set<EntityId> seenEnemies = new HashSet<>();
-    private final List<PendingHeartReveal> pendingHeartReveals = new ArrayList<>();
     private final Set<Point> pendingTaggedTiles = new HashSet<>();
+
+    // Scripts may run on the game thread; visibility is read by the renderer.
+    // Keep their temporary reveals separate from permanent exploration.
+    private final Set<Point> scriptRevealedTiles = ConcurrentHashMap.newKeySet();
 
     private final List<Consumer<Point[]>> additionalTilesDirtyListeners = new ArrayList<>();
 
     private EntityId possessedCreature;
     private float visionUpdateAccumulator;
+
+    private SightOfEvilReveal sightOfEvil;
+    private double sightOfEvilElapsedTicks;
+    private volatile Set<Point> sightOfEvilTiles = Set.of();
 
     public FogOfWarController(EntityData entityData, IKwdFile kwdFile,
             IMapDataInformation<? extends IMapTileInformation> mapData, short viewerId,
@@ -152,7 +136,6 @@ public final class FogOfWarController implements IFogOfWarInformation {
         imprisonedCreatures = entityData.getEntities(CreatureImprisoned.class);
         deadCreatures = entityData.getEntities(Death.class);
         doorEntities = entityData.getEntities(Position.class, DoorComponent.class, DoorViewState.class);
-        heartRoomEntities = entityData.getEntities(RoomComponent.class, Owner.class, DungeonHeart.class);
     }
 
     public void stop() {
@@ -160,30 +143,16 @@ public final class FogOfWarController implements IFogOfWarInformation {
         imprisonedCreatures.release();
         deadCreatures.release();
         doorEntities.release();
-        heartRoomEntities.release();
     }
 
     /**
-     * Advances the fog of war: creature vision, possession, the Dungeon
-     * Heart reveal and the "enemy sighted" check. Must not be called before
+     * Advances the fog of war: creature vision, possession and the
+     * "enemy sighted" check. Must not be called before
      * {@link #seedLevelStart()}, the seeding would wipe what this did.
      *
      * @param tpf time since the last update, in seconds
      */
     public void update(float tpf) {
-        // The first time round, every heart room in the set is new to us,
-        // including the ones that were already there when the set was made
-        heartRoomEntities.applyChanges();
-        Set<Entity> newHeartRooms = heartRoomsChecked ? heartRoomEntities.getAddedEntities() : heartRoomEntities;
-        heartRoomsChecked = true;
-        for (Entity e : newHeartRooms) {
-            Owner owner = e.get(Owner.class);
-            RoomComponent room = e.get(RoomComponent.class);
-            if (owner.ownerId == viewerId && room.location != null) {
-                pendingHeartReveals.add(new PendingHeartReveal(room.location));
-            }
-        }
-
         visionUpdateAccumulator += tpf;
         if (visionUpdateAccumulator >= VISION_UPDATE_INTERVAL) {
             visionUpdateAccumulator -= VISION_UPDATE_INTERVAL;
@@ -191,10 +160,14 @@ public final class FogOfWarController implements IFogOfWarInformation {
             updateDoors();
             updateCreatureVision();
             updatePossession();
-            updateHeartReveals();
         }
 
         Set<Point> dirty = state.drainDirtyTiles();
+        Set<Point> sightOfEvilChanges = updateSightOfEvil(tpf);
+        if (!sightOfEvilChanges.isEmpty()) {
+            dirty = new HashSet<>(dirty);
+            dirty.addAll(sightOfEvilChanges);
+        }
         if (!dirty.isEmpty()) {
             if (!pendingTaggedTiles.isEmpty()) {
                 // A tile that just became visible is no longer "pending" -
@@ -340,28 +313,10 @@ public final class FogOfWarController implements IFogOfWarInformation {
         FogOfWarRules.explore(state, tile.x, tile.y);
     }
 
-    private void updateHeartReveals() {
-        if (pendingHeartReveals.isEmpty()) {
-            return;
-        }
-        float scanRadius = kwdFile.getVariables()
-                .get(Variable.MiscVariable.MiscType.DUNGEON_HEART_CLAIM_SCAN_RADIUS_TILES).getValue();
-
-        Iterator<PendingHeartReveal> it = pendingHeartReveals.iterator();
-        while (it.hasNext()) {
-            PendingHeartReveal reveal = it.next();
-            reveal.elapsedIntervals++;
-            if (reveal.elapsedIntervals < HEART_REVEAL_START_INTERVALS) {
-                continue;
-            }
-            int step = reveal.elapsedIntervals - HEART_REVEAL_START_INTERVALS;
-            if (step >= HEART_REVEAL_STEPS.length) {
-                it.remove();
-                continue;
-            }
-            float radius = scanRadius * HEART_REVEAL_STEPS[step] / 128f;
-            FogOfWarRules.exploreDisc(state, reveal.center.x, reveal.center.y, radius);
-        }
+    private boolean revealsThroughFog(int x, int y) {
+        IMapTileInformation tile = mapData.getTile(x, y);
+        return tile != null
+                && kwdFile.getTerrain(tile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.REVEAL_THROUGH_FOG_OF_WAR);
     }
 
     /**
@@ -377,12 +332,15 @@ public final class FogOfWarController implements IFogOfWarInformation {
      */
     public void seedLevelStart() {
         state.clearAll();
+        Set<Point> previouslyRevealed = new HashSet<>(scriptRevealedTiles);
+        scriptRevealedTiles.clear();
         pendingTaggedTiles.clear();
         seedOwnedAndAlwaysExploredTiles();
         clearBorder();
         seedActionPoints();
 
-        Set<Point> dirty = state.drainDirtyTiles();
+        Set<Point> dirty = new HashSet<>(state.drainDirtyTiles());
+        dirty.addAll(previouslyRevealed);
         if (!dirty.isEmpty()) {
             fireTilesDirty(dirty.toArray(new Point[0]));
         }
@@ -495,14 +453,72 @@ public final class FogOfWarController implements IFogOfWarInformation {
     }
 
     /**
-     * §6.5: scripted reveal/conceal of an action point's tiles.
+     * Scripted reveal/conceal of an action point's tiles. Ending a cinematic
+     * reveal removes only its temporary visibility, preserving tiles already
+     * explored or discovered by creatures/ownership during the reveal.
      */
-    public void revealActionPointTiles(List<Point> points, boolean explore) {
-        if (explore) {
-            FogOfWarRules.exploreTiles(state, points);
-        } else {
-            FogOfWarRules.unexploreTiles(state, points);
+    public void revealActionPointTiles(List<Point> points, boolean reveal) {
+        List<Point> dirty = new ArrayList<>();
+        for (Point point : points) {
+            if (mapData.getTile(point) == null) {
+                continue;
+            }
+            boolean changed = reveal ? scriptRevealedTiles.add(point) : scriptRevealedTiles.remove(point);
+            if (changed) {
+                dirty.add(point);
+            }
         }
+        if (!dirty.isEmpty()) {
+            fireTilesDirty(dirty.toArray(new Point[0]));
+        }
+    }
+
+    /**
+     * The Sight of Evil keeper spell: reveal an area through the fog for a
+     * while, without exploring it. Only one is active at a time, a new cast
+     * replaces the previous one.
+     *
+     * @param centre the cast tile
+     * @param radius the radius of the revealed area, in tiles
+     * @param durationTicks how long the area stays revealed, in game ticks
+     */
+    public void startSightOfEvil(Point centre, int radius, int durationTicks) {
+        sightOfEvil = new SightOfEvilReveal(centre.x, centre.y, radius, durationTicks, mapData.getWidth(), mapData.getHeight());
+        sightOfEvilElapsedTicks = 0;
+    }
+
+    /**
+     * Advances the Sight of Evil reveal
+     *
+     * @param tpf time since the last update, in seconds
+     * @return the tiles that were revealed or hidden again
+     */
+    private Set<Point> updateSightOfEvil(float tpf) {
+        Set<Point> revealed = new HashSet<>();
+        if (sightOfEvil != null) {
+            sightOfEvilElapsedTicks += tpf * kwdFile.getGameLevel().getTicksPerSec();
+            if (sightOfEvil.isOver(sightOfEvilElapsedTicks)) {
+                sightOfEvil = null;
+            } else {
+                for (int x = sightOfEvil.getMinX(); x < sightOfEvil.getMaxX(); x++) {
+                    for (int y = sightOfEvil.getMinY(); y < sightOfEvil.getMaxY(); y++) {
+                        if (sightOfEvil.isRevealed(x, y, sightOfEvilElapsedTicks)) {
+                            revealed.add(new Point(x, y));
+                        }
+                    }
+                }
+            }
+        }
+
+        Set<Point> previous = sightOfEvilTiles;
+        if (revealed.equals(previous)) {
+            return Set.of();
+        }
+        Set<Point> changed = new HashSet<>(revealed);
+        changed.addAll(previous);
+        changed.removeIf(p -> revealed.contains(p) && previous.contains(p));
+        sightOfEvilTiles = Set.copyOf(revealed);
+        return changed;
     }
 
     /**
@@ -534,18 +550,18 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
     @Override
     public boolean isVisible(Point p) {
-        if (possessedCreature != null) {
+        if (possessedCreature != null || scriptRevealedTiles.contains(p)) {
             return true;
         }
-        IMapTileInformation tile = mapData.getTile(p);
-        boolean revealThrough = tile != null
-                && kwdFile.getTerrain(tile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.REVEAL_THROUGH_FOG_OF_WAR);
-        return FogOfWarRules.isVisible(state, p.x, p.y, revealThrough);
+        if (sightOfEvilTiles.contains(p)) {
+            return true;
+        }
+        return FogOfWarRules.isVisible(state, p.x, p.y, revealsThroughFog(p.x, p.y));
     }
 
     @Override
     public boolean isExplored(Point p) {
-        return state.isExplored(p.x, p.y);
+        return state.isExplored(p.x, p.y) || scriptRevealedTiles.contains(p);
     }
 
     @Override
@@ -568,16 +584,6 @@ public final class FogOfWarController implements IFogOfWarInformation {
     @Override
     public boolean isPendingTagged(Point p) {
         return !isVisible(p) && pendingTaggedTiles.contains(p);
-    }
-
-    private static final class PendingHeartReveal {
-
-        final Point center;
-        int elapsedIntervals;
-
-        PendingHeartReveal(Point center) {
-            this.center = center;
-        }
     }
 
 }

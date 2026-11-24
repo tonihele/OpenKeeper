@@ -36,20 +36,25 @@ import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.FollowTarget;
+import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.KeeperSpellCast;
+import toniarts.openkeeper.game.component.LevelIndicator;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.Turncoat;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.WoodenBridgeDecay;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -59,6 +64,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.controller.room.TempleController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
@@ -101,7 +107,9 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -132,6 +140,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private IEntityPositionLookup entityPositionLookup;
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<Short, Keeper> players;
+    private final RoomActionQueue roomActions = new RoomActionQueue();
     private final IGameTimer gameTimer;
     private final GameEventService gameEventService;
 
@@ -176,9 +185,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         shotsController = new ShotsController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo, objectsController, creaturesController, gameEventService);
         sacrificeController = new SacrificeController(entityData, kwdFile.getSacrifices(), creaturesController, objectsController, this, playerControllers, gameEventService);
 
-        // Setup player stuff
-        initPlayerMoney();
+        // Setup player stuff, the rooms first since the starting gold goes to the Dungeon Heart
         initPlayerRooms();
+        initPlayerMoney();
     }
 
     private void initPlayerMoney() {
@@ -193,11 +202,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             }
         }
 
-        // Set up the money$$$
+        // Set up the money$$$, only the keepers get their starting gold. Like in the original, it goes
+        // to the Dungeon Heart first and then to the treasuries, a keeper without a heart doesn't get it
         for (Keeper keeper : players.values()) {
             Player player = kwdFile.getPlayer(keeper.getId());
-            if (player.getStartingGold() > 0) {
-                addGold(keeper.getId(), player.getStartingGold());
+            Point dungeonHeart = keeper.getDungeonHeartLocation();
+            if (player.getStartingGold() > 0 && keeper.getId() >= Player.KEEPER1_ID && dungeonHeart != null) {
+                int goldLeft = addGold(keeper.getId(), dungeonHeart, player.getStartingGold());
+                addGold(keeper.getId(), goldLeft);
             }
         }
     }
@@ -213,8 +225,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 playerController.getRoomControl().init(rooms);
             }
 
-            // Add the listener
+            // Add the listeners, the gold follows the gold rooms when they are captured
             mapController.addListener(player.getId(), playerController.getRoomControl());
+            mapController.addListener(player.getId(), playerController.getGoldControl());
         }
     }
 
@@ -261,7 +274,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 for (IRoomController roomController : mapController.getRoomControllers()) {
                     if (roomController.getRoomInstance().getOwnerId() == playerId && roomController.canStoreGold()) {
                         RoomGoldControl control = roomController.getObjectControl(ObjectType.GOLD);
-                        moneyLeft = control.addItem(sum, p);
+                        moneyLeft = control.addItem(moneyLeft, p);
                         if (moneyLeft == 0) {
                             break;
                         }
@@ -362,31 +375,66 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void build(Vector2f start, Vector2f end, short playerId, short roomId) {
+        // Copy the coordinates: the client's selection vectors can be reused after submission.
+        Vector2f first = start.clone();
+        Vector2f last = end.clone();
+        List<Point> changedTiles = new ArrayList<>();
+        roomActions.add(WorldUtils.vectorToPoint(first), WorldUtils.vectorToPoint(last),
+                () -> prepareRoomBuild(first, last, playerId, roomId, changedTiles),
+                () -> notifyOnRoomSelectionComplete(playerId, changedTiles));
+    }
+
+    void processRoomActions() {
+        roomActions.processTick();
+    }
+
+    void clearRoomActions() {
+        roomActions.clear();
+    }
+
+    private Consumer<List<Point>> prepareRoomBuild(Vector2f start, Vector2f end, short playerId, short roomId,
+            List<Point> changedTiles) {
         Keeper player = players.get(playerId);
         if (player == null) {
-            return;
+            return null;
         }
-
         RoomPlacementValidator.Result placement = RoomPlacementValidator.validate(
                 kwdFile, mapController, this::isConstructionBlocked, start, end,
                 playerId, roomId, player.getGold());
         if (!placement.isValid()) {
-            return;
+            return null;
         }
-
         Room room = kwdFile.getRoomById(roomId);
-        if (!payForRoom(placement.plots().size(), room, playerId)) {
-            return;
-        }
+        Map<Point, Short> selected = placement.plots().stream().collect(Collectors.toMap(
+                point -> point, point -> mapController.getMapData().getTile(point).getTerrainId()));
+        boolean bridge = room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER)
+                || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA);
+        return new Consumer<>() {
+            private boolean placementAnnounced;
 
-        // Skipped tiles may split the selection, build each connected part as its own room
-        List<Point> buildTiles = new ArrayList<>(placement.plots().size());
-        for (List<Point> instancePlots : getConnectedPlots(placement.plots())) {
-            buildRoomInstance(instancePlots, room, playerId, buildTiles);
-        }
-
-        // Notify the build
-        notifyOnBuild(playerId, buildTiles);
+            @Override
+            public void accept(List<Point> diagonal) {
+                List<Point> built = new ArrayList<>(diagonal.size());
+                for (Point tile : diagonal) {
+                    // Queued tiles can have changed ownership, terrain or occupants.
+                    // Bridge connectivity was validated for the whole footprint. Its release
+                    // corner can appear before the tiles connecting it to the shore.
+                    if (!selected.containsKey(tile) || isConstructionBlocked(tile)
+                            || (bridge ? mapController.getMapData().getTile(tile).getTerrainId() != selected.get(tile)
+                                    : !mapController.isBuildable(tile, playerId, roomId))
+                            || !payForRoom(1, room, playerId)) {
+                        continue;
+                    }
+                    buildRoomInstance(List.of(tile), room, playerId, built);
+                }
+                if (!built.isEmpty()) {
+                    changedTiles.addAll(built);
+                    notifyOnBuild(playerId, built);
+                    notifyBuildEvents(room, placement.plots(), built, !placementAnnounced);
+                    placementAnnounced = true;
+                }
+            }
+        };
     }
 
     private void buildRoomInstance(List<Point> instancePlots, Room room, short playerId, List<Point> buildTiles) {
@@ -409,23 +457,21 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             addGoldCapacityToPlayer(instance.getEntityId());
             //notifyOnBuild(instance.getOwnerId(), mapController.getRoomActuals().get(instance));
         }
-
-        // Notify the build
-        notifyOnBuild(playerId, buildTiles);
-        notifyBuildEvents(room, instancePlots, buildTiles);
     }
 
     /**
      * One event for the whole placement, at its top left tile, and one for each tile that appears
      */
-    private void notifyBuildEvents(Room room, List<Point> plots, List<Point> buildTiles) {
+    private void notifyBuildEvents(Room room, List<Point> plots, List<Point> buildTiles, boolean announcePlacement) {
         int minX = Integer.MAX_VALUE;
         int minY = Integer.MAX_VALUE;
         for (Point plot : plots) {
             minX = Math.min(minX, plot.x);
             minY = Math.min(minY, plot.y);
         }
-        gameEventService.emit(GameEventType.ROOM_TILES_LAID, ThingFlag.ROOM, room.getRoomId(), new Point(minX, minY));
+        if (announcePlacement) {
+            gameEventService.emit(GameEventType.ROOM_TILES_LAID, ThingFlag.ROOM, room.getRoomId(), new Point(minX, minY));
+        }
         for (Point tile : buildTiles) {
             gameEventService.emit(GameEventType.ROOM_TILE_BUILT, ThingFlag.ROOM, room.getRoomId(), tile);
         }
@@ -578,13 +624,28 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void sell(Vector2f start, Vector2f end, short playerId) {
-        // A trap is sold on its own, one at a time and never together with rooms
+        // A trap or a door is sold on its own, one at a time and never together with rooms
         Point startTile = new Point((int) start.x, (int) start.y);
-        if (startTile.equals(new Point((int) end.x, (int) end.y)) && sellTrap(startTile, playerId)) {
+        if (startTile.equals(new Point((int) end.x, (int) end.y))
+                && (sellTrap(startTile, playerId) || sellDoor(startTile, playerId))) {
             return;
         }
 
-        Sale sale = sellTiles(start, end, playerId);
+        // Native selling always sweeps from the maximum to the minimum map coordinates.
+        Point first = new Point((int) Math.max(0, Math.min(start.x, end.x)),
+                (int) Math.max(0, Math.min(start.y, end.y)));
+        Point last = new Point((int) Math.min(kwdFile.getMap().getWidth() - 1, Math.max(start.x, end.x)),
+                (int) Math.min(kwdFile.getMap().getHeight() - 1, Math.max(start.y, end.y)));
+        if (first.x > last.x || first.y > last.y) {
+            return;
+        }
+        List<Point> changedTiles = new ArrayList<>();
+        roomActions.add(first, last, () -> diagonal -> sellRoomTiles(diagonal, playerId, changedTiles),
+                () -> notifyOnRoomSelectionComplete(playerId, changedTiles));
+    }
+
+    private void sellRoomTiles(List<Point> tiles, short playerId, List<Point> changedTiles) {
+        Sale sale = sellTiles(tiles, playerId);
         if (sale.soldTiles.isEmpty()) {
             return;
         }
@@ -594,6 +655,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         reattachLairs(detachedLairs);
         restoreGoldCapacity(sale.roomCoordinates);
         returnSaleRevenue(playerId, sale.moneyToReturnByPoint);
+        changedTiles.addAll(sale.soldTiles);
         notifyOnSold(playerId, sale.soldTiles);
     }
 
@@ -621,15 +683,26 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         return false;
     }
 
-    private Sale sellTiles(Vector2f start, Vector2f end, short playerId) {
+    private boolean sellDoor(Point tile, short playerId) {
+        if (mapController.getMapData().getTile(tile) == null) {
+            return false;
+        }
+
+        // Only the entities on the tile, not every door on the map
+        OptionalInt saleValue = doorsController.sellDoor(entityPositionLookup.getEntitiesInLocation(tile), playerId);
+        if (saleValue.isEmpty()) {
+            return false;
+        }
+
+        returnSaleRevenue(playerId, List.of(new AbstractMap.SimpleImmutableEntry<>(tile, saleValue.getAsInt())));
+        return true;
+    }
+
+    private Sale sellTiles(List<Point> tiles, short playerId) {
         Sale sale = new Sale();
-        for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
-            for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
-                Point p = new Point(x, y);
-                if (!mapController.isSellable(p, playerId)) {
-                    continue;
-                }
-                sellTile(p, sale);
+        for (Point tile : tiles) {
+            if (mapController.isSellable(tile, playerId)) {
+                sellTile(tile, sale);
             }
         }
         return sale;
@@ -808,6 +881,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private void notifyDestroyedTiles(Map<Short, List<Point>> destroyedTilesByOwner) {
         for (Map.Entry<Short, List<Point>> entry : destroyedTilesByOwner.entrySet()) {
             notifyOnSold(entry.getKey(), entry.getValue());
+            notifyOnRoomSelectionComplete(entry.getKey(), entry.getValue());
         }
     }
 
@@ -910,6 +984,16 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
     }
 
+    private void notifyOnRoomSelectionComplete(short playerId, List<Point> changedTiles) {
+        if (changedTiles.isEmpty()) {
+            return;
+        }
+        List<Point> completedTiles = List.copyOf(changedTiles);
+        for (PlayerActionListener listener : listeners.getArray()) {
+            listener.onRoomSelectionComplete(playerId, completedTiles);
+        }
+    }
+
     private void notifyOnBuild(short playerId, List<Point> buildTiles) {
         for (PlayerActionListener listener : listeners.getArray()) {
             listener.onBuild(playerId, buildTiles);
@@ -924,7 +1008,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void pickUp(EntityId entity, short playerId) {
-        if (activateSpecialOnOwnLand(entity, playerId)) {
+        if (activateSpecialOnOwnLand(entity, playerId) || switchRoomFurniture(entity, playerId) || turnLevelIndicator(entity, 1)) {
             return;
         }
 
@@ -932,6 +1016,35 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (!playerHandControl.isFull() && canPickUpEntity(entity, playerId, entityData)) {
             putToKeeperHand(playerHandControl, entity, playerId);
         }
+    }
+
+    /**
+     * The My Pet Dungeon level indicator never goes to the hand. Clicking it
+     * turns it one level up and slapping it one level down, round from 10 to
+     * 1 and back, and the Hero Toolbox creatures are set to its level
+     * (DKII.EXE 0x4075E0 sends action 0x82 instead of picking it up, handled at
+     * 0x514320; the slap is 0x49C2A0)
+     *
+     * @param entity the entity clicked on or slapped
+     * @param levels how many levels to turn, negative turns down
+     * @return {@code true} if the entity was a level indicator
+     */
+    private boolean turnLevelIndicator(EntityId entity, int levels) {
+        LevelIndicator levelIndicator = entityData.getComponent(entity, LevelIndicator.class);
+        if (levelIndicator == null) {
+            return false;
+        }
+
+        levelIndicator = levelIndicator.turn(levels);
+        entityData.setComponent(entity, levelIndicator);
+        creaturesController.levelUpTools(levelIndicator.level);
+
+        // Spin it, a new view state plays the animation again
+        ObjectViewState viewState = entityData.getComponent(entity, ObjectViewState.class);
+        if (viewState != null) {
+            entityData.setComponent(entity, new ObjectViewState(viewState.objectId, viewState.state, viewState.animState, viewState.visible, viewState.lairCreatureTypeId));
+        }
+        return true;
     }
 
     /**
@@ -961,8 +1074,29 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
-        entityData.removeEntity(entity);
+        gameEventService.emit(GameEventType.SPECIAL_ACTIVATED, entity, position.position);
+
+        // Also frees the room storage slot, if the special was stored in a room
+        objectsController.createController(entity).remove();
         return true;
+    }
+
+    /**
+     * Some furniture works as a switch when the keeper clicks it in their own
+     * room, instead of being picked up, like the Prison Door Bar in DK II
+     *
+     * @param entity the entity clicked on
+     * @param playerId the player who clicked
+     * @return {@code true} if the entity was a switch and the room used it
+     */
+    private boolean switchRoomFurniture(EntityId entity, short playerId) {
+        Position position = entityData.getComponent(entity, Position.class);
+        if (position == null) {
+            return false;
+        }
+
+        IRoomController room = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
+        return room != null && room.getOwnerId() == playerId && room.switchFurniture(entity);
     }
 
     /**
@@ -1129,7 +1263,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         entityData.removeComponent(entity, Navigation.class);
         entityData.removeComponent(entity, Position.class);
         entityData.removeComponent(entity, CreatureAi.class);
-        entityData.removeComponent(entity, TaskComponent.class);
+
+        // The task component stays, the AI system gives the task up when it sees the AI go. Without that the
+        // task (a lair or guard post, a bench) stays reserved for a creature that is no longer there
         entityData.removeComponent(entity, CreatureRecuperating.class);
         entityData.removeComponent(entity, CreatureTortured.class);
         entityData.removeComponent(entity, CreatureImprisoned.class);
@@ -1141,8 +1277,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // TODO: Should we some sort of room component and notify the room handlers instead?
         // Handle stored stuff
         Stored roomStorage = entityData.getComponent(entity, Stored.class);
-        IRoomController roomController = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
-        if (roomController != null && roomStorage != null) {
+        IRoomController roomController = roomStorage != null ? mapController.getRoomController(roomStorage.room) : null;
+        if (roomController != null) {
             IRoomObjectControl roomObjectControl = roomController.getObjectControl(roomStorage.objectType);
             roomObjectControl.removeItem(entity);
 
@@ -1166,7 +1302,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
         Owner owner = entityData.getComponent(entityId, Owner.class);
-        if (!EntityPickupValidator.isValidOwner(objectComponent, owner, playerId)) {
+        if (!EntityPickupValidator.isValidOwner(objectComponent, owner, playerId, isTool(entityId, entityData))) {
+            return false;
+        }
+
+        // A turncoat can't be picked up by either keeper
+        if (entityData.getComponent(entityId, Turncoat.class) != null) {
             return false;
         }
 
@@ -1224,6 +1365,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (objectComponent != null && interaction.slappable) {
             entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
             notifySlap(entity, playerId);
+            turnLevelIndicator(entity, -1);
             return;
         }
     }
@@ -1239,7 +1381,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
         IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
         Terrain terrain = mapTile != null ? mapController.getTerrain(mapTile) : null;
-        if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapTile, terrain)) {
+        if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapTile, terrain)
+                && !isDropBlocked(entity, tile)) {
             playerHandControl.pop();
             Vector3f dropPosition = new Vector3f(coordinates.x, 0, coordinates.y);
             gameEventService.emit(GameEventType.DROPPED, entity, dropPosition);
@@ -1250,11 +1393,15 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 dropCreature(roomController, entity, tile, coordinates, playerId);
             } else {
 
-                // TODO: handle giving item to creature
-                // See if it is gold added to a room
+                // See if it is gold given to a creature or added to a room
                 ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
+                CreatureComponent dropOnCreature = dropOnEntity != null ? entityData.getComponent(dropOnEntity, CreatureComponent.class) : null;
                 if (objectComponent != null && kwdFile.getObject(objectComponent.objectId).getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
-                    dropGold(entity, roomController, playerId, tile, coordinates);
+                    dropGold(entity, dropOnEntity, roomController, playerId, tile, coordinates);
+                } else if (dropOnCreature != null && dropOnCreature.hungerFill > 0 && entityData.getComponent(entity, Food.class) != null) {
+
+                    // Like in DK II, a chicken dropped on a creature that eats chickens is eaten by it, whoever owns it
+                    creaturesController.createController(dropOnEntity).eat(objectsController.createController(entity));
                 } else {
                     Vector3f pos = new Vector3f(coordinates.x, 1, coordinates.y);
                     entityData.setComponent(entity, new Position(0, pos));
@@ -1267,6 +1414,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean tortureOrImprisonment = false;
         boolean torture = false;
         boolean imprison = false;
+        boolean pitFighter = false;
         CreatureState creatureState = null;
         Position devicePosition = null;
 
@@ -1286,7 +1434,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             Owner owner = entityData.getComponent(entity, Owner.class);
             boolean imp = entityData.getComponent(entity, CreatureComponent.class).creatureId == kwdFile.getImp().getCreatureId();
             CreatureState captiveState = getCaptiveState(roomController, owner.ownerId, imp);
-            if (captiveState == CreatureState.IMPRISONED) {
+            // Like in DK II, the Prison holds prisoners only inside its cage, around it the creature is just dropped
+            if (captiveState == CreatureState.IMPRISONED && roomController instanceof PrisonController prison && prison.isCageTile(tile)) {
                 roomController.getObjectControl(AbstractRoomController.ObjectType.PRISONER).addItem(entity, tile);
                 creatureState = CreatureState.IMPRISONED;
                 imprison = true;
@@ -1313,13 +1462,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             }
             tortureOrImprisonment = imprison || torture;
 
-            // Our own creatures dropped into the pit itself fight there, workers just go back to work
-            if (roomController instanceof CombatPitController combatPit
-                    && roomController.getRoomInstance().getOwnerId() == owner.ownerId
-                    && combatPit.isFightingTile(tile)
-                    && !entityData.getComponent(entity, CreatureComponent.class).worker) {
-                entityData.setComponent(entity, new CombatPitFighter(roomController.getEntityId()));
-            }
+            // Creatures dropped into the pit itself fight there, our prisoners too
+            pitFighter = roomController instanceof CombatPitController combatPit && combatPit.addFighter(entity, tile);
             targetState = getLairRestTarget(roomController, entity, owner.ownerId, tortureOrImprisonment);
         }
 
@@ -1364,7 +1508,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Owner owner = entityData.getComponent(entity, Owner.class);
         if (tortureOrImprisonment) {
             entityData.setComponent(entity, new Owner(owner.ownerId, playerId));
-        } else {
+        } else if (!pitFighter) {
             entityData.setComponent(entity, new Owner(owner.ownerId, owner.ownerId));
         }
     }
@@ -1417,9 +1561,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                         ? CreatureState.GO_TO_SLEEP : null;
     }
 
-    private void dropGold(EntityId entity, IRoomController roomController, short playerId, Point tile, Vector2f coordinates) {
+    private void dropGold(EntityId entity, EntityId dropOnEntity, IRoomController roomController, short playerId, Point tile, Vector2f coordinates) {
         Gold gold = entityData.getComponent(entity, Gold.class);
-        if (roomController != null && roomController.canStoreGold()) {
+        CreatureComponent creature = dropOnEntity != null ? entityData.getComponent(dropOnEntity, CreatureComponent.class) : null;
+        if (creature != null && creature.pay > 0) {
+
+            // Like in DK II, gold dropped on a creature that takes pay is its pay
+            creaturesController.createController(dropOnEntity).takePay(gold.gold);
+        } else if (roomController != null && roomController.canStoreGold()) {
             int leftOverGold = addGold(playerId, tile, gold.gold);
 
             // The treasury is filled first, the rest forms a loose pile in the treasury
@@ -1483,6 +1632,19 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         return null;
     }
 
+    private boolean isDropBlocked(EntityId entity, Point tile) {
+        Set<Point> doorTiles = Set.of();
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+            DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
+            if (doorComponent != null && !doorComponent.blueprint) {
+                doorTiles = Set.of(tile);
+            }
+        }
+        CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
+        return DropValidator.isBlocked(kwdFile, mapController.getMapData(), doorTiles, tile,
+                creatureComponent != null && !creatureComponent.worker);
+    }
+
     private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, IMapTileInformation tile, Terrain terrain) {
 
         // Check if picked up in the first place
@@ -1493,7 +1655,21 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // The same rules as the client
         Interaction interaction = entityData.getComponent(entityId, Interaction.class);
-        return DropValidator.canDrop(interaction, tile, terrain, playerId);
+        return DropValidator.canDrop(interaction, isTool(entityId, entityData), tile, terrain, playerId);
+    }
+
+    /**
+     * A Hero Toolbox creature of My Pet Dungeon ("I am a tool") goes to the
+     * hand of any keeper, like DKII.EXE 0x48E6A0 lets anyone pick up a creature
+     * with the tool flag
+     *
+     * @param entityId the entity
+     * @param entityData the entity data
+     * @return {@code true} if the entity is a Hero Toolbox creature
+     */
+    private static boolean isTool(EntityId entityId, EntityData entityData) {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        return creatureComponent != null && creatureComponent.tool;
     }
 
     @Override
@@ -1584,12 +1760,40 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // Validate. The workers get more expensive the more of them there are
         int manaCost = KeeperSpellCost.getManaCost(keeperSpell, playerControllers.get(playerId).getCreatureControl().getImpCount(),
                 (int) gameSettings.get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue());
-        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapController, mapTile, player, entityData, target, manaCost)) {
+        Creature targetCreature = null;
+        Short targetOwner = null;
+        boolean targetChicken = false;
+        if (target != null) {
+            CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
+            if (creatureComponent != null) {
+                targetCreature = kwdFile.getCreature(creatureComponent.creatureId);
+            }
+            Owner ownerComponent = entityData.getComponent(target, Owner.class);
+            if (ownerComponent != null) {
+                targetOwner = ownerComponent.controlId;
+            }
+            CreatureAi creatureAi = entityData.getComponent(target, CreatureAi.class);
+            targetChicken = creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
+        }
+        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, mapController, mapTile, player, targetCreature, targetOwner, targetChicken, manaCost)
+                || !ReaperSummoner.checkReaperRule(keeperSpell, kwdFile, player, entityData)) {
+            return;
+        }
+
+        double gameTime = gameTimer.getGameTime();
+        if (!KeeperSpellCastValidator.isRecharged(keeperSpell, entityData, playerId, gameTime)) {
             return;
         }
 
         // Deduct the mana
         playerControllers.get(playerId).getManaControl().addMana(-manaCost);
+
+        // Start the recharge
+        EntityId lastCast = KeeperSpellCastValidator.findLastCast(entityData, playerId, keeperSpellId);
+        if (lastCast == null) {
+            lastCast = entityData.createEntity();
+        }
+        entityData.setComponent(lastCast, new KeeperSpellCast(playerId, keeperSpellId, gameTime));
 
         // Cast the spell
         boolean spellUpgraded = researchableEntity.isUpgraded();

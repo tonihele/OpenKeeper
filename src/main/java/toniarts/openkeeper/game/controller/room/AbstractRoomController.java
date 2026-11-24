@@ -56,7 +56,28 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
      */
     public enum ObjectType {
 
-        GOLD, LAIR, SPELL_BOOK, SPECIAL, RESEARCHER, PRISONER, TORTUREE, FOOD, TRAINEE, MANUFACTURER, CRATE, WORSHIPPER, GUARD, GAMBLER, CORPSE;
+        GOLD, LAIR, SPELL_BOOK, SPECIAL, RESEARCHER, PRISONER, TORTUREE, FOOD, TRAINEE(true), MANUFACTURER, CRATE, WORSHIPPER(true), GUARD(true), GAMBLER(true), CORPSE;
+
+        private final boolean occupiedByCreatures;
+
+        private ObjectType() {
+            this(false);
+        }
+
+        private ObjectType(boolean occupiedByCreatures) {
+            this.occupiedByCreatures = occupiedByCreatures;
+        }
+
+        /**
+         * Tells whether the room's used capacity is the number of creatures
+         * that are doing a job in it, like the trainees of a Training Room,
+         * counted once they are in the room
+         *
+         * @return true if the creatures count
+         */
+        public boolean isOccupiedByCreatures() {
+            return occupiedByCreatures;
+        }
 
     };
 
@@ -211,7 +232,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
 
                         // Add object
                         objectMap[x][y] = true;
-                        EntityId object = objectsController.loadObject(room.getObjects().get(index), (short) 0, start.x + x, start.y + y);
+                        EntityId object = constructFloorObject(room.getObjects().get(index), new Point(start.x + x, start.y + y));
                         floorFurniture.add(object);
                     }
                 }
@@ -230,9 +251,24 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         // DK II (0x4EDFC0) picks each tile's object by a random number seeded from the tile
         for (Map.Entry<Point, WallDirection> tile : WallSection.findWallFurnitureTiles(roomInstance).entrySet()) {
             Point p = tile.getKey();
-            int seed = random(nextSeed(p.y), 0x2286) ^ random(nextSeed(p.x), 0x16F2);
-            wallFurniture.addAll(constructWallObject(wallObjects.get(random(nextSeed(seed), wallObjects.size())), p, tile.getValue()));
+            wallFurniture.addAll(constructWallObject(wallObjects.get(getTileRandom(p, wallObjects.size())), p, tile.getValue()));
         }
+    }
+
+    /**
+     * Places a floor object at the centre of a room tile.
+     */
+    protected EntityId constructFloorObject(short objectId, Point p) {
+        return objectsController.loadObject(objectId, (short) 0, p.x, p.y);
+    }
+
+    /**
+     * Picks a repeatable furniture choice from absolute map coordinates, using
+     * DK II's tile-seeded random number generator (0x4EDFC0).
+     */
+    protected static int getTileRandom(Point p, int bound) {
+        int seed = random(nextSeed(p.y), 0x2286) ^ random(nextSeed(p.x), 0x16F2);
+        return random(nextSeed(seed), bound);
     }
 
     /**

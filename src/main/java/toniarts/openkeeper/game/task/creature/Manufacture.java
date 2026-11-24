@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -55,7 +56,7 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
 
         // The workshop is there and has room for another crate, without a creature only that is asked
         return super.isValid(creature)
-                && (creature == null || creature.getManufacturePerSecond() > 0)
+                && (creature == null || creature.getManufacturePerTick() > 0)
                 && manufactureControl.getOrder() != null;
     }
 
@@ -96,25 +97,17 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        // Work a second at a time, the logic runs several ticks a second
-        if (executionDuration - getExecutionDuration(creature) < 1.0f) {
-            return;
-        }
-        setExecutionDuration(creature, getExecutionDuration(creature) + 1.0f);
-
+        // DK II adds the creature's manufacture points per tick on every game tick
         ManufactureOrders.Order order = manufactureControl.getOrder();
-        if (order == null || !manufactureControl.manufacture(creature.getManufacturePerSecond(), order.manufToBuild())) {
+        if (order == null || !manufactureControl.manufacture(creature.getManufacturePerTick(), order.manufToBuild())) {
             return;
         }
 
-        // The trap or door is done, put its crate into the workshop
-        EntityId crate = objectsController.addRoomCrate(order.crateObjectId(), playerId, getTaskLocation().x, getTaskLocation().y,
+        // The trap or door is done. Like DK II (0x4F5240) the crate is nobody's until the workshop takes it, and without
+        // room in the workshop it stays on the floor
+        EntityId crate = objectsController.addRoomCrate(order.crateObjectId(), Player.NEUTRAL_PLAYER_ID, getTaskLocation().x, getTaskLocation().y,
                 order.type(), order.typeId());
-        if (getRoomObjectControl().addItem(crate, null) != null) {
-
-            // No room for it after all
-            objectsController.createController(crate).remove();
-        }
+        getRoomObjectControl().addItem(crate, null);
     }
 
     @Override

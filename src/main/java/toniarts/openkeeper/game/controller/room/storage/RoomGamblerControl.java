@@ -30,7 +30,8 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * Holds the gamblers of a Casino, one at each piece of its furniture
+ * Holds the gamblers of a Casino, one at each piece of its furniture and one
+ * more
  */
 public final class RoomGamblerControl extends AbstractRoomObjectControl<EntityId> {
 
@@ -45,22 +46,23 @@ public final class RoomGamblerControl extends AbstractRoomObjectControl<EntityId
 
     @Override
     protected int getNumberOfAccessibleTiles() {
-        return parent.getFloorFurnitureCount() + parent.getWallFurnitureCount();
+
+        // One gambler per piece of furniture, plus one, like in DK II
+        int furnitureCount = parent.getFloorFurnitureCount() + parent.getWallFurnitureCount();
+        return furnitureCount > 0 ? furnitureCount + 1 : 0;
     }
 
     @Override
     public EntityId addItem(EntityId gambler, Point p) {
-        setRoomStorageToItem(gambler, false);
-        addCurrentCapacity(1);
-
-        return gambler;
+        return addOccupant(gambler);
     }
 
     @Override
     public void removeItem(EntityId object) {
-        super.removeItem(object);
-
-        addCurrentCapacity(-1);
+        if (contains(object)) {
+            super.removeItem(object);
+            addCurrentCapacity(-1);
+        }
     }
 
     @Override

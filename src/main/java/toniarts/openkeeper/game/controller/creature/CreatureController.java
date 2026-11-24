@@ -28,7 +28,11 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.BackOff;
 import toniarts.openkeeper.game.component.CallToArms;
+import toniarts.openkeeper.game.component.CasinoBigWinner;
+import toniarts.openkeeper.game.component.CasinoDisco;
+import toniarts.openkeeper.game.component.CastShot;
 import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -38,6 +42,7 @@ import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.CreaturePay;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpell;
@@ -55,15 +60,19 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
+import toniarts.openkeeper.game.component.PathRetry;
+import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
+import toniarts.openkeeper.game.component.ReturnToHeroLair;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
+import toniarts.openkeeper.game.component.Turncoat;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.ICreaturesController;
@@ -78,6 +87,7 @@ import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
@@ -89,14 +99,17 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
+import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger;
@@ -104,11 +117,14 @@ import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
 /**
@@ -121,7 +137,32 @@ import java.util.function.Consumer;
 // skipcq: JAVA-W0100
 public final class CreatureController extends EntityController implements ICreatureController {
 
+    /**
+     * Fight turns in a row with the threat over our fear that scare us
+     */
+    private static final int SCARED_OVER_THREAT_CHECKS = 3;
+    /**
+     * Within this many tiles of our own Dungeon Heart, the threat to us is
+     * taken lighter the nearer we are
+     */
+    private static final int HEART_THREAT_DISTANCE = 10;
+    /**
+     * The least distance, in tiles, a creature backs off from its target
+     */
+    private static final float BACK_OFF_RANGE = 2f;
+
     private static final Logger logger = System.getLogger(CreatureController.class.getName());
+
+    /**
+     * How far from the threat, in tiles, a fleeing creature aims. The distance
+     * DKII.EXE adds to the effect radius is 2, the radius is guessed at 5
+     */
+    private static final int FLEE_DISTANCE = 7;
+    /**
+     * How far, in tiles, a recuperating hero wanders on its own land (DK II
+     * 0x461B50 asks 0x461BB0 for a tile this far)
+     */
+    private static final int OWN_LAND_WANDER_DISTANCE = 10;
 
     /**
      * Possessed movement speed relative to walking forward
@@ -129,7 +170,17 @@ public final class CreatureController extends EntityController implements ICreat
     private static final float POSSESSED_BACKWARD_SPEED_FACTOR = 0.5f;
     private static final float POSSESSED_STRAFE_SPEED_FACTOR = 0.667f;
     private static final float SPEED_MULTIPLIER = 2f;
+    // DK II's 0xD000, under 13 square tiles from the heart's centre
+    private static final float NEAR_OWN_HEART_DISTANCE_SQUARED = 13 * WorldUtils.TILE_WIDTH * WorldUtils.TILE_WIDTH;
+    /**
+     * How long the big winner of the Casino celebrates its jackpot, as in DK II (DKII.EXE 0x456EC0)
+     */
+    private static final float BIG_WINNER_CELEBRATION_SECONDS = 10f;
     private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
+    /**
+     * How long an idle hero does nothing before it tries its objective again, as in DK II (DKII.EXE 0x477850)
+     */
+    private static final int HERO_IDLE_TICKS = 12;
 
     /**
      * The possessed melee attack hits what is at most 341/2048 of a full
@@ -137,6 +188,22 @@ public final class CreatureController extends EntityController implements ICreat
      * that angle
      */
     private static final float POSSESSED_ATTACK_MIN_FACING = FastMath.cos(341 / 2048f * FastMath.TWO_PI);
+
+    /**
+     * The states the Chicken spell interrupts, the creature is going about its own business in these
+     */
+    private static final Set<CreatureState> CHICKEN_INTERRUPTIBLE_STATES = EnumSet.of(CreatureState.IDLE,
+            CreatureState.WANDER, CreatureState.WORK, CreatureState.FIGHT, CreatureState.FOLLOW, CreatureState.FLEE,
+            CreatureState.SLEEPING, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL, CreatureState.EATING,
+            CreatureState.CHICKEN);
+
+    /**
+     * The states a meal interrupts. Like in DK II, a creature busy with
+     * something else, say fighting, sleeping or held in prison, gets the food
+     * of a chicken it is given without stopping to eat it
+     */
+    private static final Set<CreatureState> EAT_INTERRUPTIBLE_STATES = EnumSet.of(CreatureState.IDLE,
+            CreatureState.WANDER, CreatureState.WORK, CreatureState.DANCING);
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -161,7 +228,7 @@ public final class CreatureController extends EntityController implements ICreat
         this.taskManager = taskManager;
         this.creature = creature;
         this.gameTimer = gameTimer;
-        this.gameSettings = gameSettings;
+        this.gameSettings = Collections.unmodifiableMap(gameSettings);
         this.creaturesController = creaturesController;
         this.entityPositionLookup = entityPositionLookup;
         this.levelInfo = levelInfo;
@@ -186,38 +253,47 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public void completeDungeonEntrance() {
+        Position position = entityData.getComponent(entityId, Position.class);
+        var offset = creature.getAnimationOffsets(Creature.OffsetType.PORTAL_ENTRANCE);
+        if (position == null || offset == null) {
+            return;
+        }
+        // DKII 0x459c91..0x459d2d adds offset slot 0 in world XY (no rotation),
+        // then replaces Z with floor height before switching to idle.
+        entityData.setComponent(entityId, new Position(position.rotation,
+                new Vector3f(position.position.x + offset.x, WorldUtils.FLOOR_HEIGHT,
+                        position.position.z + offset.y)));
+    }
+
+    @Override
     public boolean shouldFleeOrAttack() {
         checkSurroundings();
 
         // Check fleeing, TODO: Always flee?
+        boolean fighter = creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER;
         boolean inDHeart = false;
-        if (entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter()) {
-            Threat threatComponent = entityData.getComponent(entityId, Threat.class);
-            int threat = threatComponent != null ? threatComponent.threat : 0;
-            int fear = entityData.getComponent(entityId, CreatureComponent.class).fear;
-            int threatToUs = getEnemyThreat();
-            int threatCaused = creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE)
-                    || isHealthAtCriticalLevel() ? threat : getOurThreat();
-            if (threatToUs - threatCaused > fear && (getFellowFighters() == 0
-                    || creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE))) {
+        if (entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter() && isThreatTooHigh()) {
 
-                // No longer flee from DHeart
-                IRoomController roomController = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
-                if (roomController == null || !roomController.isDungeonHeart()) {
-                    if (!stateMachine.isInState(CreatureState.FLEE)) {
+            // No longer flee from DHeart, our own one that still stands. A non-fighter stands its ground
+            // near it, where DK II's take on an enemy in reach instead of withdrawing (0x45BDF0)
+            IRoomController roomController = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
+            if (fighter ? roomController == null || !roomController.isDungeonHeart()
+                    || roomController.getOwnerId() != getOwnerId() || roomController.isDestroyed() : !isNearOwnHeart()) {
+                if (!stateMachine.isInState(CreatureState.FLEE)) {
 
-                        stateMachine.changeState(CreatureState.FLEE);
-                    }
-                    return true;
-                } else {
-                    inDHeart = true;
+                    stateMachine.changeState(CreatureState.FLEE);
                 }
+                return true;
+            } else {
+                inDHeart = true;
             }
         }
 
-        // Should we attack, try to avoid i.e. imps engaging in a fight
-        if ((creature.getFightStyle()
-                != Creature.FightStyle.NON_FIGHTER || inDHeart) && getAttackTarget() != null
+        // Should we attack, try to avoid i.e. imps engaging in a fight. Near their own heart they
+        // only hit back at an enemy in reach, which DK II makes one tile, and otherwise keep working
+        IEntityController attackTarget = fighter || inDHeart ? getAttackTarget() : null;
+        if (attackTarget != null && (fighter || isInRange(WorldUtils.TILE_WIDTH, attackTarget.getEntityId()))
                 && (stateMachine.isInState(CreatureState.FIGHT) || isNearCallToArms())) {
             if (!stateMachine.isInState(CreatureState.FIGHT)) {
                 stateMachine.changeState(CreatureState.FIGHT);
@@ -226,6 +302,42 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         return false;
+    }
+
+    /**
+     * DK II's non-fighters fight an enemy in reach within 13 square tiles of the
+     * centre of their own Dungeon Heart (0xD000 in 0x45BDF0), as long as it stands
+     */
+    private boolean isNearOwnHeart() {
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+        Point heart = keeper != null ? keeper.getDungeonHeartLocation() : null;
+        if (heart == null) {
+            return false;
+        }
+        IRoomController room = mapController.getRoomControllerByCoordinates(heart);
+        if (room == null || room.isDestroyed()) {
+            return false;
+        }
+        Vector3f position = getPosition();
+        return WorldUtils.pointToVector2f(heart).distanceSquared(position.x, position.z) < NEAR_OWN_HEART_DISTANCE_SQUARED;
+    }
+
+    /**
+     * Tells whether the threat to us, less the threat we cause, is over our
+     * fear while no fellow fighters are with us. A creature that always flees
+     * doesn't count on fellow fighters
+     *
+     * @return true if we should flee
+     */
+    private boolean isThreatTooHigh() {
+        Threat threatComponent = entityData.getComponent(entityId, Threat.class);
+        int threat = threatComponent != null ? threatComponent.threat : 0;
+        int fear = entityData.getComponent(entityId, CreatureComponent.class).fear;
+        int threatToUs = getEnemyThreat();
+        int threatCaused = creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE)
+                || isHealthAtCriticalLevel() ? threat : getOurThreat();
+        return threatToUs - threatCaused > fear && (getFellowFighters() == 0
+                || creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE));
     }
 
     @Override
@@ -277,7 +389,7 @@ public final class CreatureController extends EntityController implements ICreat
     private int getEnemyThreat() {
         int enemyThreat = 0;
         for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
-            if (isEnemy(entity) && isThreat(entity)) {
+            if (isEnemy(entity) && isThreat(entity) && ThreatSource.isThreateningUs(entityData, entity, entityId)) {
                 enemyThreat += getThreat(entity);
             }
         }
@@ -292,7 +404,7 @@ public final class CreatureController extends EntityController implements ICreat
      * @return is the entity a threat to anyone
      */
     private boolean isThreat(EntityId entity) {
-        return !isIncapacitated(entity) && !isCaptive(entity);
+        return !isIncapacitated(entity) && !isCaptive(entity) && !isChicken(entity);
     }
 
     /**
@@ -522,7 +634,10 @@ public final class CreatureController extends EntityController implements ICreat
             entityData.setComponent(entityId, new TaskComponent(taskComponent.taskId, taskComponent.targetEntity, taskComponent.targetLocation, taskComponent.taskType, taskComponent.taskDuration, true));
         }
         if (isAssignedTaskValid()) {
-            getAssignedTask().executeTask(this, taskComponent.taskDuration);
+            Task task = getAssignedTask();
+            if (!task.moveToOtherSpot(this, taskComponent.taskDuration)) {
+                task.executeTask(this, taskComponent.taskDuration);
+            }
         }
     }
 
@@ -550,6 +665,9 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void navigateToAssignedTask() {
+        if (isWaitingToRetryPath()) {
+            return;
+        }
         Task assignedTask = getAssignedTask();
         if (assignedTask != null) {
             Vector2f loc = assignedTask.getTarget(this);
@@ -576,9 +694,25 @@ public final class CreatureController extends EntityController implements ICreat
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, Vector2f workPosition) {
         GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
+            entityData.setComponent(entityId, new PathRetry(destination, gameTimer.getGameTime()));
             logger.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
             return true;
         }
+
+        // An enemy door in the way is not walked through, it is broken down
+        List<Point> tiles = new ArrayList<>(path.getCount());
+        path.forEach(tile -> tiles.add(tile.getLocation()));
+        int doorIndex = DoorAttackTarget.getDoorIndex(tiles, this::isDoorToBreak);
+        if (doorIndex == DoorAttackTarget.ADJACENT_DOOR_INDEX) {
+            attackDoor(getBlockingDoor(tiles.get(doorIndex)));
+            return false;
+        } else if (doorIndex > DoorAttackTarget.ADJACENT_DOOR_INDEX) {
+            path = DoorAttackTarget.stopBefore(path, doorIndex);
+            destination = tiles.get(doorIndex - 1);
+            faceTarget = tiles.get(doorIndex);
+            workPosition = null;
+        }
+
         List<Vector2> navigationPath = SteeringUtils.pathToList(path);
         if (workPosition != null) {
             Vector3f position = getPosition();
@@ -588,13 +722,105 @@ public final class CreatureController extends EntityController implements ICreat
         return false;
     }
 
+    /**
+     * Tells if the assigned task is where a search for a path found nothing
+     * lately. Searching again at once, on every tick, would only fail again
+     */
+    private boolean isWaitingToRetryPath() {
+        Task assignedTask = getAssignedTask();
+        Vector2f target = assignedTask != null ? assignedTask.getTarget(this) : null;
+        PathRetry pathRetry = entityData.getComponent(entityId, PathRetry.class);
+        return target != null && pathRetry != null && pathRetry.isWaiting(WorldUtils.vectorToPoint(target), gameTimer.getGameTime());
+    }
+
+    @Override
+    public boolean attackVisibleTrap() {
+        // Ordinary trap selection uses the same willingness gate as creature combat (DK II 0x45A6D0).
+        if (entityData.getComponent(entityId, Peaceful.class) != null
+                || !TrapAttackTarget.attacksTraps(creature.getFightStyle(), getOwnerId())) {
+            return false;
+        }
+        EntityId trap = TrapAttackTarget.findNearest(entityPositionLookup.getSensedEntities(entityId), this::isTrapToAttack,
+                this::getDistanceToCreature, creature.getAttributes().getDistanceCanSee(), isWorker(),
+                target -> isWithinAttackDistance(target) || hasPathToEntity(target));
+        if (trap == null) {
+            return false;
+        }
+
+        if (isWithinAttackDistance(trap)) {
+            stopCreature();
+            executeAttack(trap);
+        } else {
+            navigateToAttackTarget(trap);
+        }
+        return true;
+    }
+
+    private boolean isTrapToAttack(EntityId entity) {
+        return TrapAttackTarget.isAttackable(entityData, entity) && isEnemy(entity);
+    }
+
+    public boolean attackAdjacentDoor() {
+        // The native idle door scan checks willingness before looking at adjacent tiles (0x481400).
+        if (entityData.getComponent(entityId, Peaceful.class) != null
+                || !DoorAttackTarget.attacksAdjacentWhenIdle(getOwnerId())) {
+            return false;
+        }
+        Position position = entityData.getComponent(entityId, Position.class);
+        Point tile = position != null ? WorldUtils.vectorToPoint(position.position) : null;
+        EntityId door = DoorAttackTarget.findAdjacent(tile, this::getBlockingDoor, this::canBreakDoor);
+        if (door == null) {
+            return false;
+        }
+        attackDoor(door);
+        return true;
+    }
+
+    @Override
+    public boolean canBreakDoor(EntityId door) {
+        // A follower keeps behind its leader, and the leader breaks the door (DKII.EXE 0x462130 walks with
+        // the own-doors-only flag, see 0x4C8BD0)
+        IPartyController party = getParty();
+        if (party != null && !party.isPartyLeader(this)) {
+            return false;
+        }
+        return DoorAttackTarget.canBreak(entityData, door, creature.getFightStyle(), isEnemy(door));
+    }
+
+    private boolean isDoorToBreak(Point tile) {
+        EntityId door = getBlockingDoor(tile);
+        return door != null && canBreakDoor(door);
+    }
+
+    private EntityId getBlockingDoor(Point tile) {
+        return entityPositionLookup.getBlockingDoor(tile.x, tile.y, getOwnerId());
+    }
+
+    /**
+     * Hits a door that is next to us with the melee attack, as often as the
+     * attack recharges
+     *
+     * @param door the door
+     */
+    private void attackDoor(EntityId door) {
+        CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+        if (creatureMeleeAttack != null && isAttackRecharged(creatureMeleeAttack)) {
+            entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
+            stateMachine.changeState(CreatureState.MELEE_ATTACK);
+            setDamage(door, creatureMeleeAttack.damage);
+        }
+    }
+
     @Override
     public boolean isAtAssignedTaskTarget() {
         Task assignedTask = getAssignedTask();
-        return (assignedTask != null && assignedTask.getTarget(this) != null
-                //&& !workNavigationRequired
-                && isStopped()
-                && isNear(assignedTask.getTarget(this)));
+
+        // Stopped comes first and the target is asked once, a task may search a path for its target
+        if (assignedTask == null || !isStopped()) {
+            return false;
+        }
+        Vector2f target = assignedTask.getTarget(this);
+        return target != null && isNear(target);
     }
 
     private boolean isNear(Vector2f target) {
@@ -630,34 +856,46 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
-    public ICreatureController getAttackTarget() {
+    public IEntityController getAttackTarget() {
         CombatPitFighter pitFighter = entityData.getComponent(entityId, CombatPitFighter.class);
         if (pitFighter != null) {
             return getCombatPitOpponent(pitFighter.pit);
         }
-        AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
-        ICreatureController attackTargetController = null;
-        if (attackTarget == null || isIncapacitated(attackTarget.entityId)
-                || isFleeing(attackTarget.entityId) || isCaptive(attackTarget.entityId)) {
 
-            // Pick a new target
-            // TODO: is there any preference? Now just take the nearest
-            // TODO: creatures only now
-            EntityId nearestEnemy = null;
-            float nearestDistance = Float.MAX_VALUE;
-            for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
-                if (creaturesController.isValidEntity(entity)
-                        && isEnemy(entity)
-                        && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
-                        && (hasPathToEntity(entity) || isWithinAttackDistance(entity))) {
-                    float distance = getDistanceToCreature(entity);
-                    if (distance < nearestDistance) {
-                        nearestDistance = distance;
-                        nearestEnemy = entity;
-                    }
-                }
+        // One that won't fight neither picks a target nor keeps the one it has (DK II 0x45A6D0, 0x45F030)
+        if (entityData.getComponent(entityId, Peaceful.class) != null) {
+            setAttackTarget(null);
+            return null;
+        }
+        AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
+        if (attackTarget != null && DungeonHeartTarget.isDungeonHeart(entityData, attackTarget.entityId)) {
+            if (isHeartToAttack(attackTarget.entityId)) {
+                return getTargetWhileAttackingHeart(attackTarget.entityId);
             }
-            if (nearestEnemy != null) {
+            attackTarget = null;
+        }
+        IEntityController attackTargetController = null;
+
+        // A Horned Reaper picks his prey over the whole map and hunts it down even when it runs (DKII.EXE 0x45E1B0)
+        if (attackTarget == null || isIncapacitated(attackTarget.entityId)
+                || isFleeing(attackTarget.entityId) && !creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)
+                || isCaptive(attackTarget.entityId)
+                || !isEnemy(attackTarget.entityId)
+                || isUnreachable(attackTarget.entityId)) {
+
+            // Pick a new target, the nearest enemy already attacking us comes first
+            // TODO: creatures only now
+            EntityId nearestEnemy = getNearestEnemy(false);
+
+            // With no one but workers to fight, go for an enemy heart in sight
+            EntityId heart = null;
+            if (getNearestEnemy(true) == null) {
+                heart = getNearestEnemyHeart(nearestEnemy != null ? getDistanceToCreature(nearestEnemy) : Float.MAX_VALUE);
+            }
+            if (heart != null) {
+                attackTargetController = objectsController.createController(heart);
+                setAttackTarget(heart);
+            } else if (nearestEnemy != null) {
                 attackTargetController = creaturesController.createController(nearestEnemy);
                 setAttackTarget(nearestEnemy);
             } else {
@@ -732,6 +970,175 @@ public final class CreatureController extends EntityController implements ICreat
         return creatureExperience != null && creatureExperience.level >= (int) gameSettings.get(Variable.MiscVariable.MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL).getValue();
     }
 
+    /**
+     * Picks a target while we are hitting a heart
+     *
+     * @param heart the heart we are hitting
+     * @return the new target, or the heart if we go on hitting it
+     */
+    private IEntityController getTargetWhileAttackingHeart(EntityId heart) {
+
+        // The original picks a target again while hitting a heart, leave it for any fighter that shows up,
+        // or for a worker nearer than the heart
+        EntityId enemy = getNearestEnemy(true);
+        if (enemy == null) {
+            enemy = getNearestEnemy(false);
+            if (enemy != null && getDistanceToCreature(enemy) >= getDistanceToCreature(heart)) {
+                enemy = null;
+            }
+        }
+        if (enemy == null) {
+            return objectsController.createController(heart);
+        }
+        setAttackTarget(enemy);
+        return creaturesController.createController(enemy);
+    }
+
+    /**
+     * Finds the enemy creature we sense and can fight, the nearest enemy
+     * already attacking us first
+     *
+     * @param fightersOnly leave the workers out
+     * @return the creature, or {@code null} if there is none
+     */
+    private EntityId getNearestEnemy(boolean fightersOnly) {
+        EntityId nearestEnemy = null;
+        float nearestDistance = Float.MAX_VALUE;
+        EntityId nearestAttacker = null;
+        float nearestAttackerDistance = Float.MAX_VALUE;
+        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            if (creaturesController.isValidEntity(entity)
+                    && isEnemy(entity)
+                    && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
+                    && !(fightersOnly && creaturesController.createController(entity).isWorker())
+                    && hasRoomForAttacker(entity)
+                    && (hasPathToEntity(entity) || isWithinAttackDistance(entity))) {
+                float distance = getDistanceToCreature(entity);
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearestEnemy = entity;
+                }
+                if (distance < nearestAttackerDistance && isAttacking(entity, entityId)) {
+                    nearestAttackerDistance = distance;
+                    nearestAttacker = entity;
+                }
+            }
+        }
+
+        return nearestAttacker != null ? nearestAttacker : nearestEnemy;
+    }
+
+    /**
+     * Finds the nearest enemy Dungeon Heart we sense and can get next to
+     *
+     * @param maxDistance the heart needs to be nearer than this
+     * @return the heart, or {@code null} if there is none
+     */
+    private EntityId getNearestEnemyHeart(float maxDistance) {
+        EntityId nearestHeart = null;
+        float nearestDistance = maxDistance;
+        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            if (DungeonHeartTarget.isDungeonHeart(entityData, entity) && isHeartToAttack(entity)
+                    && getHeartAttackTile(entity) != null) {
+                float distance = getDistanceToCreature(entity);
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearestHeart = entity;
+                }
+            }
+        }
+
+        return nearestHeart;
+    }
+
+    private float getMeleeRange() {
+        return entityData.getComponent(entityId, CreatureMeleeAttack.class).range;
+    }
+
+    private boolean isHeartToAttack(EntityId heart) {
+        Health health = entityData.getComponent(heart, Health.class);
+        return health != null && health.health > 0 && isEnemy(heart)
+                && creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER;
+    }
+
+    private Point getHeartTile(EntityId heart) {
+        return WorldUtils.vectorToPoint(getPosition(entityData, heart));
+    }
+
+    private Point getHeartAttackTile(EntityId heart) {
+        Point ourPosition = getCreatureCoordinates();
+        return DungeonHeartTarget.getAttackTile(ourPosition, getHeartTile(heart), getMeleeRange(),
+                tile -> tile.equals(ourPosition) || isWalkable(tile) && navigationService.findPath(ourPosition, tile, this) != null);
+    }
+
+    /**
+     * A cheap check to save a path search to a wall
+     */
+    private boolean isWalkable(Point tile) {
+        IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
+        return mapTile != null && !mapController.getTerrain(mapTile).getFlags().contains(Terrain.TerrainFlag.SOLID);
+    }
+
+    /**
+     * Tells if a target is out of reach with no way to it. DK II's fight
+     * state picks a target again whenever its target is out of reach, and only
+     * one it can walk to (0x45F030, 0x45CB00), so such a target is dropped.
+     * One already walked to has a way to it.
+     *
+     * @param entity the target
+     * @return true if it can't be hit nor walked to
+     */
+    private boolean isUnreachable(EntityId entity) {
+        return entityData.getComponent(entityId, Navigation.class) == null && !isWithinAttackDistance(entity)
+                && !hasPathToEntity(entity);
+    }
+
+    private boolean isAttacking(EntityId attacker, EntityId target) {
+        AttackTarget attackTarget = entityData.getComponent(attacker, AttackTarget.class);
+        return attackTarget != null && target.equals(attackTarget.entityId);
+    }
+
+    /**
+     * Checks that the target can take one more attacker, we may already be one
+     * of them. Like DK II (0x45A9A0), the melee attackers and the ones with
+     * attack spells have room for 8 each, and one with spells that finds no
+     * room among them fights in melee (0x45A550)
+     *
+     * @param target the creature we would like to attack
+     * @return true if we can join the fight against the target
+     */
+    private boolean hasRoomForAttacker(EntityId target) {
+        int meleeAttackers = 0;
+        int rangedAttackers = 0;
+        for (EntityId attacker : entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", target), AttackTarget.class)) {
+            if (attacker.equals(entityId)) {
+                return true;
+            }
+            if (hasAttackSpell(attacker)) {
+                rangedAttackers++;
+            } else {
+                meleeAttackers++;
+            }
+        }
+        meleeAttackers += Math.max(0, rangedAttackers - CombatRules.MAX_RANGED_ATTACKERS);
+
+        return meleeAttackers < CombatRules.MAX_MELEE_ATTACKERS
+                || rangedAttackers < CombatRules.MAX_RANGED_ATTACKERS && hasAttackSpell(entityId);
+    }
+
+    private boolean hasAttackSpell(EntityId creature) {
+        CreatureSpells creatureSpells = entityData.getComponent(creature, CreatureSpells.class);
+        if (creatureSpells != null) {
+            for (EntityId creatureSpellEntity : creatureSpells.creatureSpells) {
+                CreatureSpell spell = entityData.getComponent(creatureSpellEntity, CreatureSpell.class);
+                if (spell != null && levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId).getFlags().contains(CreatureSpellFlag.IS_ATTACKING)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private boolean hasPathToEntity(EntityId entity) {
         Point ourPos = WorldUtils.vectorToPoint(getPosition());
         Point theirPos = WorldUtils.vectorToPoint(getPosition(entityData, entity));
@@ -749,6 +1156,9 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean isWithinAttackDistance(EntityId attackTarget) {
+        if (DungeonHeartTarget.isDungeonHeart(entityData, attackTarget)) {
+            return DungeonHeartTarget.isInReach(WorldUtils.vector3fToVector2f(getPosition()), getHeartTile(attackTarget), getMeleeRange());
+        }
         float distanceNeeded = Math.max(getPreferredAttackDistance(), getPossibleAttackDistance());
 
         // TODO: currently we move only with a tile precision, so accept attack if on the same tile already
@@ -842,10 +1252,12 @@ public final class CreatureController extends EntityController implements ICreat
         // TODO: how to apply the damage? Create a component for THIS creature that adds the damage to enemy after the countdown is finished?
         // Always prefer melee if in range
         CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
-        if (isInRange(creatureMeleeAttack.range, attackTarget)) {
+        if (DungeonHeartTarget.isDungeonHeart(entityData, attackTarget)
+                ? isWithinAttackDistance(attackTarget) : isInRange(creatureMeleeAttack.range, attackTarget)) {
             if (isAttackRecharged(creatureMeleeAttack)) {
                 stateMachine.changeState(CreatureState.MELEE_ATTACK);
-                hitWithMelee(attackTarget, creatureMeleeAttack, getCombatPitDamage(attackTarget, creatureMeleeAttack.damage));
+                hitWithMelee(attackTarget, creatureMeleeAttack, getMeleeDamageTaken(attackTarget,
+                        getCombatPitDamage(attackTarget, creatureMeleeAttack.damage)));
             }
         } else {
             Optional<CreatureSpell> attack = getPreferredAttackSpell(attackTarget);
@@ -860,15 +1272,79 @@ public final class CreatureController extends EntityController implements ICreat
                 }
                 stateMachine.changeState(CreatureState.CAST_SPELL);
 
-                // TODO: What is the alternative shot all about?
-                toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(attack.get().creatureSpellId);
-                shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), attackTarget, entityId);
-
-                // TODO: Of course not like that, the shot is created and it does what it does
-                // Set the damage
-                setDamage(attackTarget, creatureSpell.getShotData1());
+                // The shot leaves during the cast, after the spell's shot delay (0x4984D0)
+                entityData.setComponent(entityId, new CastShot(attack.get().creatureSpellId, attackTarget, attack.get().range,
+                        gameTimer.getGameTime() + getShotDelay(attack.get().creatureSpellId)));
             }
         }
+    }
+
+    @Override
+    public void releaseCastShot() {
+        CastShot castShot = entityData.getComponent(entityId, CastShot.class);
+        if (castShot == null || gameTimer.getGameTime() < castShot.releaseTime) {
+            return;
+        }
+
+        entityData.removeComponent(entityId, CastShot.class);
+
+        // TODO: What is the alternative shot all about?
+        toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(castShot.creatureSpellId);
+        if (!shotsController.fireShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(),
+                getOwnerId(), getShotPosition(castShot.creatureSpellId, castShot.target), castShot.target, entityId, castShot.range)) {
+            shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), castShot.target, entityId);
+
+            // TODO: Of course not like that, the shot is created and it does what it does
+            // Set the damage
+            setDamage(castShot.target, creatureSpell.getShotData1());
+        }
+    }
+
+    @Override
+    public void cancelCastShot() {
+        entityData.removeComponent(entityId, CastShot.class);
+    }
+
+    /**
+     * How long into the cast the shot leaves. It leaves at the end of the cast
+     * at the latest, so that a cast always fires.
+     *
+     * @param creatureSpellId the spell cast
+     * @return the time from the start of the cast
+     */
+    private double getShotDelay(short creatureSpellId) {
+        double castTime = getAnimationTime(creature, Creature.AnimationType.CAST_SPELL);
+        for (Creature.Spell spell : creature.getSpells()) {
+            if (spell.getCreatureSpellId() == creatureSpellId) {
+                return Math.min(spell.getShotDelay(), castTime);
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * Gets the damage our melee hit does to the target
+     *
+     * @param attackTarget the target we hit
+     * @param damage the damage of our melee attack
+     * @return the damage the target takes
+     */
+    private int getMeleeDamageTaken(EntityId attackTarget, int damage) {
+        CreatureComponent targetCreature = entityData.getComponent(attackTarget, CreatureComponent.class);
+        if (targetCreature != null && !CombatRules.canBeHurtBy(creature.getFlags(),
+                levelInfo.getLevelData().getCreature(targetCreature.creatureId).getFlags())) {
+            return 0;
+        }
+
+        // Only creatures take the bonus for a hit from behind, doors and objects are hit as they are (0x498E30)
+        Position targetPosition = entityData.getComponent(attackTarget, Position.class);
+        Vector3f ourPosition = getPosition();
+        if (targetCreature != null && targetPosition != null && ourPosition != null) {
+            damage = CombatRules.addRearAttackBonus(damage, ourPosition, targetPosition.position, targetPosition.rotation);
+        }
+
+        return damage;
     }
 
     /**
@@ -880,7 +1356,9 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private void hitWithMelee(EntityId attackTarget, CreatureMeleeAttack creatureMeleeAttack, int damage) {
         entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
-        setDamage(attackTarget, damage);
+        if (damage > 0) {
+            setDamage(attackTarget, damage);
+        }
         gameEventService.emitAt(GameEventType.MELEE_HIT, ThingFlag.CREATURE, creature.getCreatureId(), attackTarget, getPosition());
     }
 
@@ -898,6 +1376,35 @@ public final class CreatureController extends EntityController implements ICreat
     private int getFirstPersonPercentage(Variable.CreatureStats.StatType statType) {
         Variable.CreatureFirstPerson stat = levelInfo.getLevelData().getCreatureFirstPersonStats().get(statType);
         return 100 + (stat != null ? stat.getValue() : 0);
+    }
+
+    /**
+     * Where the creature's shot starts. The spell's shot offset is in front of
+     * the creature and above its feet (0x4984D0), the creature faces the
+     * target when it fires.
+     *
+     * @param creatureSpellId the spell fired
+     * @param attackTarget the target
+     * @return the start of the shot
+     */
+    private Vector3f getShotPosition(short creatureSpellId, EntityId attackTarget) {
+        Vector3f position = getPosition();
+        Vector3f result = new Vector3f(position);
+        for (Creature.Spell spell : creature.getSpells()) {
+            if (spell.getCreatureSpellId() != creatureSpellId) {
+                continue;
+            }
+
+            Vector3f targetPosition = getPosition(entityData, attackTarget);
+            Vector3f forward = targetPosition != null ? targetPosition.subtract(position).setY(0) : Vector3f.ZERO;
+            if (forward.lengthSquared() > 0) {
+                result.addLocal(forward.normalizeLocal().multLocal(-spell.getShotOffset().y));
+            }
+            result.y += spell.getShotOffset().z;
+            break;
+        }
+
+        return result;
     }
 
     /**
@@ -946,6 +1453,10 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void navigateToAttackTarget(EntityId attackTarget) {
+        if (DungeonHeartTarget.isDungeonHeart(entityData, attackTarget)) {
+            navigateToHeart(attackTarget);
+            return;
+        }
         Vector3f targetPosition = getPosition(entityData, attackTarget);
         if (targetPosition != null) {
 
@@ -961,6 +1472,24 @@ public final class CreatureController extends EntityController implements ICreat
             if (destination != null && !destination.equals(ourPosition)) {
                 createNavigation(ourPosition, destination, null);
             }
+        }
+    }
+
+    private void navigateToHeart(EntityId heart) {
+        Point heartTile = getHeartTile(heart);
+        Navigation currentNavigation = entityData.getComponent(entityId, Navigation.class);
+        if (currentNavigation != null
+                && DungeonHeartTarget.isInReach(WorldUtils.pointToVector2f(currentNavigation.target), heartTile, getMeleeRange())) {
+            return;
+        }
+
+        Point attackTile = getHeartAttackTile(heart);
+        if (attackTile == null) {
+
+            // Walled off, pick something else to do
+            setAttackTarget(null);
+        } else if (!attackTile.equals(getCreatureCoordinates())) {
+            createNavigation(getCreatureCoordinates(), attackTile, heartTile);
         }
     }
 
@@ -1103,18 +1632,13 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void flee() {
-        //PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+        Point threat = findThreatLocation();
+        if (threat != null) {
+            fleeFrom(threat);
+            return;
+        }
 
-        // Get the nearest enemy
-        // FIXME: method naming if truly nearest enemy, and perhaps we should flee from our assailant
-//        CreatureControl target = getAttackTarget();
-//
-//        // Flee from the enemy
-//        if (target != null) {
-//            Flee<Vector2> flee = new Flee<>(this, target);
-//            prioritySteering.add(flee);
-//        }
-        // FIXME: For now just flee towards the dungeon heart or random tiles
+        // Nothing to run from, just go to the dungeon heart or random tiles
         Keeper keeper = levelInfo.getPlayer(getOwnerId());
         if (keeper != null && keeper.getDungeonHeartLocation() != null) {
             Point p = keeper.getDungeonHeartLocation();
@@ -1122,9 +1646,42 @@ public final class CreatureController extends EntityController implements ICreat
         } else {
             navigateToRandomPoint();
         }
+    }
 
-        // Try to find our dungeon heart etc. safety haven
-        //setSteeringBehavior(prioritySteering);
+    /**
+     * Finds what we are running from, the nearest enemy we sense that
+     * threatens us. A trap is one after it has fired, see {@link Threat}.
+     *
+     * @return the tile of the threat, null if there is none
+     */
+    private Point findThreatLocation() {
+        Point ourLocation = getCreatureCoordinates();
+        Point nearest = null;
+        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            IMapTileInformation tile = isEnemy(entity) && isThreat(entity) && getThreat(entity) > 0
+                    && ThreatSource.isThreateningUs(entityData, entity, entityId)
+                    ? entityPositionLookup.getEntityLocation(entity) : null;
+            if (tile != null && (nearest == null || tile.getLocation().distance(ourLocation) < nearest.distance(ourLocation))) {
+                nearest = tile.getLocation();
+            }
+        }
+        return nearest;
+    }
+
+    /**
+     * Runs away from the threat the way DKII.EXE does, see
+     * {@link FleeDestinationFinder}
+     */
+    private void fleeFrom(Point threat) {
+        Point ourLocation = getCreatureCoordinates();
+        FleeDestinationFinder finder = new FleeDestinationFinder(mapController.getMapData().getWidth(),
+                mapController.getMapData().getHeight(),
+                (x, y) -> navigationService.findPath(ourLocation, new Point(x, y), this) != null,
+                (x, y) -> mapController.getMapData().getTile(x, y).getOwnerId() == getOwnerId() && !mapController.isSolid(new Point(x, y)),
+                ThreadLocalRandom.current());
+        finder.findAwayFrom(ourLocation, threat, FLEE_DISTANCE)
+                .or(() -> finder.findAround(ourLocation))
+                .ifPresent(destination -> createNavigation(ourLocation, destination, null));
     }
 
     @Override
@@ -1287,6 +1844,9 @@ public final class CreatureController extends EntityController implements ICreat
         // See that we have been motionless for enough time, per state
         // TODO: now just 5 seconds, it is the default for imps
         // DK II's pit fighter waits four seconds' worth of ticks on each spot (0x457CF0)
+        if (getOwnerId() == Player.GOOD_PLAYER_ID && stateMachine.getCurrentState() == CreatureState.IDLE) {
+            return motionless >= HERO_IDLE_TICKS / (float) levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+        }
         return motionless >= (stateMachine.getCurrentState() == CreatureState.COMBAT_PIT ? 4f : 5f);
     }
 
@@ -1325,6 +1885,22 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public void takePay(int amount) {
+        Gold gold = entityData.getComponent(entityId, Gold.class);
+        entityData.setComponent(entityId, new Gold(Math.min(gold.gold + amount / 2, gold.maxGold), gold.maxGold));
+
+        // Whatever the amount, the creature is owed nothing more and is no longer angry about its pay
+        CreaturePay pay = entityData.getComponent(entityId, CreaturePay.class);
+        if (pay != null && pay.unpaid > 0) {
+            entityData.removeComponent(entityId, CreaturePay.class);
+        }
+        CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
+        if (mood != null) {
+            entityData.setComponent(entityId, mood.clear(CreatureMood.REASON_NO_PAY));
+        }
+    }
+
+    @Override
     public int getGold() {
         return entityData.getComponent(entityId, Gold.class).gold;
     }
@@ -1355,6 +1931,24 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isUnconscious() {
         return entityData.getComponent(entityId, Unconscious.class) != null;
+    }
+
+    @Override
+    public void wakeUp() {
+        Unconscious unconscious = entityData.getComponent(entityId, Unconscious.class);
+        Health health = entityData.getComponent(entityId, Health.class);
+        if (unconscious == null || health == null) {
+            return;
+        }
+
+        // In DK II the health of a knocked out creature is its dying time in ticks, one is lost every tick
+        // (DKII.EXE 0x4B2CE0, 0x4599D0). It wakes up with what is left (0x468420)
+        double timeLeft = gameSettings.get(Variable.MiscVariable.MiscType.CREATURE_DYING_STATE_DURATION_SECONDS).getValue()
+                - (gameTimer.getGameTime() - unconscious.startTime);
+        int healthLeft = (int) (timeLeft * levelInfo.getLevelData().getGameLevel().getTicksPerSec());
+        entityData.setComponent(entityId, new Health(Math.clamp(healthLeft, 1, health.maxHealth), health.maxHealth));
+        entityData.removeComponent(entityId, Unconscious.class);
+        stateMachine.changeState(CreatureState.IDLE);
     }
 
     @Override
@@ -1554,13 +2148,30 @@ public final class CreatureController extends EntityController implements ICreat
     private boolean isAlly(EntityId entity) {
         Owner otherOwner = entityData.getComponent(entity, Owner.class);
         if (otherOwner != null) {
-            Keeper keeper = levelInfo.getPlayer(getOwnerId());
+            Keeper keeper = levelInfo.getPlayer(getSideId(entityId, getOwnerId()));
             if (keeper != null) {
-                return keeper.isAlly(otherOwner.ownerId);
+                return keeper.isAlly(getSideId(entity, otherOwner.ownerId));
             }
         }
 
         return false;
+    }
+
+    /**
+     * Gets the player whose side the creature fights on. It is the owner,
+     * unless the creature is under the Turncoat spell
+     *
+     * @param entity the creature
+     * @param ownerId the creature's owner
+     * @return the player the creature fights for
+     */
+    private short getSideId(EntityId entity, short ownerId) {
+        Turncoat turncoat = entityData.getComponent(entity, Turncoat.class);
+        if (turncoat != null) {
+            return turncoat.playerId;
+        }
+
+        return ownerId;
     }
 
     private Creature.FightStyle getEntityFightingStyle(EntityId entity) {
@@ -1575,9 +2186,9 @@ public final class CreatureController extends EntityController implements ICreat
     private boolean isEnemy(EntityId entity) {
         Owner otherOwner = entityData.getComponent(entity, Owner.class);
         if (otherOwner != null) {
-            Keeper keeper = levelInfo.getPlayer(getOwnerId());
+            Keeper keeper = levelInfo.getPlayer(getSideId(entityId, getOwnerId()));
             if (keeper != null) {
-                return keeper.isEnemy(otherOwner.ownerId);
+                return keeper.isEnemy(getSideId(entity, otherOwner.ownerId));
             }
         }
 
@@ -1593,6 +2204,172 @@ public final class CreatureController extends EntityController implements ICreat
         return 0;
     }
 
+    @Override
+    public boolean isScared() {
+
+        // It takes three fight turns in a row with the threat over our fear (DK II 0x45EC80)
+        BackOff backOff = entityData.getComponent(entityId, BackOff.class);
+        int overThreatChecks = 0;
+        if (entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter()
+                && getFightThreat() > entityData.getComponent(entityId, CreatureComponent.class).fear) {
+            overThreatChecks = Math.min(backOff != null ? backOff.overThreatChecks + 1 : 1, SCARED_OVER_THREAT_CHECKS);
+        }
+        if (backOff == null || backOff.overThreatChecks != overThreatChecks) {
+            entityData.setComponent(entityId, new BackOff(overThreatChecks, backOff != null ? backOff.endTime : 0));
+        }
+
+        return overThreatChecks >= SCARED_OVER_THREAT_CHECKS;
+    }
+
+    /**
+     * Gets the threat of the enemies we fight. An enemy shares its threat
+     * evenly between its target and the creatures attacking it. Near our own
+     * Dungeon Heart we take it more lightly (DK II 0x45E4F0)
+     *
+     * @return the threat to us
+     */
+    private int getFightThreat() {
+        AttackTarget ourTarget = entityData.getComponent(entityId, AttackTarget.class);
+        int threat = 0;
+
+        // The enemies we fight count however far away they are, not only the ones we sense, so a spell caster
+        // fighting from a distance feels their threat too
+        Set<EntityId> enemies = new HashSet<>(entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", entityId), AttackTarget.class));
+        if (ourTarget != null) {
+            enemies.add(ourTarget.entityId);
+        }
+        for (EntityId enemy : enemies) {
+            AttackTarget enemyTarget = entityData.getComponent(enemy, AttackTarget.class);
+            int shares = (enemyTarget != null && entityId.equals(enemyTarget.entityId) ? 1 : 0)
+                    + (ourTarget != null && enemy.equals(ourTarget.entityId) ? 1 : 0);
+            if (shares > 0 && isEnemy(enemy) && isThreat(enemy)) {
+                int opponents = entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", enemy), AttackTarget.class).size()
+                        + (enemyTarget != null ? 1 : 0);
+                threat += shares * (getThreat(enemy) / opponents);
+            }
+        }
+
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+        if (keeper != null && keeper.getDungeonHeartLocation() != null) {
+            Point heart = keeper.getDungeonHeartLocation();
+            Point tile = getCreatureCoordinates();
+            int distance = Math.max(Math.abs(tile.x - heart.x), Math.abs(tile.y - heart.y));
+            threat = threat * Math.min(distance, HEART_THREAT_DISTANCE) / HEART_THREAT_DISTANCE;
+        }
+
+        return threat;
+    }
+
+    @Override
+    public void startBackOff() {
+
+        // The more we are scared, the sooner we withdraw. We don't back off from one that would catch us (DK II 0x45F030)
+        int fear = entityData.getComponent(entityId, CreatureComponent.class).fear;
+        AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
+        CreatureComponent targetCreature = attackTarget != null ? entityData.getComponent(attackTarget.entityId, CreatureComponent.class) : null;
+        int turns = 0;
+        if (fear > 0 && attackTarget != null && creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER
+                && (targetCreature == null || targetCreature.runSpeed <= entityData.getComponent(entityId, CreatureComponent.class).runSpeed)) {
+            int minimum = (int) gameSettings.get(Variable.MiscVariable.MiscType.BACK_OFF_MINIMUM_DURATION_SECONDS).getValue();
+            int maximum = (int) gameSettings.get(Variable.MiscVariable.MiscType.BACK_OFF_MAXIMUM_DURATION_SECONDS).getValue();
+            turns = minimum + (maximum - minimum) * (4 - Math.min(getFightThreat() / fear, 4));
+        }
+
+        // The durations are in turns, despite the names
+        BackOff backOff = entityData.getComponent(entityId, BackOff.class);
+        entityData.setComponent(entityId, new BackOff(backOff != null ? backOff.overThreatChecks : 0,
+                gameTimer.getGameTime() + turns / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()));
+    }
+
+    @Override
+    public boolean isBackOffOver() {
+        BackOff backOff = entityData.getComponent(entityId, BackOff.class);
+        return backOff == null || backOff.endTime <= gameTimer.getGameTime();
+    }
+
+    @Override
+    public boolean backOff() {
+        AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
+        Vector3f targetPosition = attackTarget != null ? getPosition(entityData, attackTarget.entityId) : null;
+        Vector3f position = getPosition();
+        if (targetPosition == null || position == null) {
+            return false;
+        }
+
+        // Far enough from the target's reach, we just stand (DK II 0x4602E0)
+        CreatureMeleeAttack targetMeleeAttack = entityData.getComponent(attackTarget.entityId, CreatureMeleeAttack.class);
+        float range = Math.max(BACK_OFF_RANGE, targetMeleeAttack != null ? targetMeleeAttack.range : 0);
+        float dx = position.x - targetPosition.x;
+        float dz = position.z - targetPosition.z;
+        if (dx * dx + dz * dz > range * range * 5 / 4) {
+            stopCreature();
+            return true;
+        }
+        if (!isStopped()) {
+            return true;
+        }
+
+        // Step back a tile and face the target again. Straight away from it, or else along the wall behind us.
+        // DK II backs off a little at a time, so it gets stuck only against a wall right behind it
+        Point tile = getCreatureCoordinates();
+        int direction = Math.round(FastMath.atan2(dz, dx) / FastMath.QUARTER_PI);
+        for (int turn : new int[]{0, 1, -1, 2, -2}) {
+            float angle = (direction + turn) * FastMath.QUARTER_PI;
+            Point step = new Point(tile.x + Math.round(FastMath.cos(angle)), tile.y + Math.round(FastMath.sin(angle)));
+            GraphPath<IMapTileInformation> path = navigationService.findPath(tile, step, this);
+            if (path != null) {
+                entityData.setComponent(entityId, new Navigation(step, WorldUtils.vectorToPoint(targetPosition), SteeringUtils.pathToList(path)));
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean withdrawToHeroLair() {
+
+        // Below a sixth of its health, unless it is fearless (DK II 0x45EDA0)
+        Health health = entityData.getComponent(entityId, Health.class);
+        if (getOwnerId() != Player.GOOD_PLAYER_ID || entityData.getComponent(entityId, ReturnToHeroLair.class) == null
+                || entityData.getComponent(entityId, Fearless.class) != null || isCombatPitFighter()
+                || health == null || health.health >= health.maxHealth / 6) {
+            return false;
+        }
+
+        // To the first hero lair action point we can get to, else we fight on (DK II 0x4611D0)
+        for (ActionPoint actionPoint : levelInfo.getActionPoints()) {
+            if (actionPoint.getFlags().contains(Thing.ActionPoint.ActionPointFlag.HERO_LAIR) && !createNavigation(getCreatureCoordinates(), actionPoint.getStart(), null)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public void wanderOnOwnLand() {
+
+        // A tile of our own on the square 10 tiles round us. DK II goes round the square from a random start
+        // to its end only, so it may find nothing this time (0x461BB0)
+        Point tile = getCreatureCoordinates();
+        int side = OWN_LAND_WANDER_DISTANCE * 2;
+        for (int i = ThreadLocalRandom.current().nextInt(side * 4); i < side * 4; i++) {
+            int offset = i % side - OWN_LAND_WANDER_DISTANCE;
+            Point destination = switch (i / side) {
+                case 0 -> new Point(tile.x + offset, tile.y - OWN_LAND_WANDER_DISTANCE);
+                case 1 -> new Point(tile.x + OWN_LAND_WANDER_DISTANCE, tile.y + offset);
+                case 2 -> new Point(tile.x + offset, tile.y + OWN_LAND_WANDER_DISTANCE);
+                default -> new Point(tile.x - OWN_LAND_WANDER_DISTANCE, tile.y + offset);
+            };
+            IMapTileInformation mapTile = mapController.getMapData().getTile(destination);
+            if (mapTile != null && mapTile.getOwnerId() == getOwnerId() && !mapController.isSolid(destination)) {
+                createNavigation(tile, destination, null);
+                return;
+            }
+        }
+    }
+
     private boolean isFleeing(EntityId entity) {
         CreatureAi creatureAi = entityData.getComponent(entity, CreatureAi.class);
         if (creatureAi != null) {
@@ -1604,15 +2381,23 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void imprison(short playerId, EntityId roomId) {
-
-        // Return health to 20%
         Health health = entityData.getComponent(entityId, Health.class);
         if (health == null) {
             logger.log(Level.INFO, "Tried to imprison me but I don't have any health left!");
             return;
         }
 
-        entityData.setComponent(entityId, new Health((int) Math.floor(health.maxHealth * 0.2f), health.maxHealth));
+        // In DK II the health of a knocked out creature is its dying time in ticks
+        // (DKII.EXE 0x4B2CE0, 0x4599D0). The Prison takes it in with a tenth of its
+        // maximum health on top (0x4E2C70)
+        int healthLeft = health.health;
+        Unconscious unconscious = entityData.getComponent(entityId, Unconscious.class);
+        if (unconscious != null) {
+            double timeLeft = gameSettings.get(Variable.MiscVariable.MiscType.CREATURE_DYING_STATE_DURATION_SECONDS).getValue()
+                    - (gameTimer.getGameTime() - unconscious.startTime);
+            healthLeft = (int) (timeLeft * levelInfo.getLevelData().getGameLevel().getTicksPerSec());
+        }
+        entityData.setComponent(entityId, new Health(Math.clamp(healthLeft + health.maxHealth / 10, 1, health.maxHealth), health.maxHealth));
         entityData.removeComponent(entityId, Unconscious.class);
         entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
         entityData.setComponent(entityId, new Stored(roomId, AbstractRoomController.ObjectType.PRISONER));
@@ -1655,6 +2440,12 @@ public final class CreatureController extends EntityController implements ICreat
             case EATING -> {
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.EATING);
             }
+            case CELEBRATING -> {
+                stateTargetTime = BIG_WINNER_CELEBRATION_SECONDS;
+            }
+            case CHICKEN -> {
+                stateTargetTime = entityData.getComponent(entityId, CreatureAi.class).stateDuration;
+            }
             case FLEE -> {
                 // I couldn't find a variable for this, so lets use this for now
                 stateTargetTime = gameSettings.get(Variable.MiscVariable.MiscType.IMP_IDLE_DELAY_BEFORE_REEVALUATION_SECONDS).getValue();
@@ -1667,7 +2458,14 @@ public final class CreatureController extends EntityController implements ICreat
         return stateTargetTime < timeSpent;
     }
 
-    private static double getAnimationTime(Creature creature, Creature.AnimationType animation) {
+    /**
+     * How long one round of a creature's animation takes
+     *
+     * @param creature the creature
+     * @param animation the animation
+     * @return the time in seconds, 0 if the creature doesn't have the animation
+     */
+    public static double getAnimationTime(Creature creature, Creature.AnimationType animation) {
         // TODO: we could cache and calculate these for all centrally, also include the starting and ending animation
         ArtResource animationResource = creature.getAnimation(animation);
         if (animationResource == null) {
@@ -1688,19 +2486,36 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isHungry() {
         CreatureHunger creatureHunger = entityData.getComponent(entityId, CreatureHunger.class);
-        if (creatureHunger != null) {
-            if (creatureHunger.amountNeeded > 0) {
-                return true;
-            } else if (gameTimer.getGameTime() - creatureHunger.lastEatTime >= creature.getAttributes().getHungerRate()) {
-
-                // We are hungry now, mark the amount of food we need
-                makeHungry(creatureHunger);
-
-                return true;
-            }
+        if (creatureHunger == null) {
+            return false;
         }
 
-        return false;
+        // Every hunger rate seconds without a meal adds another meal to the need, and the clock starts again
+        float hungerRate = creature.getAttributes().getHungerRate();
+        int mealsMissed = hungerRate > 0 ? (int) ((gameTimer.getGameTime() - creatureHunger.lastEatTime) / hungerRate) : 0;
+        TaskComponent task = entityData.getComponent(entityId, TaskComponent.class);
+        if (mealsMissed > 0 && task != null && task.taskType == TaskType.GAMBLE && task.taskStarted) {
+
+            // No hunger builds up while gambling: DK II's Casino states have flag 8 in the state table (0x47BBE0),
+            // and 0x477C20 adds no meal while it is set. Its clock runs on, so we hold it at one meal due, which
+            // the creature owes as soon as it stops
+            CreatureHunger held = new CreatureHunger(gameTimer.getGameTime() - hungerRate, creatureHunger.amountNeeded);
+            held.lastEatAttemptTime = creatureHunger.lastEatAttemptTime;
+            entityData.setComponent(entityId, held);
+
+            return creatureHunger.amountNeeded > 0;
+        }
+        if (mealsMissed > 0) {
+            CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+            CreatureHunger updated = new CreatureHunger(creatureHunger.lastEatTime + mealsMissed * hungerRate,
+                    creatureHunger.amountNeeded + mealsMissed * creatureComponent.hungerFill);
+            updated.lastEatAttemptTime = creatureHunger.lastEatAttemptTime;
+            entityData.setComponent(entityId, updated);
+
+            return true;
+        }
+
+        return creatureHunger.amountNeeded > 0;
     }
 
     @Override
@@ -1721,10 +2536,29 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean goGambling() {
 
-        // As in the original, the wish only depends on the gold held, the stake is the money mode one
-        return !isWorker() && getOwnerId() >= Player.KEEPER1_ID && getGold() > Math.abs(
+        // As in the original, the wish only depends on the gold held, the stake is the money mode one.
+        // The big winner has stopped gambling (the Gamble task is not valid for it), so it doesn't wish for it
+        return !isWorker() && getOwnerId() >= Player.KEEPER1_ID
+                && entityData.getComponent(entityId, CasinoBigWinner.class) == null && getGold() > Math.abs(
                 gameSettings.get(Variable.MiscVariable.MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND).getValue())
                 && taskManager.assignTask(this, Creature.JobType.DRINK);
+    }
+
+    @Override
+    public boolean goToCollectPay() {
+        CreaturePay pay = entityData.getComponent(entityId, CreaturePay.class);
+        double gameTime = gameTimer.getGameTime();
+        if (pay == null || pay.unpaid <= 0 || pay.attempts >= CreaturePay.MAX_COLLECTION_ATTEMPTS || gameTime < pay.nextAttemptTime) {
+            return false;
+        }
+        if (taskManager.assignCollectPayTask(this)) {
+            return true;
+        }
+
+        // No gold room with gold in it that we can reach, that is a try that got nothing
+        entityData.setComponent(entityId, new CreaturePay(pay.unpaid, pay.attempts + 1, gameTime
+                + gameSettings.get(Variable.MiscVariable.MiscType.DELAY_BEFORE_PAY_REEVALUATION_SECONDS).getValue(), false));
+        return false;
     }
 
     @Override
@@ -1735,23 +2569,65 @@ public final class CreatureController extends EntityController implements ICreat
         if (health != null) {
             target.remove();
 
-            stateMachine.changeState(CreatureState.EATING);
+            if (EAT_INTERRUPTIBLE_STATES.contains(stateMachine.getCurrentState())) {
+                stateMachine.changeState(CreatureState.EATING);
+            } else if (!isIncapacitated()) {
+                sate();
+            }
         }
     }
 
     @Override
     public void sate() {
-        CreatureHunger creatureHunger = entityData.getComponent(entityId, CreatureHunger.class);
-        if (creatureHunger.amountNeeded == 1) {
 
-            // We are full
-            entityData.setComponent(entityId, new CreatureHunger(gameTimer.getGameTime(), 0));
-        } else if (creatureHunger.amountNeeded > 0) {
-            entityData.setComponent(entityId, new CreatureHunger(creatureHunger.lastEatTime, creatureHunger.amountNeeded - 1));
+        // Like in DK II, a creature that isn't hungry gets nothing from a chicken
+        if (!isHungry()) {
+            return;
+        }
+        CreatureHunger creatureHunger = entityData.getComponent(entityId, CreatureHunger.class);
+        if (creatureHunger.amountNeeded > 0) {
+
+            // Every chicken starts the hunger clock again
+            entityData.setComponent(entityId, new CreatureHunger(gameTimer.getGameTime(), creatureHunger.amountNeeded - 1));
         }
 
         // Increase health
         setDamage(-creature.getAttributes().getHpFromChicken());
+    }
+
+    @Override
+    public boolean collectWinnings() {
+        return entityData.getComponent(entityId, CasinoBigWinner.class) != null && taskManager.assignCollectWinningsTask(this);
+    }
+
+    @Override
+    public boolean goToDisco() {
+        if (isWorker() || getOwnerId() < Player.KEEPER1_ID || creature.getAnimation(Creature.AnimationType.DANCE) == null) {
+            return false;
+        }
+
+        // Dance where we stand if we are in the disco already
+        if (isAtDisco()) {
+            return true;
+        }
+        for (EntityId casino : entityData.findEntities(new FieldFilter<>(Owner.class, "ownerId", getOwnerId()), CasinoDisco.class, Owner.class)) {
+            IRoomController room = mapController.getRoomController(casino);
+            if (room != null) {
+                List<Point> coordinates = new ArrayList<>(room.getRoomInstance().getCoordinates());
+                coordinates.removeIf(p -> !room.isTileAccessible(null, p));
+                Point destination = Utils.getRandomItem(coordinates);
+                return destination != null && !createNavigation(getCreatureCoordinates(), destination, null);
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean isAtDisco() {
+        IRoomController room = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
+        return room != null && room.getOwnerId() == getOwnerId()
+                && entityData.getComponent(room.getEntityId(), CasinoDisco.class) != null;
     }
 
     @Override
@@ -1766,15 +2642,33 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
-    public int getResearchPerTick() {
-        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-        return creatureComponent.researchPerTick;
+    public void setWillFight(boolean willFight) {
+        if (willFight) {
+            entityData.removeComponent(entityId, Peaceful.class);
+        } else {
+            entityData.setComponent(entityId, new Peaceful());
+        }
     }
 
     @Override
-    public int getManufacturePerSecond() {
+    public int getResearchPerTick() {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-        return creatureComponent.manufacturePerSecond;
+        int pointsPerTick = creatureComponent.researchPerTick;
+
+        // A slapped creature researches faster, DK II adds the bonus on the
+        // first tick of every second (DKII.EXE 0x4C2DC0)
+        int ticksPerSecond = levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+        if (isSlapped() && Math.round(gameTimer.getGameTime() * ticksPerSecond) % ticksPerSecond == 0) {
+            int bonusPercentage = (int) gameSettings.get(Variable.MiscVariable.MiscType.INCREASED_WORK_RATE_PECENTAGE_FROM_SLAPPING).getValue();
+            pointsPerTick += ticksPerSecond * ticksPerSecond * bonusPercentage * pointsPerTick / 100;
+        }
+        return pointsPerTick;
+    }
+
+    @Override
+    public int getManufacturePerTick() {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        return creatureComponent.manufacturePerTick;
     }
 
     @Override
@@ -1804,6 +2698,26 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isRecuperating() {
         return entityData.getComponent(entityId, CreatureRecuperating.class) != null;
+    }
+
+    @Override
+    public void turnIntoChicken(double duration) {
+        if (creature.getFlags().contains(Creature.CreatureFlag.IS_IMMUNE_TO_CHICKEN)) {
+            return;
+        }
+
+        // Drop whatever we were doing, unless we are not in control of ourselves
+        if (entityData.getComponent(entityId, Possessed.class) == null
+                && CHICKEN_INTERRUPTIBLE_STATES.contains(stateMachine.getCurrentState())) {
+            stateMachine.changeState(CreatureState.CHICKEN);
+            entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.CHICKEN,
+                    creature.getId(), null, duration));
+        }
+    }
+
+    private boolean isChicken(EntityId entity) {
+        CreatureAi creatureAi = entityData.getComponent(entity, CreatureAi.class);
+        return creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
     }
 
     @Override
@@ -1978,12 +2892,28 @@ public final class CreatureController extends EntityController implements ICreat
 
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         int manaDrain = creatureComponent != null ? creatureComponent.posessionManaCost : 0;
+        if (isPossessionUpgraded()) {
+            manaDrain = manaDrain * (int) gameSettings.get(Variable.MiscVariable.MiscType.UPGRADED_POSSESSION_COST_PERCENTAGE).getValue() / 100;
+        }
         Mana mana = entityData.getComponent(entityId, Mana.class);
         entityData.setComponent(entityId, new Mana(mana != null ? mana.manaGeneration - manaDrain : -manaDrain));
         entityData.setComponent(entityId, new Possessed(manaDrain, gameTimer.getGameTime()));
         entityData.removeComponent(entityId, CreatureAi.class);
         entityData.removeComponent(entityId, Navigation.class);
         unassingCurrentTask();
+    }
+
+    /**
+     * DK II charges less for possessing once the keeper has upgraded the
+     * Possession spell (DKII.EXE 0x4C17A0 and 0x4C10E0)
+     *
+     * @return whether the owner has upgraded the Possession spell
+     */
+    private boolean isPossessionUpgraded() {
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+        return keeper != null && keeper.getAvailableSpells().stream()
+                .anyMatch(spell -> spell.isUpgraded()
+                && levelInfo.getLevelData().getKeeperSpellById(spell.getId()).getTargetRule() == KeeperSpell.TargetRule.POSESSION);
     }
 
     private void endPossession() {
@@ -2009,6 +2939,15 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void convertCreature(short playerId) {
         convertCreature(entityId, playerId);
+    }
+
+    @Override
+    public void turncoat(short playerId, double duration) {
+        if (creature.getFlags().contains(Creature.CreatureFlag.IS_IMMUNE_TO_TURNCOAT)) {
+            return;
+        }
+
+        entityData.setComponent(entityId, new Turncoat(playerId, gameTimer.getGameTime() + duration));
     }
 
     private void convertCreature(EntityId entity, short playerId) {

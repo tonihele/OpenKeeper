@@ -31,6 +31,32 @@ public final class RoomFixtures {
         return room;
     }
 
+    public static Room room(String name, Room.TileConstruction tileConstruction) {
+        Room room = new Room();
+        room.setName(name);
+        room.setTileConstruction(tileConstruction);
+        room.setFlags(EnumSet.noneOf(Room.RoomFlag.class));
+        return room;
+    }
+
+    public static Thing.Room roomThing(int initialHealth) {
+        return roomThing(initialHealth, 0, 0);
+    }
+
+    public static Thing.Room roomThing(int initialHealth, int posX, int posY) {
+        Thing.Room thing = new Thing.Room();
+        thing.setInitialHealth(initialHealth);
+        thing.setPosX(posX);
+        thing.setPosY(posY);
+        return thing;
+    }
+
+    public static Room roomWithObjects(short roomId, Short... objects) {
+        Room room = room(roomId, 0);
+        room.setObjects(List.of(objects));
+        return room;
+    }
+
     public static Room room(short roomId, List<Short> objects, Room.RoomFlag... flags) {
         Room room = room(roomId, 0, flags);
         room.setObjects(objects);
