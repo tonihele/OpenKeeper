@@ -66,6 +66,7 @@ import toniarts.openkeeper.game.logic.PossessedSystem;
 import toniarts.openkeeper.game.logic.PrisonOvercrowdingSystem;
 import toniarts.openkeeper.game.logic.ShotSystem;
 import toniarts.openkeeper.game.logic.SlapSystem;
+import toniarts.openkeeper.game.logic.SpecialIdleEffectSystem;
 import toniarts.openkeeper.game.logic.SpinSystem;
 import toniarts.openkeeper.game.logic.SummonedReaperSystem;
 import toniarts.openkeeper.game.logic.TremorSystem;
@@ -94,6 +95,7 @@ public final class GameLoopManager {
 
     private final IGameController gameController;
 
+    private final GameLogicManager gameLogicThread;
     private final PayDaySystem payDaySystem;
 
     /**
@@ -120,7 +122,7 @@ public final class GameLoopManager {
                 playerControllers.values(), gameSettings);
 
         // Game logic
-        final GameLogicManager gameLogicThread = new GameLogicManager(
+        gameLogicThread = new GameLogicManager(
                 gameWorldController.getMapController(),
                 new DecaySystem(entityData),
                 new WoodenBridgeDecaySystem(entityData, gameController.getGameTimer(), gameWorldController,
@@ -142,7 +144,8 @@ public final class GameLoopManager {
                         gameController.getGameTimer(), gameEventService),
                 new InfernoSystem(entityData, positionSystem, levelInfo.getLevelData()),
                 new CreatureTorturingSystem(entityData, gameWorldController.getCreaturesController(),
-                        gameWorldController.getMapController(), gameEventService, gameSettings),
+                        gameWorldController.getMapController(), gameEventService, gameSettings,
+                        levelInfo.getLevelData().getGameLevel().getTicksPerSec()),
                 new PrisonOvercrowdingSystem(entityData, gameWorldController.getMapController(), gameSettings),
                 new KeeperDefeatSystem(entityData, levelInfo, gameController, gameWorldController.getMapController(),
                         gameWorldController.getObjectsController(), players != null && !players.isEmpty()),
@@ -180,6 +183,8 @@ public final class GameLoopManager {
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
+                new SpecialIdleEffectSystem(entityData, gameController.getGameTimer(),
+                        level.getGameLevel().getTicksPerSec(), gameWorldController.getMapController(), gameEventService),
                 new TrapSystem(entityData, level, gameController.getGameTimer(), positionSystem, playerControllers,
                         gameWorldController.getShotsController(), gameEventService),
                 new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
@@ -227,6 +232,17 @@ public final class GameLoopManager {
 
     public IGameController getGameController() {
         return gameController;
+    }
+
+    /**
+     * Queues a player action to run at the start of the next game logic tick.
+     * Player actions come from the render thread (or the network thread) and
+     * change the same state as the game logic does
+     *
+     * @param action the player action
+     */
+    public void runPlayerAction(Runnable action) {
+        gameLogicThread.enqueueAction(action);
     }
 
     public PayDaySystem getPayDaySystem() {
