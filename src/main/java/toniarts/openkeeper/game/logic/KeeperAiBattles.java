@@ -52,6 +52,7 @@ import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -139,16 +140,18 @@ final class KeeperAiBattles {
     private final IGameWorldController gameWorldController;
     private final IMapController mapController;
     private final IGameTimer gameTimer;
+    private final INavigationService navigationService;
     private final DecisionLog decisionLog;
     private final EntitySet creatures;
 
     KeeperAiBattles(EntityData entityData, IKwdFile kwdFile, IGameWorldController gameWorldController, IGameTimer gameTimer,
-            DecisionLog decisionLog) {
+            INavigationService navigationService, DecisionLog decisionLog) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.gameWorldController = gameWorldController;
         this.mapController = gameWorldController.getMapController();
         this.gameTimer = gameTimer;
+        this.navigationService = navigationService;
         this.decisionLog = decisionLog;
         creatures = entityData.getEntities(CreatureComponent.class, Owner.class, Health.class, CreatureAi.class, Position.class);
     }
@@ -216,7 +219,9 @@ final class KeeperAiBattles {
      * Casts Call to Arms on the first fighting creature that has more enemy
      * threat around it than the computer player takes on without the flag.
      * Not while a flag is up, nor for a while after one was lifted, nor on
-     * lava. It needs more mana than the spell costs.
+     * lava. It needs more mana than the spell costs, and like DK II
+     * (0x503060) a walking route from the tile 2 east of the Dungeon Heart's
+     * centre to the fighter.
      *
      * @param keeperAi the computer player
      * @param playerController its player
@@ -248,7 +253,8 @@ final class KeeperAiBattles {
             int mana = playerController.getKeeper().getMana();
             if (mana > callToArms.getManaCost()
                     && Math.round(gameTimer.getGameTime() * ticksPerSecond) % (CALL_TO_ARMS_EVERY_SECONDS * ticksPerSecond) == 0
-                    && playerController.getSpellControl().isAvailable(callToArms)) {
+                    && playerController.getSpellControl().isAvailable(callToArms)
+                    && navigationService.findPath(getHeartDropTile(playerController.getKeeper()), tile, KeeperAiSystem.getWalker(keeperAi.playerId)) != null) {
                 gameWorldController.castKeeperSpell(SPELL_CALL_TO_ARMS, null, tile, new Vector2f(position.x, position.z), keeperAi.playerId);
 
                 // The cast has its own rules, the mana tells if it went through

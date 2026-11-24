@@ -244,7 +244,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         this.playerControllers = playerControllers;
         this.gameWorldController = gameWorldController;
         this.mapController = gameWorldController.getMapController();
-        battles = new KeeperAiBattles(entityData, kwdFile, gameWorldController, gameTimer, this::log);
+        battles = new KeeperAiBattles(entityData, kwdFile, gameWorldController, gameTimer, navigationService, this::log);
         invasions = new KeeperAiInvasions(entityData, kwdFile, gameWorldController, navigationService, battles, this::log);
         creatures = new KeeperAiCreatures(entityData, kwdFile, gameWorldController, battles, invasions, this::log);
         traps = new KeeperAiTraps(entityData, kwdFile, gameWorldController, this::log);
@@ -1477,7 +1477,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     /**
      * A creature of the player that walks, to see where there is a way
      */
-    private static INavigable getWalker(short playerId) {
+    static INavigable getWalker(short playerId) {
         return new INavigable() {
             @Override
             public short getOwnerId() {

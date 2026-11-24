@@ -269,6 +269,7 @@ class KeeperAiSystemTest {
     private final Map<Short, EntityId> battleCasts = new HashMap<>();
     private PlayerRoomControl enemyRoomControl;
     private boolean reachable;
+    private final List<List<Point>> routesAsked = new ArrayList<>();
     private final Set<Short> fullRooms = new HashSet<>();
 
     @Test
@@ -994,6 +995,7 @@ class KeeperAiSystemTest {
     @Test
     void castsCallToArmsOnAFighterThatFacesMoreThreatThanItTakesOnWithoutTheFlag() {
         KeeperAiSystem system = createSystem(withCallToArms(ai(0, 0, 9, 1, 50, 0, List.of()), 150, 240, 1, 5, 1, 90), 1000);
+        reachable = true;
         spellControl.setTypeAvailable(callToArms, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
         EntityId enemy = createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT);
@@ -1028,8 +1030,30 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void castsNoCallToArmsOnAFightItsCreaturesCannotWalkTo() {
+        KeeperAiSystem system = createSystem(withCallToArms(ai(0, 0, 9, 1, 50, 0, List.of()), 150, 240, 1, 5, 1, 90), 1000);
+        spellControl.setTypeAvailable(callToArms, true, true);
+        EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT)));
+        createCreature(ENEMY_ID, new Point(8, 8), 100, 100, CreatureState.IDLE);
+        gameTime = 10;
+        system.processTick(0.25f);
+
+        assertTrue(callToArmsCasts.isEmpty());
+
+        // The way is asked from the tile 2 east of the heart's centre to the fighter
+        reachable = true;
+        gameTime = 20;
+        system.processTick(0.25f);
+
+        assertTrue(routesAsked.contains(List.of(HEART_DROP, new Point(8, 3))));
+        assertEquals(List.of(new Point(8, 3)), callToArmsCasts);
+    }
+
+    @Test
     void liftsTheCallToArmsAfterItsTimeAndWaitsBeforeTheNext() {
         KeeperAiSystem system = createSystem(withCallToArms(ai(0, 0, 9, 1, 50, 0, List.of()), 50, 2, 1, 5, 1, 90), 1000);
+        reachable = true;
         spellControl.setTypeAvailable(callToArms, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
         entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT)));
@@ -1056,6 +1080,7 @@ class KeeperAiSystemTest {
     @Test
     void liftsTheCallToArmsWhenTheEnemiesAroundTheFlagAreGone() {
         KeeperAiSystem system = createSystem(withCallToArms(ai(0, 0, 9, 1, 50, 0, List.of()), 50, 240, 1, 5, 1, 90), 1000);
+        reachable = true;
         spellControl.setTypeAvailable(callToArms, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
         EntityId enemy = createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT);
@@ -1077,6 +1102,7 @@ class KeeperAiSystemTest {
     @Test
     void liftsTheCallToArmsWhenItHasTooFewFightersLeft() {
         KeeperAiSystem system = createSystem(withCallToArms(ai(0, 0, 9, 1, 50, 0, List.of()), 50, 240, 1, 5, 2, 90), 1000);
+        reachable = true;
         spellControl.setTypeAvailable(callToArms, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
         entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT)));
@@ -2547,6 +2573,7 @@ class KeeperAiSystemTest {
                     if (!"findPath".equals(method.getName())) {
                         throw new UnsupportedOperationException(method.getName());
                     }
+                    routesAsked.add(List.of((Point) args[0], (Point) args[1]));
                     return findPath((Point) args[0], (Point) args[1]);
                 });
 
