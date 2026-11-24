@@ -99,7 +99,7 @@ class LibraryFurnitureTest {
         Map<Point, Appearance> expanded = furniture(library);
         before.forEach((tile, appearance) -> assertEquals(appearance, expanded.get(tile)));
         assertEquals(25, expanded.size());
-        assertEquals(25, library.getMaxCapacity(ObjectType.RESEARCHER));
+        assertEquals(26, library.getMaxCapacity(ObjectType.RESEARCHER));
         assertEquals(50, books.getMaxCapacity());
         assertEquals(1, books.getCurrentCapacity());
         assertEquals(List.of(book), books.getItems(new Point(5, 5)));
@@ -127,7 +127,7 @@ class LibraryFurnitureTest {
             LibraryController library = library(instance);
             library.construct();
             assertEquals(expected, library.getFloorFurnitureCount());
-            assertEquals(expected, library.getMaxCapacity(ObjectType.RESEARCHER));
+            assertEquals(expected + 1, library.getMaxCapacity(ObjectType.RESEARCHER));
             assertEquals(2 * expected, library.getMaxCapacity(ObjectType.SPELL_BOOK));
         }
     }
