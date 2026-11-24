@@ -58,6 +58,11 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import toniarts.openkeeper.game.controller.CreaturesController;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -100,6 +105,30 @@ class GambleTest {
         entityData.setComponents(creatureId, new Gold(100, 400), new CreatureMood(10000, 0, 0, 10000, 0, 3000),
                 new Owner(KEEPER, KEEPER), creatureComponent(300));
         creature = creature();
+    }
+
+    @ParameterizedTest
+    @EnumSource(PayOut.class)
+    void disabledMoodsPreserveAngerWhileCasinoGoldAndTimingContinue(PayOut mode) {
+        IKwdFile kwd = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
+                new Class<?>[]{IKwdFile.class}, (p, m, a) -> List.of());
+        CreaturesController controller = new CreaturesController(kwd, entityData, Map.of(), () -> 0, null, null, null);
+        controller.setCreatureMoodsEnabled(false);
+        CreatureMood frozen = entityData.getComponent(creatureId, CreatureMood.class);
+        Gamble gamble = gamble(mode, NO_JACKPOT);
+        gamble.executeTask(creature, 4);
+        assertSame(frozen, entityData.getComponent(creatureId, CreatureMood.class));
+        assertEquals(mode == PayOut.SMILES ? 104 : 68, gold());
+        if (mode == PayOut.SMILES) {
+            assertEquals(List.of(4), keeperPayments);
+        } else {
+            assertEquals(32, goldPiles.getFirst()[2]);
+        }
+        controller.setCreatureMoodsEnabled(true);
+        gamble.executeTask(creature, 5);
+        assertEquals(mode == PayOut.SMILES ? 8000 : 10100,
+                entityData.getComponent(creatureId, CreatureMood.class).general);
+        assertEquals(mode == PayOut.SMILES ? 105 : 60, gold());
     }
 
     @Test

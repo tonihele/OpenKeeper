@@ -37,6 +37,10 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import toniarts.openkeeper.game.controller.CreaturesController;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import java.util.List;
 
 class PrayTest {
 
@@ -74,6 +78,23 @@ class PrayTest {
 
         pray = new Pray(null, null, new Point(2, 3), PLAYER_ID, room(), null, entityData, gameSettings, manaControl);
         pray.assign(creature, false);
+    }
+
+    @Test
+    void disabledMoodsPreserveAngerWhilePrayerStillHealsAndGeneratesMana() {
+        IKwdFile kwd = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
+                new Class<?>[]{IKwdFile.class}, (p, m, a) -> List.of());
+        CreaturesController controller = new CreaturesController(kwd, entityData, Map.of(), () -> 0, null, null, null);
+        controller.setCreatureMoodsEnabled(false);
+        CreatureMood frozen = entityData.getComponent(entity, CreatureMood.class);
+        pray.executeTask(creature, 1);
+        assertSame(frozen, entityData.getComponent(entity, CreatureMood.class));
+        assertEquals(100, entityData.getComponent(entity, Health.class).health);
+        assertEquals(MANA_PER_SECOND, keeper.getMana());
+        controller.setCreatureMoodsEnabled(true);
+        pray.executeTask(creature, 2);
+        assertEquals(1000 + ANGER_PER_SECOND, entityData.getComponent(entity, CreatureMood.class).general);
+        assertEquals(2 * MANA_PER_SECOND, keeper.getMana());
     }
 
     @Test
