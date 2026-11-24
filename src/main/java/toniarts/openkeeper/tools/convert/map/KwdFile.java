@@ -2220,7 +2220,34 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                     break;
                 }
                 case THING_CAMERA: {
-                    addThing(readCamera(reader));
+
+                    // TODO: decode values
+                    thing = new Thing.Camera();
+                    ((Thing.Camera) thing).setPosition(reader.readIntegerAsFloat(),
+                            reader.readIntegerAsFloat(),
+                            reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setPositionMinClipExtent(reader.readIntegerAsFloat(),
+                            reader.readIntegerAsFloat(),
+                            reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setPositionMaxClipExtent(reader.readIntegerAsFloat(),
+                            reader.readIntegerAsFloat(),
+                            reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setViewDistanceValue(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setViewDistanceMin(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setViewDistanceMax(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setZoomValue(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setZoomValueMin(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setZoomValueMax(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setLensValue(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setLensValueMin(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setLensValueMax(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setFlags(reader.readIntegerAsFlag(Thing.Camera.CameraFlag.class));
+                    ((Thing.Camera) thing).setAngleYaw(reader.readUnsignedShort());
+                    ((Thing.Camera) thing).setAngleRoll(reader.readUnsignedShort());
+                    ((Thing.Camera) thing).setAnglePitch(reader.readUnsignedShort());
+                    ((Thing.Camera) thing).setId(reader.readUnsignedShort());
+
+                    addThing(thing);
                     break;
                 }
                 default: {
@@ -2234,44 +2261,6 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             // Check reader offset
             checkOffset(thingTag[1], reader, offset);
         }
-    }
-
-    /**
-     * Reads the camera settings of a camera mode. The record ends with the
-     * mode, DK II keeps one set of settings for each mode from 1 to 18
-     * (0x449A30)
-     *
-     * @param reader the reader at the start of the record
-     * @return the camera settings
-     * @throws IOException may fail reading
-     */
-    static Thing.Camera readCamera(IResourceChunkReader reader) throws IOException {
-        var camera = new Thing.Camera();
-        camera.setPosition(reader.readIntegerAsFloat(),
-                reader.readIntegerAsFloat(),
-                reader.readIntegerAsFloat());
-        camera.setPositionMinClipExtent(reader.readIntegerAsFloat(),
-                reader.readIntegerAsFloat(),
-                reader.readIntegerAsFloat());
-        camera.setPositionMaxClipExtent(reader.readIntegerAsFloat(),
-                reader.readIntegerAsFloat(),
-                reader.readIntegerAsFloat());
-        camera.setViewDistanceValue(reader.readIntegerAsFloat());
-        camera.setViewDistanceMin(reader.readIntegerAsFloat());
-        camera.setViewDistanceMax(reader.readIntegerAsFloat());
-        camera.setZoomValue(reader.readIntegerAsFloat());
-        camera.setZoomValueMin(reader.readIntegerAsFloat());
-        camera.setZoomValueMax(reader.readIntegerAsFloat());
-        camera.setLensValue(reader.readIntegerAsFloat());
-        camera.setLensValueMin(reader.readIntegerAsFloat());
-        camera.setLensValueMax(reader.readIntegerAsFloat());
-        camera.setFlags(reader.readIntegerAsFlag(Thing.Camera.CameraFlag.class));
-        camera.setAngleYaw(reader.readUnsignedShort());
-        camera.setAngleRoll(reader.readUnsignedShort());
-        camera.setAnglePitch(reader.readUnsignedShort());
-        camera.setId(reader.readUnsignedShort());
-
-        return camera;
     }
 
     /** Reads all four generator slots, including the empty ones used by random selection. */
