@@ -97,6 +97,18 @@ public final class CreatureFixtures {
      * creature data
      * @return the creature
      */
+    /**
+     * A creature of a given width
+     *
+     * @param width the width in tiles
+     * @return the creature
+     */
+    public static Creature creatureWithWidth(float width) {
+        Creature creature = new Creature();
+        creature.getAttributes().setWidth(width);
+        return creature;
+    }
+
     public static Creature manufacturer(short id, int manufacturePerSecond) {
         Creature creature = new Creature();
         creature.setCreatureId(id);

@@ -905,11 +905,13 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
             // Take a free point first. A room can take more than it has points, like one more
-            // trainee than the Training Room has dummies, so then the points are shared until it is full
+            // trainee than the Training Room has dummies, so then the points are shared until it is full.
+            // A Casino object takes one gambler only, DK II skips an object another creature has (0x4D7460)
             if (taskPoints != null) {
                 List<Point> freeCoordinates = new ArrayList<>(coordinates);
                 freeCoordinates.removeAll(taskPoints.values());
-                if (!freeCoordinates.isEmpty() || taskPoints.size() + control.getCurrentCapacity() >= control.getMaxCapacity()) {
+                if (!freeCoordinates.isEmpty() || objectType == ObjectType.GAMBLER
+                        || taskPoints.size() + control.getCurrentCapacity() >= control.getMaxCapacity()) {
                     coordinates = freeCoordinates;
                 }
             }
