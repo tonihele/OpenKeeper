@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.PrisonStatus;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.utils.Point;
@@ -47,7 +48,6 @@ class MapRoomContainerTest {
     @BeforeEach
     void setUp() {
         entityData = new DefaultEntityData();
-
         // As in the game, the view reads through the client entity data, which refuses lookups
         container = new MapRoomContainer(new ClientEntityData(entityData), null);
     }
@@ -115,6 +115,22 @@ class MapRoomContainerTest {
         entityData.setComponent(casino, new Casino(Casino.PayOut.MONEY));
         container.update();
         assertEquals(Casino.PayOut.MONEY, container.getRoomInformation(casino).getCasinoPayOut());
+    }
+
+    @Test
+    void prisonStatusIsReadFromTheRoomEntity() {
+        EntityId prison = createRoom((short) 11);
+        entityData.setComponent(prison, new PrisonStatus(true));
+        EntityId casino = createRoom((short) 15);
+
+        container.start();
+
+        assertTrue(container.getRoomInformation(prison).isPrisonOpen());
+        assertFalse(container.getRoomInformation(casino).isPrisonOpen());
+
+        entityData.setComponent(prison, new PrisonStatus(false));
+        container.update();
+        assertFalse(container.getRoomInformation(prison).isPrisonOpen());
     }
 
     private EntityId createRoom(short roomId) {

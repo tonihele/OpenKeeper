@@ -117,6 +117,15 @@ public interface IRoomInformation {
     }
 
     /**
+     * Is the room an open Prison. Only an open Prison takes in captives
+     *
+     * @return true if the room is an open Prison
+     */
+    default boolean isPrisonOpen() {
+        return false;
+    }
+
+    /**
      * Checks if the room have been removed from the plain of existence.
      * Meaning that the entity does not exist anymore...
      *
