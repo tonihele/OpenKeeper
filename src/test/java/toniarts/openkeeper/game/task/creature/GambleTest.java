@@ -306,6 +306,9 @@ class GambleTest {
             if ("isFullCapacity".equals(method.getName())) {
                 return false;
             }
+            if ("addItem".equals(method.getName())) {
+                return args[0]; // The gambler is counted in the room
+            }
             throw new UnsupportedOperationException(method.getName());
         });
         IRoomController room = (IRoomController) Proxy.newProxyInstance(IRoomController.class.getClassLoader(), new Class<?>[]{IRoomController.class}, (proxy, method, args) -> {

@@ -58,13 +58,17 @@ public class RoomTextParser {
         this.roomsInformation = roomsInformation;
     }
 
+    /**
+     * Parses the room tooltip. A destroyed Dungeon Heart has no tooltip text,
+     * as in the original.
+     */
     public String parseText(String text, EntityId room, Keeper roomOwner) {
         // Room entities can disappear before the tile's room reference is replicated.
-        IRoomInformation information = roomsInformation.getRoomInformation(room);
-        if (information == null) {
+        IRoomInformation roomInformation = roomsInformation.getRoomInformation(room);
+        if (roomInformation == null || (roomInformation.isDungeonHeart() && roomInformation.isDestroyed())) {
             return "";
         }
-        return TextUtils.parseText(text, parameter -> getReplacement(parameter, information, roomOwner));
+        return TextUtils.parseText(text, parameter -> getReplacement(parameter, roomInformation, roomOwner));
     }
 
     protected String getReplacement(TextParameter parameter, IRoomInformation room, Keeper roomOwner) {
@@ -101,8 +105,7 @@ public class RoomTextParser {
             case WORKSHOP_MAX_CAPACITY:
                 return Integer.toString(room.getMaxCapacity());
             case PRISON_STATUS:
-                // The Prison's door can't be switched in OpenKeeper yet, so it's always open, as a new Prison is in DK II
-                return Utils.getMainTextResourceBundle().getString("2454");
+                return Utils.getMainTextResourceBundle().getString(room.isPrisonOpen() ? "2454" : "2455"); // Open. / Closed.
             case CASINO_PAYOUT:
                 // The pay-out lever can't be pulled yet, so the Casino is a generous one
                 return Utils.getMainTextResourceBundle().getString("2508");

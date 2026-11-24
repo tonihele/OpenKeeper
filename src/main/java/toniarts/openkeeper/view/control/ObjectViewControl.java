@@ -51,7 +51,7 @@ import toniarts.openkeeper.view.text.EntityTextParser;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class ObjectViewControl extends EntityViewControl<GameObject, ObjectViewState> {
+public class ObjectViewControl extends EntityViewControl<GameObject, ObjectViewState> {
 
     /**
      * A spin in the original (object state 18, 0x4A13F0) turns the object by
