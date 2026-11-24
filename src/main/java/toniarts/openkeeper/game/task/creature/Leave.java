@@ -18,7 +18,7 @@ package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
-import toniarts.openkeeper.game.component.LeavingDungeon;
+import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -30,7 +30,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Leaves the dungeon. Like in DK II, the creature walks to a portal, steps
- * into the middle of it and is gone for good
+ * into the middle of it and is gone for good. It falls through the floor there
+ * like a creature dropped on the middle of the portal
  */
 public final class Leave extends AbstractTileTask {
 
@@ -66,7 +67,7 @@ public final class Leave extends AbstractTileTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        entityData.setComponent(creature.getEntityId(), new LeavingDungeon());
+        entityData.setComponent(creature.getEntityId(), new CreatureFall(CreatureFall.FallType.PORTAL_DROP));
     }
 
     @Override

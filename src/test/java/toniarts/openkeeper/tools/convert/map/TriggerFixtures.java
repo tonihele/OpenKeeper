@@ -14,18 +14,17 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.component;
+package toniarts.openkeeper.tools.convert.map;
 
-import com.simsilica.es.EntityComponent;
+public final class TriggerFixtures {
 
-/**
- * The creature leaves the dungeon as soon as it has landed, it was dropped on
- * the middle of its keeper's portal
- */
-public final class LeavingDungeon implements EntityComponent {
-
-    public LeavingDungeon() {
-        // For serialization
+    private TriggerFixtures() {
     }
 
+    public static TriggerGeneric generic(int id, TriggerGeneric.TargetType type) {
+        TriggerGeneric trigger = new TriggerGeneric(null);
+        trigger.setId(id);
+        trigger.setType(type);
+        return trigger;
+    }
 }

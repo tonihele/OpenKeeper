@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.CreatureTypePenalty;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Fearless;
@@ -69,6 +70,7 @@ import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.logic.PortalCreatureChoice;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -455,7 +457,7 @@ public final class CreaturesController implements ICreaturesController {
             }
             case CONJURE -> {
                 creatureState = null;
-                entityData.setComponent(entity, new CreatureFall(true));
+                entityData.setComponent(entity, new CreatureFall(CreatureFall.FallType.CONJURED));
             }
             default ->
                 throw new RuntimeException("SpawnType " + spawnType + " not handled!");
@@ -811,9 +813,21 @@ public final class CreaturesController implements ICreaturesController {
     public void leaveDungeon(EntityId entityId) {
 
         // The mentor tells the keeper which creature type left, like DK II (0x45A0D0, message 0x14)
+        short playerId = entityData.getComponent(entityId, Owner.class).ownerId;
+        short creatureId = entityData.getComponent(entityId, CreatureComponent.class).creatureId;
         gameController.getGameEventService().emitToPlayer(GameEventType.CREATURE_LEFT, GameEvent.ThingFlag.CREATURE,
-                entityData.getComponent(entityId, CreatureComponent.class).creatureId,
-                entityData.getComponent(entityId, Owner.class).ownerId);
+                creatureId, playerId);
+
+        // Like in DK II, the Portals of the keeper shun the creature type that left for a while
+        EntityId penalty = null;
+        for (EntityId id : entityData.findEntities(new FieldFilter<>(CreatureTypePenalty.class, "playerId", playerId),
+                CreatureTypePenalty.class)) {
+            if (entityData.getComponent(id, CreatureTypePenalty.class).creatureId == creatureId) {
+                penalty = id;
+            }
+        }
+        entityData.setComponent(penalty != null ? penalty : entityData.createEntity(),
+                new CreatureTypePenalty(playerId, creatureId, PortalCreatureChoice.PENALTY_GENERATIONS));
 
         // Like in DK II, the creature takes the gold it carries with it
         entityData.removeComponent(entityId, Gold.class);

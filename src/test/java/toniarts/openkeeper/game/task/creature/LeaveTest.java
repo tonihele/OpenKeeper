@@ -22,17 +22,13 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.LeavingDungeon;
+import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.Owner;
-import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.game.logic.CreatureLeaveSystem;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -78,24 +74,15 @@ class LeaveTest {
     @Test
     void creatureWalkingToThePortalIsStillThere() {
         assertTrue(leave.isValid(creature));
-        assertNull(entityData.getComponent(entity, LeavingDungeon.class));
+        assertNull(entityData.getComponent(entity, CreatureFall.class));
     }
 
     @Test
     void creatureAtThePortalLeavesTheDungeon() {
-        List<EntityId> left = new ArrayList<>();
-        ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(
-                ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class},
-                (proxy, method, args) -> switch (method.getName()) {
-                    case "leaveDungeon" -> left.add((EntityId) args[0]);
-                    default -> throw new UnsupportedOperationException(method.getName());
-                });
-        CreatureLeaveSystem leaveSystem = new CreatureLeaveSystem(entityData, creaturesController);
-
         leave.executeTask(creature, 0.25f);
-        leaveSystem.processTick(0.25f);
 
-        assertEquals(List.of(entity), left);
+        // It falls through the middle of the portal like one dropped there, and leaves when it lands
+        assertEquals(CreatureFall.FallType.PORTAL_DROP, entityData.getComponent(entity, CreatureFall.class).fallType);
     }
 
     @Test
