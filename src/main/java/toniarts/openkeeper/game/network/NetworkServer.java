@@ -82,6 +82,7 @@ import toniarts.openkeeper.game.component.ImpGenerator;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.InfernoArea;
+import toniarts.openkeeper.game.component.JobPicked;
 import toniarts.openkeeper.game.component.KeeperAi;
 import toniarts.openkeeper.game.component.KeeperAiDropped;
 import toniarts.openkeeper.game.component.KeeperAiEnemy;
@@ -270,6 +271,7 @@ public final class NetworkServer {
             Serializer.registerClass(InHand.class, new FieldSerializer());
             Serializer.registerClass(Interaction.class, new FieldSerializer());
             Serializer.registerClass(InfernoArea.class, new FieldSerializer());
+            Serializer.registerClass(JobPicked.class, new FieldSerializer());
             Serializer.registerClass(KeeperAi.class, new FieldSerializer());
             Serializer.registerClass(KeeperAiDropped.class, new FieldSerializer());
             Serializer.registerClass(KeeperAiEnemy.class, new FieldSerializer());

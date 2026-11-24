@@ -110,7 +110,7 @@ class CreatureTrainFallbackTest {
                     default -> method.getReturnType() == boolean.class ? Boolean.FALSE : null;
                 });
         AtomicReference<Boolean> foundWork = new AtomicReference<>();
-        new CreatureController(id, entityData, creature, null, taskManager, null, Map.of(), null, null, null, null, null, null, null)
+        new CreatureController(id, entityData, creature, null, taskManager, () -> 0, Map.of(), null, null, null, null, null, null, null)
                 .findWork(foundWork::set);
 
         return foundWork.get();

@@ -743,7 +743,7 @@ class KeeperAiSystemTest {
         CreatureComponent creatureComponent = new CreatureComponent();
         creatureComponent.creatureId = EATER;
         entityData.setComponent(creature, creatureComponent);
-        handControl.push(creature);
+        handControl.push(creature, 0.0);
 
         system.processTick(0.25f);
 
@@ -756,7 +756,7 @@ class KeeperAiSystemTest {
         KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
         roomControl.onBuild(createRoom(LAIR, new Point(2, 4)));
         EntityId creature = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
-        handControl.push(creature);
+        handControl.push(creature, 0.0);
 
         system.processTick(0.25f);
 
@@ -775,7 +775,7 @@ class KeeperAiSystemTest {
         rejectPreferredHeartDrop = true;
         KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
         EntityId creature = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
-        handControl.push(creature);
+        handControl.push(creature, 0.0);
 
         system.processTick(0.25f);
 
@@ -2470,7 +2470,7 @@ class KeeperAiSystemTest {
                             pickedUp.add((EntityId) args[0]);
                             if (entityData.getComponent((EntityId) args[0], CreatureComponent.class) != null
                                     || entityData.getComponent((EntityId) args[0], Food.class) != null) {
-                                handControl.push((EntityId) args[0]);
+                                handControl.push((EntityId) args[0], 0.0);
                             }
                         }
                         case "interact" ->
@@ -2479,7 +2479,7 @@ class KeeperAiSystemTest {
                             EntityId pay = createObject((short) 1, new Point(0, 0));
                             entityData.setComponent(pay, new Gold((int) args[0], (int) args[0]));
                             keeper.setGold(keeper.getGold() - (int) args[0]);
-                            handControl.push(pay);
+                            handControl.push(pay, 0.0);
                         }
                         case "placeTrap", "placeDoor" -> {
                             Point tile = (Point) args[1];
