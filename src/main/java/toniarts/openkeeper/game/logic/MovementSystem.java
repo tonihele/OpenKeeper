@@ -71,7 +71,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
      * A creature pushed away from a taken end point stops this close to it.
      * DK II plans the walk again when it makes no headway (0x4D3C40).
      */
-    private static final float END_TOLERANCE = 0x6148 / 65536f;
+    public static final float END_TOLERANCE = 0x6148 / 65536f;
 
     /**
      * The radius of what has no creature width

@@ -630,6 +630,27 @@ class CreatureControllerTest {
         }
     }
 
+    /**
+     * A walk ends this short of its end when the creature is pushed off a
+     * spot another creature stands on, so a trainee stopped there doesn't
+     * walk to its spot by the dummy again
+     */
+    @Test
+    void doesNotWalkAgainToAWorkSpotWhereAPushedWalkStopped() {
+        try (Fixture f = new Fixture(9)) {
+            f.startWork(TaskType.TRAIN);
+            f.tasks.put(-1L, proxy(Task.class, (method, args) -> switch (method) {
+                case "getTarget" -> new Vector2f(3, 5);
+                case "getWorkPosition" -> new Vector2f(3.3f, 4);
+                default -> throw new UnsupportedOperationException(method);
+            }));
+
+            f.controller.navigateToAssignedTask();
+
+            assertNull(f.data.getComponent(f.entity, Navigation.class));
+        }
+    }
+
     @Test
     void idleHeroTriesItsObjectiveAgainEveryTwelveTicks() {
         try (Fixture f = new Fixture(9)) {

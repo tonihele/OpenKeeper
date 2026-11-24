@@ -96,6 +96,7 @@ import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.logic.MovementSystem;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.CreatureSizing;
@@ -888,11 +889,12 @@ public final class CreatureController extends EntityController implements ICreat
     /**
      * Standing on the spot, not just on the tile. Well above the arrival
      * tolerance of the steering (0.1), or the creature keeps stepping around
-     * the spot
+     * the spot. A walk pushed off a spot another creature stands on ends as
+     * near as {@link MovementSystem#END_TOLERANCE}, that is on the spot too
      */
     private boolean isAt(Vector2f target) {
         Vector3f currentPos = getPosition();
-        return (target.distanceSquared(currentPos.x, currentPos.z) < 0.25f * 0.25f);
+        return target.distanceSquared(currentPos.x, currentPos.z) <= MovementSystem.END_TOLERANCE * MovementSystem.END_TOLERANCE;
     }
 
     @Override
