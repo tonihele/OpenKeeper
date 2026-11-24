@@ -55,6 +55,7 @@ import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.IdleAnimation;
 import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.JobPicked;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
@@ -69,6 +70,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.ReturnToHeroLair;
+import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
@@ -116,6 +118,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -174,10 +177,20 @@ public final class CreatureController extends EntityController implements ICreat
     // DK II's 0xD000, under 13 square tiles from the heart's centre
     private static final float NEAR_OWN_HEART_DISTANCE_SQUARED = 13 * WorldUtils.TILE_WIDTH * WorldUtils.TILE_WIDTH;
     /**
+     * An enemy of the other alignment counts as this much nearer when we look
+     * for one to fight. DK II takes 7/8 of the squared distance (0x45B140).
+     */
+    private static final float OTHER_ALIGNMENT_DISTANCE_FACTOR = (float) Math.sqrt(7 / 8f);
+    /**
      * How long the big winner of the Casino celebrates its jackpot, as in DK II (DKII.EXE 0x456EC0)
      */
     private static final float BIG_WINNER_CELEBRATION_SECONDS = 10f;
     private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
+    /**
+     * How long a creature that got a job from its job list doesn't pick from the list again, as in DK II (DKII.EXE
+     * 0x4780E0)
+     */
+    private static final float JOB_PICK_INTERVAL_SECONDS = 5f;
 
     /**
      * The possessed melee attack hits what is at most 341/2048 of a full
@@ -349,7 +362,7 @@ public final class CreatureController extends EntityController implements ICreat
         for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
             Owner owner = entityData.getComponent(entity, Owner.class);
 
-            // We sense through doors, but the creature behind an enemy or a locked door
+            // We see over barricades, but the creature behind an enemy or a locked door
             // is not ours before we get there
             if (owner != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID
                     && !entityPositionLookup.isBehindBlockingDoor(entityId, entity)) {
@@ -485,6 +498,9 @@ public final class CreatureController extends EntityController implements ICreat
     public void navigateToRandomPointInCombatPit() {
         CombatPitFighter pitFighter = entityData.getComponent(entityId, CombatPitFighter.class);
         if (pitFighter != null && mapController.getRoomController(pitFighter.pit) instanceof CombatPitController pit) {
+
+            // Waiting in the pit is no work, DK II adds the no work anger each time too (0x478B80)
+            addNoWorkAnger();
             createNavigation(getCreatureCoordinates(), pit.getRandomFightingTile(), null);
         }
     }
@@ -610,10 +626,15 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
 
+        // DKII doesn't let a creature pick from its jobs again for 5 seconds after a pick that got it one. Until
+        // then it goes on to its other choices, and the lack of work doesn't anger it (0x4780E0)
+        JobPicked jobPicked = entityData.getComponent(entityId, JobPicked.class);
+        boolean pickedLately = jobPicked != null && gameTimer.getGameTime() - jobPicked.time < JOB_PICK_INTERVAL_SECONDS;
+
         // See that is there a prefered job for us
         // FIXME: moods
         List<Creature.JobPreference> jobs = new ArrayList<>();
-        if (creature.getHappyJobs() != null) {
+        if (!pickedLately && creature.getHappyJobs() != null) {
             for (Creature.JobPreference jobPreference : creature.getHappyJobs()) {
                 if (taskManager.isTaskAvailable(this, jobPreference.getJobType())) {
                     jobs.add(jobPreference);
@@ -623,8 +644,15 @@ public final class CreatureController extends EntityController implements ICreat
 
         // Choose
         if (!jobs.isEmpty() && taskManager.assignTask(this, chooseOnWeight(jobs).getJobType())) {
+            entityData.setComponent(entityId, new JobPicked(gameTimer.getGameTime()));
             workResult.accept(true);
             return;
+        }
+
+        // DKII angers a creature each time it looks for a job and finds none, before it goes on to its other
+        // choices (0x4780E0, then 0x478680)
+        if (!pickedLately) {
+            addNoWorkAnger();
         }
 
         // With none of its own jobs to start, the creature trains, like in DK II. The Casino comes after this
@@ -636,6 +664,14 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         workResult.accept(false);
+    }
+
+    private void addNoWorkAnger() {
+        CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
+        if (mood != null) {
+            entityData.setComponent(entityId, mood.add(CreatureMood.REASON_NO_WORK,
+                    CreatureMood.toRuntimeValue(creature.getAttributes().getAngerNoWork())));
+        }
     }
 
     private static Creature.JobPreference chooseOnWeight(List<Creature.JobPreference> items) {
@@ -1038,11 +1074,12 @@ public final class CreatureController extends EntityController implements ICreat
         float nearestDistance = Float.MAX_VALUE;
         EntityId nearestAttacker = null;
         float nearestAttackerDistance = Float.MAX_VALUE;
-        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+        for (EntityId entity : getEntitiesInNoticeRange()) {
             if (creaturesController.isValidEntity(entity)
                     && isEnemy(entity)
                     && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
                     && !(fightersOnly && creaturesController.createController(entity).isWorker())
+                    && isNoticed(entity)
                     && hasRoomForAttacker(entity)
                     && (hasPathToEntity(entity) || isWithinAttackDistance(entity))) {
                 float distance = getDistanceToCreature(entity);
@@ -1171,11 +1208,108 @@ public final class CreatureController extends EntityController implements ICreat
         return false;
     }
 
+    /**
+     * Whether we can walk to the creature. DK II picks a creature it notices
+     * only when there is a path to it (0x45CB00 through 0x4D0E60).
+     */
     private boolean hasPathToEntity(EntityId entity) {
         Point ourPos = WorldUtils.vectorToPoint(getPosition());
         Point theirPos = WorldUtils.vectorToPoint(getPosition(entityData, entity));
 
         return ourPos.equals(theirPos) || navigationService.findPath(ourPos, theirPos, this) != null;
+    }
+
+    /**
+     * Whether we notice the enemy. DK II sees an enemy nearer than the sight
+     * distance with no solid tile in between, and hears one nearer than the
+     * hearing distance when the walk there is shorter than that too
+     * (0x45B140, 0x45BAD0, 0x45B500). An enemy further away is left alone,
+     * even one we could walk to.
+     */
+    private boolean isNoticed(EntityId entity) {
+        Senses senses = entityData.getComponent(entityId, Senses.class);
+        if (senses == null) {
+            return true; // Only the position lookup limits what it notices
+        }
+        Vector3f ourPosition = getPosition();
+        Vector3f theirPosition = getPosition(entityData, entity);
+        if (ourPosition == null || theirPosition == null) {
+            return false;
+        }
+        float distance = ourPosition.distance(theirPosition) / WorldUtils.TILE_WIDTH;
+        if (isOfOtherAlignment(entity)) {
+            distance *= OTHER_ALIGNMENT_DISTANCE_FACTOR;
+        }
+        if (distance < senses.distanceCanSee && entityPositionLookup.hasLineOfSight(ourPosition, theirPosition)) {
+            return true;
+        }
+        if (distance >= senses.distanceCanHear) {
+            return false;
+        }
+
+        // The walk is measured like DK II does it, a diagonal step counts one and a half
+        Point ourPos = WorldUtils.vectorToPoint(ourPosition);
+        Point theirPos = WorldUtils.vectorToPoint(theirPosition);
+        GraphPath<IMapTileInformation> path = ourPos.equals(theirPos) ? null : navigationService.findPath(ourPos, theirPos, this);
+        if (path == null) {
+            return ourPos.equals(theirPos);
+        }
+        float walk = 0;
+        Point previous = ourPos;
+        for (IMapTileInformation tile : path) {
+            int dx = Math.abs(tile.getX() - previous.x);
+            int dy = Math.abs(tile.getY() - previous.y);
+            walk += Math.max(dx, dy) + Math.min(dx, dy) / 2f;
+            previous = tile.getLocation();
+        }
+        return walk < senses.distanceCanHear;
+    }
+
+    /**
+     * Everything on the tiles within our sight or hearing distance. DK II goes
+     * through every enemy creature and measures the straight distance
+     * (0x45B140), so this is a square of tiles rather than the sensed area,
+     * which only reaches that far in steps along the map axes and misses the
+     * diagonals.
+     */
+    private Collection<EntityId> getEntitiesInNoticeRange() {
+        Senses senses = entityData.getComponent(entityId, Senses.class);
+        if (senses == null) {
+            return entityPositionLookup.getSensedEntities(entityId);
+        }
+        IMapTileInformation ourTile = entityPositionLookup.getEntityLocation(entityId);
+        if (ourTile == null) {
+            return Collections.emptyList();
+        }
+        int range = (int) FastMath.ceil(Math.max(senses.distanceCanSee, senses.distanceCanHear) / OTHER_ALIGNMENT_DISTANCE_FACTOR);
+        List<EntityId> entities = new ArrayList<>();
+        for (int x = ourTile.getX() - range; x <= ourTile.getX() + range; x++) {
+            for (int y = ourTile.getY() - range; y <= ourTile.getY() + range; y++) {
+                IMapTileInformation tile = mapController.getMapData().getTile(x, y);
+                if (tile != null) {
+                    entities.addAll(entityPositionLookup.getEntitiesInLocation(tile));
+                }
+            }
+        }
+        entities.remove(entityId);
+
+        return entities;
+    }
+
+    /**
+     * Whether the other creature is of the alignment we fight. DK II checks
+     * the evil flag of the enemy when we are good, otherwise its good flag
+     * (0x45B140).
+     */
+    private boolean isOfOtherAlignment(EntityId entity) {
+        CreatureComponent otherCreature = entityData.getComponent(entity, CreatureComponent.class);
+        if (otherCreature == null) {
+            return false;
+        }
+        Creature.CreatureFlag otherAlignment = creature.getFlags().contains(Creature.CreatureFlag.IS_GOOD)
+                ? Creature.CreatureFlag.IS_EVIL : Creature.CreatureFlag.IS_GOOD;
+
+        return levelInfo.getLevelData().getCreature(otherCreature.creatureId).getFlags().contains(otherAlignment);
     }
 
     private void setAttackTarget(EntityId entity) {
@@ -2499,7 +2633,7 @@ public final class CreatureController extends EntityController implements ICreat
             case ENTERING_DUNGEON -> {
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.ENTRANCE);
             }
-            case MELEE_ATTACK -> {
+            case MELEE_ATTACK, TELLING_OFF -> {
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.MELEE_ATTACK);
             }
             case CAST_SPELL -> {
@@ -2657,6 +2791,12 @@ public final class CreatureController extends EntityController implements ICreat
 
             // Every chicken starts the hunger clock again
             entityData.setComponent(entityId, new CreatureHunger(gameTimer.getGameTime(), creatureHunger.amountNeeded - 1));
+        }
+
+        // Every chicken eaten clears the no-food anger
+        CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
+        if (mood != null && mood.noFood != 0) {
+            entityData.setComponent(entityId, mood.clear(CreatureMood.REASON_NO_FOOD));
         }
 
         // Increase health

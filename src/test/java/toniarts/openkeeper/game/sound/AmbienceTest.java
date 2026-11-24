@@ -102,6 +102,7 @@ class AmbienceTest {
 
     @Test
     void layerMovesItsVoices() {
+        engine.setListener(new Point(1, 1));
         SoundCategory category = category("BED", AmbienceBeds.LAYER_ONE,
                 event(AmbienceBeds.LAYER_ONE, SEGMENTED_FLAGS, loud(100, 100, 4000)));
         AmbienceLayer layer = new AmbienceLayer(engine, category, AmbienceBeds.LAYER_ONE, new Point(1, 1), 0);

@@ -170,7 +170,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController, levelInfo);
 
         // Load the map
-        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo, gameEventService);
+        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo, gameEventService, gameController::onEnemyBreached, gameController::onDungeonBreached);
 
         // Load creatures
         creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo);
@@ -1249,7 +1249,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     private void putToKeeperHand(PlayerHandControl playerHandControl, EntityId entity, short playerId) {
-        playerHandControl.push(entity);
+        playerHandControl.push(entity, gameTimer.getGameTime());
 
         /**
          * TODO: Basically here we can have a concurrency problem, especially visible with things that have
@@ -1277,8 +1277,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // TODO: Should we some sort of room component and notify the room handlers instead?
         // Handle stored stuff
         Stored roomStorage = entityData.getComponent(entity, Stored.class);
-        IRoomController roomController = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
-        if (roomController != null && roomStorage != null) {
+        IRoomController roomController = roomStorage != null ? mapController.getRoomController(roomStorage.room) : null;
+        if (roomController != null) {
             IRoomObjectControl roomObjectControl = roomController.getObjectControl(roomStorage.objectType);
             roomObjectControl.removeItem(entity);
 
