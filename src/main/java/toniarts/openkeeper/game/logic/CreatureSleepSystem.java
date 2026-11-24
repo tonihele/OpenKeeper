@@ -90,9 +90,11 @@ public final class CreatureSleepSystem implements IGameLogicUpdatable {
             }
 
             TaskComponent task = entityData.getComponent(entity.getId(), TaskComponent.class);
-            if (ai.getCreatureState() == CreatureState.WORK && task != null
-                    && task.taskType == TaskType.CLAIM_LAIR && task.taskStarted) {
-                // Native lair activity skips needs accumulation (also applies to no-bed sleepers).
+            if (ai.getCreatureState() == CreatureState.WORK && task != null && task.taskStarted
+                    && (task.taskType == TaskType.CLAIM_LAIR || task.taskType == TaskType.GAMBLE)) {
+                // Native lair activity skips needs accumulation (also applies to no-bed sleepers). So does gambling:
+                // DK II's Casino states have flag 0x10 in the state table (0x47BBE0), and 0x477C20 doesn't latch
+                // the fatigue while it is set. The awake clock runs on, so it latches as soon as the creature stops
                 continue;
             }
             CreatureSleep updated = updateSleep(sleep, ai.getCreatureState(), gameTime,

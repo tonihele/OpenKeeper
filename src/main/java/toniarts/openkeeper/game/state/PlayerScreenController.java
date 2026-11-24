@@ -153,6 +153,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void update(float tpf) {
+        if (screen != null && SCREEN_HUD_ID.equals(screen.getScreenId())) {
+            var tabs = screen.findNiftyControl("tabs-hud", CustomTabGroupControl.class);
+            if (tabs != null) {
+                tabs.refreshLayout();
+            }
+        }
         updateSpellRecharge(tpf);
         lastUpdate += tpf;
 
@@ -1761,6 +1767,15 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 "spell", "gui\\spells\\s-tba", null, null, false, false);
     }
 
+    /** Right-click navigation is separate from selecting an item for placement. */
+    public void cycleDoor(String doorId) {
+        state.cycleDoor(Short.parseShort(doorId));
+    }
+
+    public void cycleTrap(String trapId) {
+        state.cycleTrap(Short.parseShort(trapId));
+    }
+
     private ControlBuilder createDoorIcon(final ResearchableEntity doorInfo) {
         Door door = state.getKwdFile().getDoorById(doorInfo.getId());
         if (doorInfo.isDiscovered()) {
@@ -1768,7 +1783,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
             String tip = doorIconTextParser.parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(door.getGeneralDescriptionStringId())), door, trap);
             String hint = doorIconTextParser.parseText(Utils.getMainTextResourceBundle().getString("1783"), door, trap);
 
-            return createIcon(door.getDoorId(), "door", door.getGuiIcon(), tip, hint, true, false);
+            ControlBuilder icon = createIcon(door.getDoorId(), "door", door.getGuiIcon(), tip, hint, true, false);
+            icon.interactOnSecondaryClick("cycleDoor(" + door.getDoorId() + ")");
+            return icon;
         }
 
         return createIcon(door.getId(),
@@ -1781,7 +1798,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
             String tip = trapIconTextParser.parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(trap.getGeneralDescriptionStringId())), trap);
             String hint = trapIconTextParser.parseText(Utils.getMainTextResourceBundle().getString("1783"), trap);
 
-            return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), tip, hint, true, false);
+            ControlBuilder icon = createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), tip, hint, true, false);
+            icon.interactOnSecondaryClick("cycleTrap(" + trap.getTrapId() + ")");
+            return icon;
         }
 
         return createIcon(trap.getId(),
@@ -1901,7 +1920,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         private void processAddedPlayerCreatureEntities(Set<Entity> entities) {
             for (Entity entity : entities) {
                 creatureEntities.put(entity.getId(), entityData.watchEntity(entity.getId(), new Class[]{CreatureAi.class, CreatureComponent.class,
-                    AttackTarget.class, TaskComponent.class, Position.class, CreatureImprisoned.class, CreatureImprisoned.class}));
+                    AttackTarget.class, TaskComponent.class, Position.class, CreatureImprisoned.class, CreatureMood.class}));
             }
         }
 
@@ -1951,7 +1970,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
                         creatureCardControls.put(creatureId, card);
                     }
 
-                    card.setTotal(calculateTotal(creatureId));
+                    updateCreatureCardCounts(card, creatureId);
                 }
             }
             if (!creatureTypes.isEmpty()) {
@@ -2039,20 +2058,40 @@ public final class PlayerScreenController implements IPlayerScreenController {
             // Add the event listener
             creatureCardControl.addListener(creatureCardEventListener);
 
+            // New cards show the view that is currently selected
+            creatureCardControl.setState(workerAmountControl.getState());
+
             return creatureCardControl;
         }
 
-        private int calculateTotal(short creatureId) {
+        private void updateCreatureCardCounts(CreatureCardControl card, short creatureId) {
+            int unhappyThreshold = unhappyThreshold(creatureId);
+            int[] counts = new int[CreatureUIState.values().length];
             int total = 0;
-            Set<EntityId> creatureSet = creaturesByTypes.get(creatureId);
-            if (creatureSet != null) {
-                for (EntityId entityId : creatureSet) {
-                    if (isIncludeEntityInCount(creatureEntities.get(entityId))) {
-                        total++;
+            for (EntityId entityId : creaturesByTypes.get(creatureId)) {
+                Entity entity = creatureEntities.get(entityId);
+                if (isIncludeEntityInCount(entity)) {
+                    total++;
+                    for (CreatureUIState uiState : CreatureUIState.values()) {
+                        if (uiState.matches(entity, unhappyThreshold)) {
+                            counts[uiState.ordinal()]++;
+                        }
                     }
                 }
             }
-            return total;
+            card.setTotal(total);
+            card.setIdle(counts[CreatureUIState.IDLE.ordinal()]);
+            card.setBusy(counts[CreatureUIState.BUSY.ordinal()]);
+            card.setWork(counts[CreatureUIState.WORK.ordinal()]);
+            card.setFight(counts[CreatureUIState.FIGHT.ordinal()]);
+            card.setDefence(counts[CreatureUIState.DEFENCE.ordinal()]);
+            card.setHappy(counts[CreatureUIState.HAPPY.ordinal()]);
+            card.setUnhappy(counts[CreatureUIState.UNHAPPY.ordinal()]);
+            card.setAngry(counts[CreatureUIState.ANGRY.ordinal()]);
+        }
+
+        private int unhappyThreshold(short creatureId) {
+            return CreatureMood.toRuntimeThreshold(kwdFile.getCreature(creatureId).getAttributes().getUnhappyThreshold());
         }
 
         /**
@@ -2151,7 +2190,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     EntityId creature = creatureList.get(index);
                     Entity entity = creatureEntities.get(creature);
                     index++;
-                    if (isCreatureState(entity, state) && entity.get(Position.class) != null) {
+                    if (entity.get(Position.class) != null
+                            && (state == null || state.matches(entity, unhappyThreshold(creatureId)))) {
                         selectionIndices.put(creatureId, index);
                         selectedCreature = entity;
                         break;
@@ -2162,22 +2202,6 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     }
                 } while (index != startIndex);
                 return selectedCreature;
-            }
-
-            private boolean isCreatureState(Entity entity, CreatureUIState state) {
-                if (state == null) {
-                    return true;
-                }
-
-                AttackTarget attackTarget = entity.get(AttackTarget.class);
-                CreatureAi creatureAi = entity.get(CreatureAi.class);
-                if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.IDLE) {
-                    return state == CreatureUIState.IDLE;
-                } else if (attackTarget != null) {
-                    return state == CreatureUIState.FIGHT;
-                } else {
-                    return state == CreatureUIState.BUSY;
-                }
             }
 
         }
