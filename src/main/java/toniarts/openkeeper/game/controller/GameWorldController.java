@@ -66,6 +66,7 @@ import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.controller.room.TempleController;
+import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomLairControl;
@@ -170,7 +171,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController, levelInfo);
 
         // Load the map
-        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo, gameEventService);
+        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo, gameEventService, gameController::onEnemyBreached, gameController::onDungeonBreached);
 
         // Load creatures
         creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo);
@@ -1249,7 +1250,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     private void putToKeeperHand(PlayerHandControl playerHandControl, EntityId entity, short playerId) {
-        playerHandControl.push(entity);
+        playerHandControl.push(entity, gameTimer.getGameTime());
 
         /**
          * TODO: Basically here we can have a concurrency problem, especially visible with things that have
@@ -1419,6 +1420,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Position devicePosition = null;
 
         CreatureState targetState = null;
+        boolean leavingDungeon = false;
 
         // Creatures dropped into a temple's pool are sacrificed
         if (roomController instanceof TempleController temple && temple.isSacrificePool(tile)) {
@@ -1427,7 +1429,13 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
-        // TODO: Evict
+        // A creature dropped on the middle of its keeper's portal falls through the floor and leaves the dungeon
+        if (roomController instanceof ThreeByThreeController portal) {
+            Entity creature = entityData.getEntity(entity, Owner.class, CreatureComponent.class);
+            boolean imp = creature.get(CreatureComponent.class).creatureId == kwdFile.getImp().getCreatureId();
+            leavingDungeon = portal.isLeavingDungeon(tile, creature.get(Owner.class).ownerId, imp);
+        }
+
         // TODO: Duplicated code with CreaturesController
         // TODO: capacities
         if (roomController != null) {
@@ -1467,10 +1475,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             targetState = getLairRestTarget(roomController, entity, owner.ownerId, tortureOrImprisonment);
         }
 
-        // Show the fall animation right away, before the position brings the model back to the map
+        // Show the fall animation right away, before the position brings the model back to the map. A creature
+        // falling into the portal doesn't fall over, it struggles and cries for help like in the hand
         if (!tortureOrImprisonment) {
             CreatureViewState viewState = entityData.getComponent(entity, CreatureViewState.class);
-            entityData.setComponent(entity, new CreatureViewState(viewState.creatureId, gameTimer.getGameTime(), Creature.AnimationType.FALLBACK));
+            entityData.setComponent(entity, new CreatureViewState(viewState.creatureId, gameTimer.getGameTime(),
+                    leavingDungeon ? Creature.AnimationType.IN_HAND : Creature.AnimationType.FALLBACK));
         }
 
         // Add position
@@ -1489,7 +1499,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // Add the dropping component to the creature
         if (!tortureOrImprisonment) {
-            entityData.setComponent(entity, new CreatureFall());
+            entityData.setComponent(entity, new CreatureFall(leavingDungeon ? CreatureFall.FallType.PORTAL_DROP : CreatureFall.FallType.DROPPED));
         } else {
 
             // No fall, so no touchdown for the fall system to announce

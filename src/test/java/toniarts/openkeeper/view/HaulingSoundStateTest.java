@@ -188,7 +188,7 @@ class HaulingSoundStateTest {
     private static SoundCategory category() throws Exception {
         SoundArchive archive = new SoundArchive("Global/Synthetic", Set.of(), null, List.of("drag.wav"));
         SoundSample sample = new SoundSample(1, 100, 1000, 0, archive);
-        SoundEventGroup group = new SoundEventGroup(100, 100, 0, 0, 0, 0, 0, 0, 0, 0, 100, 0,
+        SoundEventGroup group = new SoundEventGroup(100, 100, 0, 0, 0, 0, 0, 0, 0, 0, 100, 20,
                 List.of(sample), List.of());
         int eventId = GlobalType.CREATURE_DRAG.getId();
         SoundEvent event = new SoundEvent(eventId, 150, Set.of(), List.of(group));
