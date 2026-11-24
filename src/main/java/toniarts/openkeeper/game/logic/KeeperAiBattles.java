@@ -33,6 +33,7 @@ import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
+import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
@@ -94,8 +95,9 @@ final class KeeperAiBattles {
     private static final int CALL_TO_ARMS_EVERY_SECONDS = 10;
 
     /**
-     * DK II leaves a creature alone for 300 game ticks after a drop, at 4
-     * ticks a second
+     * DK II leaves a creature alone for 300 game ticks after it was made or
+     * landed from any keeper's hand, but not in the first 300 ticks of the
+     * game, at 4 ticks a second
      */
     private static final int LEAVE_ALONE_AFTER_DROP_SECONDS = 75;
 
@@ -143,6 +145,8 @@ final class KeeperAiBattles {
     private final INavigationService navigationService;
     private final DecisionLog decisionLog;
     private final EntitySet creatures;
+    private final EntitySet allCreatures;
+    private final EntitySet falling;
 
     KeeperAiBattles(EntityData entityData, IKwdFile kwdFile, IGameWorldController gameWorldController, IGameTimer gameTimer,
             INavigationService navigationService, DecisionLog decisionLog) {
@@ -154,17 +158,36 @@ final class KeeperAiBattles {
         this.navigationService = navigationService;
         this.decisionLog = decisionLog;
         creatures = entityData.getEntities(CreatureComponent.class, Owner.class, Health.class, CreatureAi.class, Position.class);
+        allCreatures = entityData.getEntities(CreatureComponent.class);
+        falling = entityData.getEntities(CreatureComponent.class, CreatureFall.class);
     }
 
     /**
-     * Takes in what happened to the creatures since the last game tick
+     * Takes in what happened to the creatures since the last game tick. A
+     * creature that is new, or has landed from any keeper's hand, is marked
+     * as just dropped. DK II keeps that as a counter per creature
+     * (CCreature+0x46D): 0 when it is made (0x4872A0), up one a tick, and
+     * back to 0 on every tick it is in the state of a drop from the hand, 0x4C
+     * (0x488930, set by 0x4BC710)
      */
     void applyChanges() {
         creatures.applyChanges();
+        allCreatures.applyChanges();
+        falling.applyChanges();
+        for (Entity creature : allCreatures.getAddedEntities()) {
+            entityData.setComponent(creature.getId(), new KeeperAiDropped(gameTimer.getGameTime()));
+        }
+        for (Entity creature : falling.getRemovedEntities()) {
+            if (entityData.getComponent(creature.getId(), CreatureComponent.class) != null) {
+                entityData.setComponent(creature.getId(), new KeeperAiDropped(gameTimer.getGameTime()));
+            }
+        }
     }
 
     void release() {
         creatures.release();
+        allCreatures.release();
+        falling.release();
     }
 
     /**
@@ -715,18 +738,17 @@ final class KeeperAiBattles {
     }
 
     /**
-     * Leaves a creature it carries alone for a while, from now
-     *
-     * @param creature the creature
+     * Whether a creature was just dropped, so the hand leaves it alone: it is
+     * still falling, or it was made or landed in the last 75 s. DK II (0x4F9710,
+     * 0x4FF260, 0x5006D0, 0x503690) doesn't count that in the first 300 ticks
+     * of the game
      */
-    void leaveAlone(EntityId creature) {
-        entityData.setComponent(creature, new KeeperAiDropped(gameTimer.getGameTime()));
-    }
-
     boolean isLeftAlone(Entity creature) {
         KeeperAiDropped dropped = entityData.getComponent(creature.getId(), KeeperAiDropped.class);
+        double gameTime = gameTimer.getGameTime();
 
-        return dropped != null && gameTimer.getGameTime() - dropped.time < LEAVE_ALONE_AFTER_DROP_SECONDS;
+        return gameTime > LEAVE_ALONE_AFTER_DROP_SECONDS && (entityData.getComponent(creature.getId(), CreatureFall.class) != null
+                || dropped != null && gameTime - dropped.time < LEAVE_ALONE_AFTER_DROP_SECONDS);
     }
 
     /**
@@ -743,15 +765,12 @@ final class KeeperAiBattles {
     }
 
     /**
-     * Picks a creature up and drops it on a tile, with the hand. The
-     * creature is left alone for a while after that, also when the hand
-     * could not take it
+     * Picks a creature up and drops it on a tile, with the hand
      *
      * @return true if the creature was dropped
      */
     boolean carry(EntityId creature, Point tile, IPlayerController playerController) {
         short playerId = playerController.getKeeper().getId();
-        leaveAlone(creature);
         gameWorldController.pickUp(creature, playerId);
         if (!creature.equals(playerController.getHandControl().peek())) {
             return false;

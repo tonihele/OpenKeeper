@@ -47,6 +47,7 @@ import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
+import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.DoorComponent;
@@ -637,7 +638,6 @@ class KeeperAiSystemTest {
 
     @Test
     void dropsRestedFightersOnAnAttackUntilTheirThreatMakesUpWhatItNeeds() {
-        KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 175, true, 0), 1000);
         EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 100, 100, CreatureState.FIGHT);
         entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT)));
         createCreature(ENEMY_ID, new Point(8, 4), 100, 100, CreatureState.IDLE);
@@ -655,6 +655,10 @@ class KeeperAiSystemTest {
         EntityId second = createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.WORK);
         EntityId third = createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
         createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
+
+        // On the map from before the computer player started, so none of them just came
+        KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 175, true, 0), 1000);
+        gameTime = 100;
 
         // 175 % of the enemy's 200 less its own 100 near the fight, and the first one is dropped at once
         system.processTick(0.25f);
@@ -685,7 +689,7 @@ class KeeperAiSystemTest {
         // The turn went to an imp
         assertTrue(dropped.isEmpty());
         assertEquals(1, impSpells.size());
-        assertNull(entityData.getComponent(stunned, KeeperAiDropped.class));
+        assertFalse(pickedUp.contains(stunned));
     }
 
     @Test
@@ -935,22 +939,78 @@ class KeeperAiSystemTest {
 
     @Test
     void leavesAHurtCreatureItJustDroppedAloneForAWhile() {
-        KeeperAiSystem system = createSystem(withRetreatHealth(ai(0, 0, 9, 1, 50, 0, List.of()), 20), 1000);
         EntityId hurt = createCreature(PLAYER_ID, new Point(1, 8), 5, 100, CreatureState.IDLE);
+        KeeperAiSystem system = createSystem(withRetreatHealth(ai(0, 0, 9, 1, 50, 0, List.of()), 20), 1000);
+        gameTime = 100;
         system.processTick(0.25f);
         dropped.clear();
 
-        // It walks out of the heart again
+        // It lands a tick later, then walks out of the heart again
+        gameTime = 100.25;
+        system.processTick(0.25f);
+        entityData.removeComponent(hurt, CreatureFall.class);
         entityData.setComponent(hurt, new Position(0, WorldUtils.pointToVector3f(1, 8)));
-        gameTime = 74;
+        gameTime = 100.5;
+        system.processTick(0.25f);
+        gameTime = 175.25;
         system.processTick(0.25f);
 
         assertTrue(dropped.isEmpty());
 
-        gameTime = 75;
+        gameTime = 175.5;
         system.processTick(0.25f);
 
         assertEquals(Map.of(hurt, HEART_DROP), dropped);
+    }
+
+    @Test
+    void leavesACreatureAnyHandDroppedAloneWhileItFallsAndForAWhileAfter() {
+        EntityId hurt = createCreature(PLAYER_ID, new Point(1, 8), 5, 100, CreatureState.IDLE);
+        KeeperAiSystem system = createSystem(withRetreatHealth(ai(0, 0, 9, 1, 50, 0, List.of()), 20), 1000);
+
+        // Another keeper drops it there
+        entityData.setComponent(hurt, new CreatureFall());
+        gameTime = 100;
+        system.processTick(0.25f);
+        entityData.removeComponent(hurt, CreatureFall.class);
+        gameTime = 100.25;
+        system.processTick(0.25f);
+        gameTime = 175;
+        system.processTick(0.25f);
+
+        assertTrue(dropped.isEmpty());
+
+        gameTime = 175.25;
+        system.processTick(0.25f);
+
+        assertEquals(Map.of(hurt, HEART_DROP), dropped);
+    }
+
+    @Test
+    void leavesANewCreatureAloneForAWhileButNotInTheFirst75SecondsOfTheGame() {
+        KeeperAiSystem system = createSystem(withRetreatHealth(ai(0, 0, 9, 1, 50, 0, List.of()), 20), 1000);
+        EntityId early = createCreature(PLAYER_ID, new Point(1, 8), 5, 100, CreatureState.IDLE);
+        gameTime = 75;
+        system.processTick(0.25f);
+
+        // At the start every creature is new, DK II leaves that out
+        assertEquals(Map.of(early, HEART_DROP), dropped);
+
+        // One that arrives later is left alone
+        entityData.removeEntity(early);
+        dropped.clear();
+        gameTime = 100;
+        EntityId late = createCreature(PLAYER_ID, new Point(1, 8), 5, 100, CreatureState.IDLE);
+        system.processTick(0.25f);
+        gameTime = 174.75;
+        system.processTick(0.25f);
+
+        assertTrue(dropped.isEmpty());
+
+        gameTime = 175;
+        system.processTick(0.25f);
+
+        assertEquals(Map.of(late, HEART_DROP), dropped);
     }
 
     @Test
@@ -1268,13 +1328,14 @@ class KeeperAiSystemTest {
 
     @Test
     void picksUpAnIdleCreatureToResearchWhileThereIsResearchToDo() {
-        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
-        roomControl.onBuild(createRoom(LIBRARY, new Point(1, 4)));
-        spellControl.setTypeAvailable(heal, true, true);
         EntityId creature = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
         CreatureComponent creatureComponent = new CreatureComponent();
         creatureComponent.creatureId = EATER;
         entityData.setComponent(creature, creatureComponent);
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+        roomControl.onBuild(createRoom(LIBRARY, new Point(1, 4)));
+        spellControl.setTypeAvailable(heal, true, true);
+        gameTime = 100;
         for (int tick = 0; tick < 200; tick++) {
             system.processTick(0.25f);
         }
@@ -1290,14 +1351,16 @@ class KeeperAiSystemTest {
 
         assertEquals(Map.of(creature, new Point(1, 4)), dropped);
 
-        // Still idle, but just dropped
+        // Still idle, but just dropped: it falls and lands
         dropped.clear();
+        system.processTick(0.25f);
+        entityData.removeComponent(creature, CreatureFall.class);
         for (int tick = 0; tick < 200; tick++) {
             system.processTick(0.25f);
         }
         assertTrue(dropped.isEmpty());
 
-        gameTime = 75;
+        gameTime = 175;
         for (int tick = 0; tick < 200 && dropped.isEmpty(); tick++) {
             system.processTick(0.25f);
         }
@@ -1444,16 +1507,16 @@ class KeeperAiSystemTest {
 
     @Test
     void carriesAnUnhappyCreatureWithoutWorkToTheRoomForAJobItLikesUnlessItJustDroppedIt() {
-        KeeperAiSystem system = createSystem(withMoodCare(ai(0, 0, 9, 1, 50, 0, List.of()), true, false, false), 1000);
-        roomControl.onBuild(createRoom(LIBRARY, new Point(1, 4)));
         EntityId justDropped = createUnhappyCreature(CreatureMood.REASON_NO_WORK, 1000);
         EntityId creature = createUnhappyCreature(CreatureMood.REASON_NO_WORK, 1000);
         CreatureComponent creatureComponent = new CreatureComponent();
         creatureComponent.creatureId = EATER;
         entityData.setComponent(justDropped, creatureComponent);
         entityData.setComponent(creature, creatureComponent);
-        entityData.setComponent(justDropped, new KeeperAiDropped(0));
-        gameTime = 10;
+        KeeperAiSystem system = createSystem(withMoodCare(ai(0, 0, 9, 1, 50, 0, List.of()), true, false, false), 1000);
+        roomControl.onBuild(createRoom(LIBRARY, new Point(1, 4)));
+        entityData.setComponent(justDropped, new KeeperAiDropped(30));
+        gameTime = 100;
 
         system.processTick(0.25f);
 
@@ -2580,6 +2643,9 @@ class KeeperAiSystemTest {
                                     droppedOn.put((EntityId) args[0], (EntityId) args[3]);
                                 }
                                 entityData.setComponent((EntityId) args[0], new Position(0, new Vector3f(((Vector2f) args[2]).x, 0, ((Vector2f) args[2]).y)));
+                                if (entityData.getComponent((EntityId) args[0], CreatureComponent.class) != null) {
+                                    entityData.setComponent((EntityId) args[0], new CreatureFall());
+                                }
                             }
                         }
                         case "build" -> {

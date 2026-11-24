@@ -19,13 +19,13 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * Marks a creature a computer player has dropped from its hand, so that it
- * leaves the creature alone for a while
+ * When a creature was made or last landed from any keeper's hand. The
+ * computer players leave it alone for a while after that
  */
 public final class KeeperAiDropped implements EntityComponent {
 
     /**
-     * The game time of the drop
+     * The game time it was made or landed
      */
     public double time;
 

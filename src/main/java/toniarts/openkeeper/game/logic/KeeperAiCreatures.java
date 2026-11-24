@@ -304,18 +304,12 @@ final class KeeperAiCreatures {
                 if (!held.equals(playerController.getHandControl().peek())) {
                     decisionLog.log(keeperAi, "drop " + held.getId() + " from its hand", fallback,
                             reason + "; its preferred tile would not accept it");
-                    if (creatureComponent != null) {
-                        battles.leaveAlone(held);
-                    }
                     return true;
                 }
             }
         }
         if (!held.equals(playerController.getHandControl().peek())) {
             decisionLog.log(keeperAi, "drop " + held.getId() + " from its hand", tile, reason);
-            if (creatureComponent != null) {
-                battles.leaveAlone(held);
-            }
             return true;
         }
 
