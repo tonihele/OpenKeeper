@@ -1646,6 +1646,29 @@ public final class CreatureController extends EntityController implements ICreat
         return damage;
     }
 
+    @Override
+    public boolean hasRangedAttackReady() {
+        return getCreatureSpells().stream().anyMatch(creatureSpell -> isAttackRecharged(creatureSpell)
+                && levelInfo.getLevelData().getCreatureSpellById(creatureSpell.creatureSpellId).getFlags().contains(CreatureSpellFlag.IS_ATTACKING));
+    }
+
+    @Override
+    public void castTrainingShot(EntityId target) {
+        CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+        if (creatureSpells == null) {
+            return;
+        }
+        for (EntityId creatureSpellEntity : creatureSpells.creatureSpells) {
+            CreatureSpell spell = entityData.getComponent(creatureSpellEntity, CreatureSpell.class);
+            toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId);
+            if (isAttackRecharged(spell) && creatureSpell.getFlags().contains(CreatureSpellFlag.IS_ATTACKING)) {
+                entityData.setComponent(creatureSpellEntity, new CreatureSpell(spell, gameTimer.getGameTime()));
+                shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), target, entityId);
+                return;
+            }
+        }
+    }
+
     private boolean isAttackRecharged(Attack attack) {
         return attack.attactStartTime == null || attack.attactStartTime + attack.rechargeTime <= gameTimer.getGameTime();
     }
