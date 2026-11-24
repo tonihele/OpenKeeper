@@ -79,7 +79,19 @@ public final class TriggerGeneric extends Trigger {
         OBJECT_CLAIMED(18), // Event, This object is
         PLAYER_CREATURES(19), // Player
         PLAYER_HAPPY_CREATURES(20), // Player
-        PLAYER_ANGRY_CREATURES(21), // Player
+        /**
+         * Compares the number of this player's fully angry non-worker creatures
+         * with a fixed threshold. A creature type of zero includes all types;
+         * otherwise only that type counts. An empty matching roster counts as zero.
+         * <p>
+         * Angry means mood state 2, beyond the unhappy state: merely unhappy
+         * creatures do not count. Workers are excluded even with a type filter.
+         * Ownership determines the player, rather than who controls a prisoner.
+         * This is a current count, so recovery, conversion and death can reduce it.
+         * For example, greater than or equal to 3 Warlocks requires three owned
+         * Warlocks that are fully angry at the time of the check.
+         */
+        PLAYER_ANGRY_CREATURES(21),
         PLAYER_CREATURES_KILLED(22), // Player
         PLAYER_KILLS_CREATURES(23), // Player
         PLAYER_ROOM_SLABS(24), // Player
@@ -110,8 +122,35 @@ public final class TriggerGeneric extends Trigger {
         GUI_BUTTON_PRESSED(53), // GUI
         CREATURE_HUNGER_SATED(54), // Event, This creature is
         CREATURE_PICKS_UP_PORTAL_GEM(55), // Event, This creature is
-        PLAYER_DUNGEON_BREACHED(56), // Event, This player's...
-        PLAYER_ENEMY_BREACHED(57), // Event, This player's...
+        /**
+         * Fires for the wall's owner when another player's tile work destroys
+         * a solid, ownable, penetrable wall and changes its terrain type.
+         * Delivered before PLAYER_ENEMY_BREACHED and terrain replacement.
+         * Matching root branches run synchronously, ignore the authored
+         * other-player selector, and are never latched by ordinary polling.
+         * Level1 uses this event (trigger 80, Player 3).
+         * The separate creature wall-attack source remains outside this path.
+         */
+        PLAYER_DUNGEON_BREACHED(56),
+        /**
+         * Fires for the player whose tile work destroys another owner's solid,
+         * ownable wall and replaces its terrain type. Partial damage, breaking
+         * one's own walls, digging unowned rock and attacking floors do not
+         * produce this event. Ownership inequality, rather than alliance state,
+         * determines eligibility.
+         * <p>
+         * For example, an Imp breaking a rival keeper's reinforced wall can
+         * trigger a message or advance an objective. Matching player-root
+         * branches and their child conditions run before terrain replacement;
+         * this is an event, not a persistent record of a past breach. DKII's
+         * dispatcher ignores the authored other-player filter for this event.
+         * <p>
+         * Pressure uses this event (trigger 3, Player 3).
+         * This covers DKII's tile-damage event source. A separate native wall
+         * attack caller emits additional events with different player routing;
+         * OpenKeeper's missing creature wall-attack path does not reproduce it.
+         */
+        PLAYER_ENEMY_BREACHED(57),
         PLAYER_CREATURE_PICKED_UP(58), // Event, This player's...
         PLAYER_CREATURE_DROPPED(59), // Event, This player's...
         PLAYER_CREATURE_SLAPPED(60), // Event, This player's...

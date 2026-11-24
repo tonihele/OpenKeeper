@@ -80,7 +80,9 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 }
                 return false;
             case CREATURE_CONVERTED:
-                return instanceControl.getOwnerId() != getPlayerId();
+                // A creature that has died or been removed has no owner left to compare
+                return instanceControl != null && !instanceControl.isDead()
+                        && instanceControl.getOwnerId() != getPlayerId();
             case CREATURE_CLAIMED:
                 if (instanceControl != null) {
                     return instanceControl.isClaimed();
@@ -177,11 +179,15 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 break;
 
             case SET_FIGHT_FLAG:
-                available = trigger.getUserData("available", short.class) != 0; // 0 = Don`t Fight, !0 = Fight
+                if (instanceControl != null) {
+                    instanceControl.setWillFight(trigger.getUserData("available", short.class) == 1); // 1 = Fight (DK II 0x49AC80)
+                }
                 break;
 
             case ZOOM_TO:
-                if (instanceControl != null) {
+
+                // DK II ignores the zoom while the keeper is possessing a creature, as it does the action point zooms
+                if (instanceControl != null && !getPlayer().isPossession()) {
                     getPlayerService().zoomViewToEntity(instanceControl.getEntityId(), getPlayer().getId());
                 }
                 break;

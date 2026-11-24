@@ -49,6 +49,12 @@ public interface IGameController {
      */
     void createAlliance(short playerOneId, short playerTwoId);
 
+    /** Delivers a tile-work breach on the simulation thread, before terrain replacement. */
+    void onEnemyBreached(short playerId);
+
+    /** Delivers the breached wall owner event on the simulation thread. */
+    void onDungeonBreached(short playerId);
+
     GameResult getGameResult();
 
     IPlayerController getPlayerController(short playerId);
@@ -78,6 +84,9 @@ public interface IGameController {
     public IGameWorldController getGameWorldController();
 
     GameEventService getGameEventService();
+
+    /** Enables or disables a map effect generator, leaving unknown IDs unchanged. */
+    void setEffectGeneratorEnabled(short generatorId, boolean enabled);
 
     /**
      * Set player possession mode on/off

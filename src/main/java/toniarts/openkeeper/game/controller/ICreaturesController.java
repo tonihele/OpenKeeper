@@ -32,6 +32,11 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
 
     public enum SpawnType {
         PLACE,
+        /**
+         * Placed as if dropped by a hand (the level editor's "act as
+         * dropped"), an enemy prison or torture chamber takes it in
+         */
+        DROP,
         ENTRANCE,
         CONJURE
     }
@@ -119,6 +124,14 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     void levelUpCreatures(short playerId, int level);
 
     /**
+     * Sets the level of the Hero Toolbox creatures ("I am a tool") that are
+     * still standing in the toolbox, on the Hero Lair
+     *
+     * @param level the level to set to the tools
+     */
+    void levelUpTools(int level);
+
+    /**
      * Increases the experience level of all of the player's creatures by the given amount, capped at the
      * maximum creature level
      *
@@ -137,12 +150,28 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     public void turnCreatureIntoAnother(EntityId entityId, short playerId, short creatureId);
 
     /**
+     * The creature leaves the dungeon through a portal and is gone for good
+     *
+     * @param entityId the leaving creature
+     */
+    void leaveDungeon(EntityId entityId);
+
+    /**
      * Gets the creature currently possessed by the given player
      *
      * @param playerId the possessing player
      * @return the possessed creature entity, or {@code null} if the player possesses nothing
      */
     EntityId getPossessedCreature(short playerId);
+
+    /**
+     * Counts living, fully angry non-worker creatures belonging to a player.
+     *
+     * @param playerId owning player, rather than a captor
+     * @param creatureId creature type, or zero for all types
+     * @return matching creature count
+     */
+    int getAngryCreatureCount(short playerId, short creatureId);
 
     /**
      * Spawns creatures at the given player's dungeon heart entrance. Does nothing if the player has no

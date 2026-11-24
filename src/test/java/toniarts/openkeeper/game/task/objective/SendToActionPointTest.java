@@ -1,0 +1,241 @@
+/*
+ * Copyright (C) 2014-2026 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package toniarts.openkeeper.game.task.objective;
+
+import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.jme3.math.Vector2f;
+import java.lang.reflect.Proxy;
+import java.util.function.Predicate;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.data.ActionPoint;
+import toniarts.openkeeper.game.map.FakeMapData;
+import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.tools.convert.map.ActionPointFixtures;
+import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
+import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
+
+/**
+ * A hero sent to an action point mills about there for the point's wait delay
+ * (game ticks) before moving on to the next waypoint, as in DKII.EXE (the
+ * arrival state at 0x00472150 sets the wait timer, the patrol state at
+ * 0x004721C0 steps to a side neighbour until it has passed). It goes to a
+ * random tile of the point that it can get to (0x00471EB0), not to its middle.
+ */
+class SendToActionPointTest {
+
+    private static final int TICKS_PER_SECOND = 4;
+
+    private int objectiveActionPointId;
+    private Thing.HeroParty.Objective objective = Thing.HeroParty.Objective.SEND_TO_ACTION_POINT;
+    private ICreatureController creature;
+    private Predicate<Point> reachable = tile -> true;
+    private Predicate<Point> solid = tile -> false;
+    private int pathSearches;
+
+    private ICreatureController creature(int actionPointId) {
+        objectiveActionPointId = actionPointId;
+        creature = (ICreatureController) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> {
+            switch (method.getName()) {
+                case "getObjective":
+                    return objective;
+                case "getObjectiveTargetActionPointId":
+                    return objectiveActionPointId;
+                case "setObjectiveTargetActionPointId":
+                    objectiveActionPointId = (Integer) args[0];
+                    return null;
+                case "getOwnerId":
+                    return (short) 1;
+                case "getCreatureCoordinates":
+                    return new Point(0, 0);
+                default:
+                    return null;
+            }
+        });
+        return creature;
+    }
+
+    private SendToActionPoint task(int id, int waitDelay, int next) {
+        return task(ActionPointFixtures.actionPoint(id, waitDelay, next));
+    }
+
+    private SendToActionPoint task(Thing.ActionPoint actionPoint) {
+        INavigationService navigationService = (INavigationService) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{INavigationService.class},
+                (proxy, method, args) -> {
+                    if (!"findPath".equals(method.getName())) {
+                        return null;
+                    }
+                    pathSearches++;
+                    return reachable.test((Point) args[1]) ? new DefaultGraphPath<>() : null;
+                });
+        FakeMapData mapData = new FakeMapData(20, 20);
+        IMapController mapController = (IMapController) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IMapController.class},
+                (proxy, method, args) -> switch (method.getName()) {
+            case "getMapData" -> mapData;
+            case "getTerrain" -> TerrainFixtures.terrain((short) 1, solid.test(((IMapTileInformation) args[0]).getLocation())
+                    ? TerrainFixtures.flags(Terrain.TerrainFlag.SOLID) : TerrainFixtures.flags(), 0, 0, 0, (short) 1);
+            default -> null;
+        });
+        return new SendToActionPoint(navigationService, mapController, new ActionPoint(actionPoint), creature, TICKS_PER_SECOND);
+    }
+
+    @Test
+    void headsForATileOfThePointThatTheCreatureCanGetTo() {
+        creature(1);
+        reachable = tile -> tile.equals(new Point(4, 10));
+
+        SendToActionPoint task = task(ActionPointFixtures.actionPoint(1, 4, 9, 6, 11));
+
+        assertEquals(new Point(4, 10), task.getTaskLocation());
+    }
+
+    @Test
+    void headsForTheMiddleWhenNoTileOfThePointCanBeReached() {
+        creature(1);
+        reachable = tile -> false;
+
+        SendToActionPoint task = task(ActionPointFixtures.actionPoint(1, 4, 9, 6, 11));
+
+        assertEquals(new Point(5, 10), task.getTaskLocation());
+    }
+
+    @Test
+    void doesNotSearchForAPathIntoASolidTile() {
+        creature(1);
+        solid = tile -> true;
+
+        SendToActionPoint task = task(ActionPointFixtures.actionPoint(1, 4, 9, 6, 11));
+
+        assertEquals(0, pathSearches);
+        assertEquals(new Point(5, 10), task.getTaskLocation());
+    }
+
+    @Test
+    void keepsWaitingUntilTheWaitDelayHasPassed() {
+        ICreatureController creature = creature(1);
+
+        // 20 game ticks are 5 seconds
+        SendToActionPoint task = task(1, 20, 2);
+
+        task.executeTask(creature, 0f);
+        task.executeTask(creature, 4.9f);
+
+        assertEquals(1, objectiveActionPointId);
+        assertTrue(task.isValid(creature));
+    }
+
+    @Test
+    void movesToTheNextWaypointAfterTheWaitDelay() {
+        ICreatureController creature = creature(1);
+        SendToActionPoint task = task(1, 20, 2);
+
+        task.executeTask(creature, 5f);
+
+        assertEquals(2, objectiveActionPointId);
+        assertFalse(task.isValid(creature));
+    }
+
+    @Test
+    void theWaitDelayIsInGameTicks() {
+        ICreatureController creature = creature(1);
+        SendToActionPoint task = task(1, 5, 2);
+
+        task.executeTask(creature, 1.25f);
+
+        assertEquals(2, objectiveActionPointId);
+    }
+
+    @Test
+    void millsAboutStepToSideNeighboursWhileWaiting() {
+        ICreatureController creature = creature(1);
+        SendToActionPoint task = task(1, 20, 2);
+        Point start = task.getTaskLocation();
+        Point open = new Point(start.x + 1, start.y);
+        solid = tile -> !tile.equals(open) && !tile.equals(start);
+
+        task.executeTask(creature, 0f);
+
+        // Only the tile to the east is open, so that is where it steps, to one of nine places in it, and from there back
+        assertEquals(WorldUtils.pointToVector2f(open), task.getTarget(creature));
+        Vector2f place = task.getWorkPosition(creature).subtract(WorldUtils.pointToVector2f(open)).multLocal(3);
+        assertEquals(Math.round(place.x), place.x, 0.001f);
+        assertEquals(Math.round(place.y), place.y, 0.001f);
+        assertTrue(Math.abs(place.x) <= 1.001f && Math.abs(place.y) <= 1.001f);
+
+        task.executeTask(creature, 1f);
+
+        assertEquals(WorldUtils.pointToVector2f(start), task.getTarget(creature));
+    }
+
+    @Test
+    void doesNotWaitWhenTheDelayIsZero() {
+        ICreatureController creature = creature(1);
+        SendToActionPoint task = task(1, 0, 2);
+
+        task.executeTask(creature, 0f);
+
+        assertEquals(2, objectiveActionPointId);
+        assertFalse(task.isValid(creature));
+    }
+
+    @Test
+    void lastWaypointAlsoWaitsThenLeavesNoActionPointToGoTo() {
+        ICreatureController creature = creature(3);
+        SendToActionPoint task = task(3, 8, 0);
+
+        task.executeTask(creature, 1f);
+        assertTrue(task.isValid(creature));
+
+        task.executeTask(creature, 2f);
+        assertEquals(0, objectiveActionPointId);
+        assertFalse(task.isValid(creature));
+    }
+
+    @Test
+    void isValidOnlyWhileTheCreatureHasTheObjectiveAndThePointAsTarget() {
+        ICreatureController creature = creature(1);
+        SendToActionPoint task = task(1, 5, 2);
+
+        assertTrue(task.isValid(creature));
+
+        objectiveActionPointId = 2;
+        assertFalse(task.isValid(creature));
+
+        objectiveActionPointId = 1;
+        objective = Thing.HeroParty.Objective.NONE;
+        assertFalse(task.isValid(creature));
+    }
+
+    @Test
+    void withoutACreatureTheTaskIsValidUntilExecuted() {
+        ICreatureController creature = creature(1);
+        SendToActionPoint task = task(1, 0, 2);
+
+        assertTrue(task.isValid(null));
+
+        task.executeTask(creature, 0f);
+        assertFalse(task.isValid(null));
+    }
+}

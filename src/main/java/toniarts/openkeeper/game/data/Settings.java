@@ -73,6 +73,7 @@ public final class Settings {
         SECRET_LEVEL_STATUS(LevelStatus.class, SecretLevelStatus.NOT_DISCOVED, SettingCategory.CAMPAIGN),
         MPD_LEVEL_STATUS(LevelStatus.class, LevelStatus.NOT_COMPLETED, SettingCategory.CAMPAIGN),
         // Graphic
+        BORDERLESS(Boolean.class, false, SettingCategory.GRAPHICS),
         ANISOTROPY(Integer.class, 0, SettingCategory.GRAPHICS),
         SSAO(Boolean.class, false, SettingCategory.GRAPHICS),
         SSAO_SAMPLE_RADIUS(Float.class, 5.94f, SettingCategory.GRAPHICS),
@@ -174,7 +175,11 @@ public final class Settings {
         GAME_NAME(String.class, "My OpenKeeper game", SettingCategory.MISCELLANEOUS),
         MULTIPLAYER_LAST_IP(String.class, "127.0.0.1", SettingCategory.MISCELLANEOUS),
         MULTIPLAYER_LAST_PORT(Integer.class, 7575, SettingCategory.MISCELLANEOUS),
+        // Computer players
+        COMPUTER_PLAYER(Boolean.class, true, SettingCategory.MISCELLANEOUS),
+        COMPUTER_PLAYER_LOG(Boolean.class, false, SettingCategory.MISCELLANEOUS),
         // Sound settings
+        AUDIO_OUTPUT_MODE(String.class, "AUTO", SettingCategory.SOUND),
         MASTER_VOLUME(Float.class, 1.0f, SettingCategory.SOUND),
         VOICE_VOLUME(Float.class, 1.0f, SettingCategory.SOUND),
         VOICE_ENABLED(Boolean.class, true, SettingCategory.SOUND),
@@ -281,6 +286,11 @@ public final class Settings {
             }
         }
         this.settings.setFrameRate(Math.max(MAX_FPS, settings.getFrequency()));
+
+        // Borderless is a window, the exclusive fullscreen would override it
+        if (getBoolean(Setting.BORDERLESS)) {
+            settings.setFullscreen(false);
+        }
 
         // Assing some app level settings
         settings.setTitle(TITLE);

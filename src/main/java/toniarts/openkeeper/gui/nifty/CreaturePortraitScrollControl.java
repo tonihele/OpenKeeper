@@ -34,6 +34,7 @@ public final class CreaturePortraitScrollControl extends AbstractController {
     private Element viewport;
     private Element visibleWindow;
     private Element content;
+    private PagingButtons pagingButtons;
     private List<Element> portraits = List.of();
     private int firstVisible;
 
@@ -43,6 +44,7 @@ public final class CreaturePortraitScrollControl extends AbstractController {
         viewport = screen.findElementById("tab-creature-viewport");
         visibleWindow = screen.findElementById("tab-creature-visible");
         content = screen.findElementById("tab-creature-content");
+        pagingButtons = new PagingButtons(element.findElementById("#forward"), element.findElementById("#back"));
     }
 
     @Override
@@ -102,12 +104,18 @@ public final class CreaturePortraitScrollControl extends AbstractController {
         return Math.max(0, portraits.size() - visibleSlots);
     }
 
+    public void refreshLayout() {
+        firstVisible = Math.min(firstVisible, maxFirstVisible());
+        layoutPortraits();
+    }
+
     private void layoutPortraits() {
         if (content == null || viewport == null || visibleWindow == null) {
             return;
         }
         int step = portraitStep();
         int visibleSlots = Math.max(1, viewport.getWidth() / step);
+        pagingButtons.setEnabled(portraits.size() > visibleSlots);
         visibleWindow.setConstraintWidth(SizeValue.px(visibleSlots * step));
         content.setConstraintX(SizeValue.px(-firstVisible * step));
         viewport.layoutElements();

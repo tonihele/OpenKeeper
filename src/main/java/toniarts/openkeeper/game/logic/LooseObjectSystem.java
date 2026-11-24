@@ -22,6 +22,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
@@ -88,6 +89,11 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
                 // Maybe storage should remove the placeable temporarily...
                 continue;
             }
+            if (entityData.getComponent(entityId, HauledBy.class) != null) {
+
+                // Carried somewhere, not loose. E.g. a trap crate just taken out of the workshop
+                continue;
+            }
 
             IMapTileInformation mapTile = entityPositionLookup.getEntityLocation(entityId);
             if (mapTile == null) {
@@ -95,7 +101,12 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
                 // No position yet, we get it next time
                 continue;
             }
-            if (mapTile.getOwnerId() == Player.GOOD_PLAYER_ID || mapTile.getOwnerId() == Player.NEUTRAL_PLAYER_ID) {
+
+            // Like in DK II (0x49F730), a hero or neutral Treasury also takes in the gold lying on it
+            Entity entity = looseObjectEntities.getEntity(entityId);
+            ObjectComponent objectComponent = entity.get(ObjectComponent.class);
+            if ((mapTile.getOwnerId() == Player.GOOD_PLAYER_ID || mapTile.getOwnerId() == Player.NEUTRAL_PLAYER_ID)
+                    && objectComponent.objectType != AbstractRoomController.ObjectType.GOLD) {
                 continue;
             }
 
@@ -105,8 +116,6 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
                 continue;
             }
 
-            Entity entity = looseObjectEntities.getEntity(entityId);
-            ObjectComponent objectComponent = entity.get(ObjectComponent.class);
             if (objectComponent.objectType != null && roomController.hasObjectControl(objectComponent.objectType) && !roomController.getObjectControl(objectComponent.objectType).isFullCapacity()) {
                 short ownerId = roomController.getOwnerId();
                 if (objectComponent.objectType == AbstractRoomController.ObjectType.GOLD) {

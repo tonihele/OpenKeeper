@@ -55,6 +55,8 @@ import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.game.sound.MentorType;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.SoundManager;
+import toniarts.openkeeper.game.sound.AudioOutput;
+import toniarts.openkeeper.game.sound.AudioOutputMode;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.lobby.LobbySession;
 import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
@@ -67,6 +69,7 @@ import toniarts.openkeeper.gui.nifty.table.TableControl;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.gui.nifty.table.player.PlayerTableBuilder;
 import toniarts.openkeeper.gui.nifty.table.player.PlayerTableRow;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -75,6 +78,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.DisplayMode;
 import toniarts.openkeeper.utils.DisplayModeUtils;
 import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.SettingUtils;
 import toniarts.openkeeper.utils.Utils;
 
 import java.io.File;
@@ -299,6 +303,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
         CheckBox gamma = screen.findNiftyControl("gammaCorrection", CheckBox.class);
+        CheckBox hdTextures = screen.findNiftyControl("hdTextures", CheckBox.class);
         DisplayMode mdm = (DisplayMode) res.getSelection();
 
         // TODO: See if we need a restart, but keep in mind that the settings are saved in the restart
@@ -313,6 +318,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         settings.setSetting(Settings.Setting.ANISOTROPY, af.getSelection());
         settings.setSetting(Settings.Setting.SSAO, ssao.isChecked());
         settings.getAppSettings().setGammaCorrection(gamma.isChecked());
+
+        // The asset conversion makes or deletes them at the next start
+        Main.getSettings().putBoolean(AssetsConverter.HD_TEXTURES_SETTING, hdTextures.isChecked());
+        SettingUtils.getInstance().saveSettings();
 
         // This fails and crashes on invalid settings
         if (needToRestart) {
@@ -398,6 +407,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         Map<String, Runnable> handlers = new HashMap<>();
         handlers.put("selectCampaignLevel", this::showSelectCampaignLevelScreen);
         handlers.put("briefing", this::showBriefing);
+        handlers.put(SCREEN_DEBRIEFING_ID, this::fillDebriefingScreen);
         handlers.put("hiscores", this::generateHiscoreList);
         handlers.put("optionsGraphics", this::setGraphicsSettingsToGUI);
         handlers.put("optionsControl", this::setControlSettingsToGUI);
@@ -853,6 +863,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         // Gamma correction
         CheckBox gamma = screen.findNiftyControl("gammaCorrection", CheckBox.class);
         gamma.setChecked(settings.isGammaCorrection());
+
+        // HD textures
+        CheckBox hdTextures = screen.findNiftyControl("hdTextures", CheckBox.class);
+        hdTextures.setChecked(Main.getSettings().getBoolean(AssetsConverter.HD_TEXTURES_SETTING));
     }
 
     private void setControlSettingsToGUI() {
@@ -895,10 +909,14 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
             // Map image
             Element mapImage = screen.findElementById("mapImage");
-            NiftyImage img = nifty.createImage(state.getMapThumbnail(map), true);
+            String thumbnail = state.getMapThumbnail(map);
+            NiftyImage img = nifty.createImage(thumbnail, true);
             mapImage.getRenderer(ImageRenderer.class).setImage(img);
-            mapImage.setConstraintWidth(new SizeValue(img.getWidth() + "px"));
-            mapImage.setConstraintHeight(new SizeValue(img.getHeight() + "px"));
+
+            // The placeholder is a game texture, so it may be an HD copy
+            boolean placeholder = MainMenuState.NO_THUMBNAIL.equals(thumbnail);
+            mapImage.setConstraintWidth(new SizeValue((placeholder ? MainMenuState.NO_THUMBNAIL_SIZE : img.getWidth()) + "px"));
+            mapImage.setConstraintHeight(new SizeValue((placeholder ? MainMenuState.NO_THUMBNAIL_SIZE : img.getHeight()) + "px"));
         }
 
         // Re-populate
@@ -1167,6 +1185,12 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
     private void setSoundSettingsToGUI() {
         Settings settings = Main.getUserSettings();
+        DropDown<AudioOutputMode> output = screen.findNiftyControl("audioOutputMode", DropDown.class);
+        output.clear();
+        output.addAllItems(Arrays.asList(AudioOutputMode.values()));
+        output.selectItem(AudioOutputMode.fromSetting(settings.getSetting(Settings.Setting.AUDIO_OUTPUT_MODE)));
+        screen.findElementById("audioOutputStatus").getRenderer(TextRenderer.class)
+                .setText(AudioOutput.getStatus().applied() ? "" : AudioOutput.getStatus().message());
 
         Slider masterVolume = screen.findNiftyControl("masterVolume", Slider.class);
         Slider voiceVolume = screen.findNiftyControl("voiceVolume", Slider.class);
@@ -1212,13 +1236,20 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             settings.setSetting(Settings.Setting.MUSIC_ENABLED, musicEnabled.isChecked());
             settings.setSetting(Settings.Setting.SFX_ENABLED, sfxEnabled.isChecked());
 
+            DropDown<AudioOutputMode> output = screen.findNiftyControl("audioOutputMode", DropDown.class);
+            AudioOutputMode mode = output.getSelection();
+            if (mode == null) mode = AudioOutputMode.AUTO;
+            settings.setSetting(Settings.Setting.AUDIO_OUTPUT_MODE, mode.name());
+            AudioOutput.Result result = AudioOutput.apply(mode);
+            screen.findElementById("audioOutputStatus").getRenderer(TextRenderer.class).setText(result.applied() ? "" : result.message());
             Main.setupNiftySound(nifty);
             Settings.getInstance().save();
+            if (result.applied()) {
+                nifty.gotoScreen(SCREEN_OPTIONS_MAIN_ID);
+            }
         } catch (IOException ex) {
             logger.log(Logger.Level.ERROR, ex);
         }
-
-        nifty.gotoScreen(SCREEN_OPTIONS_MAIN_ID);
     }
 
     public static final class Cutscene {
@@ -1351,18 +1382,32 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         }
     }
 
+    /**
+     * Go to the debriefing screen, which fills itself in once it has started
+     */
     public void showDebriefing() {
-        Screen deScreen = nifty.getScreen(SCREEN_DEBRIEFING_ID);
+        goToScreen(SCREEN_DEBRIEFING_ID);
+    }
+
+    /**
+     * Fill in the debriefing screen. Nifty binds the controls of a screen only when the screen
+     * starts, a label set before that keeps its default text.
+     */
+    private void fillDebriefingScreen() {
+        IKwdFile level = state.getDebriefingLevel();
+        if (level == null) {
+            return;
+        }
+        Screen deScreen = screen;
 
         Label levelTitle = deScreen.findNiftyControl("dLevelTitle", Label.class);
 
         Element mainObjectiveImage = deScreen.findElementById("dMainObjectiveImage");
         Element subObjectiveImage = deScreen.findElementById("dSubObjectiveImage");
 
-        IKwdFile level = state.getDebriefingLevel();
         GameLevel gameLevel = level.getGameLevel();
         levelTitle.setText(gameLevel.getTitle());
-        boolean campaign = state.isDebriefingCampaign();
+        CampaignLevel playedLevel = state.getDebriefingCampaignLevel();
         String objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 0));
         try {
             NiftyImage img = nifty.createImage(objectiveImage, true);
@@ -1379,7 +1424,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         Label specialsFound = deScreen.findNiftyControl("specialsFound", Label.class);
 
         subObjectiveImage.hide();
-        if (campaign && state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.Level)) {
+        if (playedLevel != null && playedLevel.getType().equals(LevelType.Level)) {
             objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1));
             try {
                 NiftyImage img = nifty.createImage(objectiveImage, true);
@@ -1391,17 +1436,15 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             }
         }
 
-        // FIXME: GameResult has no data yet and also get it from the client state directly
-        boolean levelWon = true; // result.getData(GameResult.ResultType.LEVEL_WON);
+        // FIXME: GameResult has no other data yet and also get it from the client state directly
+        boolean levelWon = state.isDebriefingLevelWon();
         deScreen.findNiftyControl("levelWon", Label.class).setText(levelWon ? "${menu.21}" : "${menu.22}");
         int timeTaken = 0; //Math.round(result.getData(GameResult.ResultType.TIME_TAKEN));
         deScreen.findNiftyControl("timeTaken", Label.class).setText(Utils.timeToString(timeTaken));
 
         // Play debriefing narration
-        if (campaign && state.selectedLevel instanceof CampaignLevel lvl) {
-            state.setLevelDebriefing(playLevelSpeech(lvl.getLevel(), levelWon ? 1 : 2));
+        if (playedLevel != null) {
+            state.setLevelDebriefing(playLevelSpeech(playedLevel.getLevel(), levelWon ? 1 : 2));
         }
-
-        goToScreen(SCREEN_DEBRIEFING_ID);
     }
 }

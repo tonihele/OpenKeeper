@@ -28,7 +28,9 @@ import com.jme3.asset.cache.WeakRefAssetCache;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.material.RenderState.BlendMode;
+import com.jme3.bounding.BoundingVolume;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.Vector3f;
 import toniarts.openkeeper.view.map.MapViewController;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.SceneGraphVisitor;
@@ -82,6 +84,7 @@ public final class AssetUtils {
 
     // Custom model data keys
     public final static String USER_DATA_KEY_REMOVABLE = "Removable";
+    private final static String USER_DATA_KEY_MATERIAL_BEFORE_BLUEPRINT = "MaterialBeforeBlueprint";
     
     private static volatile boolean preWarmedAssets = false;
 
@@ -326,6 +329,9 @@ public final class AssetUtils {
     public static void applyVertexLight(AssetManager assetManager, Spatial spatial, LightRules lightRules,
             boolean ignoreObjectLights, boolean useTileAmbient) {
         List<Material> materials = new ArrayList<>();
+        // Object lights are attenuated from the model's center, not per vertex
+        BoundingVolume bound = spatial.getWorldBound();
+        Vector3f meshCenter = bound != null ? bound.getCenter().clone() : spatial.getWorldTranslation().clone();
         spatial.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial s) {
@@ -345,6 +351,7 @@ public final class AssetUtils {
                 }
                 material.setFloat("MinLight", 0f);
                 material.setBoolean("IgnoreObjectLights", ignoreObjectLights);
+                material.setVector3("MeshCenter", meshCenter);
                 material.setFloat("AmbientScale", useTileAmbient ? 1f : 0f);
                 materials.add(material);
             }
@@ -458,7 +465,7 @@ public final class AssetUtils {
                 !resource.getFlags().contains(ArtResource.ArtResourceFlag.USE_ANIMATING_TEXTURE_FOR_SELECTION)) {
             return createLightningSpriteMaterial(resource.getName(), 
                     resource.getType() == ArtResource.ArtResourceType.ALPHA, resource.getData("fps"), () -> {
-                        return getTextureFrames(resource);
+                        return getTextureFrames(resource, assetManager);
                     }, assetManager);
         }
         return null;
@@ -509,7 +516,9 @@ public final class AssetUtils {
     public static Material createParticleMaterial(ArtResource resource, AssetManager assetManager) {
 
         // Cache
-        MaterialKey assetKey = new MaterialKey(resource.getName());
+        MaterialKey assetKey = new MaterialKey("particle:" + resource.getName() + ":" + resource.getType()
+                + ":" + resource.getFlags() + ":" + resource.getData(ArtResource.KEY_FRAMES)
+                + ":" + resource.getData(ArtResource.KEY_WIDTH));
         Material mat = ASSET_CACHE.getFromCache(assetKey);
 
         if (mat == null) {
@@ -520,15 +529,13 @@ public final class AssetUtils {
                 logger.log(Level.ERROR, "Can't create a texture out of " + resource + "!", e);
             }
 
-            // Particle.j3md hardcodes "Blend AlphaAdditive" in its technique,
-            // which is right for glow/spark-style ADDITIVE_ALPHA art but
-            // washes out plain ALPHA/SPRITE textures (e.g. feathers) to
-            // near-invisibility over lit terrain - use standard alpha
-            // compositing for those instead.
-            if (resource.getType() != ArtResource.ArtResourceType.ADDITIVE_ALPHA) {
-                mat.setTransparent(false);
-                mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
-            }
+            // Native Portal mist/sparkle/Whitedisc draws use ONE + ONE, not
+            // Particle.j3md's SRC_ALPHA + ONE default (AlphaAdditive).
+            mat.getAdditionalRenderState().setBlendMode(
+                    resource.getType() == ArtResource.ArtResourceType.ADDITIVE_ALPHA
+                            ? BlendMode.Additive : BlendMode.Alpha);
+            mat.getAdditionalRenderState().setDepthTest(true);
+            mat.getAdditionalRenderState().setDepthWrite(false);
 
             // Add to cache
             ASSET_CACHE.addToCache(assetKey, mat);
@@ -542,7 +549,7 @@ public final class AssetUtils {
         if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
             return createAnimatingTexture(resource.getName(),  
                     resource.getType() == ArtResource.ArtResourceType.ALPHA,
-                    getTextureFrames(resource), assetManager);
+                    getTextureFrames(resource, assetManager), assetManager);
         } else {
             if (resource.getType().equals(ArtResource.ArtResourceType.SPRITE)
                     && resource.getData(ArtResource.KEY_WIDTH).intValue() > 1) {
@@ -556,21 +563,46 @@ public final class AssetUtils {
         }
     }
     
-    private static List<String> getTextureFrames(ArtResource resource) {
-        int frames = resource.getData(ArtResource.KEY_FRAMES);
-        String assetFolder = AssetsConverter.TEXTURES_FOLDER + File.separator;
-        List<String> framesList = new ArrayList<>(frames);
-        for (int x = 0; x < frames; x++) {
-            framesList.add(assetFolder + resource.getName() + x + ".png");
+    /**
+     * Returns the available sprite animation length, independently of the KWD
+     * frame count. Native DK II probes consecutive texture names, up to 32.
+     * Non-animated resources always use a single image.
+     */
+    public static int getAnimationFrameCount(ArtResource resource, AssetManager assetManager) {
+        if (!resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
+            return 1;
         }
-        
-        return framesList;
+        return Math.max(1, getTextureFrames(resource, assetManager).size());
+    }
+
+    private static List<String> getTextureFrames(ArtResource resource, AssetManager assetManager) {
+        AssetKey<List<String>> key = new AssetKey<>("animation-frames:" + resource.getName());
+        List<String> cached = assetManager.getFromCache(key);
+        if (cached != null) {
+            return cached;
+        }
+        String assetFolder = AssetsConverter.TEXTURES_FOLDER + "/";
+        List<String> frames = new ArrayList<>();
+        for (int frame = 0; frame < 32; frame++) {
+            String name = assetFolder + resource.getName() + frame + ".png";
+            AssetInfo asset = assetManager.locateAsset(new AssetKey<>(getCanonicalAssetKey(name, false)));
+            if (asset == null) {
+                break;
+            }
+            frames.add(asset.getKey().getName());
+        }
+        List<String> result = List.copyOf(frames);
+        assetManager.addToCache(key, result);
+        return result;
     }
 
     private static Texture createAnimatingTexture(String name, boolean hasAlpha, List<String> textures, AssetManager assetManager) throws IOException {
         
+        if (textures.isEmpty()) {
+            throw new IOException("No animation frames found for " + name);
+        }
         // Get the first frame, the frames need to be same size
-        BufferedImage img = readImageFromAsset(assetManager.locateAsset(new AssetKey(getCanonicalAssetKey(textures.get(0)))));
+        BufferedImage img = readImageFromAsset(assetManager.locateAsset(new AssetKey<>(textures.get(0))));
         
         // Create image big enough to fit all the frames
         BufferedImage text = new BufferedImage(img.getWidth() * textures.size(), img.getHeight(),
@@ -585,7 +617,7 @@ public final class AssetUtils {
         
         g.drawImage(img, null, 0, 0);
         for (int x = 1; x < textures.size(); x++) {
-            AssetInfo asset = assetManager.locateAsset(new AssetKey(getCanonicalAssetKey(textures.get(x))));
+            AssetInfo asset = assetManager.locateAsset(new AssetKey<>(textures.get(x)));
             if (asset != null) {
                 img = readImageFromAsset(asset);
             } else {
@@ -869,9 +901,31 @@ public final class AssetUtils {
                             "Common/MatDefs/Misc/Unshaded.j3md");
                     mat.setColor("Color", new ColorRGBA(0, 0, 0.8f, 0.4f));
                     mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+                    if (spatial.getUserData(USER_DATA_KEY_MATERIAL_BEFORE_BLUEPRINT) == null) {
+                        spatial.setUserData(USER_DATA_KEY_MATERIAL_BEFORE_BLUEPRINT, ((Geometry) spatial).getMaterial());
+                    }
                     spatial.setMaterial(mat);
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Failed to set material color!", e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Gives a blueprint its own materials back, e.g. when the trap gets
+     * armed
+     *
+     * @param spatial the spatial which was turned into a blueprint
+     */
+    public static void removeBlueprint(Spatial spatial) {
+        spatial.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                Material material = spatial.getUserData(USER_DATA_KEY_MATERIAL_BEFORE_BLUEPRINT);
+                if (spatial instanceof Geometry && material != null) {
+                    spatial.setMaterial(material);
+                    spatial.setUserData(USER_DATA_KEY_MATERIAL_BEFORE_BLUEPRINT, null);
                 }
             }
         });
@@ -884,7 +938,13 @@ public final class AssetUtils {
      * @return fully qualified and working asset key
      */
     public static String getCanonicalAssetKey(String asset) {
-        return PathUtils.getCanonicalRelativePath(AssetsConverter.getAssetsFolder(), asset).replaceAll(PathUtils.QUOTED_FILE_SEPARATOR, "/");
+        return getCanonicalAssetKey(asset, true);
+    }
+
+    /** Resolve expected animation-end probes without logging a missing-file warning. */
+    private static String getCanonicalAssetKey(String asset, boolean warnIfMissing) {
+        return PathUtils.getCanonicalRelativePath(AssetsConverter.getAssetsFolder(), asset, warnIfMissing)
+                .replaceAll(PathUtils.QUOTED_FILE_SEPARATOR, "/");
     }
 
 }

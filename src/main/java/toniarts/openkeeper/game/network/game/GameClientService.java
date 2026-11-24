@@ -189,6 +189,11 @@ public final class GameClientService extends AbstractClientService
     }
 
     @Override
+    public void cancelCallToArms() {
+        getDelegate().cancelCallToArms();
+    }
+
+    @Override
     public void transitionEnd() {
         getDelegate().transitionEnd();
     }
@@ -235,6 +240,11 @@ public final class GameClientService extends AbstractClientService
     @Override
     public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
         getDelegate().setPossessedMovement(direction, rotation, speedMode);
+    }
+
+    @Override
+    public void setPossessedAttack(boolean attacking) {
+        getDelegate().setPossessedAttack(attacking);
     }
 
     @Override
@@ -377,6 +387,13 @@ public final class GameClientService extends AbstractClientService
         }
 
         @Override
+        public void onEffect(int effectId, Vector3f position, float yaw) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onEffect(effectId, position, yaw);
+            }
+        }
+
+        @Override
         public void onEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
@@ -436,6 +453,13 @@ public final class GameClientService extends AbstractClientService
         public void onTilesReveal(List<Point> points, boolean explore, short keeperId) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onTilesReveal(points, explore, keeperId);
+            }
+        }
+
+        @Override
+        public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onSightOfEvil(centre, radius, durationTicks, keeperId);
             }
         }
 

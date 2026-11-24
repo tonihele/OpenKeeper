@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 OpenKeeper
+ * Copyright (C) 2014-2018 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,32 +14,27 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.view.map;
+package toniarts.openkeeper.game.component;
 
-import com.jme3.math.FastMath;
-import toniarts.openkeeper.utils.Point;
-import java.util.List;
+import com.simsilica.es.EntityComponent;
 
 /**
- * Single wall section
- *
- * @author Toni Helenius <helenius.toni@gmail.com>
+ * When the creature last got a job by picking from its job list. For a while
+ * after that it doesn't pick again
  */
-public record WallSection(toniarts.openkeeper.view.map.WallSection.WallDirection direction, List<Point> coordinates) {
+public final class JobPicked implements EntityComponent {
 
-    public enum WallDirection {
+    /**
+     * Game time of the pick
+     */
+    public double time;
 
-        EAST(-FastMath.HALF_PI), NORTH(0), WEST(FastMath.HALF_PI), SOUTH(FastMath.PI);
+    public JobPicked() {
+        // For serialization
+    }
 
-        WallDirection(float angle) {
-            this.angle = angle;
-        }
-
-        public float getAngle() {
-            return angle;
-        }
-
-        private final float angle;
+    public JobPicked(double time) {
+        this.time = time;
     }
 
 }

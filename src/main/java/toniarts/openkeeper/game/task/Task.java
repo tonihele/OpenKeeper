@@ -124,6 +124,30 @@ public interface Task {
     boolean isFaceTarget();
 
     /**
+     * Where exactly the creature stands to do the task. If it differs from the
+     * target, the navigation ends here instead of in the middle of the target
+     * tile.
+     *
+     * @param creature the creature doing the task
+     * @return the position, by default the target itself
+     */
+    default Vector2f getWorkPosition(ICreatureController creature) {
+        return getTarget(creature);
+    }
+
+    /**
+     * Sends the creature on to another spot once it has worked here long
+     * enough, like DK II does in some rooms
+     *
+     * @param creature the working creature
+     * @param executionDuration how long the creature has worked here
+     * @return true if the creature was given another task
+     */
+    default boolean moveToOtherSpot(ICreatureController creature, float executionDuration) {
+        return false;
+    }
+
+    /**
      * Is the task reachable by the given creature. Ask this last if determining
      * validity etc. As the method might be heavy
      *
