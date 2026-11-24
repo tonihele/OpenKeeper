@@ -378,7 +378,7 @@ public class PlayerTriggerControl extends TriggerControl {
 
     private void followCameraPath(TriggerActionData trigger) { // gui part. Only for keeper x
         ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
-        if (ap == null) {
+        if (ap == null || isPossessing(playerId)) {
             return;
         }
 //        if (playerId == playerState.getPlayerId()) {
@@ -439,7 +439,7 @@ public class PlayerTriggerControl extends TriggerControl {
     private void rotateAroundActionPoint(TriggerActionData trigger) { // AP part
 //        if (playerId == playerState.getPlayerId()) {
         ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
-        if (ap == null) {
+        if (ap == null || isPossessing(playerId)) {
             return;
         }
         boolean isRelative = trigger.getUserData("available", short.class) == 0;
@@ -481,6 +481,9 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     private void setWidescreenMode(TriggerActionData trigger) { // Info part
+        if (isPossessing(playerId)) {
+            return;
+        }
         boolean available = trigger.getUserData("available", short.class) != 0;
         playerService.setWidescreen(available, playerId);
     }
@@ -501,6 +504,19 @@ public class PlayerTriggerControl extends TriggerControl {
 
     protected Keeper getPlayer() {
         return super.getPlayer(playerId);
+    }
+
+    /**
+     * DK II doesn't play the level's camera paths, widescreen or camera
+     * zooms and rotations while the keeper possesses a creature, the keeper
+     * just stays in the creature
+     *
+     * @param keeperId the keeper who would see the camera move
+     * @return true if the keeper is possessing a creature
+     */
+    private boolean isPossessing(short keeperId) {
+        Keeper keeper = getPlayer(keeperId);
+        return keeper != null && keeper.isPossession();
     }
 
     private int getCreaturesCount(short playerId, short creatureId) {
@@ -536,7 +552,7 @@ public class PlayerTriggerControl extends TriggerControl {
             return;
         }
         ActionPoint ap = getActionPoint(actionPointId);
-        if (ap != null) {
+        if (ap != null && !isPossessing(playerId)) {
             playerService.zoomViewToPoint(WorldUtils.ActionPointToVector3f(ap), playerId);
         }
     }
