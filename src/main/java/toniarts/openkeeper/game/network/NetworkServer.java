@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.BackOff;
 import toniarts.openkeeper.game.component.Battle;
+import toniarts.openkeeper.game.component.BattleMember;
 import toniarts.openkeeper.game.component.CallToArms;
 import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.CasinoBigWinner;
@@ -57,6 +58,7 @@ import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreaturePay;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureTypeAttraction;
@@ -92,9 +94,11 @@ import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
+import toniarts.openkeeper.game.component.PathRetry;
 import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.PlayerObjective;
+import toniarts.openkeeper.game.component.Poisoned;
 import toniarts.openkeeper.game.component.Portal;
 import toniarts.openkeeper.game.component.PortalAttracted;
 import toniarts.openkeeper.game.component.PortalCreatureLimit;
@@ -102,6 +106,7 @@ import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
+import toniarts.openkeeper.game.component.PrisonStatus;
 import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.ReturnToHeroLair;
 import toniarts.openkeeper.game.component.RoomComponent;
@@ -110,11 +115,13 @@ import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.Spellbook;
 import toniarts.openkeeper.game.component.Spin;
 import toniarts.openkeeper.game.component.StolenGold;
 import toniarts.openkeeper.game.component.Storage;
 import toniarts.openkeeper.game.component.Stored;
+import toniarts.openkeeper.game.component.SummonedReaper;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
@@ -172,7 +179,7 @@ public final class NetworkServer {
         this.port = port;
     }
 
-    private static void initialize() {
+    static void initialize() {
         if (!initialized) {
             initialized = true;
 
@@ -209,10 +216,12 @@ public final class NetworkServer {
             Serializer.registerClass(AttackTarget.class, new FieldSerializer());
             Serializer.registerClass(BackOff.class, new FieldSerializer());
             Serializer.registerClass(Battle.class, new FieldSerializer());
+            Serializer.registerClass(BattleMember.class, new FieldSerializer());
             Serializer.registerClass(CallToArms.class, new FieldSerializer());
             Serializer.registerClass(Casino.class, new FieldSerializer());
             Serializer.registerClass(CastShot.class, new FieldSerializer());
             Serializer.registerClass(CreatureGenerator.class, new FieldSerializer());
+            Serializer.registerClass(CreatureSpell.class, new FieldSerializer());
             Serializer.registerClass(CreatureSpells.class, new FieldSerializer());
             Serializer.registerClass(CreatureTypeAttraction.class, new FieldSerializer());
             Serializer.registerClass(DungeonHeart.class, new FieldSerializer());
@@ -267,15 +276,18 @@ public final class NetworkServer {
             Serializer.registerClass(OnFire.class, new FieldSerializer());
             Serializer.registerClass(Owner.class, new FieldSerializer());
             Serializer.registerClass(Party.class, new FieldSerializer());
+            Serializer.registerClass(PathRetry.class, new FieldSerializer());
             Serializer.registerClass(Peaceful.class, new FieldSerializer());
             Serializer.registerClass(Placeable.class, new FieldSerializer());
             Serializer.registerClass(PlayerObjective.class, new FieldSerializer());
+            Serializer.registerClass(Poisoned.class, new FieldSerializer());
             Serializer.registerClass(PortalAttracted.class, new FieldSerializer());
             Serializer.registerClass(PortalCreatureLimit.class, new FieldSerializer());
             Serializer.registerClass(PortalGem.class, new FieldSerializer());
             Serializer.registerClass(Position.class, new FieldSerializer());
             Serializer.registerClass(Possessed.class, new FieldSerializer());
             Serializer.registerClass(PossessedMovement.class, new FieldSerializer());
+            Serializer.registerClass(PrisonStatus.class, new FieldSerializer());
             Serializer.registerClass(Regeneration.class, new FieldSerializer());
             Serializer.registerClass(ReturnToHeroLair.class, new FieldSerializer());
             Serializer.registerClass(RoomComponent.class, new FieldSerializer());
@@ -283,10 +295,12 @@ public final class NetworkServer {
             Serializer.registerClass(StolenGold.class, new FieldSerializer());
             Serializer.registerClass(Storage.class, new FieldSerializer());
             Serializer.registerClass(Stored.class, new FieldSerializer());
+            Serializer.registerClass(SummonedReaper.class, new FieldSerializer());
             Serializer.registerClass(Senses.class, new FieldSerializer());
             Serializer.registerClass(ShotFlight.class, new FieldSerializer());
             Serializer.registerClass(ShotViewState.class, new FieldSerializer());
             Serializer.registerClass(Slapped.class, new FieldSerializer());
+            Serializer.registerClass(SpeedChange.class, new FieldSerializer());
             Serializer.registerClass(Spellbook.class, new FieldSerializer());
             Serializer.registerClass(Spin.class, new FieldSerializer());
             Serializer.registerClass(TaskComponent.class, new FieldSerializer());

@@ -72,6 +72,8 @@ public final class UniversalArtResourceLoader {
             case SPRITE:
                 result = new EffectGeometry("effect");
                 ((EffectGeometry) result).setFrames(AssetUtils.getAnimationFrameCount(resource, assetManager));
+                ((EffectGeometry) result).setLooping(!resource.getFlags().contains(ArtResource.ArtResourceFlag.DOESNT_LOOP));
+                ((EffectGeometry) result).setSelectRandomImage(resource.getFlags().contains(ArtResource.ArtResourceFlag.RANDOM_START_FRAME));
 
                 Material material = AssetUtils.createParticleMaterial(resource, assetManager);
                 result.setMaterial(material);

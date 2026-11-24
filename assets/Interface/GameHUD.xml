@@ -322,7 +322,7 @@
                             </panel>
                         </panel>
                         <!--The rest-->
-                        <control name="customTabGroup" height="100%" width="100%" valign="top" id="tabs-hud">
+                        <control name="customTabGroup" height="100%" width="100%" valign="top" id="tabs-hud" pinnable="true">
 
                             <control name="customTab" id="tab-creature"
                                      image="Textures/GUI/Tabs/t-creatures.png"

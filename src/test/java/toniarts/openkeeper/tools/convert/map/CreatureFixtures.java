@@ -46,6 +46,40 @@ public final class CreatureFixtures {
     }
 
     /**
+     * A creature with one animation of the given length
+     *
+     * @param animation the animation slot
+     * @param frames the frames in the animation
+     * @param fps the frames per second
+     * @return the creature
+     */
+    public static Creature creatureWithAnimation(Creature.AnimationType animation, int frames, int fps) {
+        ArtResource resource = new ArtResource();
+        resource.setData("frames", frames);
+        resource.setData("fps", fps);
+
+        Creature creature = new Creature();
+        creature.setAnimation(animation, resource);
+        return creature;
+    }
+
+    /**
+     * A creature with one animation that plays by the distance walked
+     *
+     * @param animation the animation slot
+     * @param frames the frames in the animation
+     * @param fps the frames per second
+     * @param startDistance the speed, in 1/4096 tiles a second, at which the
+     * frames play at their frame rate
+     * @return the creature
+     */
+    public static Creature creatureWithAnimation(Creature.AnimationType animation, int frames, int fps, int startDistance) {
+        Creature creature = creatureWithAnimation(animation, frames, fps);
+        creature.getAnimation(animation).setData(ArtResource.KEY_START_DIST, startDistance);
+        return creature;
+    }
+
+    /**
      * A creature that works in the workshop
      *
      * @param id the creature ID
