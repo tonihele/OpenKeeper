@@ -80,6 +80,7 @@ import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -1230,6 +1231,27 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void theCreatureItDropsOnItsPortalToMakeRoomForAResearcherLeavesTheDungeon() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+        roomControl.onBuild(createRoom(LIBRARY, new Point(1, 4)));
+        ThreeByThreeController portal = createPortal(new Point(11, 2));
+        roomControl.onBuild(portal);
+        spellControl.setTypeAvailable(heal, true, false);
+        EntityId researcher = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.WORK);
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = EATER;
+        entityData.setComponent(researcher, creatureComponent);
+        EntityId other = createCreature(PLAYER_ID, new Point(8, 4), 100, 100, CreatureState.IDLE);
+        creatureControl.onCreatureAdded(researcher, creatureWithJobs(EATER, Creature.JobType.RESEARCH));
+        creatureControl.onCreatureAdded(other, CombatExperienceFixtures.creature((short) 0));
+
+        system.processTick(0.25f);
+
+        assertEquals(Set.of(other), dropped.keySet());
+        assertTrue(portal.isLeavingDungeon(dropped.get(other), PLAYER_ID, false));
+    }
+
+    @Test
     void makesNoRoomForAResearcherWithNothingToResearch() {
         KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
         roomControl.onBuild(createRoom(LIBRARY, new Point(1, 4)));
@@ -1459,6 +1481,19 @@ class KeeperAiSystemTest {
         gameTime = 100;
         system.processTick(0.25f);
         assertEquals(Map.of(creature, new Point(5, 4)), dropped);
+    }
+
+    @Test
+    void theAngryCreatureItDropsOnItsPortalLeavesTheDungeon() {
+        KeeperAiSystem system = createSystem(withMoodCare(ai(0, 0, 9, 1, 50, 0, List.of()), true, true, true), 1000);
+        ThreeByThreeController portal = createPortal(new Point(11, 2));
+        roomControl.onBuild(portal);
+        EntityId creature = createUnhappyCreature(CreatureMood.REASON_NO_PAY, 40000);
+
+        system.processTick(0.25f);
+
+        assertEquals(Set.of(creature), dropped.keySet());
+        assertTrue(portal.isLeavingDungeon(dropped.get(creature), PLAYER_ID, false));
     }
 
     @Test
@@ -2609,6 +2644,23 @@ class KeeperAiSystemTest {
             case "equals" -> proxy == args[0];
             default -> throw new UnsupportedOperationException(method.getName());
         });
+    }
+
+    /**
+     * A Portal of 3 x 3 tiles that sends a creature dropped on its middle out
+     * of the dungeon
+     */
+    private ThreeByThreeController createPortal(Point corner) {
+        RoomInstance roomInstance = new RoomInstance(rooms.get(PORTAL));
+        roomInstance.setOwnerId(PLAYER_ID);
+        for (int x = corner.x; x < corner.x + 3; x++) {
+            for (int y = corner.y; y < corner.y + 3; y++) {
+                roomInstance.addCoordinate(new Point(x, y));
+                map[y][x] = 'H';
+            }
+        }
+
+        return new ThreeByThreeController(entityData.createEntity(), entityData, null, roomInstance, null, () -> gameTime);
     }
 
     private IMapController createMapController() {
