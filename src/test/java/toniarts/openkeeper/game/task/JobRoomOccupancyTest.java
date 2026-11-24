@@ -232,7 +232,7 @@ class JobRoomOccupancyTest {
         Keeper keeper = new Keeper(false, KEEPER);
         keeper.setGold(100);
         IPlayerController playerController = proxy(IPlayerController.class, (proxy, method, args) -> method.getName().equals("getKeeper") ? keeper : null);
-        return new Train(null, null, new Point(1, 1), KEEPER, room, taskManager(), null, gameSettings, playerController);
+        return new Train(null, null, new Point(1, 1), KEEPER, room, taskManager(), null, gameSettings, playerController, null, null);
     }
 
     private ICreatureController creature() {
