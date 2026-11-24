@@ -38,7 +38,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * Watches a fight in the Combat Pit, what a creature with nothing else to do
  * does in DK II (DKII.EXE 0x457780, states 0x8E to 0x90). The creature stands
  * on a tile round the pit, faces the middle and cheers or idles. After each
- * animation it may step to a free tile next to it, and it leaves once no
+ * animation it steps to a free tile next to it or to a new place on its own
+ * tile, and it leaves once no
  * fight was seen for a while. Nobody shares a tile: the one that finds company
  * on its tile moves on.
  */
@@ -148,12 +149,13 @@ public final class WatchCombatPit extends AbstractTask {
             return;
         }
 
-        // The animation is over: leave with nothing to watch anymore, otherwise stay or move a tile
+        // The animation is over: leave with nothing to watch anymore, otherwise move a tile or shuffle on our own
         animationEnd = -1;
         if (!pit.isFightToWatch()) {
             stop(creature);
-        } else if (isShared(creature) || random.nextInt(100) < MOVE_CHANCE) {
-            moveOn();
+        } else if ((!isShared(creature) && random.nextInt(100) >= MOVE_CHANCE) || !moveOn()) {
+            standOn(spot);
+            creature.navigateToAssignedTask();
         }
     }
 

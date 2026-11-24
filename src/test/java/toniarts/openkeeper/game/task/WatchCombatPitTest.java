@@ -61,6 +61,7 @@ import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -141,6 +142,23 @@ class WatchCombatPitTest {
         assertEquals(new Vector2f(1, 2), task.getTarget(spectator));
         Vector2f place = task.getWorkPosition(spectator);
         assertTrue(Math.abs(place.x - 1) <= 1 / 6f && Math.abs(place.y - 2) <= 1 / 6f);
+    }
+
+    @Test
+    void spectatorStayingOnItsTileShufflesToANewPlaceOnIt() {
+        fighter();
+        ICreatureController spectator = creatureAt(new Point(1, 3));
+        WatchCombatPit task = new WatchCombatPit(null, null, pit, new Point(1, 3), KEEPER, entityData, positionLookup, rolls(50, 0, 99));
+        Vector2f place = task.getWorkPosition(spectator);
+
+        task.executeTask(spectator, 0f);
+        task.executeTask(spectator, 1f);
+
+        // A new place in the middle third of the same tile (0x457D60)
+        assertEquals(new Vector2f(1, 3), task.getTarget(spectator));
+        Vector2f newPlace = task.getWorkPosition(spectator);
+        assertNotEquals(place, newPlace);
+        assertTrue(Math.abs(newPlace.x - 1) <= 1 / 6f && Math.abs(newPlace.y - 3) <= 1 / 6f);
     }
 
     @Test
@@ -271,9 +289,12 @@ class WatchCombatPitTest {
                 return queue.remove();
             }
 
+            private float nextFloat = 0;
+
             @Override
             public float nextFloat() {
-                return 0.5f;
+                nextFloat = (nextFloat + 0.3f) % 1;
+                return nextFloat;
             }
         };
     }
