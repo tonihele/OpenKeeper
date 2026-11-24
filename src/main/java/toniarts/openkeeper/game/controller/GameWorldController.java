@@ -43,7 +43,6 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.KeeperSpellCast;
-import toniarts.openkeeper.game.component.LeavingDungeon;
 import toniarts.openkeeper.game.component.LevelIndicator;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
@@ -1429,9 +1428,6 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             Entity creature = entityData.getEntity(entity, Owner.class, CreatureComponent.class);
             boolean imp = creature.get(CreatureComponent.class).creatureId == kwdFile.getImp().getCreatureId();
             leavingDungeon = portal.isLeavingDungeon(tile, creature.get(Owner.class).ownerId, imp);
-            if (leavingDungeon) {
-                entityData.setComponent(entity, new LeavingDungeon());
-            }
         }
 
         // TODO: Duplicated code with CreaturesController
@@ -1497,7 +1493,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // Add the dropping component to the creature
         if (!tortureOrImprisonment) {
-            entityData.setComponent(entity, new CreatureFall());
+            entityData.setComponent(entity, new CreatureFall(leavingDungeon ? CreatureFall.FallType.PORTAL_DROP : CreatureFall.FallType.DROPPED));
         } else {
 
             // No fall, so no touchdown for the fall system to announce

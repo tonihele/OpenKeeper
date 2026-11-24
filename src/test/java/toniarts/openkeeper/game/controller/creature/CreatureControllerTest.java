@@ -558,7 +558,7 @@ class CreatureControllerTest {
         double time;
 
         Fixture(int timeSleep) {
-            fall = new CreatureFallSystem(data, () -> time, eventService);
+            fall = new CreatureFallSystem(data, () -> time, eventService, null);
             Creature definition = CreatureSleepFixtures.sleeper(timeSleep);
             CreatureComponent component = new CreatureComponent();
             component.creatureId = 6;
