@@ -128,6 +128,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.Set;
 import java.util.TreeMap;
@@ -910,6 +911,10 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
             }
 
+            if (objectType == ObjectType.TRAINEE) {
+                coordinates = getTrainingSpot(coordinates, room, creature);
+            }
+
             // Assign
             if (!coordinates.isEmpty()) {
                 Point target;
@@ -971,6 +976,64 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         return spots;
     }
 
+    /**
+     * Where the trainee trains, like DK II (Training_cpp_4F2FF0, 0x4F2FF0): at
+     * the closest Training Dummy. A trainee with an attacking spell ready
+     * shoots at the closest wall target instead half of the time, and when no
+     * dummy is free. DK II sends a trainee without one to a wall target only
+     * when the room has no dummies, but it can't train there.
+     *
+     * @param coordinates the free Training Dummy and wall target tiles
+     * @param room the Training Room
+     * @param creature the trainee
+     * @return the tile of the dummy or the wall target, empty if none suits
+     */
+    private List<Point> getTrainingSpot(List<Point> coordinates, IRoomController room, ICreatureController creature) {
+        Set<Point> wallTargets = getFurnitureTiles(room.getWallFurniture()).keySet();
+        boolean ranged = creature.hasRangedAttackReady();
+        boolean wallTargetFirst = ranged && Utils.getRandom().nextBoolean();
+        Point from = creature.getCreatureCoordinates();
+        Comparator<Point> closest = Comparator.comparingInt(p -> WorldUtils.calculateDistance(from, p));
+        Optional<Point> spot = coordinates.stream().filter(p -> wallTargets.contains(p) == wallTargetFirst).min(closest);
+        if (spot.isEmpty() && ranged) {
+            spot = coordinates.stream().min(closest);
+        }
+        return spot.map(List::of).orElse(List.of());
+    }
+
+    /**
+     * The tile a trainee shoots at a wall target from, like DK II
+     * (Training_cpp_4F3310, 0x4F3310): the room tile closest to the trainee
+     * that has no training furniture on it and sees the target
+     *
+     * @param room the Training Room
+     * @param creature the trainee
+     * @param wallTarget the wall target
+     * @return the tile, {@code null} if there is none
+     */
+    private Point getShootingTile(IRoomController room, ICreatureController creature, EntityId wallTarget) {
+        Vector3f target = entityData.getComponent(wallTarget, Position.class).position;
+        Set<Point> furniture = new HashSet<>(getFurnitureTiles(room.getWallFurniture()).keySet());
+        furniture.addAll(getFurnitureTiles(room.getFloorFurniture()).keySet());
+        Point from = creature.getCreatureCoordinates();
+        return room.getRoomInstance().getCoordinates().stream()
+                .filter(p -> !furniture.contains(p) && room.isTileAccessible(null, p)
+                && entityPositionLookup.hasLineOfSight(WorldUtils.pointToVector3f(p), target))
+                .min(Comparator.comparingInt(p -> WorldUtils.calculateDistance(from, p)))
+                .orElse(null);
+    }
+
+    private Map<Point, EntityId> getFurnitureTiles(Collection<EntityId> furniture) {
+        Map<Point, EntityId> tiles = new HashMap<>(furniture.size());
+        for (EntityId entityId : furniture) {
+            Position position = entityData.getComponent(entityId, Position.class);
+            if (position != null) {
+                tiles.put(WorldUtils.vectorToPoint(position.position), entityId);
+            }
+        }
+        return tiles;
+    }
+
     private static Integer getShortestDistance(Point currentPosition, Point... coordinates) {
         int distance = Integer.MAX_VALUE;
         for (Point p : coordinates) {
@@ -1007,7 +1070,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new CarryCorpseToGraveyardTask(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData, targetEntity);
             }
             case TRAINEE -> {
-                return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()));
+                EntityId wallTarget = getFurnitureTiles(room.getWallFurniture()).get(target);
+                return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()),
+                        wallTarget, wallTarget != null ? getShootingTile(room, creature, wallTarget) : null);
             }
             case MANUFACTURER -> {
                 return new Manufacture(navigationService, mapController, target, creature.getOwnerId(), room, this,

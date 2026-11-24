@@ -68,6 +68,7 @@ import toniarts.openkeeper.game.logic.SlapSystem;
 import toniarts.openkeeper.game.logic.SpecialIdleEffectSystem;
 import toniarts.openkeeper.game.logic.SpinSystem;
 import toniarts.openkeeper.game.logic.SummonedReaperSystem;
+import toniarts.openkeeper.game.logic.TrainingDummySystem;
 import toniarts.openkeeper.game.logic.TremorSystem;
 import toniarts.openkeeper.game.logic.TrapSystem;
 import toniarts.openkeeper.game.logic.TurncoatSystem;
@@ -173,6 +174,8 @@ public final class GameLoopManager {
                 new CasinoSystem(entityData, gameWorldController.getCreaturesController(),
                         gameWorldController.getMapController(), positionSystem, gameController.getGameTimer(), gameEventService, gameSettings),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
+                new TrainingDummySystem(entityData, levelInfo.getLevelData(), gameWorldController.getMapController(),
+                        gameController.getGameTimer()),
                 new CreatureViewSystem(entityData, levelInfo.getLevelData()),
                 new DoorViewSystem(entityData, positionSystem),
                 new BattleSystem(entityData, gameController.getGameTimer()),
