@@ -90,14 +90,6 @@ public final class CreatureFixtures {
     }
 
     /**
-     * A creature that works in the workshop
-     *
-     * @param id the creature ID
-     * @param manufacturePerSecond the manufacture points per second in the
-     * creature data
-     * @return the creature
-     */
-    /**
      * A creature of a given width
      *
      * @param width the width in tiles
@@ -109,6 +101,14 @@ public final class CreatureFixtures {
         return creature;
     }
 
+    /**
+     * A creature that works in the workshop
+     *
+     * @param id the creature ID
+     * @param manufacturePerSecond the manufacture points per second in the
+     * creature data
+     * @return the creature
+     */
     public static Creature manufacturer(short id, int manufacturePerSecond) {
         Creature creature = new Creature();
         creature.setCreatureId(id);
