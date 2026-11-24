@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.console.ConsoleState;
+import toniarts.openkeeper.game.controller.TrapPlacementValidator;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
@@ -54,6 +55,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.view.WorkshopCameraCycler;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerInteractionState;
@@ -91,6 +93,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     private final CampaignLevel campaignLevel;
 
     private EntitySet heartEntities;
+    private WorkshopCameraCycler workshopCameraCycler;
     private boolean paused = false;
     private boolean levelWon = false;
 
@@ -106,6 +109,8 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
     private static final String PAUSE_KEY_MAPPING = Settings.Setting.PAUSE_OR_OPTIONS.name();
     private final ActionListener pauseKeyListener = this::onPauseKey;
+    private static final String ZOOM_TO_NEXT_FIGHT_KEY_MAPPING = Settings.Setting.ZOOM_TO_NEXT_FIGHT.name();
+    private final ActionListener zoomToNextFightKeyListener = this::onZoomToNextFightKey;
 
     public PlayerState(int playerId, IKwdFile kwdFile, EntityData entityData, boolean enabled, Main app, @Nullable CampaignLevel campaignLevel) {
         this.playerId = (short) playerId;
@@ -136,6 +141,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     @Override
     public void cleanup() {
         unregisterPauseKey();
+        releaseWorkshopCameraCycler();
         heartEntities.release();
         heartEntities = null;
 
@@ -161,6 +167,11 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         }
         screen = null;
 
+        // Remove the level texts only when we leave the level, so that the next
+        // level can put its own here. After the level has ended it still runs
+        // and its speeches show their texts
+        nifty.getResourceBundles().remove("level");
+
         super.cleanup();
     }
 
@@ -173,6 +184,10 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         }
 
         if (enabled) {
+
+            if (workshopCameraCycler == null) {
+                workshopCameraCycler = new WorkshopCameraCycler(entityData, playerId);
+            }
 
             // Get the game state
             final GameClientState gameState = stateManager.getState(GameClientState.class);
@@ -255,6 +270,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             registerPauseKey();
         } else {
             unregisterPauseKey();
+            releaseWorkshopCameraCycler();
 
             // Detach states
             for (AbstractAppState state : appStates) {
@@ -270,18 +286,32 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     @Override
     public void update(float tpf) {
         heartEntities.applyChanges();
+        if (workshopCameraCycler != null) {
+            workshopCameraCycler.update();
+        }
         screen.update(tpf);
+    }
+
+    private void releaseWorkshopCameraCycler() {
+        if (workshopCameraCycler != null) {
+            workshopCameraCycler.close();
+            workshopCameraCycler = null;
+        }
     }
 
     /**
      * The pause key opens and closes the game menu. This state stays enabled
-     * during the pause, so the same key also resumes.
+     * during the pause, so the same key also resumes. The zoom to next fight
+     * key is registered with it.
      */
     private void registerPauseKey() {
         if (!pauseKeyRegistered) {
             app.getInputManager().addMapping(PAUSE_KEY_MAPPING,
                     new KeyTrigger(Main.getUserSettings().getInteger(Settings.Setting.PAUSE_OR_OPTIONS)));
             app.getInputManager().addListener(pauseKeyListener, PAUSE_KEY_MAPPING);
+            app.getInputManager().addMapping(ZOOM_TO_NEXT_FIGHT_KEY_MAPPING,
+                    new KeyTrigger(Main.getUserSettings().getInteger(Settings.Setting.ZOOM_TO_NEXT_FIGHT)));
+            app.getInputManager().addListener(zoomToNextFightKeyListener, ZOOM_TO_NEXT_FIGHT_KEY_MAPPING);
             pauseKeyRegistered = true;
         }
     }
@@ -294,10 +324,20 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         }
     }
 
+    private void onZoomToNextFightKey(String name, boolean isPressed, float tpf) {
+        // Same as the Battle tab's right click, from the regular game view only
+        if (isPressed && screen != null
+                && PlayerScreenController.SCREEN_HUD_ID.equals(app.getNifty().getCurrentScreen().getScreenId())) {
+            screen.zoomToBattle();
+        }
+    }
+
     private void unregisterPauseKey() {
         if (pauseKeyRegistered) {
             app.getInputManager().deleteMapping(PAUSE_KEY_MAPPING);
             app.getInputManager().removeListener(pauseKeyListener);
+            app.getInputManager().deleteMapping(ZOOM_TO_NEXT_FIGHT_KEY_MAPPING);
+            app.getInputManager().removeListener(zoomToNextFightKeyListener);
             pauseKeyRegistered = false;
         }
     }
@@ -325,6 +365,16 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             return gs.getPlayer(playerId);
         }
         return null;
+    }
+
+    /**
+     * Does this player have a Workshop, needed for placing traps and doors
+     *
+     * @return true if the player has at least one Workshop
+     */
+    public boolean hasWorkshop() {
+        GameClientState gs = stateManager.getState(GameClientState.class);
+        return gs == null || gs.getRoomsInformation().getRoomCount(playerId, TrapPlacementValidator.WORKSHOP_ROOM_ID) > 0;
     }
 
     public PlayerStatsControl getStatsControl() {
@@ -475,6 +525,24 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
     public void quitToOS() {
         app.stop();
+    }
+
+    public void cycleDoor(short doorId) {
+        if (workshopCameraCycler != null && cameraState != null) {
+            Vector3f position = workshopCameraCycler.nextDoor(doorId);
+            if (position != null) {
+                zoomToPosition(position, true);
+            }
+        }
+    }
+
+    public void cycleTrap(short trapId) {
+        if (workshopCameraCycler != null && cameraState != null) {
+            Vector3f position = workshopCameraCycler.nextTrap(trapId);
+            if (position != null) {
+                zoomToPosition(position, true);
+            }
+        }
     }
 
     public void zoomToDungeon() {
