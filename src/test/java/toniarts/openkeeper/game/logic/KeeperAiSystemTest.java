@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
@@ -127,6 +128,7 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.flags;
 import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.terrain;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -1970,6 +1972,9 @@ class KeeperAiSystemTest {
 
     @Test
     void hasASiteDugForARoomItIsStillResearchingAndBuildsNothingOnIt() {
+
+        // The way it turns and its 5 % chance of giving up a site it can't find are random
+        ((Random) Utils.getRandom()).setSeed(1);
         KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY, LAIR)), 0);
         roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
         roomControl.onBuild(createRoom(TREASURY, new Point(1, 4)));
