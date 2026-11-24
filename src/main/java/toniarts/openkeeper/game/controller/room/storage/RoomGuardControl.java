@@ -45,17 +45,15 @@ public final class RoomGuardControl extends AbstractRoomObjectControl<EntityId> 
 
     @Override
     public EntityId addItem(EntityId guard, Point p) {
-        setRoomStorageToItem(guard, false);
-        addCurrentCapacity(1);
-
-        return guard;
+        return addOccupant(guard);
     }
 
     @Override
     public void removeItem(EntityId object) {
-        super.removeItem(object);
-
-        addCurrentCapacity(-1);
+        if (contains(object)) {
+            super.removeItem(object);
+            addCurrentCapacity(-1);
+        }
     }
 
     @Override

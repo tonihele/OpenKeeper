@@ -80,6 +80,7 @@ public final class Train extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
+        super.executeTask(creature, executionDuration);
 
         // Once a second
         if (!isWorkStepDue(creature, executionDuration)) {
