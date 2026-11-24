@@ -34,6 +34,7 @@ import java.lang.System.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -292,6 +293,7 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
         // Update audio listener position
         app.getListener().setLocation(app.getCamera().getLocation());
         app.getListener().setRotation(app.getCamera().getRotation());
+        SoundManager.setListener(WorldUtils.vectorToPoint(app.getCamera().getLocation()));
     }
 
     /**
