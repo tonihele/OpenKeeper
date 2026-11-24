@@ -214,6 +214,7 @@ public final class NetworkServer {
             Serializer.registerClass(PlayerSpell.class, new FieldSerializer());
             Serializer.registerClass(ResearchableType.class, new EnumSerializer());
             Serializer.registerClass(Casino.PayOut.class, new EnumSerializer());
+            Serializer.registerClass(CreatureFall.FallType.class, new EnumSerializer());
 
             // Events
             Serializer.registerClass(GameEventType.class, new EnumSerializer());
