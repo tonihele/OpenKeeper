@@ -190,7 +190,7 @@ public final class GameLoopManager {
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new TrainingDummySystem(entityData, levelInfo.getLevelData(), gameWorldController.getMapController(),
                         gameController.getGameTimer()),
-                new CreatureViewSystem(entityData, levelInfo.getLevelData()),
+                new CreatureViewSystem(entityData, levelInfo.getLevelData(), gameWorldController.getMapController()),
                 new DoorViewSystem(entityData, positionSystem),
                 new BattleSystem(entityData, gameController.getGameTimer()),
                 new SpinSystem(entityData, gameController.getGameTimer()),

@@ -26,6 +26,7 @@ import com.simsilica.es.EntitySet;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
+import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.CombatPitSpectator;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -42,7 +43,9 @@ import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import static toniarts.openkeeper.game.controller.creature.CreatureState.MELEE_ATTACK;
 import toniarts.openkeeper.game.task.TaskType;
 import static toniarts.openkeeper.game.task.TaskType.TRAIN;
@@ -71,7 +74,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
      */
     private static final int GAMBLE_PLAYS = 3;
     private static final Set<Creature.AnimationType> GAMBLE_ANIMATIONS = EnumSet.of(Creature.AnimationType.RESEARCHING,
-            Creature.AnimationType.HAPPY, Creature.AnimationType.IDLE_1);
+            Creature.AnimationType.HAPPY, Creature.AnimationType.ANGRY, Creature.AnimationType.IDLE_1);
     private static final Set<Creature.AnimationType> DRINK_ANIMATIONS = EnumSet.of(Creature.AnimationType.DRINKING,
             Creature.AnimationType.DRUNKED_IDLE, Creature.AnimationType.IDLE_1);
     /**
@@ -82,14 +85,16 @@ public final class CreatureViewSystem extends GameTimeCounter {
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
+    private final IMapController mapController;
     private final EntitySet creatureViewEntities;
 
     // TODO: The creature shouldn't be able to access the world like this, needs breaking up to pieces
     private final SafeArrayList<EntityId> creatureEntities = new SafeArrayList<>(EntityId.class);
 
-    public CreatureViewSystem(EntityData entityData, IKwdFile kwdFile) {
+    public CreatureViewSystem(EntityData entityData, IKwdFile kwdFile, IMapController mapController) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
+        this.mapController = mapController;
 
         creatureViewEntities = entityData.getEntities(CreatureViewState.class, Position.class);
         processAddedEntities(creatureViewEntities);
@@ -141,7 +146,8 @@ public final class CreatureViewSystem extends GameTimeCounter {
                             || !isPlaying(state, GAMBLE_PLAYS);
                     if (restart) {
                         Creature creature = kwdFile.getCreature(state.creatureId);
-                        targetState = drinking ? getDrinkAnimation(entityId, creature) : getGambleAnimation(creature);
+                        targetState = drinking ? getDrinkAnimation(entityId, creature) : getGambleAnimation(creature,
+                                mapController.getRoomControllerByCoordinates(taskComponent.targetLocation));
                     }
                 } else if (taskComponent != null && taskComponent.taskType == TaskType.WATCH_COMBAT_PIT) {
 
@@ -330,18 +336,19 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * The original (0x4567D0) has no gambling animation. Half of the time the
      * gambler plays its research animation, if it has one and a happy one too.
      * Otherwise it is happy three times out of four and idles for the rest. A
-     * creature without a happy animation only idles. In the money pay out mode
-     * the original plays the angry animation instead of the happy one, but the
-     * pay out can't be switched yet.
+     * creature without a happy animation only idles. When the Casino takes the
+     * gamblers' money, the angry animation takes the place of the happy one.
      */
-    private static Creature.AnimationType getGambleAnimation(Creature creature) {
-        boolean happy = hasAnimation(creature, Creature.AnimationType.HAPPY);
+    private static Creature.AnimationType getGambleAnimation(Creature creature, IRoomController casino) {
+        Creature.AnimationType mood = casino != null && casino.getCasinoPayOut() == Casino.PayOut.MONEY
+                ? Creature.AnimationType.ANGRY : Creature.AnimationType.HAPPY;
+        boolean happy = hasAnimation(creature, mood);
         int roll = FastMath.rand.nextInt(100);
         if (happy && roll < 50 && hasAnimation(creature, Creature.AnimationType.RESEARCHING)) {
             return Creature.AnimationType.RESEARCHING;
         }
         if (happy && roll < 75) {
-            return Creature.AnimationType.HAPPY;
+            return mood;
         }
         return Creature.AnimationType.IDLE_1;
     }

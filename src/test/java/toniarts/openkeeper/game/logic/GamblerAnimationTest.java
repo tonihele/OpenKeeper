@@ -24,13 +24,16 @@ import java.lang.reflect.Proxy;
 import java.util.EnumSet;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Drunk;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.CasinoVariableFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -54,12 +57,21 @@ class GamblerAnimationTest {
     private final EntityData entityData = new DefaultEntityData();
     private CreatureViewSystem system;
     private EntityId creatureId;
+    private Casino.PayOut payOut = Casino.PayOut.SMILES;
 
     @Test
     void gamblerPlaysItsResearchHappyOrIdleAnimation() {
         gambler(AnimationType.IDLE_1, AnimationType.HAPPY, AnimationType.RESEARCHING, AnimationType.MELEE_ATTACK);
 
         assertEquals(EnumSet.of(AnimationType.RESEARCHING, AnimationType.HAPPY, AnimationType.IDLE_1), playedAnimations(400));
+    }
+
+    @Test
+    void gamblerIsAngryInsteadOfHappyWhenTheCasinoTakesItsMoney() {
+        payOut = Casino.PayOut.MONEY;
+        gambler(AnimationType.IDLE_1, AnimationType.HAPPY, AnimationType.ANGRY, AnimationType.RESEARCHING);
+
+        assertEquals(EnumSet.of(AnimationType.RESEARCHING, AnimationType.ANGRY, AnimationType.IDLE_1), playedAnimations(400));
     }
 
     @Test
@@ -181,7 +193,11 @@ class GamblerAnimationTest {
         creatureId = entityData.createEntity();
         entityData.setComponents(creatureId, new CreatureViewState(CREATURE_ID, 0, AnimationType.WALK),
                 new Position(0, new Vector3f()));
-        system = new CreatureViewSystem(entityData, kwdFile);
+        IRoomController casino = (IRoomController) Proxy.newProxyInstance(IRoomController.class.getClassLoader(),
+                new Class<?>[]{IRoomController.class}, (proxy, method, args) -> "getCasinoPayOut".equals(method.getName()) ? payOut : null);
+        IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
+                new Class<?>[]{IMapController.class}, (proxy, method, args) -> casino);
+        system = new CreatureViewSystem(entityData, kwdFile, mapController);
     }
 
     /**
