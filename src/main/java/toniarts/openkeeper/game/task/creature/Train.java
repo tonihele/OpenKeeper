@@ -141,6 +141,7 @@ public final class Train extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
+        super.executeTask(creature, executionDuration);
 
         // DK II casts at the wall target whenever the spell is ready (0x4855B0)
         if (wallTarget != null) {

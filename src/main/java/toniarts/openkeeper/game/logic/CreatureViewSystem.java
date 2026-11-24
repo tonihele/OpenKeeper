@@ -265,6 +265,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
             case RECUPERATING:
                 return Creature.AnimationType.SLEEPING;
             case MELEE_ATTACK:
+            case TELLING_OFF:
                 return Creature.AnimationType.MELEE_ATTACK;
             case CAST_SPELL:
                 return Creature.AnimationType.CAST_SPELL;
