@@ -1161,7 +1161,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case GUARD -> {
                 return new Guard(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData,
-                        levelInfo.getLevelData().getGameLevel().getTicksPerSec(),
+                        levelInfo.getLevelData(), levelInfo.getLevelData().getGameLevel().getTicksPerSec(),
                         (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_TIME_IN_GUARD_ROOM_BEFORE_WANDERING_TO_GUARD_POST_SECONDS).getValue(),
                         // DK II's guard reads this variable when the room has no furniture (0x462D00), maybe by mistake
                         (int) gameSettings.get(Variable.MiscVariable.MiscType.IMP_IDLE_DELAY_BEFORE_REEVALUATION_SECONDS).getValue(),

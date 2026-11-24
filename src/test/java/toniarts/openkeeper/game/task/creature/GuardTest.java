@@ -28,15 +28,22 @@ import java.util.Set;
 import java.util.random.RandomGenerator;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.GameObject;
+import toniarts.openkeeper.tools.convert.map.GameObjectFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Guards walk round the edge of the Guard Room and now and then go to a piece
@@ -48,6 +55,7 @@ class GuardTest {
     private static final int TICKS_PER_SECOND = 4;
     private static final int MAX_EXTRA_TICKS = 60;
     private static final int NO_FURNITURE_EXTRA_TICKS = 5;
+    private static final short GUARD_POST_TABLE = 112;
 
     private final EntityData entityData = new DefaultEntityData();
     private final Set<EntityId> furniture = new HashSet<>();
@@ -86,9 +94,7 @@ class GuardTest {
     @Test
     void guardGoesToTheFurnitureAndARoomTileNowAndThenAndBackToTheEdge() {
         Guard guard = guard(rectangle(10, 10, 5, 5), fixedRandom(20));
-        EntityId post = entityData.createEntity();
-        entityData.setComponent(post, new Position(0, WorldUtils.pointToVector3f(12, 12)));
-        furniture.add(post);
+        post(12, 12);
         ICreatureController creature = creatureAt(new Point(10, 9));
         guard.getTarget(creature);
 
@@ -98,13 +104,32 @@ class GuardTest {
         assertEquals(new Vector2f(14, 14), guard.getTarget(creature));
 
         guard.executeTask(creature, 2f + 23.75f);
-        assertEquals(new Vector2f(12, 12), guard.getTarget(creature));
+        assertEquals(new Point(12, 12), WorldUtils.vectorToPoint(guard.getTarget(creature)));
 
         // Then a random room tile, the 21st with this random number, and back to the nearest edge tile
         guard.executeTask(creature, 30f);
         assertEquals(new Vector2f(10, 14), guard.getTarget(creature));
         guard.executeTask(creature, 31f);
         assertEquals(new Vector2f(10, 14), guard.getTarget(creature));
+    }
+
+    @Test
+    void guardStopsWhereItTouchesTheFurniture() {
+        Guard guard = guard(rectangle(10, 10, 5, 5), fixedRandom(0));
+        post(12, 12);
+        ICreatureController creature = creatureAt(new Point(12, 14));
+        guard.getTarget(creature);
+
+        // The Guard Post Table is 0.9 wide and the guard 0.3, so it stops 0.6 from the table's middle, on its own side
+        guard.executeTask(creature, 0f);
+        guard.executeTask(creature, 18.75f);
+        Vector2f spot = guard.getWorkPosition(creature);
+        assertEquals(12f, spot.x, 0.001f);
+        assertEquals(12.6f, spot.y, 0.001f);
+
+        // It walks to the table's tile, and stands near enough to that target to be there
+        assertEquals(new Point(12, 12), WorldUtils.vectorToPoint(guard.getTarget(creature)));
+        assertTrue(guard.getTarget(creature).distance(spot) < 0.5f);
     }
 
     @Test
@@ -129,16 +154,33 @@ class GuardTest {
                 default -> throw new UnsupportedOperationException(method.getName());
             };
         });
-        return new Guard(null, null, roomTiles.get(0), (short) 3, room, null, entityData, TICKS_PER_SECOND, MAX_EXTRA_TICKS,
+        GameObject table = GameObjectFixtures.withWidth(GameObjectFixtures.gameObject("Guard Post Table"), 0.9f);
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> {
+            if ("getObject".equals(method.getName()) && ((Number) args[0]).intValue() == GUARD_POST_TABLE) {
+                return table;
+            }
+            throw new UnsupportedOperationException(method.getName());
+        });
+        return new Guard(null, null, roomTiles.get(0), (short) 3, room, null, entityData, kwdFile, TICKS_PER_SECOND, MAX_EXTRA_TICKS,
                 NO_FURNITURE_EXTRA_TICKS, random);
     }
 
+    private void post(int x, int y) {
+        EntityId post = entityData.createEntity();
+        entityData.setComponents(post, new Position(0, WorldUtils.pointToVector3f(x, y)), new ObjectComponent(GUARD_POST_TABLE, null));
+        furniture.add(post);
+    }
+
     private static ICreatureController creatureAt(Point p) {
+        Creature creature = new Creature();
+        ShotFixtures.setSize(creature, 0.3f, 1);
         return (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> {
-            if ("getCreatureCoordinates".equals(method.getName())) {
-                return p;
-            }
-            throw new UnsupportedOperationException(method.getName());
+            return switch (method.getName()) {
+                case "getCreatureCoordinates" -> p;
+                case "getPosition" -> WorldUtils.pointToVector3f(p);
+                case "getCreature" -> creature;
+                default -> throw new UnsupportedOperationException(method.getName());
+            };
         });
     }
 

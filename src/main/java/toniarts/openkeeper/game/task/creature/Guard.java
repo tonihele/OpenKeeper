@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.random.RandomGenerator;
 import toniarts.openkeeper.game.component.GuardedRoom;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -34,6 +36,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -42,8 +45,9 @@ import toniarts.openkeeper.utils.WorldUtils;
  * tile of the room nearest to it and walks round the edge (DKII.EXE 0x462930,
  * 0x462D00). Every so often it walks to a piece of the room's furniture and
  * then to a random tile of the room, and takes up its round again (0x463190,
- * 0x4632A0). The guard remembers the room, DK II sends it back there for its
- * next guard duty (0x462850).
+ * 0x4632A0). DK II sends it to the furniture's own position, and the solid
+ * furniture stops it where the two touch. The guard remembers the room, DK II
+ * sends it back there for its next guard duty (0x462850).
  */
 public final class Guard extends AbstractCapacityCriticalRoomTask {
 
@@ -68,11 +72,13 @@ public final class Guard extends AbstractCapacityCriticalRoomTask {
     }
 
     private final EntityData entityData;
+    private final IKwdFile kwdFile;
     private final int ticksPerSecond;
     private final int maxExtraTicks;
     private final int noFurnitureExtraTicks;
     private final RandomGenerator random;
     private Point target;
+    private Vector2f spotAtFurniture;
     private Step step = Step.ROUND;
     private int direction;
     private float tripTime = -1;
@@ -87,6 +93,8 @@ public final class Guard extends AbstractCapacityCriticalRoomTask {
      * @param room the Guard Room
      * @param taskManager the task manager
      * @param entityData the entity data
+     * @param kwdFile the level data, for the widths of the furniture and the
+     * guard
      * @param ticksPerSecond the logic ticks per second of the level
      * @param maxExtraTicks at most this many random ticks are added to the
      * time before a trip to the furniture and to the trip itself
@@ -95,11 +103,12 @@ public final class Guard extends AbstractCapacityCriticalRoomTask {
      * @param random the random number generator
      */
     public Guard(final INavigationService navigationService, final IMapController mapController, Point p, short playerId,
-            IRoomController room, TaskManager taskManager, EntityData entityData, int ticksPerSecond, int maxExtraTicks,
-            int noFurnitureExtraTicks, RandomGenerator random) {
+            IRoomController room, TaskManager taskManager, EntityData entityData, IKwdFile kwdFile, int ticksPerSecond,
+            int maxExtraTicks, int noFurnitureExtraTicks, RandomGenerator random) {
         super(navigationService, mapController, p, playerId, room, taskManager);
 
         this.entityData = entityData;
+        this.kwdFile = kwdFile;
         this.ticksPerSecond = ticksPerSecond;
         this.maxExtraTicks = maxExtraTicks;
         this.noFurnitureExtraTicks = noFurnitureExtraTicks;
@@ -111,7 +120,18 @@ public final class Guard extends AbstractCapacityCriticalRoomTask {
         if (target == null) {
             target = getNearestEdgeTile(creature.getCreatureCoordinates());
         }
+        if (step == Step.FURNITURE) {
+
+            // Halfway from the middle of the furniture to the guard's spot: still on the furniture's tile, and near
+            // enough to the spot to count as there once the guard stands on it
+            return WorldUtils.pointToVector2f(target).interpolateLocal(spotAtFurniture, 0.5f);
+        }
         return WorldUtils.pointToVector2f(target);
+    }
+
+    @Override
+    public Vector2f getWorkPosition(ICreatureController creature) {
+        return step == Step.FURNITURE ? spotAtFurniture : getTarget(creature);
     }
 
     @Override
@@ -160,10 +180,12 @@ public final class Guard extends AbstractCapacityCriticalRoomTask {
                     tripTime = executionDuration + getTime(ROUND_TICKS, maxExtraTicks);
                 }
                 if (executionDuration >= tripTime) {
-                    Point furniture = getRandomFurniture();
+                    EntityId furniture = getRandomFurniture();
                     if (furniture != null) {
                         step = Step.FURNITURE;
-                        target = furniture;
+                        Vector3f position = entityData.getComponent(furniture, Position.class).position;
+                        target = WorldUtils.vectorToPoint(position);
+                        spotAtFurniture = getSpotAtFurniture(creature, furniture, position);
                         return;
                     }
                     tripTime = executionDuration + getTime(ROUND_TICKS, noFurnitureExtraTicks);
@@ -255,15 +277,33 @@ public final class Guard extends AbstractCapacityCriticalRoomTask {
         return current;
     }
 
-    private Point getRandomFurniture() {
-        List<Point> furniture = new ArrayList<>();
+    private EntityId getRandomFurniture() {
+        List<EntityId> furniture = new ArrayList<>();
         for (EntityId entity : getRoom().getFloorFurniture()) {
-            Position position = entityData.getComponent(entity, Position.class);
-            if (position != null) {
-                furniture.add(WorldUtils.vectorToPoint(position.position));
+            if (entityData.getComponent(entity, Position.class) != null) {
+                furniture.add(entity);
             }
         }
         return furniture.isEmpty() ? null : furniture.get(random.nextInt(furniture.size()));
+    }
+
+    /**
+     * Where the guard stops at the furniture: on the guard's side of it, half
+     * the furniture's width and half the guard's from its middle. DK II walks
+     * the guard to the furniture's own position (DKII.EXE 0x463190) and the
+     * solid furniture stops it there, facing the furniture as it walked at it
+     *
+     * @param creature the guard
+     * @param furniture the furniture
+     * @param position the position of the furniture
+     * @return the spot
+     */
+    private Vector2f getSpotAtFurniture(ICreatureController creature, EntityId furniture, Vector3f position) {
+        Vector3f guard = creature.getPosition();
+        float distance = (kwdFile.getObject(entityData.getComponent(furniture, ObjectComponent.class).objectId).getWidth()
+                + creature.getCreature().getAttributes().getWidth()) / 2;
+        return new Vector2f(guard.x - position.x, guard.z - position.z).normalizeLocal().multLocal(distance)
+                .addLocal(position.x, position.z);
     }
 
 }
