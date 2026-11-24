@@ -413,11 +413,14 @@ public final class MovementSystem implements IGameLogicUpdatable {
         for (Entity entity : changedEntities) {
 
             // Dirty trick to try to see if the navigation has changed. A walk
-            // to the tile the creature only turned on needs path following too
+            // to the tile the creature only turned on needs path following too,
+            // and so does a new walk to the same tile after the last one ended:
+            // the logic tick asks for it before we see the old one removed
             Navigation navigation = entity.get(Navigation.class);
             ISteerableEntity steerableEntity = steerableEntitiesByEntityId.get(entity.getId());
+            FollowWaypoints pathFollowing = steeringBehaviorsBySteerableEntity.get(steerableEntity).getPathFollowing();
             if (!navigation.target.equals(targetPointsByEntityId.get(entity.getId()))
-                    || navigation.navigationPath.size() > 1 && steeringBehaviorsBySteerableEntity.get(steerableEntity).getPathFollowing() == null) {
+                    || navigation.navigationPath.size() > 1 && (pathFollowing == null || pathFollowing.isFinished())) {
                 deleteEntity(entity);
                 addEntity(entity);
                 continue;
