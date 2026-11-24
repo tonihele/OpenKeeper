@@ -136,6 +136,12 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
                         new FieldFilter(ObjectComponent.class, "objectId", FiveByFiveRotatedController.OBJECT_HEART_ID),
                         new FieldFilter(Owner.class, "ownerId", playerId)),
                 ObjectComponent.class, Owner.class, Health.class);
+
+        // The game can start before the state manager gets to initialize us,
+        // and setEnabled(true) can't set anything up before that. Do it now
+        if (isEnabled()) {
+            setEnabled(true);
+        }
     }
 
     @Override

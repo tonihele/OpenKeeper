@@ -493,6 +493,10 @@ public abstract class Thing {
     // Contains in GlobalVariables.kwd only
     public static final class Camera extends Thing {
 
+        /**
+         * The camera modes OpenKeeper uses, the value is the mode number of
+         * the camera record that holds the mode's settings
+         */
         public enum CameraMode implements IValueEnum {
 
             POSSESSION(2),
@@ -553,11 +557,9 @@ public abstract class Thing {
         private int angleRoll; // rotate camera around direction vector.
         private int anglePitch; // rotate camera around Left vector. 512 = front.
 
-        /* 2 - possession camera
-         * 3 - game camera
-         * other never used ?
-         */
-        private CameraMode id;
+        // The camera mode these settings are for, see CameraMode. DK II keeps
+        // a record for each mode from 1 to 18 (0x449A30)
+        private int id;
 
         public Vector3f getPosition() {
             return position;
@@ -687,11 +689,17 @@ public abstract class Thing {
             this.anglePitch = angle;
         }
 
-        public CameraMode getId() {
+        /**
+         * The camera mode these settings are for
+         *
+         * @return the mode number, 1 - 18
+         * @see CameraMode
+         */
+        public int getId() {
             return id;
         }
 
-        protected void setId(CameraMode id) {
+        protected void setId(int id) {
             this.id = id;
         }
 
