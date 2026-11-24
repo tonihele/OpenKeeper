@@ -26,6 +26,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -261,7 +262,7 @@ class PlayerRoomFurnitureTriggerTest {
     }
 
     @Test
-    void objectPositionAndLifecycleDefineMembershipRatherThanObjectOwnerOrHealth() throws IOException {
+    void registeredFurnitureUsesLivePositionAndLifecycleRatherThanOwnerOrHealth() throws IOException {
         try (Fixture f = new Fixture(ComparisonType.EQUAL_TO, 2, 6)) {
             f.room(3,6,0,0,3,3);
             EntityId object = f.object(100,1,1); // No Health and neutral owner.
@@ -276,6 +277,39 @@ class PlayerRoomFurnitureTriggerTest {
             assertTrue(f.fires());
             f.data.removeComponent(object, Position.class);
             assertFalse(f.fires());
+        }
+    }
+
+    @Test
+    void countsFloorAndWallFurnitureButIgnoresUnregisteredWorldObjects() throws IOException {
+        try (Fixture f = new Fixture(ComparisonType.EQUAL_TO, 3, 6)) {
+            IRoomController room = f.room(3,6,0,0,3,3);
+            EntityId floor = f.object(100,1,1);
+            EntityId wall = f.object(100,1,2);
+            room.getFloorFurniture().remove(wall);
+            room.getWallFurniture().add(wall);
+            f.looseObject(100,1,1); // Matching type and tile alone do not make room furniture.
+            assertTrue(f.fires());
+            room.getFloorFurniture().add(wall); // Count an entity only once across both sets.
+            assertTrue(f.fires());
+            f.data.removeComponent(wall, ObjectComponent.class);
+            assertEquals(2, room.getScriptFurnitureCount());
+            f.data.removeEntity(floor);
+            assertEquals(0, room.getScriptFurnitureCount());
+        }
+    }
+
+    @Test
+    void graveyardUsesRegisteredFloorAndWallCryptsOnly() throws IOException {
+        try (Fixture f = new Fixture(ComparisonType.EQUAL_TO, 8, 14)) {
+            IRoomController room = f.room(3,14,0,0,5,5);
+            EntityId crypt = f.object(75,2,2);
+            room.getFloorFurniture().remove(crypt);
+            room.getWallFurniture().add(crypt);
+            f.looseObject(75,1,1);
+            assertTrue(f.fires());
+            f.data.setComponent(crypt, new Death(0));
+            assertEquals(9, room.getScriptFurnitureCount());
         }
     }
 
@@ -371,7 +405,17 @@ class PlayerRoomFurnitureTriggerTest {
     }
 
     private final class Fixture implements AutoCloseable {
-        final EntityData data = new DefaultEntityData();
+        final EntityData entityData = new DefaultEntityData();
+        // Reject global queries so every scenario also guards against scanning world objects.
+        final EntityData data = (EntityData) Proxy.newProxyInstance(EntityData.class.getClassLoader(),
+                new Class<?>[]{EntityData.class}, (p,m,a) -> {
+                    if (m.getName().equals("getEntities") || m.getName().equals("findEntities")) {
+                        throw new AssertionError("Room furniture counting must not query world entities");
+                    }
+                    return m.invoke(entityData, a);
+                });
+        final List<IRoomController> rooms = new ArrayList<>();
+        final Map<EntityId,Point> furniture = new HashMap<>();
         final AtomicInteger flag = new AtomicInteger();
         final Map<Short,Room> types = new HashMap<>();
         final Map<Short,PlayerRoomControl> owned = Map.of(
@@ -423,11 +467,25 @@ class PlayerRoomFurnitureTriggerTest {
         IRoomController room(int owner, int type, int x, int y, int width, int height) {
             IRoomController room = new NormalRoomController(data.createEntity(),data,kwd,
                     instance(owner,type,x,y,width,height),null);
+            furniture.forEach((id,tile) -> {
+                if (room.getRoomInstance().hasCoordinate(tile)) room.getFloorFurniture().add(id);
+            });
+            rooms.add(room);
             owned.get((short)owner).onBuild(room);
             return room;
         }
 
         EntityId object(int type, int x, int y) {
+            EntityId id = looseObject(type,x,y);
+            Point tile = new Point(x,y);
+            furniture.put(id,tile);
+            for (IRoomController room : rooms) {
+                if (room.getRoomInstance().hasCoordinate(tile)) room.getFloorFurniture().add(id);
+            }
+            return id;
+        }
+
+        EntityId looseObject(int type, int x, int y) {
             EntityId id = data.createEntity();
             data.setComponents(id,new ObjectComponent((short)type,null),new Owner((short)0,(short)0),
                     new Position(0,WorldUtils.pointToVector3f(x,y)));

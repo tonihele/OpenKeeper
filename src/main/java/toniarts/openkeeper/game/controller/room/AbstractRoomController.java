@@ -385,7 +385,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
 
     @Override
     public int getScriptFurnitureCount() {
-        return isRemoved() ? 0 : RoomScriptFurnitureCounter.count(roomInstance, entityData);
+        return isRemoved() ? 0 : RoomScriptFurnitureCounter.count(this, entityData);
     }
 
     /**

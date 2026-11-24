@@ -16,10 +16,8 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
-import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
-import com.simsilica.es.EntitySet;
-import com.simsilica.es.filter.FieldFilter;
+import com.simsilica.es.EntityId;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -42,66 +40,70 @@ final class RoomScriptFurnitureCounter {
     private RoomScriptFurnitureCounter() {
     }
 
-    static int count(RoomInstance room, EntityData entityData) {
+    static int count(IRoomController controller, EntityData entityData) {
+        RoomInstance room = controller.getRoomInstance();
         int count = switch (room.getRoom().getRoomId()) {
             case 3 -> 0; // Portal
             case 11 -> UNSIGNED_SHORT_MAX; // Prison: generic sentinel, not cells or inmates.
             case 6, 7, 10, 15 -> { // Library, Training Room, Workshop, Casino
-                int objects = countConfiguredObjects(room, entityData) & UNSIGNED_SHORT_MAX;
+                int objects = countConfiguredObjects(controller, entityData) & UNSIGNED_SHORT_MAX;
                 // Native code adds one for each nonempty room, not once per player.
                 yield objects == 0 ? 0 : objects + 1;
             }
-            case 12 -> countConfiguredObjects(room, entityData); // Torture Chamber
+            case 12 -> countConfiguredObjects(controller, entityData); // Torture Chamber
             // Temple and Combat Pit count the boundary, not the enclosed interior.
             case 13, 16 -> room.getCoordinates().size() - countInteriorTiles(room, Set.of());
-            case 14 -> countInteriorTiles(room, cryptTiles(room, entityData)); // Graveyard
+            case 14 -> countInteriorTiles(room, cryptTiles(controller, entityData)); // Graveyard
             default -> room.getCoordinates().size();
         };
         // The native room field is 16-bit; PlayerRoomControl sums these wider.
         return count & UNSIGNED_SHORT_MAX;
     }
 
-    private static int countConfiguredObjects(RoomInstance room, EntityData entityData) {
+    private static int countConfiguredObjects(IRoomController controller, EntityData entityData) {
+        RoomInstance room = controller.getRoomInstance();
         List<Short> configured = room.getRoom().getObjects();
         Set<Short> types = new HashSet<>(configured.subList(0, Math.min(6, configured.size())));
         types.remove((short) 0);
         int count = 0;
-        for (short type : types) {
-            EntitySet objects = objectsOfType(entityData, type);
-            try {
-                for (Entity object : objects) {
-                    // Room membership is spatial: neutral floor/wall furniture counts too.
-                    if (entityData.getComponent(object.getId(), Death.class) == null
-                            && room.hasCoordinate(WorldUtils.vectorToPoint(object.get(Position.class).position))) {
-                        count++;
-                    }
-                }
-            } finally {
-                objects.release();
+        for (EntityId furniture : furniture(controller)) {
+            ObjectComponent object = entityData.getComponent(furniture, ObjectComponent.class);
+            if (object != null && types.contains(object.objectId)
+                    && liveFurnitureTile(room, entityData, furniture) != null) {
+                count++;
             }
         }
         return count;
     }
 
-    private static Set<Point> cryptTiles(RoomInstance room, EntityData entityData) {
+    private static Set<Point> cryptTiles(IRoomController controller, EntityData entityData) {
         Set<Point> result = new HashSet<>();
-        EntitySet crypts = objectsOfType(entityData, GRAVEYARD_CRYPT_ID);
-        try {
-            for (Entity crypt : crypts) {
-                Point tile = WorldUtils.vectorToPoint(crypt.get(Position.class).position);
-                if (entityData.getComponent(crypt.getId(), Death.class) == null && room.hasCoordinate(tile)) {
+        for (EntityId furniture : furniture(controller)) {
+            ObjectComponent object = entityData.getComponent(furniture, ObjectComponent.class);
+            if (object != null && object.objectId == GRAVEYARD_CRYPT_ID) {
+                Point tile = liveFurnitureTile(controller.getRoomInstance(), entityData, furniture);
+                if (tile != null) {
                     result.add(tile);
                 }
             }
-        } finally {
-            crypts.release();
         }
         return result;
     }
 
-    private static EntitySet objectsOfType(EntityData entityData, short type) {
-        return entityData.getEntities(new FieldFilter<>(ObjectComponent.class, "objectId", type),
-                ObjectComponent.class, Position.class);
+    private static Set<EntityId> furniture(IRoomController controller) {
+        Set<EntityId> furniture = new HashSet<>(controller.getFloorFurniture());
+        furniture.addAll(controller.getWallFurniture());
+        return furniture;
+    }
+
+    private static Point liveFurnitureTile(RoomInstance room, EntityData entityData, EntityId furniture) {
+        Position position = entityData.getComponent(furniture, Position.class);
+        if (position == null || entityData.getComponent(furniture, Death.class) != null) {
+            return null;
+        }
+        // Neutral furniture counts too, provided it is still on a tile in this room.
+        Point tile = WorldUtils.vectorToPoint(position.position);
+        return room.hasCoordinate(tile) ? tile : null;
     }
 
     private static int countInteriorTiles(RoomInstance room, Set<Point> excluded) {
