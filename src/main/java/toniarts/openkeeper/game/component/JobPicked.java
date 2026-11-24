@@ -17,10 +17,14 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.utils.Point;
 
 /**
- * When the creature last got a job by picking from its job list. For a while
- * after that it doesn't pick again
+ * What the creature's search for work remembers. A creature that got a job by
+ * picking from its job list doesn't pick again for a while. A worker carries on
+ * with the digging or claiming it got last, and after a drop its first search
+ * takes the closest work around the spot where it landed
  */
 public final class JobPicked implements EntityComponent {
 
@@ -29,12 +33,29 @@ public final class JobPicked implements EntityComponent {
      */
     public double time;
 
+    /**
+     * The work a worker got from its last search for work, {@code null} for
+     * none
+     */
+    public TaskType work;
+
+    /**
+     * Where the keeper dropped a worker, until its first search for work after
+     * the drop
+     */
+    public Point dropArea;
+
     public JobPicked() {
         // For serialization
     }
 
     public JobPicked(double time) {
         this.time = time;
+    }
+
+    public JobPicked(TaskType work, Point dropArea) {
+        this.work = work;
+        this.dropArea = dropArea;
     }
 
 }

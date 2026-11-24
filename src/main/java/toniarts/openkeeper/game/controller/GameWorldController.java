@@ -24,7 +24,6 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.AttackTarget;
-import toniarts.openkeeper.game.component.ClaimingFloor;
 import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -34,10 +33,8 @@ import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
-import toniarts.openkeeper.game.component.DiggingTiles;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
-import toniarts.openkeeper.game.component.DropArea;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Gold;
@@ -45,6 +42,7 @@ import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.JobPicked;
 import toniarts.openkeeper.game.component.KeeperSpellCast;
 import toniarts.openkeeper.game.component.LevelIndicator;
 import toniarts.openkeeper.game.component.Mana;
@@ -1490,15 +1488,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         restoreDroppedCreatureAi(entity, creatureState, targetState);
 
-        // A dropped worker first looks for work right around it
+        // A dropped worker first looks for work right around it. What it was doing before it was picked up doesn't
+        // carry over to where it lands
         CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
-        if (!tortureOrImprisonment && creatureComponent.worker) {
-            entityData.setComponent(entity, new DropArea(tile));
+        if (creatureComponent.worker) {
+            entityData.setComponent(entity, new JobPicked(null, tortureOrImprisonment ? null : tile));
         }
-
-        // What it was doing before it was picked up doesn't carry over to where it lands
-        entityData.removeComponent(entity, ClaimingFloor.class);
-        entityData.removeComponent(entity, DiggingTiles.class);
 
         // Add the dropping component to the creature
         if (!tortureOrImprisonment) {
