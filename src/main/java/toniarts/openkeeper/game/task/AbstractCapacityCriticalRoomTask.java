@@ -40,9 +40,29 @@ public abstract class AbstractCapacityCriticalRoomTask extends AbstractRoomTask 
         this.taskManager = taskManager;
     }
 
+    /**
+     * Counts a trainee and the like in the room's used capacity once it is
+     * in the room, nothing is kept for it on the way. Like DK II does when
+     * the creature enters the room (0x4E5A70), a room that has filled up by
+     * then turns it away, as the task is no longer valid for it
+     *
+     * @param creature the creature doing the task
+     * @param executionDuration the non-stop execution duration of the creature
+     */
+    @Override
+    public void executeTask(ICreatureController creature, float executionDuration) {
+        if (getRoomObjectType().isOccupiedByCreatures()) {
+            getRoomObjectControl().addItem(creature.getEntityId(), null);
+        }
+    }
+
     @Override
     public void unassign(ICreatureController creature) {
         super.unassign(creature);
+
+        if (getRoomObjectType().isOccupiedByCreatures()) {
+            getRoomObjectControl().removeItem(creature.getEntityId());
+        }
 
         // Remove us
         taskManager.removeRoomTask(this);
