@@ -629,10 +629,13 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             }
             ai.setUnknown2(unknown2);
             ai.setMineGoldUntilGoldHeldIsGreaterThan(reader.readUnsignedShort());
-            ai.setWaitSecondsAfterPreviousAttackBeforeAttackingAgain(reader.readUnsignedShort());
+            ai.setWaitSecondsAfterPreviousAttackBeforeAttackingAgain(reader.readUnsignedByte());
+            reader.skipBytes(1); // The editor writes a short, but DK II reads one byte, so 300 seconds play as 44
             ai.setStartingMana(reader.readUnsignedInteger());
-            ai.setExploreUpToTilesToFindSpecials(reader.readUnsignedShort());
-            ai.setImpsToTilesRatio(reader.readUnsignedShort());
+            ai.setExploreUpToTilesToFindSpecials(reader.readUnsignedByte());
+            reader.skipBytes(1); // Not part of the value, DK II reads one byte
+            ai.setImpsToTilesRatio(reader.readUnsignedByte());
+            reader.skipBytes(1); // The same
             ai.setBuildAreaStartX(reader.readUnsignedShort());
             ai.setBuildAreaStartY(reader.readUnsignedShort());
             ai.setBuildAreaEndX(reader.readUnsignedShort());
@@ -1886,8 +1889,9 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             }
             effect.setGenerateIds(generateIds);
             effect.setOuterOriginRange(reader.readUnsignedShort());
-            effect.setLowerHeightLimit(reader.readUnsignedShort());
-            effect.setUpperHeightLimit(reader.readUnsignedShort());
+            // Signed, a band below the effect's origin is common (e.g. -40..40 for the dazed stars)
+            effect.setLowerHeightLimit(reader.readShort());
+            effect.setUpperHeightLimit(reader.readShort());
             effect.setOrientationRange(reader.readUnsignedShort());
             effect.setSpriteSpinRateRange(reader.readUnsignedShort());
             effect.setWhirlpoolRate(reader.readUnsignedShort());

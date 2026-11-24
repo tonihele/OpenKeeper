@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
@@ -63,6 +64,8 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.logic.CreatureAiSystem;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
 import toniarts.openkeeper.game.logic.CreatureMoodSystem;
 import toniarts.openkeeper.game.logic.CreatureSleepSystem;
@@ -109,8 +112,23 @@ class CreatureControllerTest {
     }
 
     @Test
+    void eatingAChickenClearsOnlyTheNoFoodAnger() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new CreatureHunger(0, 2));
+            f.controller.sate();
+            CreatureMood mood = f.data.getComponent(f.entity, CreatureMood.class);
+            assertEquals(0, mood.noFood);
+            assertEquals(100, mood.general);
+            assertEquals(600, mood.other);
+            assertEquals(1, f.data.getComponent(f.entity, CreatureHunger.class).amountNeeded);
+        }
+    }
+
+    @Test
     void fatigueInterruptsRoomWorkAndKeepsTheNewSleepTaskAssigned() {
-        for (TaskType type : List.of(TaskType.TRAIN, TaskType.RESEARCH)) {
+        // The job groups DK II lets fatigue interrupt (mask 0x800A3C3B, 0x477C20)
+        for (TaskType type : List.of(TaskType.RESEARCH, TaskType.MANUFACTURE, TaskType.GUARD, TaskType.PRAY, TaskType.TRAIN,
+                TaskType.GAMBLE)) {
             try (Fixture f = new Fixture(9)) {
                 f.startWork(type);
                 f.data.setComponent(f.entity, new CreatureSleep(f.bed, -20, 0, 0));
@@ -152,6 +170,35 @@ class CreatureControllerTest {
     }
 
     @Test
+    void guardWithoutLairLooksForOneNowAndThenButOtherWorkKeepsGoing() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new CreatureSleep(null, 0, 0, 0));
+            f.startWork(TaskType.GUARD);
+            for (int i = 0; i < 19; i++) {
+                f.tick();
+            }
+            assertEquals(0, f.lairSearches);
+            f.tick();
+            assertEquals(1, f.lairSearches);
+            for (int i = 0; i < 19; i++) {
+                f.tick();
+            }
+            assertEquals(1, f.lairSearches);
+            f.tick();
+            assertEquals(2, f.lairSearches);
+            assertEquals(CreatureState.WORK, f.state());
+        }
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new CreatureSleep(null, 0, 0, 0));
+            f.startWork(TaskType.TRAIN);
+            for (int i = 0; i < 40; i++) {
+                f.tick();
+            }
+            assertEquals(0, f.lairSearches);
+        }
+    }
+
+    @Test
     void slapDoesNotInterruptANonWorker() {
         try (Fixture f = new Fixture(9)) {
             f.startWork(TaskType.TRAIN);
@@ -159,6 +206,21 @@ class CreatureControllerTest {
             f.tick();
             assertEquals(CreatureState.WORK, f.state());
             assertTrue(f.data.getComponent(f.entity, Slapped.class).reacted);
+        }
+    }
+
+    @Test
+    void creatureTakenToTheHandGivesUpItsTask() {
+        try (Fixture f = new Fixture(9)) {
+            f.startWork(TaskType.GUARD);
+            CreatureAiSystem system = new CreatureAiSystem(f.data, proxy(ICreaturesController.class,
+                    (method, args) -> f.controller), proxy(ITaskManager.class, (method, args) -> null));
+            system.processTick(.25f);
+            f.data.removeComponent(f.entity, CreatureAi.class);
+            system.processTick(.25f);
+            assertEquals(1, f.oldJobUnassignments);
+            assertNull(f.data.getComponent(f.entity, TaskComponent.class));
+            system.stop();
         }
     }
 
@@ -825,6 +887,22 @@ class CreatureControllerTest {
         }
     }
 
+    @Test
+    void wakingAndImprisoningPreserveASeededDyingBudget() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponents(f.entity, new Health(50, 1000), new Unconscious(-47.5));
+            f.controller.wakeUp();
+            assertEquals(50, f.health());
+            assertNull(f.data.getComponent(f.entity, Unconscious.class));
+        }
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponents(f.entity, new Health(50, 1000), new Unconscious(-47.5));
+            f.controller.imprison((short) 4, f.room);
+            assertEquals(150, f.health());
+            assertNull(f.data.getComponent(f.entity, Unconscious.class));
+        }
+    }
+
     private static CreatureComponent workerComponent() {
         CreatureComponent component = new CreatureComponent();
         component.creatureId = 6;
@@ -859,6 +937,7 @@ class CreatureControllerTest {
         final List<Double> eatAttempts = new java.util.ArrayList<>();
         final List<Double> objectiveAttempts = new java.util.ArrayList<>();
         int sleepAssignments;
+        int lairSearches;
         int oldJobUnassignments;
         int targetQueries;
         double time;
@@ -868,7 +947,7 @@ class CreatureControllerTest {
         }
 
         Fixture(Creature definition) {
-            fall = new CreatureFallSystem(data, () -> time, eventService);
+            fall = new CreatureFallSystem(data, () -> time, eventService, null);
             CreatureComponent component = new CreatureComponent();
             component.creatureId = 6;
             component.stunDuration = .1f;
@@ -903,6 +982,10 @@ class CreatureControllerTest {
                     yield false;
                 }
                 case "isTaskAvailable" -> false;
+                case "assignClosestRoomTask" -> {
+                    lairSearches++;
+                    yield false;
+                }
                 case "assignSleepTask" -> {
                     sleepAssignments++;
                     if (!reachable.get()) {
@@ -989,6 +1072,7 @@ class CreatureControllerTest {
                 case "getId" -> id;
                 case "getTaskType" -> type;
                 case "isValid" -> true;
+                case "moveToOtherSpot" -> false;
                 case "getTarget" -> { targetQueries++; yield new Vector2f(3, 4); }
                 case "getWorkPosition" -> null;
                 case "getTaskTarget", "getTaskLocation", "executeTask" -> null;

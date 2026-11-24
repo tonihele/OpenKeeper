@@ -136,6 +136,18 @@ public interface Task {
     }
 
     /**
+     * Sends the creature on to another spot once it has worked here long
+     * enough, like DK II does in some rooms
+     *
+     * @param creature the working creature
+     * @param executionDuration how long the creature has worked here
+     * @return true if the creature was given another task
+     */
+    default boolean moveToOtherSpot(ICreatureController creature, float executionDuration) {
+        return false;
+    }
+
+    /**
      * Is the task reachable by the given creature. Ask this last if determining
      * validity etc. As the method might be heavy
      *
