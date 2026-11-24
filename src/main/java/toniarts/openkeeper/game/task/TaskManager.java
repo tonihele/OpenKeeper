@@ -1018,7 +1018,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         Point from = creature.getCreatureCoordinates();
         return room.getRoomInstance().getCoordinates().stream()
                 .filter(p -> !furniture.contains(p) && room.isTileAccessible(null, p)
-                && WorldUtils.hasLineOfSight(mapController, WorldUtils.pointToVector3f(p), target))
+                && entityPositionLookup.hasLineOfSight(WorldUtils.pointToVector3f(p), target))
                 .min(Comparator.comparingInt(p -> WorldUtils.calculateDistance(from, p)))
                 .orElse(null);
     }
