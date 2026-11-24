@@ -23,8 +23,17 @@ import com.simsilica.es.EntityComponent;
  */
 public final class FoodHunt implements EntityComponent {
 
+    /**
+     * The game time the prisoner eats the chicken it has caught until
+     */
+    public double eatingUntil;
+
     public FoodHunt() {
         // For serialization
+    }
+
+    public FoodHunt(double eatingUntil) {
+        this.eatingUntil = eatingUntil;
     }
 
 }

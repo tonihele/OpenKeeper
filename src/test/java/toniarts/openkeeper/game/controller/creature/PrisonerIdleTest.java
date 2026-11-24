@@ -227,10 +227,14 @@ class PrisonerIdleTest {
         EntityId near = placeChicken(new Point(11, 11));
         EntityId far = placeChicken(new Point(13, 12));
 
-        // Eats the one it stands on, then sets off at once for the other
+        // Eats the one it stands on, and once its eating animation has played, it sets off for the other
         controller.idleInPrison();
         controller.idleInPrison();
         assertEquals(List.of(near), eaten);
+        assertEquals(2, entityData.getComponent(prisoner, FoodHunt.class).eatingUntil);
+        assertNull(entityData.getComponent(prisoner, Navigation.class));
+        now = 2;
+        controller.idleInPrison();
         assertEquals(new Point(13, 12), entityData.getComponent(prisoner, Navigation.class).target);
 
         // There it eats that one too. With no food left the hunt is over, and it is angry about it
@@ -238,6 +242,7 @@ class PrisonerIdleTest {
         entityData.setComponent(prisoner, new Position(0, new Vector3f(13, 1, 12)));
         controller.idleInPrison();
         assertEquals(List.of(near, far), eaten);
+        now = 4;
         controller.idleInPrison();
         assertNull(entityData.getComponent(prisoner, FoodHunt.class));
         assertEquals(CreatureMood.toRuntimeValue(ANGER_NO_FOOD), entityData.getComponent(prisoner, CreatureMood.class).noFood);
@@ -388,6 +393,7 @@ class PrisonerIdleTest {
         if (hasAngryAnimation) {
             CreatureFixtures.withAnimation(creature, Creature.AnimationType.ANGRY, 60, 30);
         }
+        CreatureFixtures.withAnimation(creature, Creature.AnimationType.EATING, 60, 30);
 
         return new CreatureController(prisoner, entityData, creature, navigationService, null, () -> now, Map.of(), null,
                 entityPositionLookup, mapController,

@@ -533,8 +533,9 @@ public final class CreatureController extends EntityController implements ICreat
      * prisoner when food is dropped into the cage. A prisoner after food
      * walks to the nearest food in the Prison (0x473550) and eats it when it
      * stands on its tile: one chicken fills a prisoner, gives it the health a
-     * chicken gives and takes its anger about food away (0x473750). Then it
-     * goes for the next one, and when no food is left it gets its anger for
+     * chicken gives and takes its anger about food away (0x473750). Full, it
+     * plays its eating animation once and waits for it to end (0x473730),
+     * then it goes for the next one, and when no food is left it gets its anger for
      * having no food and is idle again
      */
     @Override
@@ -544,8 +545,11 @@ public final class CreatureController extends EntityController implements ICreat
         if (prison == null) {
             return;
         }
-        if (entityData.getComponent(entityId, FoodHunt.class) != null) {
-            huntFoodInPrison(prison, tile);
+        FoodHunt foodHunt = entityData.getComponent(entityId, FoodHunt.class);
+        if (foodHunt != null) {
+            if (gameTimer.getGameTime() >= foodHunt.eatingUntil) {
+                huntFoodInPrison(prison, tile);
+            }
             return;
         }
 
@@ -630,6 +634,12 @@ public final class CreatureController extends EntityController implements ICreat
             if (mood != null) {
                 entityData.setComponent(entityId, mood.clear(CreatureMood.REASON_NO_FOOD));
             }
+
+            // Full, it plays its eating animation once before it looks for more food
+            ArtResource eating = creature.getAnimation(Creature.AnimationType.EATING);
+            double eatingTime = eating != null && eating.getType() != ArtResource.ArtResourceType.NONE
+                    ? getAnimationTime(creature, Creature.AnimationType.EATING) : 0;
+            entityData.setComponent(entityId, new FoodHunt(gameTimer.getGameTime() + eatingTime));
             return;
         }
 
