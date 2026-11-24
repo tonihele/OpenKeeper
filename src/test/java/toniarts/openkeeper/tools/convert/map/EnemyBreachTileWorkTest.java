@@ -184,6 +184,7 @@ class EnemyBreachTileWorkTest {
                 case "getMap" -> rawMap;
                 case "getTerrain" -> (short) args[0] == WALL ? wall : floor;
                 case "getTriggers" -> records;
+                case "getThings" -> List.of();
                 case "getPlayers" -> Map.of(ATTACKER, PlayerBreachFixtures.player(ATTACKER, 1),
                         OWNER, PlayerBreachFixtures.player(OWNER, 2),
                         Player.GOOD_PLAYER_ID, PlayerBreachFixtures.player(Player.GOOD_PLAYER_ID, 0),
