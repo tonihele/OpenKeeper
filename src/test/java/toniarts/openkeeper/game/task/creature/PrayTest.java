@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task.creature;
 
+import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -24,8 +25,10 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Health;
@@ -40,6 +43,8 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PrayTest {
 
@@ -47,11 +52,14 @@ class PrayTest {
     private static final int ANGER_PER_SECOND = -275;
     private static final int HEALTH_PER_SECOND = 33;
     private static final int MANA_PER_SECOND = 12;
+    private static final float DELTA = 0.0001f;
 
     private EntityData entityData;
     private EntityId entity;
     private ICreatureController creature;
     private Keeper keeper;
+    private Map<MiscType, MiscVariable> gameSettings;
+    private PlayerManaControl manaControl;
     private Pray pray;
     private final List<EntityId> worshippers = new ArrayList<>();
 
@@ -66,7 +74,7 @@ class PrayTest {
         entityData.setComponent(entity, new Health(80, 100));
         creature = creature(entity);
 
-        Map<MiscType, MiscVariable> gameSettings = new EnumMap<>(MiscType.class);
+        gameSettings = new EnumMap<>(MiscType.class);
         gameSettings.put(MiscType.MODIFY_CREATURE_ANGER_WHILE_PRAYING_PER_SECOND,
                 TempleFixtures.miscVariable(MiscType.MODIFY_CREATURE_ANGER_WHILE_PRAYING_PER_SECOND, ANGER_PER_SECOND));
         gameSettings.put(MiscType.MODIFY_CREATURE_HEALTH_WHILE_PRAYING_PER_SECOND,
@@ -74,10 +82,31 @@ class PrayTest {
         gameSettings.put(MiscType.MAXIMUM_MANA_THRESHOLD,
                 TempleFixtures.miscVariable(MiscType.MAXIMUM_MANA_THRESHOLD, 200000));
         keeper = new Keeper(false, PLAYER_ID);
-        PlayerManaControl manaControl = new PlayerManaControl(keeper, gameSettings);
+        manaControl = new PlayerManaControl(keeper, gameSettings);
 
-        pray = new Pray(null, null, new Point(2, 3), PLAYER_ID, room(), null, entityData, gameSettings, manaControl);
+        pray = pray(new Point(2, 3));
         pray.assign(creature, false);
+    }
+
+    @Test
+    void worshipperFacesTheRoomCentre() {
+        assertTrue(pray.isFaceTarget());
+        assertEquals(new Point(5, 7), pray.getFaceLocation());
+    }
+
+    @Test
+    void worshipperStandsAQuarterTileFromTheMiddleOfItsTileOnTheSideAwayFromTheCentre() {
+
+        // From the centre (5, 7) the tile (2, 3) is 3 tiles west and 4 north, 5 tiles away
+        Vector2f spot = pray.getWorkPosition(creature);
+        assertEquals(2 - 0.25f * 3 / 5, spot.x, DELTA);
+        assertEquals(3 - 0.25f * 4 / 5, spot.y, DELTA);
+        assertSame(spot, pray.getWorkPosition(creature));
+    }
+
+    @Test
+    void worshipperOnTheCentreTileStandsOnItsNorthSide() {
+        assertEquals(new Vector2f(5, 6.75f), pray(new Point(5, 7)).getWorkPosition(creature));
     }
 
     @Test
@@ -146,6 +175,10 @@ class PrayTest {
         assertEquals(1000 + 3 * ANGER_PER_SECOND, entityData.getComponent(entity, CreatureMood.class).general);
     }
 
+    private Pray pray(Point p) {
+        return new Pray(null, null, p, PLAYER_ID, room(), null, entityData, gameSettings, manaControl, new Random(0));
+    }
+
     private static ICreatureController creature(EntityId entityId) {
         return (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(),
                 new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
@@ -158,7 +191,13 @@ class PrayTest {
                 });
     }
 
+    /**
+     * A temple from (2, 3) to (8, 11), its centre is at (5, 7)
+     */
     private IRoomController room() {
+        RoomInstance roomInstance = new RoomInstance(TempleFixtures.temple());
+        roomInstance.addCoordinate(new Point(2, 3));
+        roomInstance.addCoordinate(new Point(8, 11));
         IRoomObjectControl control = (IRoomObjectControl) Proxy.newProxyInstance(IRoomObjectControl.class.getClassLoader(),
                 new Class<?>[]{IRoomObjectControl.class}, (proxy, method, args) -> method.getName().equals("addItem") && worshippers.add((EntityId) args[0]) ? args[0] : null);
         return (IRoomController) Proxy.newProxyInstance(IRoomController.class.getClassLoader(),
@@ -167,6 +206,7 @@ class PrayTest {
                     case "equals" -> proxy == args[0];
                     case "toString" -> "temple";
                     case "getObjectControl" -> control;
+                    case "getRoomInstance" -> roomInstance;
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
     }

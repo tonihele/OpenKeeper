@@ -20,10 +20,12 @@ import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.Map;
+import java.util.random.RandomGenerator;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.CreatureController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -32,6 +34,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
@@ -40,7 +43,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 /**
  * Prays in the Temple. Like in DK II, once a second the prayer calms every
  * kind of anger the creature has, heals it and gives its keeper the creature's
- * prayer mana
+ * prayer mana. The creature faces the room's centre and prays 2 or 3 times,
+ * then it either stays or moves to another tile (0x472AC0, 0x472D30)
  */
 public final class Pray extends AbstractCapacityCriticalRoomTask {
 
@@ -51,14 +55,19 @@ public final class Pray extends AbstractCapacityCriticalRoomTask {
     private final PlayerManaControl manaControl;
     private final int angerPerSecond;
     private final int healthPerSecond;
+    private final RandomGenerator random;
+    private int prayers;
+    private Vector2f workPosition;
 
     public Pray(final INavigationService navigationService, final IMapController mapController, Point p, short playerId,
             IRoomController room, TaskManager taskManager, EntityData entityData,
-            Map<MiscType, MiscVariable> gameSettings, PlayerManaControl manaControl) {
+            Map<MiscType, MiscVariable> gameSettings, PlayerManaControl manaControl, RandomGenerator random) {
         super(navigationService, mapController, p, playerId, room, taskManager);
 
         this.entityData = entityData;
         this.manaControl = manaControl;
+        this.random = random;
+        prayers = 2 + random.nextInt(2);
 
         angerPerSecond = (int) gameSettings.get(MiscType.MODIFY_CREATURE_ANGER_WHILE_PRAYING_PER_SECOND).getValue();
         healthPerSecond = (int) gameSettings.get(MiscType.MODIFY_CREATURE_HEALTH_WHILE_PRAYING_PER_SECOND).getValue();
@@ -67,6 +76,48 @@ public final class Pray extends AbstractCapacityCriticalRoomTask {
     @Override
     public Vector2f getTarget(ICreatureController creature) {
         return WorldUtils.pointToVector2f(getTaskLocation());
+    }
+
+    @Override
+    public boolean isFaceTarget() {
+        return true;
+    }
+
+    @Override
+    public Point getFaceLocation() {
+        return getRoom().getRoomInstance().getCenter();
+    }
+
+    @Override
+    public Vector2f getWorkPosition(ICreatureController creature) {
+
+        // DK II stands the worshipper a quarter of a tile from the middle of its tile, on the side away from the
+        // room's centre. On the centre tile itself it stands on the north side (0x472AC0)
+        if (workPosition == null) {
+            Vector2f middle = WorldUtils.pointToVector2f(getTaskLocation());
+            Vector2f away = middle.subtract(WorldUtils.pointToVector2f(getFaceLocation()));
+            if (away.lengthSquared() == 0) {
+                away.set(0, -1);
+            }
+            workPosition = middle.addLocal(away.normalizeLocal().multLocal(WorldUtils.TILE_WIDTH / 4));
+        }
+        return workPosition;
+    }
+
+    @Override
+    public boolean moveToOtherSpot(ICreatureController creature, float executionDuration) {
+
+        // DK II prays 2 or 3 times, then picks its spot again: 36 times out of 100 another free tile of the Temple,
+        // otherwise the same spot (0x472D30, 0x472AC0). Without the animation the creature stays where it is
+        double prayerTime = CreatureController.getAnimationTime(creature.getCreature(), Creature.AnimationType.PRAYING);
+        if (prayerTime <= 0 || executionDuration < prayers * prayerTime) {
+            return false;
+        }
+        if (random.nextInt(100) < 36 && taskManager.assignFreeRoomTask(creature, getRoom(), ObjectType.WORSHIPPER)) {
+            return true;
+        }
+        prayers += 2 + random.nextInt(2);
+        return false;
     }
 
     @Override

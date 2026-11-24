@@ -19,7 +19,12 @@ package toniarts.openkeeper.game.task;
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.EnumMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.random.RandomGenerator;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IGameWorldController;
@@ -33,10 +38,14 @@ import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.task.creature.Pray;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.RoomFixtures;
+import toniarts.openkeeper.tools.convert.map.TempleFixtures;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -46,7 +55,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * DK II researches for 7 to 13 rounds of the research animation at a bookcase,
- * then goes to the closest bookcase nobody is at
+ * then goes to the closest bookcase nobody is at. In the Temple it prays 2 or 3
+ * times, then moves to another free tile 36 times out of 100
  */
 class RoomWorkSpotTest {
 
@@ -54,6 +64,12 @@ class RoomWorkSpotTest {
 
     // One round of the research animation takes a second
     private static final Creature RESEARCHER = CreatureFixtures.creatureWithAnimation(Creature.AnimationType.RESEARCHING, 10, 10);
+
+    // One prayer takes a second
+    private static final Creature WORSHIPPER = CreatureFixtures.creatureWithAnimation(Creature.AnimationType.PRAYING, 10, 10);
+    private static final Map<MiscType, MiscVariable> GAME_SETTINGS = new EnumMap<>(Map.of(
+            MiscType.MODIFY_CREATURE_ANGER_WHILE_PRAYING_PER_SECOND, TempleFixtures.miscVariable(MiscType.MODIFY_CREATURE_ANGER_WHILE_PRAYING_PER_SECOND, 0),
+            MiscType.MODIFY_CREATURE_HEALTH_WHILE_PRAYING_PER_SECOND, TempleFixtures.miscVariable(MiscType.MODIFY_CREATURE_HEALTH_WHILE_PRAYING_PER_SECOND, 0)));
 
     @Test
     void researcherStaysForSevenRounds() {
@@ -107,6 +123,42 @@ class RoomWorkSpotTest {
         assertSame(task, researcher.task);
     }
 
+    @Test
+    void worshipperPicksItsSpotAgainAfterTwoOrThreePrayers() {
+        IRoomController temple = library(new Point(1, 1), new Point(2, 1));
+        TaskManager taskManager = taskManager(temple);
+        Worker worshipper = new Worker(new Point(1, 1), WORSHIPPER);
+        assertTrue(taskManager.assignFreeRoomTask(worshipper.creature, temple, ObjectType.WORSHIPPER));
+        Task task = worshipper.task;
+
+        // The rolls: 3 prayers, 36 stays, 2 more prayers, 35 moves
+        Pray pray = new Pray(null, null, new Point(1, 1), PLAYER_ID, temple, taskManager, null, GAME_SETTINGS, null, rolls(1, 36, 0, 35));
+
+        assertFalse(pray.moveToOtherSpot(worshipper.creature, 2.9f));
+        assertFalse(pray.moveToOtherSpot(worshipper.creature, 3));
+        assertFalse(pray.moveToOtherSpot(worshipper.creature, 4.9f));
+        assertSame(task, worshipper.task);
+
+        assertTrue(pray.moveToOtherSpot(worshipper.creature, 5));
+        assertEquals(new Point(2, 1), worshipper.task.getTaskLocation());
+    }
+
+    private static RandomGenerator rolls(int... values) {
+        Iterator<Integer> rolls = IntStream.of(values).iterator();
+        return new RandomGenerator() {
+
+            @Override
+            public long nextLong() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public int nextInt(int bound) {
+                return rolls.next();
+            }
+        };
+    }
+
     private static TaskManager taskManager(IRoomController room) {
         IMapDataInformation<?> mapData = proxy(IMapDataInformation.class, (proxy, method, args) -> switch (method.getName()) {
             case "getWidth", "getHeight" ->
@@ -139,7 +191,7 @@ class RoomWorkSpotTest {
                 null;
         });
 
-        return new TaskManager(new DefaultEntityData(), gameWorldController, mapController, null, null, navigationService, List.of(player), levelInfo, null, null);
+        return new TaskManager(new DefaultEntityData(), gameWorldController, mapController, null, null, navigationService, List.of(player), levelInfo, null, GAME_SETTINGS);
     }
 
     /**
