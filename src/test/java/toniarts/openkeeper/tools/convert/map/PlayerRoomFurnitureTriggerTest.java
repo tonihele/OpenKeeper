@@ -341,11 +341,11 @@ class PlayerRoomFurnitureTriggerTest {
             room.construct();
             f.owned.get((short)3).onBuild(room);
             assertEquals(1, room.getFurnitureCount());
-            assertEquals(1, room.getMaxCapacity());
+            assertEquals(2, room.getMaxCapacity());
             assertTrue(f.fires());
             assertEquals(2, room.getScriptFurnitureCount());
             assertEquals(1, room.getFurnitureCount());
-            assertEquals(1, room.getMaxCapacity());
+            assertEquals(2, room.getMaxCapacity());
         }
     }
 
@@ -404,7 +404,7 @@ class PlayerRoomFurnitureTriggerTest {
 
         Room definition(int type) {
             return types.computeIfAbsent((short)type, id -> {
-                Room room = RoomFixtures.room(id,0);
+                Room room = RoomFixtures.room(id, 0, Room.RoomFlag.SPECIAL_TILES);
                 room.setObjects(List.of((short)100,(short)0,(short)0,(short)0,
                         (short)0,(short)0,(short)0,(short)0));
                 return room;
