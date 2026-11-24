@@ -21,6 +21,7 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CombatPitFighter;
@@ -40,12 +41,14 @@ import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.HealthGain;
+import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Poisoned;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.TrapComponent;
@@ -56,6 +59,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
@@ -97,6 +101,7 @@ public final class HealthSystem extends GameTimeCounter {
     private final int timeToDeath;
     private final int healthRegeneratePerSecond;
     private final int healthRegeneratePerSecondImprisoned;
+    private final int stunTimeIncreaseWhenHit;
     private final ILevelInfo levelInfo;
     private final Map<Short, IPlayerController> playerControllersById;
     private final IMapController mapController;
@@ -109,6 +114,7 @@ public final class HealthSystem extends GameTimeCounter {
     private final EntitySet regeneratedEntities;
     private final EntitySet healthGainEntities;
     private final EntitySet recuperatingEntities;
+    private final EntitySet poisonedEntities;
 
     public HealthSystem(EntityData entityData, IEntityPositionLookup entityPositionLookup,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
@@ -133,6 +139,8 @@ public final class HealthSystem extends GameTimeCounter {
         timeToDeath = (int) gameSettings.get(Variable.MiscVariable.MiscType.CREATURE_DYING_STATE_DURATION_SECONDS).getValue();
         healthRegeneratePerSecondImprisoned = (int) gameSettings.get(Variable.MiscVariable.MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND).getValue();
         healthRegeneratePerSecond = (int) gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND).getValue();
+        Variable.MiscVariable stunTimeIncrease = gameSettings.get(Variable.MiscVariable.MiscType.STUN_TIME_PERCENTAGE_INCREASE_WHEN_HIT);
+        stunTimeIncreaseWhenHit = stunTimeIncrease != null ? (int) stunTimeIncrease.getValue() : 0;
 
         healthEntities = entityData.getEntities(Health.class);
         processAddedEntities(healthEntities);
@@ -148,6 +156,7 @@ public final class HealthSystem extends GameTimeCounter {
         regeneratedEntities = entityData.getEntities(Health.class, Regeneration.class, Owner.class);
         healthGainEntities = entityData.getEntities(Health.class, HealthGain.class);
         recuperatingEntities = entityData.getEntities(CreatureRecuperating.class, Health.class, CreatureComponent.class);
+        poisonedEntities = entityData.getEntities(Poisoned.class, Health.class);
     }
 
     @Override
@@ -157,8 +166,9 @@ public final class HealthSystem extends GameTimeCounter {
         if (healthEntities.applyChanges()) {
             processAddedEntities(healthEntities.getAddedEntities());
             processDeletedEntities(healthEntities.getRemovedEntities());
-            processChangedEntities(healthEntities.getChangedEntities());
         }
+        poisonedEntities.applyChanges();
+        poison();
 
         // Update other monitorable sets
         damageEntities.applyChanges();
@@ -187,6 +197,18 @@ public final class HealthSystem extends GameTimeCounter {
                     entityData.setComponent(entityId, new Unconscious(unconscious.startTime + tpf));
                 } else if (timeElapsed - unconscious.startTime >= timeToDeath) {
                     processDeath(entityId);
+                } else {
+                    Health health = entityData.getComponent(entityId, Health.class);
+                    if (health != null && health.health > 0) {
+                        // Editor START_AS_DYING keeps a positive health budget.
+                        // Keep the flower and later rescue in step with the same timer.
+                        int ticksPerSecond = levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+                        double remaining = timeToDeath - (timeElapsed - unconscious.startTime);
+                        int remainingHealth = (int) Math.ceil(remaining * ticksPerSecond - 1e-6);
+                        if (remainingHealth < health.health) {
+                            entityData.setComponent(entityId, new Health(Math.max(0, remainingHealth), health.maxHealth));
+                        }
+                    }
                 }
                 continue;
             }
@@ -208,6 +230,31 @@ public final class HealthSystem extends GameTimeCounter {
                 processHealthDepleted(entityId, health);
             } else {
                 entityData.setComponent(entityId, new Health(Math.min(health.health + healthChange, health.maxHealth), health.maxHealth));
+            }
+        }
+    }
+
+    /**
+     * A poisoned creature takes the poison's damage every tick until the poison
+     * runs out. The poison waits while the creature is frozen, and does no harm
+     * while the creature is in the hand or knocked out (0x48E160, 0x4B2CE0)
+     */
+    private void poison() {
+        for (Entity entity : poisonedEntities) {
+            EntityId entityId = entity.getId();
+            if (entityData.getComponent(entityId, Frozen.class) != null) {
+                continue;
+            }
+
+            Poisoned poisoned = entity.get(Poisoned.class);
+            if (entityData.getComponent(entityId, InHand.class) == null
+                    && entityData.getComponent(entityId, Unconscious.class) == null) {
+                EntityController.setDamage(entityData, entityId, poisoned.damage);
+            }
+            if (poisoned.ticksLeft > 1) {
+                entityData.setComponent(entityId, new Poisoned(poisoned.ticksLeft - 1, poisoned.damage));
+            } else {
+                entityData.removeComponent(entityId, Poisoned.class);
             }
         }
     }
@@ -399,6 +446,7 @@ public final class HealthSystem extends GameTimeCounter {
                 delta -= damage.damage;
                 if (damage.damage > 0) {
                     gameEventService.emit(GameEventType.CREATURE_HURT, entityId);
+                    extendStun(entityId, gameTime);
                 }
             }
 
@@ -422,9 +470,10 @@ public final class HealthSystem extends GameTimeCounter {
         entity = torturedEntities.getEntity(entityId);
         if (entity != null) {
             CreatureTortured tortured = entity.get(CreatureTortured.class);
-            if (elapsedTime - tortured.healthCheckTime >= 1) {
+            double interval = CreatureTorturingSystem.getTortureInterval(levelInfo.getLevelData().getGameLevel().getTicksPerSec());
+            if (elapsedTime - tortured.healthCheckTime >= interval) {
                 int tortureHealthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();
-                entityData.setComponent(entity.getId(), new CreatureTortured(tortured.timeTortured, tortured.tortureCheckTime, tortured.healthCheckTime + 1, tortured.device));
+                entityData.setComponent(entity.getId(), new CreatureTortured(tortured.timeTortured, tortured.tortureCheckTime, tortured.healthCheckTime + interval, tortured.device));
                 delta += tortureHealthRegeneratePerSecond;
 
                 return delta; // Assume no other states can be
@@ -444,11 +493,17 @@ public final class HealthSystem extends GameTimeCounter {
                 Owner owner = entity.get(Owner.class);
                 if (tile != null && owner != null && tile.getOwnerId() == owner.ownerId) {
 
-                    // In own land
+                    // In own land. Hits don't hold it up (DKII.EXE's creature tick 0x488930)
                     Double lastTimeOnOwnLand = regeneration.timeOnOwnLand;
-                    if (lastTimeOnOwnLand == null) {
+                    if (entityData.getComponent(entityId, CreatureComponent.class) != null) {
+
+                        // A creature regains it on every tick. DK II turns the value per second into one per tick,
+                        // rounded down, when it loads the creature (0x492320)
+                        delta += regeneration.ownLandHealthIncrease / levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+                    } else if (lastTimeOnOwnLand == null) {
                         setTimeOwnOwnLand(regeneration, entityId, elapsedTime);
                     } else if (elapsedTime - lastTimeOnOwnLand >= 1) {
+                        setTimeOwnOwnLand(regeneration, entityId, elapsedTime);
                         delta += regeneration.ownLandHealthIncrease;
                     }
                 } else {
@@ -492,6 +547,41 @@ public final class HealthSystem extends GameTimeCounter {
     }
 
     /**
+     * A creature hit while it lies stunned stays down longer, if a creature
+     * other than an Imp is fighting it. The stun time left grows by the level's
+     * percentage, but never past a full stun.
+     */
+    private void extendStun(EntityId entityId, double gameTime) {
+        CreatureAi ai = entityData.getComponent(entityId, CreatureAi.class);
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        if (ai == null || creatureComponent == null
+                || (ai.getCreatureState() != CreatureState.FALLEN && ai.getCreatureState() != CreatureState.STUNNED)) {
+            return;
+        }
+
+        double timeStunned = gameTime - ai.stateStartTime;
+        double stunLeft = creatureComponent.stunDuration - timeStunned;
+        if (stunLeft <= 0 || !isFoughtByNonImp(entityId)) {
+            return;
+        }
+
+        double extension = Math.min(stunLeft * stunTimeIncreaseWhenHit / 100, timeStunned);
+        entityData.setComponent(entityId, new CreatureAi(ai.stateStartTime + extension, ai.getCreatureState(),
+                ai.creatureId, ai.getTargetState()));
+    }
+
+    private boolean isFoughtByNonImp(EntityId entityId) {
+        short impId = levelInfo.getLevelData().getImp().getCreatureId();
+        for (EntityId attacker : entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", entityId),
+                AttackTarget.class, CreatureComponent.class)) {
+            if (entityData.getComponent(attacker, CreatureComponent.class).creatureId != impId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Gets how much a hero standing on the Hero Lair heals in a turn. The
      * terrain's damage is negative there, a short in the level data
      *
@@ -530,6 +620,7 @@ public final class HealthSystem extends GameTimeCounter {
         entityData.removeComponent(entityId, CreatureImprisoned.class);
         entityData.removeComponent(entityId, CreatureTortured.class);
         entityData.removeComponent(entityId, CreatureMood.class);
+        entityData.removeComponent(entityId, Poisoned.class);
         entityData.setComponent(entityId, new Death(timeElapsed));
     }
 
@@ -565,17 +656,6 @@ public final class HealthSystem extends GameTimeCounter {
         }
     }
 
-    private void processChangedEntities(Set<Entity> entities) {
-        for (Entity entity : entities) {
-            // If the health is changed (either by us or damage)...
-            // Reset the health regen counter
-            Regeneration regeneration = entityData.getComponent(entity.getId(), Regeneration.class);
-            if (regeneration != null && regeneration.timeOnOwnLand != null) {
-                setTimeOwnOwnLand(regeneration, entity.getId(), null);
-            }
-        }
-    }
-
     private void setTimeOwnOwnLand(Regeneration regeneration, EntityId entityId, Double time) {
         regeneration = new Regeneration(regeneration);
         regeneration.timeOnOwnLand = time;
@@ -596,6 +676,7 @@ public final class HealthSystem extends GameTimeCounter {
         regeneratedEntities.release();
         healthGainEntities.release();
         recuperatingEntities.release();
+        poisonedEntities.release();
         entityIds.clear();
     }
 

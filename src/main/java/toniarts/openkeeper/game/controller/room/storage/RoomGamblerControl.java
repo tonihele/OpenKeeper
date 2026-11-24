@@ -54,17 +54,15 @@ public final class RoomGamblerControl extends AbstractRoomObjectControl<EntityId
 
     @Override
     public EntityId addItem(EntityId gambler, Point p) {
-        setRoomStorageToItem(gambler, false);
-        addCurrentCapacity(1);
-
-        return gambler;
+        return addOccupant(gambler);
     }
 
     @Override
     public void removeItem(EntityId object) {
-        super.removeItem(object);
-
-        addCurrentCapacity(-1);
+        if (contains(object)) {
+            super.removeItem(object);
+            addCurrentCapacity(-1);
+        }
     }
 
     @Override
