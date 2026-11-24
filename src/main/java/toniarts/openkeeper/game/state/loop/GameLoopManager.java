@@ -24,6 +24,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.BattleSystem;
 import toniarts.openkeeper.game.logic.CallToArmsSystem;
@@ -50,6 +51,7 @@ import toniarts.openkeeper.game.logic.HealthSystem;
 import toniarts.openkeeper.game.logic.InfernoSystem;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
+import toniarts.openkeeper.game.logic.KeeperAiSystem;
 import toniarts.openkeeper.game.logic.KeeperDefeatSystem;
 import toniarts.openkeeper.game.logic.LooseObjectSystem;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
@@ -154,6 +156,11 @@ public final class GameLoopManager {
                 new PlayerManufactureSystem(entityData, levelInfo.getLevelData(), playerControllers.values(),
                         gameController.getGameTimer()),
                 (IGameLogicUpdatable) gameController,
+                Settings.getInstance().getBoolean(Settings.Setting.COMPUTER_PLAYER)
+                ? new KeeperAiSystem(entityData, level, playerControllers, gameWorldController, gameController.getNavigationService(),
+                        gameController.getGameTimer(),
+                        Settings.getInstance().getBoolean(Settings.Setting.COMPUTER_PLAYER_LOG))
+                : new GameLogicManager(),
                 new CreatureSpawnSystem(entityData, gameWorldController.getCreaturesController(), playerControllers.values(),
                         gameSettings, levelInfo, gameWorldController.getMapController(), gameEventService),
                 new ChickenSpawnSystem(entityData, gameWorldController.getObjectsController(),

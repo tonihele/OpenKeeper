@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Placeable;
@@ -442,6 +443,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // Add rescue mission for the own troops and capture for the enemy
         for (Entity entity : entities) {
             Owner owner = entity.get(Owner.class);
+            KeeperAiNoPrisoner noPrisoner = entityData.getComponent(entity.getId(), KeeperAiNoPrisoner.class);
             for (Entry<Short, Set<Task>> entry : taskQueues.entrySet()) {
 
                 Task task = null;
@@ -449,9 +451,10 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
                     // Rescue
                     task = new RescueCreatureTask(this, navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey());
-                } else if (playerControllers.get(entry.getKey()).getKeeper().isEnemy(owner.ownerId)) {
+                } else if (playerControllers.get(entry.getKey()).getKeeper().isEnemy(owner.ownerId)
+                        && (noPrisoner == null || (noPrisoner.players & 1 << entry.getKey()) == 0)) {
 
-                    // Capture
+                    // Capture, unless a computer player has decided to let it die
                     task = new CaptureEnemyCreatureTask(navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey(), this);
                 }
 
