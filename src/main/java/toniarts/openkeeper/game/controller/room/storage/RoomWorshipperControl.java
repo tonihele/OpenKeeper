@@ -41,17 +41,15 @@ public abstract class RoomWorshipperControl extends AbstractRoomObjectControl<En
 
     @Override
     public EntityId addItem(EntityId worshipper, Point p) {
-        setRoomStorageToItem(worshipper, false);
-        addCurrentCapacity(1);
-
-        return worshipper;
+        return addOccupant(worshipper);
     }
 
     @Override
     public void removeItem(EntityId object) {
-        super.removeItem(object);
-
-        addCurrentCapacity(-1);
+        if (contains(object)) {
+            super.removeItem(object);
+            addCurrentCapacity(-1);
+        }
     }
 
     @Override
