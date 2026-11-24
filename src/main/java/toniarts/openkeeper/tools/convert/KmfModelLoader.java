@@ -82,6 +82,11 @@ public final class KmfModelLoader implements AssetLoader {
 
     // there's 1 kmf per animation so we only use 1 dummy JME animation clip
     public static final String DUMMY_ANIM_CLIP_NAME = "dummyAnimClipName";
+    /**
+     * The frames a second the animation clips are timed at, whatever the
+     * frame rate of the animation
+     */
+    public static final float FRAMES_PER_SECOND = 30;
     private static final Logger logger = System.getLogger(KmfModelLoader.class.getName());
 
     /* Some textures are broken */
@@ -276,7 +281,7 @@ public final class KmfModelLoader implements AssetLoader {
         // Create times (same for each pose track)
         float[] times = new float[anim.getFrames()];
         for (int i = 0; i < anim.getFrames(); i++) {
-            times[i] = (i + 1) / 30f;
+            times[i] = (i + 1) / FRAMES_PER_SECOND;
         }
 
         int subMeshIndex = 0;
