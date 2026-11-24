@@ -64,6 +64,7 @@ import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Threat;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -698,6 +699,26 @@ class KeeperAiSystemTest {
         system.processTick(0.25f);
 
         // Not the fighter with more than half its health, nor the one far from the fight
+        assertEquals(Map.of(HEAL, hurt), battleCasts);
+    }
+
+    @Test
+    void healsNoCreatureThatIsKnockedOut() {
+        KeeperAiSystem system = createSystem(withBattleSpells(ai(0, 0, 9, 1, 50, 0, List.of()), 0, 4, 0), 1000);
+        spellControl.setTypeAvailable(heal, true, true);
+        EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 60, 100, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT)));
+        EntityId knockedOut = createCreature(PLAYER_ID, new Point(4, 4), 0, 100, CreatureState.UNCONSCIOUS);
+        entityData.setComponent(knockedOut, new Unconscious(0));
+
+        system.processTick(0.25f);
+
+        assertTrue(battleCasts.isEmpty());
+
+        // A hurt one still standing gets it
+        EntityId hurt = createCreature(PLAYER_ID, new Point(4, 5), 49, 100, CreatureState.IDLE);
+        system.processTick(0.25f);
+
         assertEquals(Map.of(HEAL, hurt), battleCasts);
     }
 

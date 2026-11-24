@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Threat;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.DropValidator;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IGameWorldController;
@@ -270,10 +271,10 @@ final class KeeperAiBattles {
      * Casts a spell for the first of its creatures in a fight that it
      * means to help, DK II rolls for each. A defensive spell goes on one of
      * its creatures within 5 tiles of the fighter that is down to less
-     * than half its health, an attacking spell on a creature of the
-     * opponent's keeper within 5 tiles. The settings say how often it
-     * casts, how often it defends rather than attacks, and how dear a
-     * spell it takes.
+     * than half its health and not knocked out, an attacking spell on a
+     * creature of the opponent's keeper within 5 tiles, knocked out or not.
+     * The settings say how often it casts, how often it defends rather than
+     * attacks, and how dear a spell it takes.
      *
      * @param keeperAi the computer player
      * @param playerController its player
@@ -298,7 +299,7 @@ final class KeeperAiBattles {
             for (Entity creature : getCreatures(defensive ? keeperAi.playerId : opponent.ownerId)) {
                 Health health = creature.get(Health.class);
                 if (isWithin(creature.get(Position.class).position, fighter.get(Position.class).position, ATTACK_DROP_TILES)
-                        && (!defensive || health.health < health.maxHealth / 2)) {
+                        && (!defensive || health.health < health.maxHealth / 2 && entityData.getComponent(creature.getId(), Unconscious.class) == null)) {
                     target = creature;
                     if (Utils.getRandom().nextInt(100) > BATTLE_SPELL_TARGET_ROLL) {
                         break;
