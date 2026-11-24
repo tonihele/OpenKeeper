@@ -23,6 +23,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.event.GameEventService;
@@ -39,12 +40,15 @@ public final class CreatureLandingSystem implements IGameLogicUpdatable {
     private final EntityData entityData;
     private final IGameTimer gameTimer;
     private final GameEventService gameEventService;
+    private final ICreaturesController creaturesController;
     private final EntitySet fallEntities;
 
-    public CreatureLandingSystem(EntityData entityData, IGameTimer gameTimer, GameEventService gameEventService) {
+    public CreatureLandingSystem(EntityData entityData, IGameTimer gameTimer, GameEventService gameEventService,
+            ICreaturesController creaturesController) {
         this.entityData = entityData;
         this.gameTimer = gameTimer;
         this.gameEventService = gameEventService;
+        this.creaturesController = creaturesController;
 
         fallEntities = entityData.getEntities(CreatureFall.class, Position.class, CreatureComponent.class);
     }
@@ -55,7 +59,11 @@ public final class CreatureLandingSystem implements IGameLogicUpdatable {
 
         for (Entity entity : fallEntities) {
             Position position = entity.get(Position.class);
-            if (position.position.y > WorldUtils.FLOOR_HEIGHT) {
+            CreatureFall.FallType fallType = entity.get(CreatureFall.class).fallType;
+
+            // Like in DK II, the floor in the middle of the portal is a level lower, the creature falls through
+            float floorHeight = fallType == CreatureFall.FallType.PORTAL_DROP ? WorldUtils.UNDERFLOOR_HEIGHT : WorldUtils.FLOOR_HEIGHT;
+            if (position.position.y > floorHeight) {
                 continue;
             }
 
@@ -65,10 +73,16 @@ public final class CreatureLandingSystem implements IGameLogicUpdatable {
             // The landing, on touchdown (hand drops and conjured creatures alike)
             gameEventService.emit(GameEventType.CREATURE_LAND, entity.getId(), position.position);
 
+            // A creature dropped on the middle of its keeper's portal doesn't get up, it leaves the dungeon
+            if (fallType == CreatureFall.FallType.PORTAL_DROP) {
+                creaturesController.leaveDungeon(entity.getId());
+                continue;
+            }
+
             // Preserve any requested AI target through landing and get-up.
             // The state, depending on the landing
             CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
-            boolean stunned = !entity.get(CreatureFall.class).conjured && creatureComponent.stunDuration > 0f;
+            boolean stunned = fallType == CreatureFall.FallType.DROPPED && creatureComponent.stunDuration > 0f;
             CreatureAi ai = entityData.getComponent(entity.getId(), CreatureAi.class);
             entityData.setComponent(entity.getId(), new CreatureAi(gameTimer.getGameTime(), stunned ? CreatureState.FALLEN : CreatureState.IDLE, creatureComponent.creatureId,
                     ai == null ? null : ai.getTargetState()));

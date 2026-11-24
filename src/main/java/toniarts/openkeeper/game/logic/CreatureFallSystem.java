@@ -47,14 +47,18 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
 
         // Process ticks
         for (Entity entity : fallEntities) {
+
+            // Like in DK II, the floor in the middle of the portal is a level lower, the creature falls through
+            CreatureFall.FallType fallType = entity.get(CreatureFall.class).fallType;
+            float floorHeight = fallType == CreatureFall.FallType.PORTAL_DROP ? WorldUtils.UNDERFLOOR_HEIGHT : WorldUtils.FLOOR_HEIGHT;
             Position position = entity.get(Position.class);
-            if (position.position.y <= WorldUtils.FLOOR_HEIGHT) {
+            if (position.position.y <= floorHeight) {
 
                 // Down already, waiting for the game logic to land it
                 continue;
             }
             Position newPosition = new Position(position.rotation, position.position.clone());
-            newPosition.position.y = Math.max(newPosition.position.y - tpf * GRAVITY, WorldUtils.FLOOR_HEIGHT);
+            newPosition.position.y = Math.max(newPosition.position.y - tpf * GRAVITY, floorHeight);
             entity.set(newPosition);
         }
     }
