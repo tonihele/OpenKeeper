@@ -46,6 +46,80 @@ public class CustomScrollTest {
 
     @Test
     public void splittingIntoRowsKeepsNiftyRenderOrderIntact() {
+        Nifty nifty = createScroll();
+
+        List<LogRecord> problems = new ArrayList<>();
+        Handler handler = new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                if (record.getLevel().intValue() >= Level.SEVERE.intValue()) {
+                    problems.add(record);
+                }
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+        Logger niftyLogger = Logger.getLogger("de.lessvoid.nifty");
+        niftyLogger.addHandler(handler);
+        try {
+            CustomScroll scroll = nifty.getCurrentScreen().findControl("scroll", CustomScroll.class);
+            List<Element> icons = new ArrayList<>();
+            for (int i = 0; i < 12; i++) {
+                icons.add(scroll.addElement(new ControlBuilder("icon-" + i, "icon")));
+                nifty.update();
+            }
+
+            assertEquals(List.of(), problems.stream().map(LogRecord::getMessage).toList());
+            Element firstRow = icons.get(0).getParent();
+            Element secondRow = icons.get(1).getParent();
+            assertEquals(List.of(icons.get(0), icons.get(2), icons.get(4), icons.get(6), icons.get(8), icons.get(10)),
+                    firstRow.getChildren());
+            assertEquals(List.of(icons.get(1), icons.get(3), icons.get(5), icons.get(7), icons.get(9), icons.get(11)),
+                    secondRow.getChildren());
+        } finally {
+            niftyLogger.removeHandler(handler);
+        }
+    }
+
+    @Test
+    public void narrowingAndRestoringPanelReflowsIconsAndClampsThePage() {
+        Nifty nifty = createScroll();
+        CustomScroll scroll = nifty.getCurrentScreen().findControl("scroll", CustomScroll.class);
+        List<Element> icons = new ArrayList<>();
+        for (int i = 0; i < 8; i++) {
+            icons.add(scroll.addElement(new ControlBuilder("resize-icon-" + i, "icon")));
+            nifty.update();
+        }
+        int originalHeight = icons.getFirst().getHeight();
+        Element panel = nifty.getCurrentScreen().findElementById("scroll");
+        panel.setConstraintWidth(de.lessvoid.nifty.tools.SizeValue.px(250));
+        panel.getParent().layoutElements();
+        scroll.refreshLayout();
+        nifty.update();
+        nifty.update();
+        org.junit.jupiter.api.Assertions.assertNotSame(icons.get(0).getParent(), icons.get(1).getParent());
+        org.junit.jupiter.api.Assertions.assertTrue(icons.get(0).getHeight() < originalHeight);
+        for (int i = 0; i < 20; i++) scroll.forward();
+        panel.setConstraintWidth(de.lessvoid.nifty.tools.SizeValue.px(1300));
+        panel.getParent().layoutElements();
+        scroll.refreshLayout();
+        nifty.update();
+        nifty.update();
+        for (Element icon : icons) {
+            org.junit.jupiter.api.Assertions.assertSame(icons.getFirst().getParent(), icon.getParent());
+            assertEquals(originalHeight, icon.getHeight());
+        }
+        assertEquals(0, icons.getFirst().getParent().getConstraintX().getValueAsInt(1f));
+        assertEquals(icons, icons.getFirst().getParent().getChildren());
+    }
+
+    private static Nifty createScroll() {
         Nifty nifty = new Nifty(stub(RenderDevice.class), new NullSoundDevice(), stub(InputSystem.class),
                 new AccurateTimeProvider());
         new ControlDefinitionBuilder("customScroll") {
@@ -105,44 +179,7 @@ public class CustomScrollTest {
         }.build(nifty);
         nifty.gotoScreen("hud");
         nifty.update();
-
-        List<LogRecord> problems = new ArrayList<>();
-        Handler handler = new Handler() {
-            @Override
-            public void publish(LogRecord record) {
-                if (record.getLevel().intValue() >= Level.SEVERE.intValue()) {
-                    problems.add(record);
-                }
-            }
-
-            @Override
-            public void flush() {
-            }
-
-            @Override
-            public void close() {
-            }
-        };
-        Logger niftyLogger = Logger.getLogger("de.lessvoid.nifty");
-        niftyLogger.addHandler(handler);
-        try {
-            CustomScroll scroll = nifty.getCurrentScreen().findControl("scroll", CustomScroll.class);
-            List<Element> icons = new ArrayList<>();
-            for (int i = 0; i < 12; i++) {
-                icons.add(scroll.addElement(new ControlBuilder("icon-" + i, "icon")));
-                nifty.update();
-            }
-
-            assertEquals(List.of(), problems.stream().map(LogRecord::getMessage).toList());
-            Element firstRow = icons.get(0).getParent();
-            Element secondRow = icons.get(1).getParent();
-            assertEquals(List.of(icons.get(0), icons.get(2), icons.get(4), icons.get(6), icons.get(8), icons.get(10)),
-                    firstRow.getChildren());
-            assertEquals(List.of(icons.get(1), icons.get(3), icons.get(5), icons.get(7), icons.get(9), icons.get(11)),
-                    secondRow.getChildren());
-        } finally {
-            niftyLogger.removeHandler(handler);
-        }
+        return nifty;
     }
 
     @SuppressWarnings("unchecked")

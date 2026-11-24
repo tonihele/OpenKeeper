@@ -46,12 +46,35 @@ public final class TerrainFixtures {
         return terrain;
     }
 
+    public static Tile tile(short terrainId, short playerId) {
+        Tile tile = new Tile();
+        tile.setTerrainId(terrainId);
+        tile.setPlayerId(playerId);
+        return tile;
+    }
+
     public static EnumSet<Terrain.TerrainFlag> flags(Terrain.TerrainFlag... flags) {
         EnumSet<Terrain.TerrainFlag> set = EnumSet.noneOf(Terrain.TerrainFlag.class);
         for (Terrain.TerrainFlag flag : flags) {
             set.add(flag);
         }
         return set;
+    }
+
+    /**
+     * A map from rows of terrain ids and the rows of their owners
+     */
+    public static GameMap map(short[][] terrainIds, short[][] owners) {
+        GameMap map = new GameMap(terrainIds[0].length, terrainIds.length);
+        for (int y = 0; y < terrainIds.length; y++) {
+            for (int x = 0; x < terrainIds[y].length; x++) {
+                Tile tile = new Tile();
+                tile.setTerrainId(terrainIds[y][x]);
+                tile.setPlayerId(owners[y][x]);
+                map.setTile(x, y, tile);
+            }
+        }
+        return map;
     }
 
 }

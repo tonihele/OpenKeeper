@@ -252,9 +252,14 @@ public final class CreaturesController implements ICreaturesController {
         }
 
         // Only a creature set to act as dropped is taken in by a prison or a torture chamber it stands in
-        SpawnType spawnType = flags != null && flags.contains(Thing.Creature.CreatureFlag.ACT_AS_DROPPED) ? SpawnType.DROP : SpawnType.PLACE;
+        boolean startsDying = flags != null && flags.contains(Thing.Creature.CreatureFlag.START_AS_DYING);
+        SpawnType spawnType = !startsDying && flags != null && flags.contains(Thing.Creature.CreatureFlag.ACT_AS_DROPPED) ? SpawnType.DROP : SpawnType.PLACE;
         EntityId entityId = loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
                 triggerId != null && triggerId != 0 ? triggerId : null, spawnType, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
+
+        if (startsDying) {
+            startDying(entityId);
+        }
 
         // The level may place a creature that won't fight (DK II 0x520180, 0x520460, 0x5208B0, 0x519F90)
         if (flags != null && !flags.contains(Thing.Creature.CreatureFlag.WILL_FIGHT)) {
@@ -266,6 +271,33 @@ public final class CreaturesController implements ICreaturesController {
             entityData.setComponent(entityId, new ReturnToHeroLair());
         }
         return entityId;
+    }
+
+    /** Apply the editor's knock-out after level-scaled health has been initialized. */
+    private void startDying(EntityId entity) {
+        Health health = entityData.getComponent(entity, Health.class);
+        if (health == null) {
+            return;
+        }
+        CreatureComponent creature = entityData.getComponent(entity, CreatureComponent.class);
+        int remainingHealth = Math.min(health.health, health.maxHealth / 6);
+        if (creature.diesInstantly || remainingHealth <= 0) {
+            entityData.removeComponent(entity, Health.class);
+            entityData.removeComponent(entity, CreatureAi.class);
+            entityData.removeComponent(entity, Regeneration.class);
+            entityData.setComponent(entity, new Death(gameTimer.getGameTime()));
+            entityData.setComponent(entity, new CreatureViewState(creature.creatureId,
+                    gameTimer.getGameTime(), Creature.AnimationType.DEATH_POSE));
+            return;
+        }
+        // Native health is the remaining dying time in logic ticks. Seed the
+        // existing timer so carrying, rescue and imprisonment retain that budget.
+        double duration = gameSettings.get(Variable.MiscVariable.MiscType.CREATURE_DYING_STATE_DURATION_SECONDS).getValue();
+        double remainingSeconds = (double) remainingHealth / kwdFile.getGameLevel().getTicksPerSec();
+        entityData.setComponents(entity, new Health(remainingHealth, health.maxHealth),
+                new Unconscious(gameTimer.getGameTime() + remainingSeconds - duration),
+                new CreatureAi(gameTimer.getGameTime(), CreatureState.UNCONSCIOUS, creature.creatureId),
+                new CreatureViewState(creature.creatureId, gameTimer.getGameTime(), Creature.AnimationType.DIE));
     }
 
     @Override
@@ -422,7 +454,7 @@ public final class CreaturesController implements ICreaturesController {
             }
             case CONJURE -> {
                 creatureState = null;
-                entityData.setComponent(entity, new CreatureFall(true));
+                entityData.setComponent(entity, new CreatureFall(CreatureFall.FallType.CONJURED));
             }
             default ->
                 throw new RuntimeException("SpawnType " + spawnType + " not handled!");
@@ -776,6 +808,14 @@ public final class CreaturesController implements ICreaturesController {
     @Override
     public boolean isValidEntity(EntityId entityId) {
         return entityData.getComponent(entityId, CreatureComponent.class) != null;
+    }
+
+    @Override
+    public void leaveDungeon(EntityId entityId) {
+        // Like in DK II, the creature takes the gold it carries with it
+        entityData.removeComponent(entityId, Gold.class);
+        createController(entityId).removePossession();
+        entityData.removeEntity(entityId);
     }
 
     @Override

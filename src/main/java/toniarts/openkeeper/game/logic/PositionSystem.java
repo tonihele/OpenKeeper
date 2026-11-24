@@ -56,11 +56,6 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public final class PositionSystem implements IGameLogicUpdatable, IEntityPositionLookup {
 
-    /**
-     * How far apart, in tiles, the line of sight is checked for walls
-     */
-    private static final float LINE_OF_SIGHT_STEP = 0.25f;
-
     private final EntityData entityData;
     private final IMapController mapController;
     private final IObjectsController objectsController;
@@ -373,7 +368,8 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
             // TODO: Every creature has hearing & vision 4, so I can just cheat this in, but should fix eventually
             // https://github.com/tonihele/OpenKeeper/issues/261
             if (tile != null) {
-                addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), sensedEntities);
+                addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee),
+                        entityData.getComponent(id, Owner.class).ownerId, true, sensedEntities);
             }
 
             // Remove us, the caller
@@ -383,14 +379,43 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         });
     }
 
+    @Override
+    public boolean isBehindBlockingDoor(EntityId entityId, EntityId sensedEntityId) {
+        Senses senses = entityData.getComponent(entityId, Senses.class);
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        IMapTileInformation tile = getEntityLocation(entityId);
+        if (senses == null || owner == null || tile == null) {
+            return false;
+        }
+
+        // Sense again, but stop at all the doors that block us, barricades too
+        Set<EntityId> sensedEntities = new HashSet<>();
+        addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), owner.ownerId, false, sensedEntities);
+
+        return !sensedEntities.contains(sensedEntityId);
+    }
+
+    private boolean isBarricade(IMapTileInformation tile) {
+        for (EntityId entityId : obstaclesByMapTile[tile.getX()][tile.getY()]) {
+            if (entityData.getComponent(entityId, DoorComponent.class) != null) {
+                return getEntityController(entityId, IDoorController.class).isBarricade();
+            }
+        }
+        return false;
+    }
+
     /**
      * Adds the entities around the tile to the sensed ones
      *
      * @param startTile the tile to sense from
      * @param range how many tiles further to sense
+     * @param playerId the player whose blocking doors stop the senses
+     * @param overBarricades whether the senses go over a barricade that blocks
+     * the player
      * @param sensedEntities the sensed entities
      */
-    private void addSensedEntities(IMapTileInformation startTile, int range, Set<EntityId> sensedEntities) {
+    private void addSensedEntities(IMapTileInformation startTile, int range, short playerId, boolean overBarricades,
+            Set<EntityId> sensedEntities) {
 
         // Go out one step at a time, so each tile is looked at only once
         Set<IMapTileInformation> visitedTiles = new HashSet<>();
@@ -403,6 +428,12 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
                 }
 
                 sensedEntities.addAll(entitiesByMapTile[tile.getX()][tile.getY()]);
+
+                // A door blocks the sight, as in DK II (0x4511A0), but creatures see over a barricade. The hearing
+                // follows the paths (0x45AFF0), so it only goes through a door the creature can walk through
+                if (isTileBlocked(tile, playerId) && !(overBarricades && isBarricade(tile))) {
+                    continue;
+                }
 
                 nextTiles.add(mapController.getMapData().getTile(tile.getX() + 1, tile.getY()));
                 nextTiles.add(mapController.getMapData().getTile(tile.getX() - 1, tile.getY()));
@@ -417,23 +448,56 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         return tile == null || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID);
     }
 
+    /**
+     * Like DK II, goes along the line from tile to tile and checks every tile
+     * it enters. Where the line passes exactly through a corner, both tiles
+     * beside the corner block it too (DKII.EXE 0x4512F0).
+     */
     @Override
     public boolean hasLineOfSight(Vector3f from, Vector3f to, Predicate<DoorComponent> doorBlocksSight) {
         Point startTile = WorldUtils.vectorToPoint(from);
         Point endTile = WorldUtils.vectorToPoint(to);
+        int x = startTile.x;
+        int y = startTile.y;
         float dx = to.x - from.x;
         float dz = to.z - from.z;
-        int steps = (int) Math.ceil(Math.max(Math.abs(dx), Math.abs(dz)) / LINE_OF_SIGHT_STEP);
-        for (int i = 1; i < steps; i++) {
-            float progress = (float) i / steps;
-            Point tile = WorldUtils.vectorToPoint(from.x + dx * progress, from.z + dz * progress);
-            if (!tile.equals(startTile) && !tile.equals(endTile) && (blocksSenses(mapController.getMapData().getTile(tile))
-                    || obstaclesByMapTile[tile.x][tile.y].stream().anyMatch(door -> doorBlocksSight.test(entityData.getComponent(door, DoorComponent.class))))) {
+        int stepX = dx > 0 ? 1 : -1;
+        int stepY = dz > 0 ? 1 : -1;
+
+        // How far along the line the next tile edge on each axis is, 1 being the whole line
+        float edgeX = dx == 0 ? Float.MAX_VALUE : ((x + stepX * 0.5f) * WorldUtils.TILE_WIDTH - from.x) / dx;
+        float edgeY = dz == 0 ? Float.MAX_VALUE : ((y + stepY * 0.5f) * WorldUtils.TILE_WIDTH - from.z) / dz;
+        var mapData = mapController.getMapData();
+        while (edgeX < 1 || edgeY < 1) {
+            boolean crossesX = edgeX <= edgeY;
+            boolean crossesY = edgeY <= edgeX;
+            if (crossesX && crossesY
+                    && (blocksSenses(mapData.getTile(x + stepX, y)) || blocksSenses(mapData.getTile(x, y + stepY)))) {
+                return false;
+            }
+            if (crossesX) {
+                x += stepX;
+                edgeX += WorldUtils.TILE_WIDTH / Math.abs(dx);
+            }
+            if (crossesY) {
+                y += stepY;
+                edgeY += WorldUtils.TILE_WIDTH / Math.abs(dz);
+            }
+            Point entered = new Point(x, y);
+            if (blocksSenses(mapData.getTile(x, y))
+                    || !entered.equals(endTile) && hasSightBlockingDoor(entered, doorBlocksSight)) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    private boolean hasSightBlockingDoor(Point tile, Predicate<DoorComponent> doorBlocksSight) {
+        return obstaclesByMapTile[tile.x][tile.y].stream().anyMatch(door -> {
+            DoorComponent doorComponent = entityData.getComponent(door, DoorComponent.class);
+            return doorComponent != null && doorBlocksSight.test(doorComponent);
+        });
     }
 
 }

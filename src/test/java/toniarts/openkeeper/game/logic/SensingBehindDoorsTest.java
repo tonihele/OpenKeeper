@@ -28,7 +28,9 @@ import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Senses;
+import toniarts.openkeeper.game.controller.IDoorsController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.game.map.FakeMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -43,12 +45,16 @@ import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.OWNABLE;
 import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.SOLID;
 
 /**
- * Creatures sense through doors, but a door can stop their line of sight
+ * Creatures see over barricades, but what stands behind a door that blocks
+ * them is out of their reach, and a door can stop their line of sight
  */
 class SensingBehindDoorsTest {
 
     private static final short PLAYER = Player.KEEPER1_ID;
     private static final short ENEMY = Player.KEEPER2_ID;
+
+    private static final short WOODEN_DOOR = 1;
+    private static final short BARRICADE = 6;
 
     private static final short CLAIMED_PATH = 8;
     private static final short REINFORCED_WALL = 9;
@@ -82,23 +88,56 @@ class SensingBehindDoorsTest {
     }
 
     @Test
-    void creatureIsSensedThroughAnEnemyDoor() {
-        door(ENEMY, false);
+    void creatureIsSensedOverAnEnemyBarricade() {
+        door(ENEMY, BARRICADE, false);
 
         assertTrue(positionSystem().getSensedEntities(creature).contains(neutralCreature));
     }
 
     @Test
+    void creatureBehindAnEnemyBarricadeIsBehindABlockingDoor() {
+        door(ENEMY, BARRICADE, false);
+
+        assertTrue(positionSystem().isBehindBlockingDoor(creature, neutralCreature));
+    }
+
+    @Test
+    void creatureBehindAnEnemyDoorIsBehindABlockingDoor() {
+        door(ENEMY, WOODEN_DOOR, false);
+
+        assertTrue(positionSystem().isBehindBlockingDoor(creature, neutralCreature));
+    }
+
+    @Test
+    void creatureBehindALockedDoorIsBehindABlockingDoor() {
+        door(PLAYER, WOODEN_DOOR, true);
+
+        assertTrue(positionSystem().isBehindBlockingDoor(creature, neutralCreature));
+    }
+
+    @Test
     void aDoorThatBlocksTheSightStopsTheLineOfSight() {
-        door(PLAYER, false);
+        door(PLAYER, WOODEN_DOOR, false);
 
         assertFalse(positionSystem().hasLineOfSight(WorldUtils.pointToVector3f(CREATURE.x, CREATURE.y),
                 WorldUtils.pointToVector3f(NEUTRAL_CREATURE.x, NEUTRAL_CREATURE.y), door -> true));
     }
 
     @Test
+    void creatureBehindOurOwnDoorIsNotBehindABlockingDoor() {
+        door(PLAYER, WOODEN_DOOR, false);
+
+        assertFalse(positionSystem().isBehindBlockingDoor(creature, neutralCreature));
+    }
+
+    @Test
+    void creatureWithoutADoorInBetweenIsNotBehindABlockingDoor() {
+        assertFalse(positionSystem().isBehindBlockingDoor(creature, neutralCreature));
+    }
+
+    @Test
     void aDoorThatLetsTheSightThroughLeavesTheLineOfSightClear() {
-        door(PLAYER, false);
+        door(PLAYER, WOODEN_DOOR, false);
 
         assertTrue(positionSystem().hasLineOfSight(WorldUtils.pointToVector3f(CREATURE.x, CREATURE.y),
                 WorldUtils.pointToVector3f(NEUTRAL_CREATURE.x, NEUTRAL_CREATURE.y), door -> false));
@@ -110,9 +149,9 @@ class SensingBehindDoorsTest {
         return entity;
     }
 
-    private void door(short ownerId, boolean locked) {
+    private void door(short ownerId, short doorId, boolean locked) {
         EntityId door = entity(DOOR, ownerId);
-        entityData.setComponent(door, new DoorComponent((short) 1, locked, false));
+        entityData.setComponent(door, new DoorComponent(doorId, locked, false));
     }
 
     private PositionSystem positionSystem() {
@@ -134,7 +173,15 @@ class SensingBehindDoorsTest {
             default ->
                 throw new UnsupportedOperationException(method.getName());
         });
-        positionSystem = new PositionSystem(mapController, entityData, null, null, null);
+        IDoorsController doorsController = (IDoorsController) Proxy.newProxyInstance(IDoorsController.class.getClassLoader(),
+                new Class<?>[]{IDoorsController.class}, (doors, createController, door) -> Proxy.newProxyInstance(
+                IDoorController.class.getClassLoader(), new Class<?>[]{IDoorController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "isBarricade" ->
+                entityData.getComponent((EntityId) door[0], DoorComponent.class).doorId == BARRICADE;
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        }));
+        positionSystem = new PositionSystem(mapController, entityData, null, doorsController, null);
         return positionSystem;
     }
 

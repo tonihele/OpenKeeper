@@ -21,6 +21,7 @@ import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.creature.CreatureController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -30,6 +31,8 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.utils.Utils;
 
 /**
  * Research researchable entities for the keeper
@@ -40,6 +43,7 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
 
     private final PlayerResearchControl researchControl;
     private final IObjectsController objectsController;
+    private final int researchRounds = 7 + Utils.getRandom().nextInt(7);
 
     public Research(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room,
             TaskManager taskManager, PlayerResearchControl researchControl, IObjectsController objectsController) {
@@ -79,6 +83,17 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
     @Override
     protected ObjectType getRoomObjectType() {
         return ObjectType.SPELL_BOOK;
+    }
+
+    @Override
+    public boolean moveToOtherSpot(ICreatureController creature, float executionDuration) {
+
+        // DK II researches for 7 to 13 rounds of the research animation at a
+        // bookcase, then goes to the closest bookcase nobody is at if there is
+        // one. Without the animation the creature stays where it is
+        double roundTime = CreatureController.getAnimationTime(creature.getCreature(), Creature.AnimationType.RESEARCHING);
+        return roundTime > 0 && executionDuration >= researchRounds * roundTime
+                && taskManager.assignFreeRoomTask(creature, getRoom(), ObjectType.RESEARCHER);
     }
 
     @Override
