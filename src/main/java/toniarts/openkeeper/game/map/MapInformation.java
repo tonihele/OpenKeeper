@@ -153,9 +153,17 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
 
         // See if the terrain is claimable at all
         boolean claimable = false;
-        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) || terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+        // Somebody else's land can only be taken if it is attackable, the Hero Lair and the Hero Gates are not
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE)
+                    && (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || !playersById.get(playerId).isAlly(tile.getOwnerId()))) {
 
-            // Somebody else's land can only be taken if it is attackable, the Hero Lair and the Hero Gates are not
+                // A Dungeon Heart can't be claimed while its keeper is in the game, only once it is destroyed
+                Keeper owner = playersById.get(tile.getOwnerId());
+                claimable = owner == null || owner.isDestroyed()
+                        || !kwdFile.getDungeonHeart().equals(kwdFile.getRoomByTerrain(terrain.getTerrainId()));
+            }
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE)
                     && (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || !playersById.get(playerId).isAlly(tile.getOwnerId()))) {
                 claimable = true;
@@ -238,7 +246,12 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
 
     @Override
     public boolean isClaimableWall(S tile, Terrain terrain, short playerId) {
-        return (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && isClaimable(tile, terrain, playerId));
+        // Another keeper's reinforced wall is never reinforced over, it has to be dug out. Nobody's reinforced wall
+        // is repaired until it is at full health (DKII.EXE 0x453DC0)
+        return (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                && (!terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
+                || (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID && !tile.isAtFullHealth()))
+                && isClaimable(tile, terrain, playerId));
     }
 
     @Override
@@ -252,7 +265,8 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
 
     @Override
     public boolean isClaimableTile(S tile, Terrain terrain, short playerId) {
-        return (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && isClaimable(tile, terrain, playerId));
+        return (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                && isClaimable(tile, terrain, playerId));
     }
 
     @Override
@@ -280,7 +294,14 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
         if (tile == null) {
             return false;
         }
-        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        return isSolid(tile, getTerrain(tile));
+    }
+
+    @Override
+    public boolean isSolid(IMapTileInformation tile, Terrain terrain) {
+        if (tile == null) {
+            return false;
+        }
         return terrain.getFlags().contains(Terrain.TerrainFlag.SOLID);
     }
 

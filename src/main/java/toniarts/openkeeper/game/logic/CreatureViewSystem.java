@@ -106,8 +106,13 @@ public final class CreatureViewSystem extends GameTimeCounter {
             CreatureFall creatureFall = entityData.getComponent(entityId, CreatureFall.class);
             if (creatureFall != null) {
 
-                // A conjured creature comes down standing, only a dropped one tumbles and lands dazed
-                targetState = creatureFall.conjured ? Creature.AnimationType.IDLE_1 : Creature.AnimationType.FALLBACK;
+                // A conjured creature comes down standing, only a dropped one tumbles and lands dazed. Falling
+                // into the portal, the creature struggles like in the hand instead of falling over
+                targetState = switch (creatureFall.fallType) {
+                    case DROPPED -> Creature.AnimationType.FALLBACK;
+                    case CONJURED -> Creature.AnimationType.IDLE_1;
+                    case PORTAL_DROP -> Creature.AnimationType.IN_HAND;
+                };
             } else if (entityData.getComponent(entityId, Navigation.class) != null) {
                 targetState = Creature.AnimationType.WALK;
             } else if (entityData.getComponent(entityId, Death.class) != null) {
@@ -140,6 +145,10 @@ public final class CreatureViewSystem extends GameTimeCounter {
                         targetState = getTortureAnimation(tortured != null ? tortured.device : null, state);
                     } else if (aiState != null) {
                         targetState = getAnimation(aiState.getCreatureState());
+                        CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+                        if (aiState.getCreatureState() == MELEE_ATTACK && meleeAttack != null && meleeAttack.swipe) {
+                            targetState = Creature.AnimationType.SWIPE;
+                        }
                     }
                 }
             }
@@ -364,7 +373,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * @param creature the creature manufacturing
      * @return the animation to show
      */
-    static Creature.AnimationType getManufactureAnimation(Creature creature) {
+    public static Creature.AnimationType getManufactureAnimation(Creature creature) {
         ArtResource manufacturing = creature.getAnimation(Creature.AnimationType.MANUFACTURING);
         if (manufacturing != null && manufacturing.getType() != ArtResource.ArtResourceType.NONE) {
             return Creature.AnimationType.MANUFACTURING;
