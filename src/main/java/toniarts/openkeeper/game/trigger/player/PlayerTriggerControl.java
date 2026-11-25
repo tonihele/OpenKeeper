@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
+import toniarts.openkeeper.game.trigger.TriggerData;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
@@ -87,6 +88,41 @@ public class PlayerTriggerControl extends TriggerControl {
 
     public short getPlayerId() {
         return playerId;
+    }
+
+    /** Native breach events select matching root branches; the authored player filter is ignored. */
+    void onEnemyBreached() {
+        onBreach(TriggerGeneric.TargetType.PLAYER_ENEMY_BREACHED);
+    }
+
+    void onDungeonBreached() {
+        onBreach(TriggerGeneric.TargetType.PLAYER_DUNGEON_BREACHED);
+    }
+
+    private void onBreach(TriggerGeneric.TargetType eventType) {
+        for (TriggerData child : root.getChildren().getArray()) {
+            if (child instanceof TriggerGenericData event
+                    && event.getType() == eventType) {
+                runBreachBranch(event);
+            }
+        }
+    }
+
+    private void runBreachBranch(TriggerGenericData branch) {
+        branch.subRepeatTimes();
+        for (TriggerData child : branch.getChildren().getArray()) {
+            if (child instanceof TriggerActionData action) {
+                doAction(action);
+                if (!branch.isRepeateable()) {
+                    branch.detachChild(action);
+                }
+            } else if (child instanceof TriggerGenericData condition && isActive(condition)) {
+                runBreachBranch(condition);
+            }
+        }
+        if (branch.getQuantity() == 0) {
+            branch.detachFromParent();
+        }
     }
 
     @Override
@@ -342,7 +378,7 @@ public class PlayerTriggerControl extends TriggerControl {
 
     private void followCameraPath(TriggerActionData trigger) { // gui part. Only for keeper x
         ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
-        if (ap == null) {
+        if (ap == null || isPossessing(playerId)) {
             return;
         }
 //        if (playerId == playerState.getPlayerId()) {
@@ -403,7 +439,7 @@ public class PlayerTriggerControl extends TriggerControl {
     private void rotateAroundActionPoint(TriggerActionData trigger) { // AP part
 //        if (playerId == playerState.getPlayerId()) {
         ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
-        if (ap == null) {
+        if (ap == null || isPossessing(playerId)) {
             return;
         }
         boolean isRelative = trigger.getUserData("available", short.class) == 0;
@@ -445,6 +481,9 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     private void setWidescreenMode(TriggerActionData trigger) { // Info part
+        if (isPossessing(playerId)) {
+            return;
+        }
         boolean available = trigger.getUserData("available", short.class) != 0;
         playerService.setWidescreen(available, playerId);
     }
@@ -465,6 +504,19 @@ public class PlayerTriggerControl extends TriggerControl {
 
     protected Keeper getPlayer() {
         return super.getPlayer(playerId);
+    }
+
+    /**
+     * DK II doesn't play the level's camera paths, widescreen or camera
+     * zooms and rotations while the keeper possesses a creature, the keeper
+     * just stays in the creature
+     *
+     * @param keeperId the keeper who would see the camera move
+     * @return true if the keeper is possessing a creature
+     */
+    private boolean isPossessing(short keeperId) {
+        Keeper keeper = getPlayer(keeperId);
+        return keeper != null && keeper.isPossession();
     }
 
     private int getCreaturesCount(short playerId, short creatureId) {
@@ -500,7 +552,7 @@ public class PlayerTriggerControl extends TriggerControl {
             return;
         }
         ActionPoint ap = getActionPoint(actionPointId);
-        if (ap != null) {
+        if (ap != null && !isPossessing(playerId)) {
             playerService.zoomViewToPoint(WorldUtils.ActionPointToVector3f(ap), playerId);
         }
     }

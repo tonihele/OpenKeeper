@@ -51,6 +51,18 @@ public final class TrapFiringFixtures {
         return trap;
     }
 
+    public static ArtResource animation(String name, int frames, int fps) {
+        ArtResource art = new ArtResource(name, ArtResource.ArtResourceType.ANIMATING_MESH);
+        art.setData(ArtResource.KEY_FRAMES, frames);
+        art.setData(ArtResource.KEY_FPS, fps);
+        return art;
+    }
+
+    public static Trap withIdleAnimation(Trap trap, ArtResource idle) {
+        trap.setMeshResource(idle);
+        return trap;
+    }
+
     /**
      * Gives the trap the shot offset, in tiles
      *
@@ -74,6 +86,18 @@ public final class TrapFiringFixtures {
     public static Trap withManaCost(Trap trap, int manaCostToFire) {
         trap.getFlags().add(Trap.TrapFlag.REQUIRE_MANA);
         trap.setManaCostToFire(manaCostToFire);
+        return trap;
+    }
+
+    /**
+     * Sets the effect the trap shows when its keeper can't pay for a shot
+     *
+     * @param trap the trap
+     * @param powerlessEffectId the effect
+     * @return the same trap
+     */
+    public static Trap withPowerlessEffect(Trap trap, int powerlessEffectId) {
+        trap.setPowerlessEffectId(powerlessEffectId);
         return trap;
     }
 
