@@ -440,7 +440,7 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
 
     @Override
     public void onAction(String name, boolean isPressed, float tpf) {
-        if (!isEnabled()) {
+        if (!isEnabled() || (isPressed && name.startsWith("CAMERA_MOUSE_") && isMouseOverOverlay())) {
             return;
         }
 
@@ -507,7 +507,7 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
 
     @Override
     public void onAnalog(String name, float value, float tpf) {
-        if (!isEnabled()) {
+        if (!isEnabled() || (name.startsWith("CAMERA_MOUSE_") && isMouseOverOverlay())) {
             return;
         }
 
@@ -605,6 +605,16 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
         } else if (isCombinationPressed(name, Setting.ROLL_CAMERA_RIGHT)) {
             camera.roll(value * ROTATION_SPEED);
         }
+    }
+
+    /**
+     * The terrain change overlay needs the mouse for itself, e.g. the wheel scrolls its lists
+     */
+    private boolean isMouseOverOverlay() {
+        PlayerState playerState = stateManager.getState(PlayerState.class);
+        Vector2f cursor = inputManager.getCursorPosition();
+        return playerState != null && playerState.getScreen() != null
+                && playerState.getScreen().isMouseOverCheatOverlay(cursor.x, cursor.y);
     }
 
     /**

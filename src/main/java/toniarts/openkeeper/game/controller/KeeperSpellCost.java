@@ -50,6 +50,20 @@ public final class KeeperSpellCost {
     }
 
     /**
+     * Get the mana cost of casting a keeper spell, god mode casts for free
+     *
+     * @param keeperSpell the spell
+     * @param impCount the number of imps the keeper has
+     * @param freeImps the number of imps the dungeon heart provides for free
+     * (MINIMUM_IMP_THRESHOLD)
+     * @param godMode whether the caster is in god mode
+     * @return the mana cost
+     */
+    public static int getManaCost(KeeperSpell keeperSpell, int impCount, int freeImps, boolean godMode) {
+        return godMode ? 0 : getManaCost(keeperSpell, impCount, freeImps);
+    }
+
+    /**
      * Get the mana cost of casting a keeper spell
      *
      * @param baseCost the mana cost of the spell in the level data

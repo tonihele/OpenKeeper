@@ -206,6 +206,10 @@ public final class GameServerState extends AbstractAppState {
         }
     }
 
+    private boolean isInstantDig(short playerId) {
+        return cheatController != null && cheatController.isCheat(CheatState.CheatType.INSTANT_DIG, playerId);
+    }
+
     /**
      * Listen for basically clients' requests
      */
@@ -244,9 +248,16 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onSelectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
+            if (select && isInstantDig(playerId)) {
+                cheatController.dig(start, end, playerId);
+                return;
+            }
+
             Vector2f from = start.clone();
             Vector2f to = end.clone();
-            game.runPlayerAction(() -> mapController.selectTiles(from, to, select, playerId));
+            // A god can select any solid tile
+            game.runPlayerAction(() -> mapController.selectTiles(from, to, select, playerId,
+                    cheatController != null && cheatController.isCheat(CheatState.CheatType.GOD_MODE, playerId)));
         }
 
         @Override
@@ -344,8 +355,18 @@ public final class GameServerState extends AbstractAppState {
         }
 
         @Override
+        public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short ownerId, Vector2f position, short playerId) {
+            cheatController.spawnCreature(creatureId, level, amount, ownerId, position, playerId);
+        }
+
+        @Override
         public void onAddGoldCheatTriggered(int amount, short playerId) {
             cheatController.addGold(amount, playerId);
+        }
+
+        @Override
+        public void onTerrainCheatTriggered(Vector2f start, Vector2f end, short terrainId, short ownerId, short playerId) {
+            cheatController.changeTerrain(start, end, terrainId, ownerId, playerId);
         }
 
         @Override

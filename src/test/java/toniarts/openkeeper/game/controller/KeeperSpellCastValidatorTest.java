@@ -116,6 +116,14 @@ class KeeperSpellCastValidatorTest {
         assertFalse(KeeperSpellCastValidator.isValidCast(chicken, mapInformation, ownTile, player, null, null, false, 0));
     }
 
+    @Test
+    void freeSpellCanBeCastEvenWithNegativeAvailableMana() {
+        player.setMana(0);
+        player.setManaLoose(100);
+
+        assertTrue(isValidCast(chicken, creature, ENEMY_ID, false));
+    }
+
     private boolean isValidCast(KeeperSpell keeperSpell, Creature target, short owner, boolean isChicken) {
         return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, ownTile, player, target, owner, isChicken, keeperSpell.getManaCost());
     }

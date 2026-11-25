@@ -63,4 +63,10 @@ class KeeperSpellCostTest {
         assertEquals(1000, KeeperSpellCost.getManaCost(HEAL, 20, FREE_IMPS));
     }
 
+    @Test
+    void godModeSpellsAreFree() {
+        assertEquals(0, KeeperSpellCost.getManaCost(CREATE_IMP, 7, FREE_IMPS, true));
+        assertEquals(0, KeeperSpellCost.getManaCost(HEAL, 20, FREE_IMPS, true));
+    }
+
 }

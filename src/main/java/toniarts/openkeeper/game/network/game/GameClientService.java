@@ -228,8 +228,18 @@ public final class GameClientService extends AbstractClientService
     }
 
     @Override
+    public void triggerSpawnCreatureCheat(short creatureId, int level, int amount, short ownerId, Vector2f position) {
+        getDelegate().triggerSpawnCreatureCheat(creatureId, level, amount, ownerId, position);
+    }
+
+    @Override
     public void triggerAddGoldCheat(int amount) {
         getDelegate().triggerAddGoldCheat(amount);
+    }
+
+    @Override
+    public void triggerTerrainCheat(Vector2f start, Vector2f end, short terrainId, short ownerId) {
+        getDelegate().triggerTerrainCheat(start, end, terrainId, ownerId);
     }
 
     @Override

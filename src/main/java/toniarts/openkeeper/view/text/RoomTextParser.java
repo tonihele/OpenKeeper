@@ -23,6 +23,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.utils.TextUtils;
 import toniarts.openkeeper.utils.Utils;
@@ -72,14 +73,17 @@ public class RoomTextParser {
     }
 
     protected String getReplacement(TextParameter parameter, IRoomInformation room, Keeper roomOwner) {
+        // The client may not know the room (yet), e.g. right after it was built or changed hands
+        short ownerId = room != null ? room.getOwnerId() : (roomOwner != null ? roomOwner.getId() : Player.NEUTRAL_PLAYER_ID);
+
         Integer roomId = ROOM_IDS.get(parameter);
         if (roomId != null) {
-            return getRoomAmount(room, roomId);
+            return Integer.toString(roomsInformation.getRoomCount(ownerId, (short) roomId.intValue()));
         }
 
         switch (parameter) {
             case HEALTH_PERCENTAGE:
-                return Integer.toString(room.getHealthPercent()); // Health
+                return room != null ? Integer.toString(room.getHealthPercent()) : "0"; // Health
             case ROOM_USED_CAPACITY:
                 return Integer.toString(hasShelves(room) ? room.getUsedCapacity(ObjectType.SPELL_BOOK) : room.getUsedCapacity()); // Used capacity
             case ROOM_MAX_CAPACITY:
@@ -110,7 +114,7 @@ public class RoomTextParser {
                 // The pay-out lever can't be pulled yet, so the Casino is a generous one
                 return Utils.getMainTextResourceBundle().getString("2508");
             case PATROL_ROUTE_COUNT:
-                return Integer.toString(patrolRouteCounter.applyAsInt(room.getOwnerId()));
+                return Integer.toString(patrolRouteCounter.applyAsInt(ownerId));
             case DUNGEON_HEART_MANA:
                 return Integer.toString(roomOwner.getMana());
             case DUNGEON_HEART_MAX_MANA:

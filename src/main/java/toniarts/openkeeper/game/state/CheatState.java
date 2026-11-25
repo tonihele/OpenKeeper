@@ -57,11 +57,51 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
         PAY_DAY("show me the wages"),
         LOOSE_LEVEL("fear the reaper"),
         WIN_LEVEL("do not fear the reaper"),
+        GOD_MODE("call me molyneux"),
+        // Toggled from the cheat tab of the HUD, no code to type
+        KILL_CREATURES(null),
+        RESURRECT_CREATURES(null),
+        DESTROY_DOORS(null),
+        INSTANT_DIG(null),
+        CLAIM_LAND(null),
+        TERRAIN_CHANGE(null),
+        SPAWN_CREATURES(null),
         JACKPOT("disco inferno");
         private final String cheatMessage;
 
         private CheatType(final String cheatMessage) {
             this.cheatMessage = cheatMessage;
+        }
+
+        /**
+         * Modes are switched on and off, the other cheats are executed once
+         *
+         * @return {@code true} if this cheat is a mode
+         */
+        public boolean isMode() {
+            return this == GOD_MODE || cheatMessage == null;
+        }
+
+        /**
+         * Modes that stand alone: while one is on, the other cheat buttons are
+         * switched off. These are the modes that take over the map
+         * interactions, so only one of them can be active at a time.
+         *
+         * @return {@code true} if this cheat can't be combined with the others
+         */
+        public boolean isExclusiveMode() {
+            return this == TERRAIN_CHANGE || this == SPAWN_CREATURES
+                    || this == CLAIM_LAND || this == INSTANT_DIG;
+        }
+
+        /**
+         * Cheats that stay available while an exclusive mode is active
+         *
+         * @return {@code true} if this cheat is not suspended or locked out by
+         * exclusive modes
+         */
+        public boolean isExemptFromExclusiveMode() {
+            return this == GOD_MODE || this == REMOVE_FOW;
         }
 
         public String getMessage() {
@@ -70,7 +110,7 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
 
         public static CheatType getCheatType(final String cheatMessage) {
             for (CheatType type : CheatType.values()) {
-                if (type.getMessage().equals(cheatMessage)) {
+                if (cheatMessage.equals(type.getMessage())) {
                     return type;
                 }
             }
@@ -79,7 +119,7 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
 
         public static boolean hasCheat(final String cheatMessage) {
             for (CheatType type : CheatType.values()) {
-                if (type.getMessage().startsWith(cheatMessage)) {
+                if (type.getMessage() != null && type.getMessage().startsWith(cheatMessage)) {
                     return true;
                 }
             }
@@ -129,7 +169,7 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
 
     @Override
     public void onKeyEvent(KeyInputEvent evt) {
-        if (evt.isPressed() && evt.getKeyChar() != 0) {
+        if (evt.isPressed() && evt.getKeyChar() >= ' ' && !Character.isISOControl(evt.getKeyChar())) {
             this.cheat += evt.getKeyChar();
 
             // Leave cheat mode if message was incorrect
