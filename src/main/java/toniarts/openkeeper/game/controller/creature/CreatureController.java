@@ -56,6 +56,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.JobPicked;
 import toniarts.openkeeper.game.component.Mana;
+import toniarts.openkeeper.game.component.MeleeHit;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectViewState;
@@ -196,6 +197,13 @@ public final class CreatureController extends EntityController implements ICreat
      * How long an idle hero does nothing before it tries its objective again, as in DK II (DKII.EXE 0x477850)
      */
     private static final int HERO_IDLE_TICKS = 12;
+
+    /**
+     * Every creature's work modifier, which the attack recharges are divided
+     * by. DK II starts it at 0.8 (0x4872A0) and the creature data of the
+     * original creatures never raises it.
+     */
+    private static final float ATTACK_WORK_MODIFIER = 0.8f;
 
     /**
      * The possessed melee attack hits what is at most 341/2048 of a full
@@ -1400,9 +1408,20 @@ public final class CreatureController extends EntityController implements ICreat
         if (DungeonHeartTarget.isDungeonHeart(entityData, attackTarget)
                 ? isWithinAttackDistance(attackTarget) : isInRange(creatureMeleeAttack.range, attackTarget)) {
             if (isAttackRecharged(creatureMeleeAttack)) {
+                // Half of the swings play the second melee animation, if the first one is flagged for it (0x4B37D0)
+                CreatureMeleeAttack swing = new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime());
+                ArtResource melee = creature.getAnimation(Creature.AnimationType.MELEE_ATTACK);
+                swing.swipe = melee != null && melee.getFlags().contains(ArtResource.ArtResourceFlag.RANDOM_SWIPE)
+                        && creature.getAnimation(Creature.AnimationType.SWIPE) != null && FastMath.rand.nextBoolean();
+                entityData.setComponent(entityId, swing);
                 stateMachine.changeState(CreatureState.MELEE_ATTACK);
-                hitWithMelee(attackTarget, creatureMeleeAttack, getMeleeDamageTaken(attackTarget,
-                        getCombatPitDamage(attackTarget, creatureMeleeAttack.damage)));
+
+                // The hit lands the creature's shot delay into the swing (0x498E30), counted in whole turns rounded
+                // down (0x492320)
+                int ticksPerSec = levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+                double hitDelay = (int) (creature.getShotDelay() * ticksPerSec) / (double) ticksPerSec;
+                entityData.setComponent(entityId, new MeleeHit(attackTarget, gameTimer.getGameTime() + hitDelay));
+                releaseMeleeHit();
             }
         } else {
             Optional<CreatureSpell> attack = getPreferredAttackSpell(attackTarget);
@@ -1425,6 +1444,22 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public void releaseMeleeHit() {
+        MeleeHit meleeHit = entityData.getComponent(entityId, MeleeHit.class);
+        if (meleeHit == null || gameTimer.getGameTime() < meleeHit.hitTime) {
+            return;
+        }
+
+        entityData.removeComponent(entityId, MeleeHit.class);
+
+        // The hit lands even if the target has stepped away, as long as it is still on the map
+        if (entityData.getComponent(meleeHit.target, Position.class) != null) {
+            dealMeleeDamage(meleeHit.target, getMeleeDamageTaken(meleeHit.target, getCombatPitDamage(meleeHit.target,
+                    entityData.getComponent(entityId, CreatureMeleeAttack.class).damage)));
+        }
+    }
+
+    @Override
     public void releaseCastShot() {
         CastShot castShot = entityData.getComponent(entityId, CastShot.class);
         if (castShot == null || gameTimer.getGameTime() < castShot.releaseTime) {
@@ -1443,6 +1478,16 @@ public final class CreatureController extends EntityController implements ICreat
             // Set the damage
             setDamage(castShot.target, creatureSpell.getShotData1());
         }
+    }
+
+    @Override
+    public boolean hasPendingMeleeHit() {
+        return entityData.getComponent(entityId, MeleeHit.class) != null;
+    }
+
+    @Override
+    public void cancelMeleeHit() {
+        entityData.removeComponent(entityId, MeleeHit.class);
     }
 
     @Override
@@ -1501,6 +1546,16 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private void hitWithMelee(EntityId attackTarget, CreatureMeleeAttack creatureMeleeAttack, int damage) {
         entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
+        dealMeleeDamage(attackTarget, damage);
+    }
+
+    /**
+     * Deals the damage of a melee hit to the target
+     *
+     * @param attackTarget the target we hit
+     * @param damage the damage to deal
+     */
+    private void dealMeleeDamage(EntityId attackTarget, int damage) {
         if (damage > 0) {
             setDamage(attackTarget, damage);
         }
@@ -1616,7 +1671,10 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     private boolean isAttackRecharged(Attack attack) {
-        return attack.attactStartTime == null || attack.attactStartTime + attack.rechargeTime <= gameTimer.getGameTime();
+
+        // The recharge is divided by the creature's work modifier, which is 0.8 for every creature, and the attack is
+        // ready only once that much time has fully passed (0x48C9B0 melee, 0x48C800 spells)
+        return attack.attactStartTime == null || attack.attactStartTime + attack.rechargeTime / ATTACK_WORK_MODIFIER < gameTimer.getGameTime();
     }
 
     @Override
@@ -2627,8 +2685,35 @@ public final class CreatureController extends EntityController implements ICreat
             case ENTERING_DUNGEON -> {
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.ENTRANCE);
             }
-            case MELEE_ATTACK, TELLING_OFF -> {
+            case TELLING_OFF -> {
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.MELEE_ATTACK);
+            }
+            case MELEE_ATTACK -> {
+
+                // The swing plays its start part, the swing and its end part one after another at the animation's
+                // frame rate, a part carrying the time left over from the one before it into the next (0x4B3C10,
+                // 0x4B41E0). The swing ends on the turn after the turn its last frame is reached (0x496AA0). A
+                // Knight's 9 + 30 + 11 frames at 18 fps take 11.1 turns at 4 turns a second, so it swings every 13
+                // turns
+                ArtResource swing = creature.getAnimation(entityData.getComponent(entityId, CreatureMeleeAttack.class).swipe
+                        ? Creature.AnimationType.SWIPE : Creature.AnimationType.MELEE_ATTACK);
+                stateTargetTime = 0;
+                if (swing != null) {
+                    int ticksPerSec = levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+                    int fps = swing.<Number>getData(ArtResource.KEY_FPS).intValue();
+                    int frames = swing.<Number>getData(ArtResource.KEY_FRAMES).intValue();
+                    if (swing.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
+                        frames += swing.<Number>getData(ArtResource.KEY_START_AF).intValue();
+                    }
+                    if (swing.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
+                        frames += swing.<Number>getData(ArtResource.KEY_END_AF).intValue();
+                    }
+                    int turns = (frames * ticksPerSec + fps - 1) / fps + 1;
+
+                    // The state ends on the turn after this time, and the FIGHT turn after it is the last turn of the
+                    // swing, where the next swing can start
+                    stateTargetTime = (turns - 2) / (double) ticksPerSec;
+                }
             }
             case CAST_SPELL -> {
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.CAST_SPELL);
