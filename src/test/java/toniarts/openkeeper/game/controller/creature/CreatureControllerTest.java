@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -57,12 +58,15 @@ import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.WithdrawnFrom;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.logic.CreatureAiSystem;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
 import toniarts.openkeeper.game.logic.CreatureMoodSystem;
 import toniarts.openkeeper.game.logic.CreatureSleepSystem;
@@ -109,8 +113,23 @@ class CreatureControllerTest {
     }
 
     @Test
+    void eatingAChickenClearsOnlyTheNoFoodAnger() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new CreatureHunger(0, 2));
+            f.controller.sate();
+            CreatureMood mood = f.data.getComponent(f.entity, CreatureMood.class);
+            assertEquals(0, mood.noFood);
+            assertEquals(100, mood.general);
+            assertEquals(600, mood.other);
+            assertEquals(1, f.data.getComponent(f.entity, CreatureHunger.class).amountNeeded);
+        }
+    }
+
+    @Test
     void fatigueInterruptsRoomWorkAndKeepsTheNewSleepTaskAssigned() {
-        for (TaskType type : List.of(TaskType.TRAIN, TaskType.RESEARCH)) {
+        // The job groups DK II lets fatigue interrupt (mask 0x800A3C3B, 0x477C20)
+        for (TaskType type : List.of(TaskType.RESEARCH, TaskType.MANUFACTURE, TaskType.GUARD, TaskType.PRAY, TaskType.TRAIN,
+                TaskType.GAMBLE)) {
             try (Fixture f = new Fixture(9)) {
                 f.startWork(type);
                 f.data.setComponent(f.entity, new CreatureSleep(f.bed, -20, 0, 0));
@@ -152,6 +171,35 @@ class CreatureControllerTest {
     }
 
     @Test
+    void guardWithoutLairLooksForOneNowAndThenButOtherWorkKeepsGoing() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new CreatureSleep(null, 0, 0, 0));
+            f.startWork(TaskType.GUARD);
+            for (int i = 0; i < 19; i++) {
+                f.tick();
+            }
+            assertEquals(0, f.lairSearches);
+            f.tick();
+            assertEquals(1, f.lairSearches);
+            for (int i = 0; i < 19; i++) {
+                f.tick();
+            }
+            assertEquals(1, f.lairSearches);
+            f.tick();
+            assertEquals(2, f.lairSearches);
+            assertEquals(CreatureState.WORK, f.state());
+        }
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new CreatureSleep(null, 0, 0, 0));
+            f.startWork(TaskType.TRAIN);
+            for (int i = 0; i < 40; i++) {
+                f.tick();
+            }
+            assertEquals(0, f.lairSearches);
+        }
+    }
+
+    @Test
     void slapDoesNotInterruptANonWorker() {
         try (Fixture f = new Fixture(9)) {
             f.startWork(TaskType.TRAIN);
@@ -159,6 +207,21 @@ class CreatureControllerTest {
             f.tick();
             assertEquals(CreatureState.WORK, f.state());
             assertTrue(f.data.getComponent(f.entity, Slapped.class).reacted);
+        }
+    }
+
+    @Test
+    void creatureTakenToTheHandGivesUpItsTask() {
+        try (Fixture f = new Fixture(9)) {
+            f.startWork(TaskType.GUARD);
+            CreatureAiSystem system = new CreatureAiSystem(f.data, proxy(ICreaturesController.class,
+                    (method, args) -> f.controller), proxy(ITaskManager.class, (method, args) -> null));
+            system.processTick(.25f);
+            f.data.removeComponent(f.entity, CreatureAi.class);
+            system.processTick(.25f);
+            assertEquals(1, f.oldJobUnassignments);
+            assertNull(f.data.getComponent(f.entity, TaskComponent.class));
+            system.stop();
         }
     }
 
@@ -337,6 +400,39 @@ class CreatureControllerTest {
     }
 
     @Test
+    void sleeperLiesOnItsHiddenBedWithTheBedsFacingAndTheBedShowsAgainWhenItWakes() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponents(f.bed, new Position(1.5f, new Vector3f(3.25f, WorldUtils.FLOOR_HEIGHT, 4.5f)),
+                    new ObjectViewState((short) 1, null, ObjectViewState.GameObjectAnimState.MESH_RESOURCE, true));
+            f.data.setComponent(f.entity, new Position(0, new Vector3f(3.6f, WorldUtils.FLOOR_HEIGHT, 4.1f)));
+            f.sleepNow();
+
+            Position position = f.data.getComponent(f.entity, Position.class);
+            assertEquals(1.5f, position.rotation);
+            assertEquals(new Vector3f(3.25f, WorldUtils.FLOOR_HEIGHT, 4.5f), position.position);
+            assertFalse(f.data.getComponent(f.bed, ObjectViewState.class).visible);
+
+            for (int i = 0; i < 100 && f.state() == CreatureState.SLEEPING; i++) {
+                f.tick();
+            }
+            assertEquals(CreatureState.IDLE, f.state());
+            assertTrue(f.data.getComponent(f.bed, ObjectViewState.class).visible);
+        }
+    }
+
+    @Test
+    void heroBedStaysInSightWhileItsOwnerSleeps() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.bed, new ObjectViewState(ObjectsController.OBJECT_HERO_BED_ID, null,
+                    ObjectViewState.GameObjectAnimState.MESH_RESOURCE, true));
+            f.sleepNow();
+
+            assertEquals(CreatureState.SLEEPING, f.state());
+            assertTrue(f.data.getComponent(f.bed, ObjectViewState.class).visible);
+        }
+    }
+
+    @Test
     void recoveryStartsOnTheNextGlobalSecondAndPreservesBothClocks() {
         try (Fixture f = new Fixture(9)) {
             f.tick();
@@ -439,6 +535,34 @@ class CreatureControllerTest {
         assertNull(workerStateWithHeroAt(3.5f, 7, null));
         assertNull(workerStateWithHeroAt(3.5f, 20, null));
         assertNull(workerStateWithHeroAt(3.5f, 20, false));
+    }
+
+    @Test
+    void workerAwayFromItsHeartOnlyFightsAnEnemyImpInReach() {
+        assertEquals(CreatureState.FIGHT, workerStateWithEnemyAt(3.5f, true, false));
+        assertEquals(CreatureState.FIGHT, workerStateWithEnemyAt(3.5f, true, true)); // One that runs away too (0x45BDF0)
+        assertNull(workerStateWithEnemyAt(3.5f, false, false)); // Another enemy creature, keeps working
+        assertNull(workerStateWithEnemyAt(6, true, false)); // Out of reach
+    }
+
+    private static CreatureState workerStateWithEnemyAt(float x, boolean imp, boolean fleeing) {
+        Creature definition = CreatureSleepFixtures.worker();
+        try (Fixture f = new Fixture(definition)) {
+            CreatureComponent component = new CreatureComponent();
+            component.creatureId = imp ? definition.getCreatureId() : 6;
+            EntityId enemy = f.data.createEntity();
+            f.data.setComponents(enemy, component, new Owner((short) 4, (short) 4), new Health(500, 500),
+                    new Position(0, new Vector3f(x, WorldUtils.FLOOR_HEIGHT, 4)));
+            if (fleeing) {
+                f.data.setComponent(f.entity, new CreatureMeleeAttack(0, 30, 1.2f, .3f));
+                f.data.setComponent(enemy, new CreatureAi(0, CreatureState.FLEE, component.creatureId));
+            }
+            f.data.removeComponent(f.entity, Fearless.class);
+            f.sensed = Set.of(enemy);
+            f.keeper.setDungeonHeartLocation(new Point(20, 4));
+            f.controller.shouldFleeOrAttack();
+            return f.state();
+        }
     }
 
     @Test
@@ -848,12 +972,42 @@ class CreatureControllerTest {
         }
     }
 
+    @Test
+    void wakingAndImprisoningPreserveASeededDyingBudget() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponents(f.entity, new Health(50, 1000), new Unconscious(-47.5));
+            f.controller.wakeUp();
+            assertEquals(50, f.health());
+            assertNull(f.data.getComponent(f.entity, Unconscious.class));
+        }
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponents(f.entity, new Health(50, 1000), new Unconscious(-47.5));
+            f.controller.imprison((short) 4, f.room);
+            assertEquals(150, f.health());
+            assertNull(f.data.getComponent(f.entity, Unconscious.class));
+        }
+    }
+
     private static CreatureComponent workerComponent() {
         CreatureComponent component = new CreatureComponent();
         component.creatureId = 6;
         component.stunDuration = .1f;
         component.worker = true;
         return component;
+    }
+
+    @Test
+    void isAtTheTaskWhenStandingOnItsWorkPosition() {
+        try (Fixture f = new Fixture(9)) {
+            f.startWork(TaskType.TRAIN);
+
+            // Away from the middle of the target tile, but where the task wants us
+            f.data.setComponent(f.entity, new Position(0, new Vector3f(3.9f, WorldUtils.FLOOR_HEIGHT, 4.6f)));
+            assertFalse(f.controller.isAtAssignedTaskTarget());
+
+            f.workPosition = new Vector2f(3.9f, 4.6f);
+            assertTrue(f.controller.isAtAssignedTaskTarget());
+        }
     }
 
     private static final class Fixture implements AutoCloseable {
@@ -882,8 +1036,10 @@ class CreatureControllerTest {
         final List<Double> eatAttempts = new java.util.ArrayList<>();
         final List<Double> objectiveAttempts = new java.util.ArrayList<>();
         int sleepAssignments;
+        int lairSearches;
         int oldJobUnassignments;
         int targetQueries;
+        Vector2f workPosition;
         double time;
 
         Fixture(int timeSleep) {
@@ -891,7 +1047,7 @@ class CreatureControllerTest {
         }
 
         Fixture(Creature definition) {
-            fall = new CreatureFallSystem(data, () -> time, eventService);
+            fall = new CreatureFallSystem(data, () -> time, eventService, null);
             CreatureComponent component = new CreatureComponent();
             component.creatureId = 6;
             component.stunDuration = .1f;
@@ -926,6 +1082,10 @@ class CreatureControllerTest {
                     yield false;
                 }
                 case "isTaskAvailable" -> false;
+                case "assignClosestRoomTask" -> {
+                    lairSearches++;
+                    yield false;
+                }
                 case "assignSleepTask" -> {
                     sleepAssignments++;
                     if (!reachable.get()) {
@@ -1012,8 +1172,12 @@ class CreatureControllerTest {
                 case "getId" -> id;
                 case "getTaskType" -> type;
                 case "isValid" -> true;
-                case "getTarget" -> { targetQueries++; yield new Vector2f(3, 4); }
-                case "getWorkPosition" -> null;
+                case "moveToOtherSpot" -> false;
+                case "getTarget" -> {
+                    targetQueries++;
+                    yield new Vector2f(3, 4);
+                }
+                case "getWorkPosition" -> workPosition;
                 case "getTaskTarget", "getTaskLocation", "executeTask" -> null;
                 case "unassign" -> { oldJobUnassignments++; yield null; }
                 default -> throw new UnsupportedOperationException(method);

@@ -21,7 +21,6 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.EnumMap;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -34,8 +33,6 @@ import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.map.IMapTileInformation;
-import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.CreatureFlagFixtures;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
@@ -106,7 +103,7 @@ class OwnLandRegenerationTest {
 
         IKwdFile kwd = proxy(IKwdFile.class, method -> switch (method) {
             case "getGameLevel" -> CreatureSleepFixtures.level(4);
-            case "getCreature" -> CreatureFlagFixtures.creature((short) 1, EnumSet.noneOf(Creature.CreatureFlag.class));
+            case "getCreature" -> CreatureSleepFixtures.sleeper(1);
             default -> throw new UnsupportedOperationException(method);
         });
         ILevelInfo levelInfo = proxy(ILevelInfo.class, method -> switch (method) {
