@@ -418,7 +418,9 @@ public final class MovementSystem implements IGameLogicUpdatable {
             // the logic tick asks for it before we see the old one removed
             Navigation navigation = entity.get(Navigation.class);
             ISteerableEntity steerableEntity = steerableEntitiesByEntityId.get(entity.getId());
-            FollowWaypoints pathFollowing = steeringBehaviorsBySteerableEntity.get(steerableEntity).getPathFollowing();
+            // A walk with nothing to do was dropped without any steering
+            EntitySteeringBehavior steeringBehavior = steeringBehaviorsBySteerableEntity.get(steerableEntity);
+            FollowWaypoints pathFollowing = steeringBehavior != null ? steeringBehavior.getPathFollowing() : null;
             if (!navigation.target.equals(targetPointsByEntityId.get(entity.getId()))
                     || navigation.navigationPath.size() > 1 && (pathFollowing == null || pathFollowing.isFinished())) {
                 deleteEntity(entity);

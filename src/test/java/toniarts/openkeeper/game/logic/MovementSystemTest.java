@@ -199,6 +199,28 @@ class MovementSystemTest {
     }
 
     /**
+     * A walk with nothing to do is dropped without any steering. A new walk
+     * asked for before the movement has seen the old one removed is walked
+     */
+    @Test
+    void aNewWalkAfterOneWithNothingToDoIsWalked() {
+        EntityData data = new DefaultEntityData();
+        EntityId id = data.createEntity();
+        data.setComponents(id, new Position(0, new Vector3f(3, 0, 3)), new Mobile(false, false, false, 1),
+                new Navigation(new Point(3, 3), null, List.of(new Vector2(3, 3))));
+        MovementSystem movement = new MovementSystem(data, map(false, false));
+        try {
+            data.setComponent(id, new Navigation(new Point(3, 3), null, List.of(new Vector2(3, 3), new Vector2(3.5f, 3))));
+            for (int tick = 0; tick < 20 && data.getComponent(id, Navigation.class) != null; tick++) {
+                movement.processTick(.25f);
+            }
+            assertEquals(3.5f, data.getComponent(id, Position.class).position.x, .1f, "the new walk wasn't walked");
+        } finally {
+            movement.stop();
+        }
+    }
+
+    /**
      * A creature standing on 15,23 turns on the spot to face 16,25. Facing is
      * (sin r, cos r) on x, z for the Position rotation r.
      */
