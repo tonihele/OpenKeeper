@@ -263,6 +263,16 @@ public final class Main extends SimpleApplication {
     }
 
     /**
+     * Was the game started straight into a level with the {@code -level}
+     * argument
+     *
+     * @return true if so
+     */
+    public static boolean isLevelArgumentGiven() {
+        return params != null && params.containsKey("level");
+    }
+
+    /**
      * The user settings, main settings
      *
      * @return the user settings
