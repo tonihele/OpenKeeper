@@ -192,7 +192,8 @@ class CollectPayTest {
         SteerableEntity steerable = new SteerableEntity(goblin, 1, 0.25f, position.x, position.y, orientation);
         List<Vector2> path = List.of(new Vector2(6, 3), new Vector2(position.x, position.y));
         SteeringAcceleration<Vector2> steering = new SteeringAcceleration<>(new Vector2());
-        EntitySteeringFactory.navigateToPoint(path, task.getTaskLocation(), steerable, task.getTaskLocation()).calculateSteering(steering);
+        EntitySteeringFactory.navigateToPoint(path, task.getTaskLocation(), steerable, task.getTaskLocation(),
+                v -> 0.0, false, false).calculateSteering(steering);
         return steering.angular;
     }
 
