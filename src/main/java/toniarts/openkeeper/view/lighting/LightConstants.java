@@ -21,6 +21,7 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
+import toniarts.openkeeper.utils.PlayerColors;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -255,24 +256,6 @@ public final class LightConstants {
      */
     public static final float PLAYER_COLOURED_LIGHT_MAX_RADIUS_TILES = 0.8f;
 
-    /**
-     * The fixed 8-slot player colour table, shade 0 (the
-     * shade lights use). The slot is the player number: 0 unowned, 1 good
-     * (also the fallback), 2 neutral, 3..7 the keepers. It is code in the
-     * original, not data.
-     */
-    private static final int[][] PLAYER_LIGHT_COLOURS = {
-        {0, 0, 0},
-        {191, 213, 224},
-        {255, 255, 255},
-        {230, 50, 50},
-        {50, 78, 230},
-        {50, 230, 51},
-        {226, 230, 50},
-        {230, 50, 212}
-    };
-    private static final int PLAYER_LIGHT_FALLBACK_SLOT = 1;
-
     // ---- timing and flicker ----
 
     /**
@@ -300,11 +283,10 @@ public final class LightConstants {
      *
      * @param playerId the owner's player number, {@code null} if none
      * @return {r, g, b}, 0..255
+     * @see PlayerColors#getRgb(Short)
      */
     public static int[] getPlayerLightColour(Short playerId) {
-        int slot = playerId == null || playerId < 0 || playerId >= PLAYER_LIGHT_COLOURS.length
-                ? PLAYER_LIGHT_FALLBACK_SLOT : playerId;
-        return PLAYER_LIGHT_COLOURS[slot].clone();
+        return PlayerColors.getRgb(playerId);
     }
 
     /**

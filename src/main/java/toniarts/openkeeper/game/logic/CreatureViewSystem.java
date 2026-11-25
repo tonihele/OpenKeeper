@@ -145,6 +145,10 @@ public final class CreatureViewSystem extends GameTimeCounter {
                         targetState = getTortureAnimation(tortured != null ? tortured.device : null, state);
                     } else if (aiState != null) {
                         targetState = getAnimation(aiState.getCreatureState());
+                        CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+                        if (aiState.getCreatureState() == MELEE_ATTACK && meleeAttack != null && meleeAttack.swipe) {
+                            targetState = Creature.AnimationType.SWIPE;
+                        }
                     }
                 }
             }
@@ -369,7 +373,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * @param creature the creature manufacturing
      * @return the animation to show
      */
-    static Creature.AnimationType getManufactureAnimation(Creature creature) {
+    public static Creature.AnimationType getManufactureAnimation(Creature creature) {
         ArtResource manufacturing = creature.getAnimation(Creature.AnimationType.MANUFACTURING);
         if (manufacturing != null && manufacturing.getType() != ArtResource.ArtResourceType.NONE) {
             return Creature.AnimationType.MANUFACTURING;
