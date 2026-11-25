@@ -145,6 +145,8 @@ class DugOutWallTest {
                 wall;
             case "getThings" ->
                 List.of();
+            case "getGameLevel" ->
+                CreatureSleepFixtures.level(4);
             default ->
                 throw new UnsupportedOperationException(name);
         });
