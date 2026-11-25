@@ -587,9 +587,9 @@ final class KeeperAiCreatures {
     }
 
     /**
-     * Carries a prisoner to a room: to its reference tile, to a free tile of a
-     * Torture Chamber, into the pool of a Temple, or to a tile of a Combat
-     * Pit the creatures fight on
+     * Carries a prisoner to a room: to its reference tile, which is where
+     * DK II drops one into a Combat Pit, to a free tile of a Torture Chamber,
+     * or into the pool of a Temple
      */
     private void carryPrisoner(KeeperAi keeperAi, IPlayerController playerController, Entity prisoner, IRoomController room,
             boolean freeTile, String reason) {
@@ -600,8 +600,6 @@ final class KeeperAiCreatures {
         Point tile = room.getRoomInstance().getReferenceTile();
         if (freeTile) {
             tile = getFreeTile(room);
-        } else if (room instanceof CombatPitController) {
-            tile = getRandomTile(room, true);
         } else if (room instanceof TempleController temple) {
             for (Point p : room.getRoomInstance().getCoordinates()) {
                 if (temple.isSacrificePool(p)) {

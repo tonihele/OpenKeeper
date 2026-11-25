@@ -80,6 +80,7 @@ import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
+import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
@@ -1450,12 +1451,20 @@ class KeeperAiSystemTest {
     void dropsAnEnemyPrisonerIntoTheCombatPitToFight() {
         KeeperAiSystem system = createSystem(withPrisonerFate(ai(0, 0, 9, 1, 50, 0, List.of()), AI.ImprisonedCreatureFatePolicy.PLACE_IN_PIT), 1000);
         roomControl.onBuild(createRoom(PRISON, new Point(1, 4)));
-        roomControl.onBuild(createRoom(COMBAT_PIT, new Point(5, 4)));
+        RoomInstance pit = new RoomInstance(rooms.get(COMBAT_PIT));
+        pit.setOwnerId(PLAYER_ID);
+        for (int x = 3; x <= 7; x++) {
+            for (int y = 2; y <= 6; y++) {
+                pit.addCoordinate(new Point(x, y));
+            }
+        }
+        roomControl.onBuild(new CombatPitController(entityData.createEntity(), entityData, null, pit, null));
         EntityId prisoner = createPrisoner(new Point(1, 4));
         for (int tick = 0; tick < 400 && dropped.isEmpty(); tick++) {
             system.processTick(0.25f);
         }
 
+        // On the pit's reference tile, as DK II, not any of the 9 tiles the creatures fight on
         assertEquals(Map.of(prisoner, new Point(5, 4)), dropped);
     }
 
