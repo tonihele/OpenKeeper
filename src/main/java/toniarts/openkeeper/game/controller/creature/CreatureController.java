@@ -921,7 +921,16 @@ public final class CreatureController extends EntityController implements ICreat
             return false;
         }
         Vector2f target = assignedTask.getTarget(this);
-        return target != null && isNear(target);
+        if (target == null) {
+            return false;
+        }
+
+        // A task may want us somewhere else on the tile, such as a trainee standing around its dummy
+        if (isNear(target)) {
+            return true;
+        }
+        Vector2f workPosition = assignedTask.getWorkPosition(this);
+        return workPosition != null && isAt(workPosition);
     }
 
     private boolean isNear(Vector2f target) {
