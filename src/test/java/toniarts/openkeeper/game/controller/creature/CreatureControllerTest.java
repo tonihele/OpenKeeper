@@ -538,6 +538,29 @@ class CreatureControllerTest {
     }
 
     @Test
+    void workerAwayFromItsHeartOnlyFightsAnEnemyImpInReach() {
+        assertEquals(CreatureState.FIGHT, workerStateWithEnemyAt(3.5f, true));
+        assertNull(workerStateWithEnemyAt(3.5f, false)); // Another enemy creature, keeps working
+        assertNull(workerStateWithEnemyAt(6, true)); // Out of reach
+    }
+
+    private static CreatureState workerStateWithEnemyAt(float x, boolean imp) {
+        Creature definition = CreatureSleepFixtures.worker();
+        try (Fixture f = new Fixture(definition)) {
+            CreatureComponent component = new CreatureComponent();
+            component.creatureId = imp ? definition.getCreatureId() : 6;
+            EntityId enemy = f.data.createEntity();
+            f.data.setComponents(enemy, component, new Owner((short) 4, (short) 4), new Health(500, 500),
+                    new Position(0, new Vector3f(x, WorldUtils.FLOOR_HEIGHT, 4)));
+            f.data.removeComponent(f.entity, Fearless.class);
+            f.sensed = Set.of(enemy);
+            f.keeper.setDungeonHeartLocation(new Point(20, 4));
+            f.controller.shouldFleeOrAttack();
+            return f.state();
+        }
+    }
+
+    @Test
     void workerWithdrawsWhenTheEnemyTurnsOnItInTheMiddleOfAFight() {
         try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
             EntityId hero = heroNextToWorker(f, 3.5f, 3);
