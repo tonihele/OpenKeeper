@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller;
 
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.data.Keeper;
@@ -70,6 +71,8 @@ class DugOutWallTest {
                 map;
             case "getTerrain" ->
                 (short) args[0] == WALL_ID ? wall : rock;
+            case "getThings" ->
+                List.of();
             default ->
                 throw new UnsupportedOperationException(name);
         });
@@ -101,6 +104,8 @@ class DugOutWallTest {
                 map;
             case "getTerrain" ->
                 gems;
+            case "getThings" ->
+                List.of();
             default ->
                 throw new UnsupportedOperationException(name);
         });
