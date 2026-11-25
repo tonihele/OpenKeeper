@@ -20,7 +20,6 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
-import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -47,10 +46,8 @@ class TortureChamberControllerTest {
     void tortureWheelsSpinAndTheOtherFurnitureDoesNot() throws ReflectiveOperationException {
 
         // The DK II objects of the room, a 5x5 room gets furniture on its 9 inner tiles
-        Room room = RoomFixtures.room(TORTURE_CHAMBER, 0);
-        Field objects = Room.class.getDeclaredField("objects");
-        objects.setAccessible(true);
-        objects.set(room, List.of((short) 8, (short) 8, (short) 61, (short) 8, (short) 62, (short) 63, (short) 0, (short) 0));
+        Room room = RoomFixtures.room(TORTURE_CHAMBER,
+                List.of((short) 8, (short) 8, (short) 61, (short) 8, (short) 62, (short) 63, (short) 0, (short) 0));
         RoomInstance roomInstance = new RoomInstance(room);
         for (int x = 0; x < 5; x++) {
             for (int y = 0; y < 5; y++) {

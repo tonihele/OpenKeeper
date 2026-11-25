@@ -61,10 +61,10 @@
                             <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-01.png" width="128px" height="64px" />
                         </panel>
                         <panel childLayout="horizontal" valign="center">
-                            <panel backgroundImage="Textures/GUI/Windows/heart-hp.png" childLayout="center" valign="center">
+                            <panel id="heartHint" backgroundImage="Textures/GUI/Windows/heart-hp.png" childLayout="center" valign="center">
                                 <effect>
                                     <onHover name="hint" hintText="${menu.2139}" hintDelay="200" />
-                                    <onHover name="simpleHintEx" hintText="${menu.2140}" targetElement="tooltip" />
+                                    <onHover name="simpleHintEx" targetElement="tooltip" />
                                     <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                 </effect>
                                 <image filename="Textures/GUI/Windows/heart-bg.png" width="64px" height="64px" align="left" valign="center">
@@ -96,13 +96,13 @@
                             <image valign="center" filename="Textures/GUI/Windows/gold-bg-01.png" width="128px" height="64px" />
                         </panel>
                         <panel childLayout="horizontal" valign="center">
-                            <panel backgroundImage="Textures/GUI/Windows/payday-Hp.png" childLayout="center" valign="center">
+                            <panel id="payDayHint" childLayout="center" valign="center">
                                 <effect>
                                     <onHover name="hint" hintText="${menu.2143}" hintDelay="200" />
-                                    <onHover name="simpleHintEx" hintText="${menu.2144}" targetElement="tooltip" />
+                                    <onHover name="simpleHintEx" targetElement="tooltip" />
                                     <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                 </effect>
-                                <image filename="Textures/GUI/Windows/payday-BG.png" width="64px" height="64px" align="left" valign="center" />
+                                <image id="payDay" filename="Textures/GUI/Windows/payday-BG.png" width="64px" height="64px" align="left" valign="center" />
                             </panel>
                             <panel childLayout="center" valign="center" align="center" padding="0px,14px,0px,36px">
                                 <control name="label" id="gold" color="#D3B000" text="0" style="text" width="100%" textHAlign="right" valign="center" />
@@ -110,7 +110,7 @@
                         </panel>
                     </panel>
 
-                    <panel width="*" childLayout="overlay">
+                    <panel width="*" childLayout="horizontal" paddingLeft="10px" paddingRight="10px">
                         <control name="auto-scroll-text" id="tooltip" textStyle="textSmall" text="" />
                     </panel>
                     <panel width="64px" align="left" valign="center" />

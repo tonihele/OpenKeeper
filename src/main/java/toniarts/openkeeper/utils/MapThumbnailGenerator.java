@@ -267,11 +267,13 @@ public final class MapThumbnailGenerator {
     }
 
     private static Color createPlayerColor(short playerId) {
-        return new Color(getColorModel().getRGB(35 + playerId));
+        // The thumbnail palette has keepers 3 and 4 the other way round
+        int[] rgb = PlayerColors.getRgb(playerId);
+        return new Color(rgb[0], rgb[1], rgb[2]);
     }
 
     /**
-     * Get player color
+     * Get player color, the colour of the keeper's claimed tiles
      *
      * @param playerId the player ID
      * @return the player color
