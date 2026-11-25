@@ -304,8 +304,9 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         // Should we attack, try to avoid i.e. imps engaging in a fight. Near their own heart they
-        // only hit back at an enemy in reach, which DK II makes one tile, and otherwise keep working
-        IEntityController attackTarget = fighter || inDHeart ? getAttackTarget() : null;
+        // only hit back at an enemy in reach, which DK II makes one tile, and otherwise keep working.
+        // An enemy Imp in reach they take on anywhere
+        IEntityController attackTarget = fighter || inDHeart ? getAttackTarget() : getEnemyImpInReach();
         if (attackTarget != null && (fighter || isInRange(WorldUtils.TILE_WIDTH, attackTarget.getEntityId()))
                 && (stateMachine.isInState(CreatureState.FIGHT) || isNearCallToArms())) {
             if (!stateMachine.isInState(CreatureState.FIGHT)) {
@@ -315,6 +316,27 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         return false;
+    }
+
+    /**
+     * Finds an enemy Imp in reach of a non-fighter. DK II's non-fighters take
+     * on an enemy Imp wherever they are, other enemies only near their own
+     * heart (0x45BDF0)
+     *
+     * @return the enemy Imp to fight, or {@code null} if there is none
+     */
+    private IEntityController getEnemyImpInReach() {
+        short impId = levelInfo.getLevelData().getImp().getCreatureId();
+        for (EntityId entity : getEntitiesInNoticeRange()) {
+            CreatureComponent other = entityData.getComponent(entity, CreatureComponent.class);
+            if (other != null && other.creatureId == impId && creaturesController.isValidEntity(entity)
+                    && isEnemy(entity) && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
+                    && isNoticed(entity) && isInRange(WorldUtils.TILE_WIDTH, entity)) {
+                setAttackTarget(entity);
+                return creaturesController.createController(entity);
+            }
+        }
+        return null;
     }
 
     /**
