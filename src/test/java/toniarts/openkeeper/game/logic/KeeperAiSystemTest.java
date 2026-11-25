@@ -2433,6 +2433,30 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void looksForAnotherRoomSiteWhenTheImpsDidNotDigOutTheLastOneInTime() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 1000);
+        roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
+        reachable = true;
+
+        // The imps dig out and claim what is tagged, but not the site north of the heart (each side of it
+        // holds a full gold pile, say), so the room is dropped after 7 minutes
+        for (int tick = 0; tick < 500 * 4 && built.size() < 9; tick++) {
+            system.processTick(0.25f);
+            tagged.removeIf(p -> {
+                if (p.y <= 3) {
+                    return false;
+                }
+                map[p.y][p.x] = '.';
+                return true;
+            });
+        }
+
+        // DK II would find the same site again, here it is passed over and the room goes east of the heart
+        assertEquals(9, built.size());
+        assertTrue(built.stream().allMatch(p -> p.x >= 6));
+    }
+
+    @Test
     void triesTheSameRoomTileAgainEachTickWhileShortOfGold() {
         KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 1000);
         roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
