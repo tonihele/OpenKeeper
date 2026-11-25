@@ -102,8 +102,8 @@ public final class KeeperAi implements EntityComponent {
     public boolean wantedRoomExpand;
 
     /**
-     * How many Portals it had when it last looked, a new one may ask for a
-     * bigger Lair
+     * How many Portals it and the neutral player had when it last looked,
+     * one taken from another player may ask for a bigger Lair
      */
     public int portals;
 

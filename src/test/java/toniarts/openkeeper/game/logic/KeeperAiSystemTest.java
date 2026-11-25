@@ -926,11 +926,13 @@ class KeeperAiSystemTest {
         assertEquals(0, entityData.getComponent(enemy, KeeperAiNoPrisoner.class).players);
     }
 
-    private void createNeutralPortal(Point centre) {
+    private IRoomController createNeutralPortal(Point centre) {
         IRoomController portal = createRoom(PORTAL, centre);
         portal.getRoomInstance().setOwnerId(Player.NEUTRAL_PLAYER_ID);
         neutralRooms.add(portal);
         map[centre.y][centre.x] = 'P';
+
+        return portal;
     }
 
     private void planAgain() {
@@ -2659,10 +2661,13 @@ class KeeperAiSystemTest {
     }
 
     @Test
-    void wantsABiggerLairWhenItHasClaimedAPortal() {
+    void wantsABiggerLairWhenItHasTakenAPortalFromAnotherPlayerButNotWhenItClaimsANeutralOne() {
+        IRoomController neutral = createNeutralPortal(new Point(13, 4));
         KeeperAiSystem system = createSystem(withMoreSpace(ai(0, 0, 9, 1, 50, 0, List.of(LAIR)), AI.RoomExpandPolicy.EXPAND_EXISTING, true), 1000);
         roomControl.setTypeAvailable(rooms.get(LAIR), true, true);
         roomControl.onBuild(createRoom(LAIR, new Point(9, 2), new Point(11, 4)));
+        neutral.getRoomInstance().setOwnerId(PLAYER_ID);
+        roomControl.onBuild(neutral);
 
         system.processTick(0.25f);
 

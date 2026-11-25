@@ -998,7 +998,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
     /**
      * Lines a room up to be planned next when it needs more space: the Lair
-     * when a Portal was claimed, and a Treasury, Lair, Prison, Graveyard,
+     * when a Portal was taken from another player, and a Treasury, Lair, Prison, Graveyard,
      * Library, Training Room or Workshop that is full. By its settings the room is grown or another one is
      * built. DK II's computer player is told by the messages a player gets;
      * here it looks at the rooms itself
@@ -1057,12 +1057,25 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         }
     }
 
+    /**
+     * The Portals it has and the neutral ones. One more is a Portal taken
+     * from another player, which asks for a bigger Lair: DK II posts message
+     * 0x20 then and 0x21 for a neutral room claimed, which its computer
+     * player leaves alone (0x4E5650, 0x4FA400)
+     */
     private int countPortals(IPlayerController playerController) {
         int portals = 0;
         for (short roomId : new short[]{ROOM_PORTAL, ROOM_HERO_PORTAL}) {
             Room room = kwdFile.getRoomById(roomId);
             if (room != null) {
                 portals += playerController.getRoomControl().getTypeCount(room);
+            }
+        }
+        for (IRoomController room : mapController.getRoomControllers()) {
+            short roomId = room.getRoomInstance().getRoom().getRoomId();
+            if ((roomId == ROOM_PORTAL || roomId == ROOM_HERO_PORTAL) && room.getRoomInstance().getOwnerId() == Player.NEUTRAL_PLAYER_ID
+                    && !room.getRoomInstance().isDestroyed()) {
+                portals++;
             }
         }
 
