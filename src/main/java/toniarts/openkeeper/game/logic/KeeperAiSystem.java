@@ -23,6 +23,7 @@ import com.simsilica.es.EntitySet;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -80,7 +81,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private static final int TASK_TIME_OUT_SECONDS = 420;
 
     /**
-     * DK II lets the tagged gold go 240 game ticks after its last dig order
+     * DK II lets its newest gold tag go 240 game ticks after its last dig
+     * order, at 4 ticks a second
      */
     private static final int UNTAG_GOLD_SECONDS = 60;
     private static final int NOTHING_TO_DO_LOG_SECONDS = 60;
@@ -313,13 +315,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             keeperAi.nextTask = KeeperAi.Task.PLAN;
         }
 
-        // The tagged gold is let go a while after the last dig order
+        // A while after the last dig order its newest gold tag is let go
         if (keeperAi.untagTicks > 0) {
             keeperAi.untagTicks--;
             if (keeperAi.untagTicks == 0) {
                 finishGoldAttempt(keeperAi);
-                log(keeperAi, "untag gold", null, "no dig order for a while");
-                untagGold(keeperAi.playerId);
+                untagGold(keeperAi);
             }
         }
 
@@ -618,9 +619,25 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         return tiles;
     }
 
-    private void untagGold(short playerId) {
-        for (Point tile : getTaggedGold(playerId)) {
-            mapController.selectTiles(new Vector2f(tile.x, tile.y), new Vector2f(tile.x, tile.y), false, playerId);
+    /**
+     * Lets go of the newest gold tile it tagged that is still tagged, and of
+     * no other. DK II's pass (0x500C20) walks its gold dig orders from the
+     * newest and posts an untag (0x29, 0x512A20) for each, but the order it
+     * lets go of takes its link to the next one with it (0x507EF0), so the
+     * walk ends there. The older tags stay, and while any of them does it
+     * starts no gold trip
+     */
+    private void untagGold(KeeperAi keeperAi) {
+        Point[] tags = keeperAi.goldTags;
+        for (int i = 0; i < tags.length; i++) {
+            Point tile = tags[i];
+            if (tile != null && hasGold(tile.x, tile.y) && mapController.getMapData().getTile(tile).isSelected(keeperAi.playerId)) {
+                System.arraycopy(tags, i + 1, tags, 0, tags.length - i - 1);
+                Arrays.fill(tags, tags.length - i - 1, tags.length, null);
+                log(keeperAi, "untag gold", tile, "no dig order for a while, the newest gold tag");
+                mapController.selectTiles(new Vector2f(tile.x, tile.y), new Vector2f(tile.x, tile.y), false, keeperAi.playerId);
+                return;
+            }
         }
     }
 
@@ -852,7 +869,6 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             keeperAi.goldTiles++;
             if (keeperAi.goldTiles == GOLD_TILES_TO_TAG) {
                 keeperAi.goldAttemptLooked = keeperAi.target.equals(keeperAi.goldAttemptTarget);
-                keeperAi.untagTicks = UNTAG_GOLD_SECONDS * ticksPerSecond;
                 setTask(keeperAi, KeeperAi.Task.PLAN, "looked at all the tiles around the gold");
             }
         }
@@ -1526,8 +1542,22 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         return null;
     }
 
+    /**
+     * Tags the tiles, and counts the untag time from the start again, as
+     * every tag of DK II does (0x4FD030, 0x4FD2B0, 0x4FD750, 0x4FDC50). A
+     * gold tile that wasn't tagged yet becomes its newest gold tag
+     */
     private void tag(KeeperAi keeperAi, Point from, Point to, int ticksPerSecond, String reason) {
         log(keeperAi, from.equals(to) ? "tag" : "tag to " + to.x + "," + to.y, from, reason);
+        for (int x = Math.min(from.x, to.x); x <= Math.max(from.x, to.x); x++) {
+            for (int y = Math.min(from.y, to.y); y <= Math.max(from.y, to.y); y++) {
+                IMapTileInformation tile = mapController.getMapData().getTile(x, y);
+                if (tile != null && !tile.isSelected(keeperAi.playerId) && hasGold(x, y)) {
+                    System.arraycopy(keeperAi.goldTags, 0, keeperAi.goldTags, 1, keeperAi.goldTags.length - 1);
+                    keeperAi.goldTags[0] = tile.getLocation();
+                }
+            }
+        }
         mapController.selectTiles(new Vector2f(Math.min(from.x, to.x), Math.min(from.y, to.y)),
                 new Vector2f(Math.max(from.x, to.x), Math.max(from.y, to.y)), true, keeperAi.playerId);
         keeperAi.untagTicks = UNTAG_GOLD_SECONDS * ticksPerSecond;

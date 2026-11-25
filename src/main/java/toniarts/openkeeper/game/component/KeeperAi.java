@@ -79,6 +79,12 @@ public final class KeeperAi implements EntityComponent {
     public int untagTicks;
 
     /**
+     * The gold tiles it tagged, the newest first, as many as the spiral
+     * round a seam has. DK II keeps its dig orders in the order it gave them
+     */
+    public Point[] goldTags = new Point[49];
+
+    /**
      * The room being built
      */
     public short roomId;
@@ -240,6 +246,7 @@ public final class KeeperAi implements EntityComponent {
         this.nextTask = keeperAi.nextTask;
         this.taskTicks = keeperAi.taskTicks;
         this.untagTicks = keeperAi.untagTicks;
+        this.goldTags = keeperAi.goldTags.clone();
         this.roomId = keeperAi.roomId;
         this.wantedRoomId = keeperAi.wantedRoomId;
         this.roomWanted = keeperAi.roomWanted;

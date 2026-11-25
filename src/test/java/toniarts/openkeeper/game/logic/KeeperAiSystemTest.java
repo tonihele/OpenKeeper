@@ -2342,6 +2342,66 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void letsGoOfItsNewestGoldTagOnlyAndHeadsForNoGoldWhileTheOthersStayTagged() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 1000, List.of()), 0);
+        tagGoldAt(new Point(10, 6));
+
+        // The seam's two tiles are tagged on the first two ticks, the newer one is let go 240 ticks after
+        system.processTick(0.25f);
+        system.processTick(0.25f);
+        for (int tick = 0; tick < 239; tick++) {
+            system.processTick(0.25f);
+        }
+
+        assertEquals(Set.of(new Point(10, 6), new Point(11, 6)), tagged);
+
+        system.processTick(0.25f);
+
+        assertEquals(Set.of(new Point(10, 6)), tagged);
+
+        // With gold still tagged it starts no gold trip, however low it is on gold
+        for (int tick = 0; tick < 2000; tick++) {
+            system.processTick(0.25f);
+            assertNotEquals(KeeperAi.Task.GO_TO_GOLD, getKeeperAi().task);
+        }
+        assertEquals(Set.of(new Point(10, 6)), tagged);
+
+        // Once that tile is mined out it heads for gold again
+        map[6][10] = '.';
+        system.processTick(0.25f);
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.GO_TO_GOLD, getKeeperAi().task);
+    }
+
+    @Test
+    void letsGoOfTheNewestGoldTagThatIsStillThere() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 1000, List.of()), 0);
+        tagGoldAt(new Point(10, 6));
+        system.processTick(0.25f);
+        system.processTick(0.25f);
+
+        // The newest tile is mined out before the pass, so the pass lets go of the one tagged before it
+        map[6][11] = '.';
+        tagged.remove(new Point(11, 6));
+        for (int tick = 0; tick < 240; tick++) {
+            system.processTick(0.25f);
+        }
+
+        assertTrue(tagged.isEmpty());
+    }
+
+    /**
+     * Has the computer player tag the gold round a tile from its next tick on
+     */
+    private void tagGoldAt(Point target) {
+        KeeperAi keeperAi = new KeeperAi(getKeeperAi());
+        keeperAi.task = KeeperAi.Task.TAG_GOLD;
+        keeperAi.target = target;
+        entityData.setComponent(entityData.findEntity(null, KeeperAi.class), keeperAi);
+    }
+
+    @Test
     void hasTheRoomSiteDugOutAndBuildsTheRoomOnIt() {
         KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 1000);
         roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
