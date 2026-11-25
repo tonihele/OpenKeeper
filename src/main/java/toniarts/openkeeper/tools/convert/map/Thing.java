@@ -493,16 +493,26 @@ public abstract class Thing {
     // Contains in GlobalVariables.kwd only
     public static final class Camera extends Thing {
 
-        /**
-         * The camera modes OpenKeeper uses, the value is the mode number of
-         * the camera record that holds the mode's settings
-         */
         public enum CameraMode implements IValueEnum {
 
+            UNKNOWN_1(1), // FIXME unknown, DK II groups it with 2, 10 and 11
             POSSESSION(2),
             GAME(3),
             FAR(4), // F3, far away with a narrow lens
             OVERHEAD(5), // F2, straight down
+            UNKNOWN_6(6), // FIXME unknown
+            UNKNOWN_7(7), // FIXME unknown, DK II groups it on its own
+            UNKNOWN_8(8), // FIXME unknown
+            UNKNOWN_9(9), // FIXME unknown, DK II groups it with 3, 4 and 5
+            UNKNOWN_10(10), // FIXME unknown, DK II groups it with 1, 2 and 11
+            UNKNOWN_11(11), // FIXME unknown, DK II groups it with 1, 2 and 10
+            UNKNOWN_12(12), // FIXME unknown, DK II switches to it from 0x442DE0
+            UNKNOWN_13(13), // FIXME unknown, reads a fixed slot, DK II groups it with 3, 4 and 5
+            UNKNOWN_14(14), // FIXME unknown, reads a fixed slot, DK II groups it with 3, 4 and 5
+            UNKNOWN_15(15), // FIXME unknown, reads a fixed slot, DK II groups it with 3, 4 and 5
+            UNKNOWN_16(16), // FIXME unknown
+            UNKNOWN_17(17), // FIXME unknown
+            UNKNOWN_18(18), // FIXME unknown, DK II groups it on its own, switched to from 0x44A370
             DEFAULT(-1);
 
             private CameraMode(int value) {
@@ -557,9 +567,11 @@ public abstract class Thing {
         private int angleRoll; // rotate camera around direction vector.
         private int anglePitch; // rotate camera around Left vector. 512 = front.
 
-        // The camera mode these settings are for, see CameraMode. DK II keeps
-        // a record for each mode from 1 to 18 (0x449A30)
-        private int id;
+        /* 2 - possession camera
+         * 3 - game camera
+         * other never used ?
+         */
+        private CameraMode id;
 
         public Vector3f getPosition() {
             return position;
@@ -689,17 +701,11 @@ public abstract class Thing {
             this.anglePitch = angle;
         }
 
-        /**
-         * The camera mode these settings are for
-         *
-         * @return the mode number, 1 - 18
-         * @see CameraMode
-         */
-        public int getId() {
+        public CameraMode getId() {
             return id;
         }
 
-        protected void setId(int id) {
+        protected void setId(CameraMode id) {
             this.id = id;
         }
 

@@ -2245,7 +2245,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                     ((Thing.Camera) thing).setAngleYaw(reader.readUnsignedShort());
                     ((Thing.Camera) thing).setAngleRoll(reader.readUnsignedShort());
                     ((Thing.Camera) thing).setAnglePitch(reader.readUnsignedShort());
-                    ((Thing.Camera) thing).setId(reader.readUnsignedShort());
+                    ((Thing.Camera) thing).setId(ConversionUtils.parseEnum(reader.readUnsignedShort(), Thing.Camera.CameraMode.class));
 
                     addThing(thing);
                     break;
