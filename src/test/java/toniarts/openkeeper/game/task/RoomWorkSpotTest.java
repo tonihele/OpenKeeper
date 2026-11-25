@@ -43,6 +43,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.RoomFixtures;
+import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 import toniarts.openkeeper.tools.convert.map.TempleFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
@@ -132,7 +133,7 @@ class RoomWorkSpotTest {
         Task task = worshipper.task;
 
         // The rolls: 3 prayers, 36 stays, 2 more prayers, 35 moves
-        Pray pray = new Pray(null, null, new Point(1, 1), PLAYER_ID, temple, taskManager, null, GAME_SETTINGS, null, rolls(1, 36, 0, 35));
+        Pray pray = new Pray(null, null, new Point(1, 1), PLAYER_ID, temple, taskManager, null, GAME_SETTINGS, null, 4, rolls(1, 36, 0, 35));
 
         assertFalse(pray.moveToOtherSpot(worshipper.creature, 2.9f));
         assertFalse(pray.moveToOtherSpot(worshipper.creature, 3));
@@ -186,7 +187,7 @@ class RoomWorkSpotTest {
 
         ILevelInfo levelInfo = proxy(ILevelInfo.class, (proxy, method, args) -> switch (method.getName()) {
             case "getLevelData" ->
-                proxy(IKwdFile.class, (p, m, a) -> null);
+                proxy(IKwdFile.class, (p, m, a) -> "getGameLevel".equals(m.getName()) ? ShotFixtures.gameLevel(4) : null);
             default ->
                 null;
         });
