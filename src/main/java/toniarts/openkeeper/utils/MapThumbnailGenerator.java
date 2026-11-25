@@ -20,7 +20,6 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
-import toniarts.openkeeper.view.lighting.LightConstants;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -268,10 +267,8 @@ public final class MapThumbnailGenerator {
     }
 
     private static Color createPlayerColor(short playerId) {
-        // DK II colours a keeper's things from the same fixed table as its
-        // lights (0x006E5058, filled at 0x004C04C0, read at 0x0050F830). The
-        // thumbnail palette has keepers 3 and 4 the other way round
-        int[] rgb = LightConstants.getPlayerLightColour(playerId);
+        // The thumbnail palette has keepers 3 and 4 the other way round
+        int[] rgb = PlayerColors.getRgb(playerId);
         return new Color(rgb[0], rgb[1], rgb[2]);
     }
 
