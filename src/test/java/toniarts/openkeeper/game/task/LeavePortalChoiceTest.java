@@ -75,11 +75,11 @@ class LeavePortalChoiceTest {
     void leavingCreatureHeadsForThePortalNearestInAStraightLineEvenWhenItCannotGetThere() {
         portal(OTHER_PLAYER_ID, 9, 5);
         portal(PLAYER_ID, 5, 12);
-        unreachable.add(new Point(9, 5));
+        unreachable.add(new Point(9, 4));
 
         assertTrue(taskManager().assignTask(creature, Creature.JobType.LEAVE));
 
-        assertEquals(new Vector2f(9, 5), assignedTask.getTarget(creature));
+        assertEquals(new Vector2f(9, 4), assignedTask.getTarget(creature));
     }
 
     @Test
@@ -90,7 +90,18 @@ class LeavePortalChoiceTest {
 
         assertTrue(taskManager().assignTask(creature, Creature.JobType.REBEL));
 
-        assertEquals(new Vector2f(5, 12), assignedTask.getTarget(creature));
+        assertEquals(new Vector2f(5, 11), assignedTask.getTarget(creature));
+    }
+
+    @Test
+    void leavingCreatureWalksToATileOfThePortalThatCanBeWalkedOn() {
+        portal(PLAYER_ID, 5, 12);
+
+        assertTrue(taskManager().assignTask(creature, Creature.JobType.LEAVE));
+
+        // The middle can't be walked onto, a walk there would never start
+        Vector2f target = assignedTask.getTarget(creature);
+        assertTrue(portals.getFirst().isTileAccessible(null, new Point((int) target.x, (int) target.y)));
     }
 
     private void portal(short ownerId, int centerX, int centerY) {

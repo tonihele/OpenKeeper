@@ -53,16 +53,17 @@ public final class Leave extends AbstractTileTask {
 
     @Override
     public Vector2f getTarget(ICreatureController creature) {
-        return WorldUtils.pointToVector2f(getTaskLocation());
+
+        // Nobody walks onto the middle of a portal. Like in DK II (0x459DE0), the creature walks to the tile next to
+        // the portal's first tile, its top left one, which is the tile above the middle
+        return WorldUtils.pointToVector2f(getTaskLocation()).subtractLocal(0, 1);
     }
 
     @Override
     public Vector2f getWorkPosition(ICreatureController creature) {
 
-        // Like in DK II (0x45A000), the creature goes a quarter of a tile into the middle of the portal, on its own side
-        Vector2f middle = getTarget(creature);
-        boolean fromNorth = creature.getPosition().z < middle.y;
-        return new Vector2f(middle.x, middle.y + (fromNorth ? -0.25f : 0.25f));
+        // From there it steps a quarter of a tile into the middle (0x45A000)
+        return WorldUtils.pointToVector2f(getTaskLocation()).subtractLocal(0, 0.25f);
     }
 
     @Override

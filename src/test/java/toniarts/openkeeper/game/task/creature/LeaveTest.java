@@ -86,12 +86,13 @@ class LeaveTest {
     }
 
     @Test
-    void creatureStepsIntoTheMiddleOfThePortalFromItsOwnSide() {
-        assertEquals(new Vector2f(5, 3.75f), leave.getWorkPosition(creature));
+    void creatureWalksToTheTileAboveTheMiddleAndStepsIn() {
 
+        // The middle of the portal can't be walked onto, so the walk ends next to it whichever side the creature is on
         position = new Vector3f(5, 0, 6);
 
-        assertEquals(new Vector2f(5, 4.25f), leave.getWorkPosition(creature));
+        assertEquals(new Vector2f(5, 3), leave.getTarget(creature));
+        assertEquals(new Vector2f(5, 3.75f), leave.getWorkPosition(creature));
     }
 
     @Test
