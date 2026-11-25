@@ -23,6 +23,7 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import com.simsilica.event.EventBus;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -81,11 +82,14 @@ import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.RoomWanted;
+import toniarts.openkeeper.game.event.ServerEvents;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -2645,6 +2649,47 @@ class KeeperAiSystemTest {
 
         assertEquals(KeeperAi.Task.TAG_ROOM, getKeeperAi().task);
         assertEquals(LAIR, getKeeperAi().roomId);
+    }
+
+    @Test
+    void plansTheRoomACreatureAskedForBeforeItsBuildOrderAndHoldsOneAskAtATime() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 1000);
+        roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
+        roomControl.setTypeAvailable(rooms.get(LAIR), true, true);
+        roomControl.setTypeAvailable(rooms.get(TRAINING_ROOM), true, true);
+        system.start();
+        try {
+
+            // Of the asks since its last turn the latest is planned, before the Treasury of its build order
+            EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(PLAYER_ID, ObjectType.LAIR));
+            EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(PLAYER_ID, ObjectType.TRAINEE));
+            system.processTick(0.25f);
+
+            assertEquals(KeeperAi.Task.FIND_ROOM_SITE, getKeeperAi().task);
+            assertEquals(TRAINING_ROOM, getKeeperAi().roomId);
+
+            // An ask takes the place of the Portal plan lined up next, and is held while it is busy
+            EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(PLAYER_ID, ObjectType.LAIR));
+            system.processTick(0.25f);
+
+            assertEquals(LAIR, getKeeperAi().wantedRoomId);
+
+            // One ask is held at a time, and nothing is asked for a room it may not build
+            EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(PLAYER_ID, ObjectType.GOLD));
+            system.processTick(0.25f);
+            EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(PLAYER_ID, ObjectType.WORSHIPPER));
+            system.processTick(0.25f);
+
+            assertEquals(LAIR, getKeeperAi().wantedRoomId);
+
+            planAgain();
+            system.processTick(0.25f);
+
+            assertEquals(KeeperAi.Task.FIND_ROOM_SITE, getKeeperAi().task);
+            assertEquals(LAIR, getKeeperAi().roomId);
+        } finally {
+            system.stop();
+        }
     }
 
     private KeeperAi getKeeperAi() {

@@ -20,6 +20,8 @@ import com.jme3.math.Vector2f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
+import com.simsilica.event.EventBus;
+import com.simsilica.event.EventListener;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
@@ -29,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.KeeperAi;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -38,9 +41,12 @@ import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.TileWork;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.event.RoomWanted;
+import toniarts.openkeeper.game.event.ServerEvents;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
@@ -174,6 +180,18 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         ROOM_TRAINING_ROOM, ROOM_WORKSHOP};
 
     /**
+     * The room a creature asks for, by what it wants to do there, as DK II's
+     * room searches ask (0x4BA420 Treasury, 0x4E0470 Lair, 0x4DED00
+     * Hatchery, 0x4E2500 Library, 0x4F3560 Training Room, 0x4F6200
+     * Workshop, 0x46D810 Prison, 0x4F2B80 Torture Chamber, 0x4F1A20 Temple,
+     * 0x4D75F0 Casino). DK II asks for a Graveyard only once a game
+     */
+    private static final Map<ObjectType, Short> ROOMS_WANTED = Map.of(ObjectType.GOLD, ROOM_TREASURY,
+            ObjectType.LAIR, ROOM_LAIR, ObjectType.FOOD, ROOM_HATCHERY, ObjectType.RESEARCHER, ROOM_LIBRARY,
+            ObjectType.TRAINEE, ROOM_TRAINING_ROOM, ObjectType.MANUFACTURER, ROOM_WORKSHOP, ObjectType.PRISONER, ROOM_PRISON,
+            ObjectType.TORTUREE, ROOM_TORTURE_CHAMBER, ObjectType.WORSHIPPER, ROOM_TEMPLE, ObjectType.GAMBLER, ROOM_CASINO);
+
+    /**
      * The room DK II's computer player likes to have each room next to
      */
     private static final Map<Short, Short> IDEAL_NEIGHBOURS = Map.ofEntries(
@@ -225,6 +243,13 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private final KeeperAiTraps traps;
     private final EntitySet keeperAis;
     private final EntitySet objects;
+
+    /**
+     * The latest room a creature of each computer player asked for since its
+     * last turn
+     */
+    private final Map<Short, ObjectType> roomsWanted = new ConcurrentHashMap<>();
+    private final EventListener<RoomWanted> roomWantedListener = (type, event) -> roomsWanted.put(event.playerId(), event.objectType());
 
     /**
      * @param entityData the entities, the computer players keep their state
@@ -338,6 +363,13 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 keeperAi.failedTargetTicks[i]--;
             }
         }
+
+        // The latest room its creatures asked for is held for the next plan
+        ObjectType asked = roomsWanted.remove(keeperAi.playerId);
+        if (asked != null && ROOMS_WANTED.containsKey(asked)) {
+            holdWantedRoom(keeperAi, playerController, ROOMS_WANTED.get(asked));
+        }
+
         // Its creatures that have turned unhappy or angry are seen to as the news comes in
         creatures.answerMoods(keeperAi, playerController, ai);
 
@@ -998,6 +1030,29 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         }
     }
 
+    /**
+     * Holds a room a creature asked for to be planned next, before the build
+     * order, as DK II does with its message 0x29 (0x4FA400, 0x4F93B0). The
+     * ask drops a Portal plan. It is held when no other room is, the room
+     * may be built, it isn't the room being planned and it has none of the
+     * kind. Otherwise it is let go, and a creature asks again the next time
+     * it looks for the room
+     */
+    private void holdWantedRoom(KeeperAi keeperAi, IPlayerController playerController, short roomId) {
+        if (keeperAi.roomWanted && keeperAi.wantedRoomId == ROOM_PORTAL) {
+            keeperAi.roomWanted = false;
+        }
+        Room room = kwdFile.getRoomById(roomId);
+        ResearchableEntity availability = room != null ? playerController.getRoomControl().getTypes().get(room) : null;
+        if (!keeperAi.roomWanted && availability != null && availability.isDiscovered() && keeperAi.roomId != roomId
+                && playerController.getRoomControl().getTypeCount(room) == 0) {
+            log(keeperAi, "room " + roomId + " is next", null, "a creature asked for it");
+            keeperAi.wantedRoomId = roomId;
+            keeperAi.wantedRoomExpand = false;
+            keeperAi.roomWanted = true;
+        }
+    }
+
     private int countPortals(IPlayerController playerController) {
         int portals = 0;
         for (short roomId : new short[]{ROOM_PORTAL, ROOM_HERO_PORTAL}) {
@@ -1620,11 +1675,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
     @Override
     public void start() {
-
+        EventBus.addListener(ServerEvents.ROOM_WANTED, roomWantedListener);
     }
 
     @Override
     public void stop() {
+        EventBus.removeListener(ServerEvents.ROOM_WANTED, roomWantedListener);
         keeperAis.release();
         objects.release();
         battles.release();
