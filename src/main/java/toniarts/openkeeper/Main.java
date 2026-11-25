@@ -263,11 +263,6 @@ public final class Main extends SimpleApplication {
     }
 
     /**
-     * The user settings, main settings
-     *
-     * @return the user settings
-     */
-    /**
      * Was the game started straight into a level with the {@code -level}
      * argument
      *
@@ -277,6 +272,11 @@ public final class Main extends SimpleApplication {
         return params != null && params.containsKey("level");
     }
 
+    /**
+     * The user settings, main settings
+     *
+     * @return the user settings
+     */
     public static Settings getUserSettings() {
         return Settings.getInstance();
     }
