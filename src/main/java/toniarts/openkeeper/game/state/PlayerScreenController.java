@@ -68,6 +68,7 @@ import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.game.sound.MentorType;
 import toniarts.openkeeper.gui.nifty.AbstractCreatureCardControl.CreatureUIState;
 import toniarts.openkeeper.gui.nifty.*;
+import toniarts.openkeeper.gui.nifty.effect.SimpleHintEx;
 import toniarts.openkeeper.gui.nifty.flowlayout.FlowLayoutControl;
 import toniarts.openkeeper.gui.nifty.guiicon.GuiIconBuilder;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
@@ -102,6 +103,7 @@ import java.time.format.FormatStyle;
 import java.util.*;
 import java.util.List;
 import javax.annotation.Nullable;
+import java.util.function.Supplier;
 
 /**
  *
@@ -152,6 +154,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private EntitySet battles;
     private int battleIndex = -1;
     private CreatureCardManager creatureCardManager;
+    private EntitySet payDayClocks;
+    private ResearchEffectControl payDayRing;
+    private float payDayTimeLeft;
+    private int payDayCost;
     private EntitySet callToArmsBanners;
     private WatchedEntity possessedCreature;
     private int lastImpCount = -1;
@@ -193,6 +199,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     populateSpellTab();
                 }
             }
+            if (payDayClocks != null && payDayClocks.applyChanges()) {
+                updatePayDay();
+            }
             if (battles != null && battles.applyChanges()) {
                 showBattleButton();
             }
@@ -203,6 +212,42 @@ public final class PlayerScreenController implements IPlayerScreenController {
             }
             lastUpdate = 0;
         }
+    }
+
+    private void updatePayDay() {
+        for (Entity entity : payDayClocks) {
+            PayDayClock payDayClock = entity.get(PayDayClock.class);
+            payDayTimeLeft = payDayClock.getTimeLeftFraction();
+            payDayCost = payDayClock.cost;
+        }
+        if (payDayRing != null) {
+            payDayRing.setResearch(payDayTimeLeft);
+        }
+    }
+
+    /**
+     * The ring round the pay day coin shows the time left to the next pay day,
+     * it empties counterclockwise towards the pay day (DKII.EXE 0x415000).
+     * Like in the original, the ring is behind the coin and shows
+     * through its six windows. Drawn over the HUD, so the coin is drawn again
+     * over the ring, and it is made again each time the HUD comes back.
+     */
+    private void initPayDayRing() {
+        Element payDay = screen.findElementById("payDay");
+        if (payDay == null) {
+            return;
+        }
+        if (payDayRing != null) {
+            payDayRing.getElement().markForRemoval();
+        }
+        payDayRing = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
+            {
+                parameter("image", "Textures/GUI/Windows/payday-Hp.png");
+                parameter("frontImage", "Textures/GUI/Windows/payday-BG.png");
+            }
+        }.build(payDay).getControl(ResearchEffectControl.class);
+        payDayRing.initJme(state.app);
+        payDayRing.setResearch(payDayTimeLeft);
     }
 
     /**
@@ -251,6 +296,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
             creatureCardManager.cleanup();
             creatureCardManager = null;
         }
+        if (payDayClocks != null) {
+            payDayClocks.release();
+            payDayClocks = null;
+        }
+        payDayRing = null;
         if (battles != null) {
             battles.release();
             battles = null;
@@ -855,6 +905,15 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     /**
+     * What the next pay day costs, for the gold's tooltip
+     *
+     * @return the cost
+     */
+    public int getPayDayCost() {
+        return payDayCost;
+    }
+
+    /**
      * Battle tab right click: zoom to the next battle of our creatures. Each
      * click moves on to the next battle.
      */
@@ -1014,6 +1073,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     initHud = false;
                     initHudItems(state.assetManager, entityData);
                 }
+                initPayDayRing();
+
+                // The heart's and the pay day's hints show values, so they ask for their text each time they show
+                screen.findElementById("heartHint").setUserData(SimpleHintEx.HINT_TEXT_SUPPLIER,
+                        (Supplier<String>) () -> getTooltipText("2140"));
+                screen.findElementById("payDayHint").setUserData(SimpleHintEx.HINT_TEXT_SUPPLIER,
+                        (Supplier<String>) () -> getTooltipText("2144"));
 
                 break;
             }
@@ -1350,6 +1416,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
         creatureCardManager = new CreatureCardManager(this, state.getKwdFile(), entityData, creaturePanel,
                 creatureTab.findControl("tab-creature-scroll", CreaturePortraitScrollControl.class),
                 workerAmountControl, hud, state.getPlayer().getId());
+        if (payDayClocks != null) {
+            payDayClocks.release();
+        }
+        payDayClocks = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", state.getPlayer().getId()),
+                PayDayClock.class, Owner.class);
         battles = entityData.getEntities(Battle.class);
         showBattleButton();
         callToArmsBanners = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", state.getPlayer().getId()),

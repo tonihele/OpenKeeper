@@ -828,7 +828,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 IEntityViewControl entityViewControl = keeperHandState.getItem();
                 if (entityViewControl != null) {
                     IMapTileInformation mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
-                    if (!isDropBlocked(entityViewControl, p)
+                    if (mapTile != null && !isDropBlocked(entityViewControl, p)
                             && entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
                         gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
 
