@@ -85,10 +85,11 @@ public final class EntitySteeringFactory {
 
             if (faceTarget != null) {
 
-                // Add reach orientation
+                // Add reach orientation, from where the path ends. That can be off the middle of the tile, even on
+                // the tile to face
                 ReachOrientation orient = new ReachOrientation(steerable,
                         new TargetLocation(WorldUtils.pointToVector2(faceTarget),
-                                WorldUtils.pointToVector2(p)));
+                                path.isEmpty() ? WorldUtils.pointToVector2(p) : path.getLast()));
                 orient.setDecelerationRadius(0.2f);
                 orient.setTimeToTarget(0.001f);
                 orient.setAlignTolerance(0.1f);

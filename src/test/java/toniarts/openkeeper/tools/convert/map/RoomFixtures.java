@@ -9,6 +9,11 @@ import java.util.List;
  */
 public final class RoomFixtures {
 
+    /** DK II's flags for the rooms that place floor furniture (Library, Casino, Prison etc.) */
+    private static final Room.RoomFlag[] SPECIAL_TILES_ROOM_FLAGS = {Room.RoomFlag.PLACEABLE_ON_LAND,
+        Room.RoomFlag.HAS_WALLS, Room.RoomFlag.SPECIAL_TILES, Room.RoomFlag.BUILDABLE,
+        Room.RoomFlag.SPECIAL_WALLS, Room.RoomFlag.HAS_FLAME};
+
     private RoomFixtures() {
     }
 
@@ -52,13 +57,14 @@ public final class RoomFixtures {
     }
 
     public static Room roomWithObjects(short roomId, Short... objects) {
-        Room room = room(roomId, 0);
+        Room room = room(roomId, 0, SPECIAL_TILES_ROOM_FLAGS);
         room.setObjects(List.of(objects));
         return room;
     }
 
     public static Room room(short roomId, List<Short> objects, Room.RoomFlag... flags) {
         Room room = room(roomId, 0, flags);
+        room.getFlags().addAll(List.of(SPECIAL_TILES_ROOM_FLAGS));
         room.setObjects(objects);
         return room;
     }

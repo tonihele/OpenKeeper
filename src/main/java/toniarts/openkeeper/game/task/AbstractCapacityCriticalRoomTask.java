@@ -16,10 +16,17 @@
  */
 package toniarts.openkeeper.game.task;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityId;
+import java.util.ArrayList;
+import java.util.List;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -33,6 +40,7 @@ public abstract class AbstractCapacityCriticalRoomTask extends AbstractRoomTask 
 
     protected final TaskManager taskManager;
     private Vector2f placeNextToFurniture;
+    private IObjectController furniture;
 
     public AbstractCapacityCriticalRoomTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room, TaskManager taskManager) {
         super(navigationService, mapController, p, playerId, room);
@@ -85,20 +93,88 @@ public abstract class AbstractCapacityCriticalRoomTask extends AbstractRoomTask 
     }
 
     /**
-     * Where the creature stands to work at the furniture: halfway from the
-     * middle of the tile next to it to the furniture. That is right in front
-     * of the furniture, at the edge of its tile
+     * The furniture on the task's tile, looked up once
      *
-     * @param creature the creature doing the task
-     * @return the position, {@code null} if there is no free tile next to the
-     * furniture
+     * @param objectsController the objects controller
+     * @return the furniture, {@code null} if the tile has none
      */
-    protected Vector2f getWorkPositionAtFurniture(ICreatureController creature) {
-        Vector2f nextToFurniture = getTargetNextToFurniture(creature);
-        if (nextToFurniture == null) {
-            return null;
+    protected IObjectController getFurniture(IObjectsController objectsController) {
+        if (furniture == null) {
+            List<EntityId> pieces = new ArrayList<>(getRoom().getFloorFurniture());
+            pieces.addAll(getRoom().getWallFurniture());
+            for (EntityId entityId : pieces) {
+                IObjectController piece = objectsController.createController(entityId);
+                if (getTaskLocation().equals(WorldUtils.vectorToPoint(piece.getPosition()))) {
+                    furniture = piece;
+                    break;
+                }
+            }
         }
-        return WorldUtils.pointToVector2f(getTaskLocation()).addLocal(nextToFurniture).multLocal(0.5f);
+        return furniture;
+    }
+
+    /**
+     * Is the furniture against a wall of the room
+     *
+     * @param furniture the furniture
+     * @return true for wall furniture
+     */
+    protected boolean isOnWall(IObjectController furniture) {
+        return getRoom().getWallFurniture().contains(furniture.getEntityId());
+    }
+
+    /**
+     * The angle from a piece of wall furniture into the room, from the piece
+     * to the middle of its tile
+     *
+     * @param furniture the wall furniture
+     * @return the angle, measured like DK II's
+     * {@link #getPositionAt(Vector3f, float, float)}
+     */
+    protected float getAngleIntoRoom(IObjectController furniture) {
+        Vector3f position = furniture.getPosition();
+        return FastMath.atan2(getTaskLocation().x - position.x, position.z - getTaskLocation().y);
+    }
+
+    /**
+     * At a piece of wall furniture the creature stands about the middle of the
+     * tile, so it turns to the wall behind the piece
+     */
+    @Override
+    public Point getFaceLocation() {
+        if (furniture == null || !isOnWall(furniture)) {
+            return getTaskLocation();
+        }
+        Vector3f position = furniture.getPosition();
+        return new Point(getTaskLocation().x + (int) Math.signum(position.x - getTaskLocation().x),
+                getTaskLocation().y + (int) Math.signum(position.z - getTaskLocation().y));
+    }
+
+    /**
+     * How far DK II puts a creature from the middle of the furniture it uses:
+     * half the furniture's width plus half the creature's width, so that the
+     * two just touch (object +0xF8, creature +0x63A)
+     *
+     * @param furniture the furniture
+     * @param creature the creature
+     * @return the distance in tiles
+     */
+    protected static float getDistanceToFurniture(IObjectController furniture, ICreatureController creature) {
+        return (furniture.getObject().getWidth() + creature.getCreature().getAttributes().getWidth()) / 2;
+    }
+
+    /**
+     * A spot at a distance and an angle from a point. Like DK II's sine and
+     * cosine tables (0x6C1488, 0x6C1C88) the angle 0 points north, a quarter
+     * turn east
+     *
+     * @param from the point
+     * @param angle the angle in radians
+     * @param distance the distance in tiles
+     * @return the spot
+     */
+    protected static Vector2f getPositionAt(Vector3f from, float angle, float distance) {
+        return new Vector2f(from.x + FastMath.sin(angle) * distance, from.z - FastMath.cos(angle) * distance);
     }
 
 }

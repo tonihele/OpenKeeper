@@ -84,6 +84,11 @@ import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.InfernoArea;
 import toniarts.openkeeper.game.component.JobPicked;
+import toniarts.openkeeper.game.component.KeeperAi;
+import toniarts.openkeeper.game.component.KeeperAiDropped;
+import toniarts.openkeeper.game.component.KeeperAiEnemy;
+import toniarts.openkeeper.game.component.KeeperAiMood;
+import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
 import toniarts.openkeeper.game.component.KeeperInformation;
 import toniarts.openkeeper.game.component.KeeperSpellCast;
 import toniarts.openkeeper.game.component.LevelIndicator;
@@ -211,6 +216,7 @@ public final class NetworkServer {
             Serializer.registerClass(PlayerSpell.class, new FieldSerializer());
             Serializer.registerClass(ResearchableType.class, new EnumSerializer());
             Serializer.registerClass(Casino.PayOut.class, new EnumSerializer());
+            Serializer.registerClass(CreatureFall.FallType.class, new EnumSerializer());
 
             // Events
             Serializer.registerClass(GameEventType.class, new EnumSerializer());
@@ -272,6 +278,11 @@ public final class NetworkServer {
             Serializer.registerClass(Interaction.class, new FieldSerializer());
             Serializer.registerClass(InfernoArea.class, new FieldSerializer());
             Serializer.registerClass(JobPicked.class, new FieldSerializer());
+            Serializer.registerClass(KeeperAi.class, new FieldSerializer());
+            Serializer.registerClass(KeeperAiDropped.class, new FieldSerializer());
+            Serializer.registerClass(KeeperAiEnemy.class, new FieldSerializer());
+            Serializer.registerClass(KeeperAiMood.class, new FieldSerializer());
+            Serializer.registerClass(KeeperAiNoPrisoner.class, new FieldSerializer());
             Serializer.registerClass(KeeperInformation.class, new FieldSerializer());
             Serializer.registerClass(KeeperSpellCast.class, new FieldSerializer());
             Serializer.registerClass(LevelIndicator.class, new FieldSerializer());

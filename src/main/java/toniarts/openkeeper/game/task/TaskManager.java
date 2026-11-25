@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Placeable;
@@ -443,6 +444,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // Add rescue mission for the own troops and capture for the enemy
         for (Entity entity : entities) {
             Owner owner = entity.get(Owner.class);
+            KeeperAiNoPrisoner noPrisoner = entityData.getComponent(entity.getId(), KeeperAiNoPrisoner.class);
             for (Entry<Short, Set<Task>> entry : taskQueues.entrySet()) {
 
                 Task task = null;
@@ -450,9 +452,10 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
                     // Rescue
                     task = new RescueCreatureTask(this, navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey());
-                } else if (playerControllers.get(entry.getKey()).getKeeper().isEnemy(owner.ownerId)) {
+                } else if (playerControllers.get(entry.getKey()).getKeeper().isEnemy(owner.ownerId)
+                        && (noPrisoner == null || (noPrisoner.players & 1 << entry.getKey()) == 0)) {
 
-                    // Capture
+                    // Capture, unless a computer player has decided to let it die
                     task = new CaptureEnemyCreatureTask(navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey(), this);
                 }
 
@@ -764,7 +767,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             addTask(playerId, new DigTileTask(navigationService, mapController, tile, playerId));
         } // Claim wall
         else if (mapController.isClaimableWall(mapTile, terrain, playerId)) {
-            addTask(playerId, new ClaimWallTileTask(navigationService, mapController, tile, playerId));
+
+            // Nobody's reinforced wall only becomes work once it is below half its health (DKII.EXE 0x453E90)
+            if (!terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) || mapTile.getHealth() < mapTile.getMaxHealth() / 2) {
+                addTask(playerId, new ClaimWallTileTask(navigationService, mapController, tile, playerId));
+            }
         } // Claim
         else if (mapController.isClaimableTile(mapTile, terrain, playerId)) {
             addTask(playerId, new ClaimTileTask(navigationService, mapController, tile, playerId));
@@ -902,11 +909,13 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
             // Take a free point first. A room can take more than it has points, like one more
-            // trainee than the Training Room has dummies, so then the points are shared until it is full
+            // trainee than the Training Room has dummies, so then the points are shared until it is full.
+            // A Casino object takes one gambler only, DK II skips an object another creature has (0x4D7460)
             if (taskPoints != null) {
                 List<Point> freeCoordinates = new ArrayList<>(coordinates);
                 freeCoordinates.removeAll(taskPoints.values());
-                if (!freeCoordinates.isEmpty() || taskPoints.size() + control.getCurrentCapacity() >= control.getMaxCapacity()) {
+                if (!freeCoordinates.isEmpty() || objectType == ObjectType.GAMBLER
+                        || taskPoints.size() + control.getCurrentCapacity() >= control.getMaxCapacity()) {
                     coordinates = freeCoordinates;
                 }
             }
