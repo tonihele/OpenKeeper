@@ -1670,7 +1670,7 @@ public final class CreatureController extends EntityController implements ICreat
         if (bannerPosition == null) {
             return false;
         }
-        Point destination = WorldUtils.vectorToPoint(bannerPosition.position);
+        Point destination = getCallToArmsTile(WorldUtils.vectorToPoint(bannerPosition.position));
         GraphPath<IMapTileInformation> path = navigationService.findPath(getCreatureCoordinates(), destination, this);
         if (path == null) {
             return false;
@@ -1702,7 +1702,7 @@ public final class CreatureController extends EntityController implements ICreat
         Point banner = WorldUtils.vectorToPoint(bannerPosition.position);
         Point ourPosition = getCreatureCoordinates();
         if (Math.max(Math.abs(ourPosition.x - banner.x), Math.abs(ourPosition.y - banner.y)) > 2) {
-            if (createNavigation(ourPosition, banner, null)) {
+            if (createNavigation(ourPosition, getCallToArmsTile(banner), null)) {
                 gameEventService.emitToPlayer(GameEventType.CALL_TO_ARMS_UNREACHABLE, getOwnerId());
                 return false;
             }
@@ -1710,6 +1710,18 @@ public final class CreatureController extends EntityController implements ICreat
             navigateToRandomPointAroundTarget(followTarget.entityId, 2);
         }
         return true;
+    }
+
+    /**
+     * The tile to make for at a Call to Arms banner: its own, or the nearest
+     * tile of its room a creature can stand on. In DK II the middle of the
+     * Dungeon Heart, where the computer player puts its flag, can be walked
+     * on
+     */
+    private Point getCallToArmsTile(Point banner) {
+        IRoomController room = mapController.getRoomControllerByCoordinates(banner);
+        Point tile = room != null ? room.getAccessibleTile(banner) : null;
+        return tile != null ? tile : banner;
     }
 
     /**

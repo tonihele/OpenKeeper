@@ -23,6 +23,7 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -277,6 +278,7 @@ class KeeperAiSystemTest {
     private final Map<Short, EntityId> battleCasts = new HashMap<>();
     private PlayerRoomControl enemyRoomControl;
     private boolean reachable;
+    private final Set<Point> closedTiles = new HashSet<>();
     private final List<List<Point>> routesAsked = new ArrayList<>();
     private final Set<Short> fullRooms = new HashSet<>();
 
@@ -2024,6 +2026,40 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void callsItsCreaturesToArmsInTheMiddleOfAWalledInEnemyHeartOnceTheyCanWalkToTheHeart() {
+        KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 5, 1,
+                AI.CallToArmsUsagePolicy.AT_HEART, 0), 1000);
+        spellControl.setTypeAvailable(callToArms, true, true);
+        enemyRoomControl.onBuild(createRoom(DUNGEON_HEART, new Point(7, 6)));
+        KeeperAiEnemy invaded = new KeeperAiEnemy(PLAYER_ID, ENEMY_ID, 0);
+        invaded.invaded = true;
+        entityData.setComponent(entityData.createEntity(), invaded);
+        createCreature(PLAYER_ID, new Point(1, 4), 100, 100, CreatureState.WORK);
+        reachable = true;
+
+        // The heart's middle and the walls round it can't be walked to, so of
+        // DK II's four tiles 2 from the reference tile (8, 7) only (6, 5), in
+        // the heart's middle, is left
+        for (int x = 4; x <= 10; x++) {
+            for (int y = 3; y <= 9; y++) {
+                if (Math.max(Math.abs(x - 7), Math.abs(y - 6)) != 2) {
+                    closedTiles.add(new Point(x, y));
+                }
+            }
+        }
+
+        for (int tick = 0; tick < 100 && callToArmsCasts.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+
+        // The flag goes on DK II's tile, the way is asked to the nearest tile
+        // of the heart a creature can stand on
+        assertEquals(List.of(new Point(6, 5)), callToArmsCasts);
+        assertTrue(routesAsked.stream().anyMatch(route -> route.get(1).equals(new Point(6, 4))));
+        assertTrue(getKeeperAi().callToArms);
+    }
+
+    @Test
     void callsItsCreaturesToArmsAtAHostileRoomWhenThereIsNoEnemyHeart() {
         KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 5, 1,
                 AI.CallToArmsUsagePolicy.AT_HEART, 0), 1000);
@@ -2772,6 +2808,12 @@ class KeeperAiSystemTest {
             case "getRoom" -> rooms.get(roomId);
             case "isDungeonHeart" -> roomId == DUNGEON_HEART;
             case "getRoomInstance" -> roomInstance;
+
+            // As in OpenKeeper, the middle 3 x 3 of the Dungeon Heart can't be stood on
+            case "isTileAccessible" -> roomId != DUNGEON_HEART
+                    || Math.abs(((Point) args[1]).x - roomInstance.getCenter().x) > 1
+                    || Math.abs(((Point) args[1]).y - roomInstance.getCenter().y) > 1;
+            case "getAccessibleTile" -> InvocationHandler.invokeDefault(proxy, method, args);
             case "isFullCapacity" -> fullRooms.contains(roomId);
             case "hasObjectControl" -> roomId == HATCHERY;
             case "getObjectControl" -> Proxy.newProxyInstance(getClass().getClassLoader(),
@@ -2862,7 +2904,7 @@ class KeeperAiSystemTest {
      * A way along x and then along y, when the way is open
      */
     private GraphPath<IMapTileInformation> findPath(Point from, Point to) {
-        if (!reachable) {
+        if (!reachable || closedTiles.contains(to)) {
             return null;
         }
         DefaultGraphPath<IMapTileInformation> path = new DefaultGraphPath<>();

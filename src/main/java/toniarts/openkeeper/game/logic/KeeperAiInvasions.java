@@ -428,7 +428,12 @@ final class KeeperAiInvasions {
                     : centre;
             Point from = WorldUtils.vectorToPoint(walker.get(Position.class).position);
             var navigable = gameWorldController.getCreaturesController().createController(walker.getId());
-            if (navigationService.findPath(from, corner, navigable) == null) {
+
+            // DK II asks its navigation map (0x4D0E60), where the middle of
+            // the heart can be walked on. Here it can't, so the creatures make
+            // for the nearest tile of the heart they can stand on
+            Point walkTo = heart.getAccessibleTile(corner);
+            if (walkTo == null || navigationService.findPath(from, walkTo, navigable) == null) {
                 continue;
             }
             if (policy != AI.CallToArmsUsagePolicy.TOWARDS_HEART) {
@@ -451,9 +456,9 @@ final class KeeperAiInvasions {
                 }
             }
             GraphPath<IMapTileInformation> path = keeperAi.rallyTile != null
-                    ? navigationService.findPath(keeperAi.rallyTile, corner, navigable) : null;
+                    ? navigationService.findPath(keeperAi.rallyTile, walkTo, navigable) : null;
             if (path != null && path.getCount() > 0 && fighters <= near * 5 / 4) {
-                return path.get(Math.min(RALLY_STEP_TILES, path.getCount() - 1)).getLocation();
+                return path.getCount() - 1 > RALLY_STEP_TILES ? path.get(RALLY_STEP_TILES).getLocation() : corner;
             }
         }
 
