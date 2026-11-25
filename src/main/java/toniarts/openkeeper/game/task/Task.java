@@ -124,6 +124,15 @@ public interface Task {
     boolean isFaceTarget();
 
     /**
+     * The tile the creature turns to when it faces the task
+     *
+     * @return the tile, by default the task location
+     */
+    default Point getFaceLocation() {
+        return getTaskLocation();
+    }
+
+    /**
      * Where exactly the creature stands to do the task. If it differs from the
      * target, the navigation ends here instead of in the middle of the target
      * tile.

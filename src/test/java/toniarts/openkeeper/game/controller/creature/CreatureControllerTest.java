@@ -46,6 +46,7 @@ import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -58,6 +59,7 @@ import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.WithdrawnFrom;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -399,6 +401,39 @@ class CreatureControllerTest {
     }
 
     @Test
+    void sleeperLiesOnItsHiddenBedWithTheBedsFacingAndTheBedShowsAgainWhenItWakes() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponents(f.bed, new Position(1.5f, new Vector3f(3.25f, WorldUtils.FLOOR_HEIGHT, 4.5f)),
+                    new ObjectViewState((short) 1, null, ObjectViewState.GameObjectAnimState.MESH_RESOURCE, true));
+            f.data.setComponent(f.entity, new Position(0, new Vector3f(3.6f, WorldUtils.FLOOR_HEIGHT, 4.1f)));
+            f.sleepNow();
+
+            Position position = f.data.getComponent(f.entity, Position.class);
+            assertEquals(1.5f, position.rotation);
+            assertEquals(new Vector3f(3.25f, WorldUtils.FLOOR_HEIGHT, 4.5f), position.position);
+            assertFalse(f.data.getComponent(f.bed, ObjectViewState.class).visible);
+
+            for (int i = 0; i < 100 && f.state() == CreatureState.SLEEPING; i++) {
+                f.tick();
+            }
+            assertEquals(CreatureState.IDLE, f.state());
+            assertTrue(f.data.getComponent(f.bed, ObjectViewState.class).visible);
+        }
+    }
+
+    @Test
+    void heroBedStaysInSightWhileItsOwnerSleeps() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.bed, new ObjectViewState(ObjectsController.OBJECT_HERO_BED_ID, null,
+                    ObjectViewState.GameObjectAnimState.MESH_RESOURCE, true));
+            f.sleepNow();
+
+            assertEquals(CreatureState.SLEEPING, f.state());
+            assertTrue(f.data.getComponent(f.bed, ObjectViewState.class).visible);
+        }
+    }
+
+    @Test
     void recoveryStartsOnTheNextGlobalSecondAndPreservesBothClocks() {
         try (Fixture f = new Fixture(9)) {
             f.tick();
@@ -501,6 +536,29 @@ class CreatureControllerTest {
         assertNull(workerStateWithHeroAt(3.5f, 7, null));
         assertNull(workerStateWithHeroAt(3.5f, 20, null));
         assertNull(workerStateWithHeroAt(3.5f, 20, false));
+    }
+
+    @Test
+    void workerAwayFromItsHeartOnlyFightsAnEnemyImpInReach() {
+        assertEquals(CreatureState.FIGHT, workerStateWithEnemyAt(3.5f, true));
+        assertNull(workerStateWithEnemyAt(3.5f, false)); // Another enemy creature, keeps working
+        assertNull(workerStateWithEnemyAt(6, true)); // Out of reach
+    }
+
+    private static CreatureState workerStateWithEnemyAt(float x, boolean imp) {
+        Creature definition = CreatureSleepFixtures.worker();
+        try (Fixture f = new Fixture(definition)) {
+            CreatureComponent component = new CreatureComponent();
+            component.creatureId = imp ? definition.getCreatureId() : 6;
+            EntityId enemy = f.data.createEntity();
+            f.data.setComponents(enemy, component, new Owner((short) 4, (short) 4), new Health(500, 500),
+                    new Position(0, new Vector3f(x, WorldUtils.FLOOR_HEIGHT, 4)));
+            f.data.removeComponent(f.entity, Fearless.class);
+            f.sensed = Set.of(enemy);
+            f.keeper.setDungeonHeartLocation(new Point(20, 4));
+            f.controller.shouldFleeOrAttack();
+            return f.state();
+        }
     }
 
     @Test
@@ -911,6 +969,20 @@ class CreatureControllerTest {
         return component;
     }
 
+    @Test
+    void isAtTheTaskWhenStandingOnItsWorkPosition() {
+        try (Fixture f = new Fixture(9)) {
+            f.startWork(TaskType.TRAIN);
+
+            // Away from the middle of the target tile, but where the task wants us
+            f.data.setComponent(f.entity, new Position(0, new Vector3f(3.9f, WorldUtils.FLOOR_HEIGHT, 4.6f)));
+            assertFalse(f.controller.isAtAssignedTaskTarget());
+
+            f.workPosition = new Vector2f(3.9f, 4.6f);
+            assertTrue(f.controller.isAtAssignedTaskTarget());
+        }
+    }
+
     private static final class Fixture implements AutoCloseable {
         final EntityData data = new DefaultEntityData();
         final EntityId entity = data.createEntity();
@@ -940,6 +1012,7 @@ class CreatureControllerTest {
         int lairSearches;
         int oldJobUnassignments;
         int targetQueries;
+        Vector2f workPosition;
         double time;
 
         Fixture(int timeSleep) {
@@ -1073,8 +1146,11 @@ class CreatureControllerTest {
                 case "getTaskType" -> type;
                 case "isValid" -> true;
                 case "moveToOtherSpot" -> false;
-                case "getTarget" -> { targetQueries++; yield new Vector2f(3, 4); }
-                case "getWorkPosition" -> null;
+                case "getTarget" -> {
+                    targetQueries++;
+                    yield new Vector2f(3, 4);
+                }
+                case "getWorkPosition" -> workPosition;
                 case "getTaskTarget", "getTaskLocation", "executeTask" -> null;
                 case "unassign" -> { oldJobUnassignments++; yield null; }
                 default -> throw new UnsupportedOperationException(method);
