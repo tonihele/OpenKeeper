@@ -35,7 +35,6 @@ import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
-import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
@@ -540,12 +539,13 @@ class CreatureControllerTest {
 
     @Test
     void workerAwayFromItsHeartOnlyFightsAnEnemyImpInReach() {
-        assertEquals(CreatureState.FIGHT, workerStateWithEnemyAt(3.5f, true));
-        assertNull(workerStateWithEnemyAt(3.5f, false)); // Another enemy creature, keeps working
-        assertNull(workerStateWithEnemyAt(6, true)); // Out of reach
+        assertEquals(CreatureState.FIGHT, workerStateWithEnemyAt(3.5f, true, false));
+        assertEquals(CreatureState.FIGHT, workerStateWithEnemyAt(3.5f, true, true)); // One that runs away too (0x45BDF0)
+        assertNull(workerStateWithEnemyAt(3.5f, false, false)); // Another enemy creature, keeps working
+        assertNull(workerStateWithEnemyAt(6, true, false)); // Out of reach
     }
 
-    private static CreatureState workerStateWithEnemyAt(float x, boolean imp) {
+    private static CreatureState workerStateWithEnemyAt(float x, boolean imp, boolean fleeing) {
         Creature definition = CreatureSleepFixtures.worker();
         try (Fixture f = new Fixture(definition)) {
             CreatureComponent component = new CreatureComponent();
@@ -553,6 +553,10 @@ class CreatureControllerTest {
             EntityId enemy = f.data.createEntity();
             f.data.setComponents(enemy, component, new Owner((short) 4, (short) 4), new Health(500, 500),
                     new Position(0, new Vector3f(x, WorldUtils.FLOOR_HEIGHT, 4)));
+            if (fleeing) {
+                f.data.setComponent(f.entity, new CreatureMeleeAttack(0, 30, 1.2f, .3f));
+                f.data.setComponent(enemy, new CreatureAi(0, CreatureState.FLEE, component.creatureId));
+            }
             f.data.removeComponent(f.entity, Fearless.class);
             f.sensed = Set.of(enemy);
             f.keeper.setDungeonHeartLocation(new Point(20, 4));

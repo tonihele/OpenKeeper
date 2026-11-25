@@ -348,7 +348,8 @@ public final class CreatureController extends EntityController implements ICreat
     /**
      * Finds an enemy Imp in reach of a non-fighter. DK II's non-fighters take
      * on an enemy Imp wherever they are, other enemies only near their own
-     * heart (0x45BDF0)
+     * heart. One that runs away counts too, as DK II only asks whether it
+     * can be attacked (0x45BDF0)
      *
      * @return the enemy Imp to fight, or {@code null} if there is none
      */
@@ -357,7 +358,7 @@ public final class CreatureController extends EntityController implements ICreat
         for (EntityId entity : getEntitiesInNoticeRange()) {
             CreatureComponent other = entityData.getComponent(entity, CreatureComponent.class);
             if (other != null && other.creatureId == impId && creaturesController.isValidEntity(entity)
-                    && isEnemy(entity) && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
+                    && isEnemy(entity) && !(isIncapacitated(entity) || isCaptive(entity))
                     && isNoticed(entity) && isInRange(WorldUtils.TILE_WIDTH, entity)) {
                 setAttackTarget(entity);
                 return creaturesController.createController(entity);
