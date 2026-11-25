@@ -49,6 +49,11 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
     private static final float CHANGE_STATUS_INTERVAL = 0.5f;
     private static final float REDRAW_INTERVAL = 0.1f;
     private static final long TURNCOAT_BLINK_MILLIS = 333;
+    // The complaint of each anger reason, in CreatureMood's reason order
+    private static final String[] MOOD_REASON_ICONS = {"Textures/GUI/moods/SJ-Mistreat.png",
+        "Textures/GUI/moods/SJ-Hungry.png", "Textures/GUI/moods/SJ-Rest.png",
+        "Textures/GUI/moods/SJ-Busy.png", "Textures/GUI/moods/SJ-PayDay.png",
+        "Textures/GUI/moods/SJ-Mistreat.png"};
 
     private short currentDrawnOwnerId;
     private float timeCurrentStatusVisible = 0;
@@ -226,9 +231,8 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
     private String getMoodReasonIcon() {
         CreatureMood mood = getEntity().get(CreatureMood.class);
-        if (mood != null && getMoodState() > 0
-                && mood.getDominantReason() == CreatureMood.REASON_NO_LAIR) {
-            return "Textures/GUI/moods/SJ-Rest.png";
+        if (mood != null && getMoodState() > 0) {
+            return MOOD_REASON_ICONS[mood.getDominantReason()];
         }
         return null;
     }
