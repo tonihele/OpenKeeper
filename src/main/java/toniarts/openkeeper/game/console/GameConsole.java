@@ -57,7 +57,7 @@ public final class GameConsole {
         ADD_GOLD("<amount>"),
         ADD_MANA("<amount>"),
         SPAWN_CREATURE("<name> [level] [amount]"),
-        SPAWN_IMPS("[amount] [level]");
+        SPAWN_IMPS("[level] [amount]");
 
         final String param;
 
@@ -215,11 +215,11 @@ public final class GameConsole {
                     break;
                 case SPAWN_IMPS:
                     try {
-                        int amount = args.length > 1 ? Integer.parseInt(args[1]) : 1;
-                        int level = args.length > 2 ? Integer.parseInt(args[2]) : 1;
+                        int level = args.length > 1 ? Integer.parseInt(args[1]) : 1;
+                        int amount = args.length > 2 ? Integer.parseInt(args[2]) : 1;
                         spawnImps(amount, level);
                     } catch (NumberFormatException e) {
-                        console.outputError("Usage: spawn_imps [amount] [level]");
+                        console.outputError("Usage: spawn_imps [level] [amount]");
                     }
                     break;
                 case SPAWN_CREATURE:

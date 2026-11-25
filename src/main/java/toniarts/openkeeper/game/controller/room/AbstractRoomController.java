@@ -283,7 +283,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
      * Picks a repeatable furniture choice from absolute map coordinates, using
      * DK II's tile-seeded random number generator (0x4EDFC0).
      */
-    protected static int getTileRandom(Point p, int bound) {
+    public static int getTileRandom(Point p, int bound) {
         int seed = random(nextSeed(p.y), 0x2286) ^ random(nextSeed(p.x), 0x16F2);
         return random(nextSeed(seed), bound);
     }
@@ -525,6 +525,11 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         for (IRoomObjectControl control : objectControls.values()) {
             control.captured(playerId);
         }
+    }
+
+    @Override
+    public int getScriptFurnitureCount() {
+        return isRemoved() ? 0 : RoomScriptFurnitureCounter.count(this, entityData);
     }
 
     /**

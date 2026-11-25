@@ -110,7 +110,7 @@
                         </panel>
                     </panel>
 
-                    <panel width="*" childLayout="overlay">
+                    <panel width="*" childLayout="horizontal" paddingLeft="10px" paddingRight="10px">
                         <control name="auto-scroll-text" id="tooltip" textStyle="textSmall" text="" />
                     </panel>
                     <panel width="64px" align="left" valign="center" />

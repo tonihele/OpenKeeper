@@ -84,6 +84,7 @@ class MapControllerTest {
             case "getMap" -> map;
             case "getTerrain" -> terrains.get((Short) args[0]);
             case "getThings" -> List.of();
+            case "getGameLevel" -> CreatureSleepFixtures.level(4);
             default -> throw new UnsupportedOperationException(method.getName());
         });
         Map<Short, Keeper> players = Map.of(NEUTRAL, new Keeper(false, NEUTRAL), KEEPER, new Keeper(false, KEEPER));
