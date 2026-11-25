@@ -143,6 +143,8 @@ class DugOutWallTest {
                 map;
             case "getTerrain" ->
                 wall;
+            case "getThings" ->
+                List.of();
             default ->
                 throw new UnsupportedOperationException(name);
         });
