@@ -30,6 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CombatPitFighter;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
@@ -54,7 +55,9 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CombatPitFightTest {
 
@@ -68,6 +71,7 @@ class CombatPitFightTest {
     private Map<MiscType, MiscVariable> gameSettings;
     private Map<EntityId, Set<EntityId>> sensed;
     private EntityId pit;
+    private double gameTime;
 
     @BeforeEach
     void setUp() {
@@ -79,6 +83,7 @@ class CombatPitFightTest {
         gameSettings.put(MiscType.PIT_PERCENTAGE_DAMAGE_TAKEN_OF_NORMAL_COMBAT, CombatPitFixtures.pitVariable(MiscType.PIT_PERCENTAGE_DAMAGE_TAKEN_OF_NORMAL_COMBAT, 20));
         sensed = new HashMap<>();
         pit = entityData.createEntity();
+        gameTime = 10.0;
     }
 
     @Test
@@ -156,17 +161,34 @@ class CombatPitFightTest {
     }
 
     @Test
-    void beatingTheOpponentCheersTheVictorUpOnce() {
-        gameSettings.put(MiscType.MODIFY_ANGER_OF_COMBAT_PIT_VICTOR, CombatPitFixtures.pitVariable(MiscType.MODIFY_ANGER_OF_COMBAT_PIT_VICTOR, -16400));
+    void beatingTheOpponentIsAWinOnce() {
         EntityId us = createFighter(KEEPER, 1, 5, pit);
         EntityId beaten = createFighter(ENEMY, 1, 6, pit);
-        entityData.setComponents(us, new AttackTarget(beaten), new CreatureMood(0, 0, 0, 0, 0, 20000));
+        entityData.setComponent(us, new AttackTarget(beaten));
         entityData.setComponent(beaten, new Unconscious(10.0));
 
-        assertNull(createController(us).getAttackTarget());
-        assertEquals(3600, entityData.getComponent(us, CreatureMood.class).other);
+        assertTrue(createController(us).hasWonCombatPitFight());
+        assertNull(entityData.getComponent(us, AttackTarget.class));
+        assertFalse(createController(us).hasWonCombatPitFight());
+    }
 
-        createController(us).getAttackTarget();
+    @Test
+    void theVictorCheersForFourSecondsAndThenCheersUp() {
+        gameSettings.put(MiscType.MODIFY_ANGER_OF_COMBAT_PIT_VICTOR, CombatPitFixtures.pitVariable(MiscType.MODIFY_ANGER_OF_COMBAT_PIT_VICTOR, -16400));
+        EntityId us = createFighter(KEEPER, 1, 5, pit);
+        entityData.setComponents(us, new CreatureMood(0, 0, 0, 0, 0, 20000),
+                new CreatureAi(gameTime, CreatureState.COMBAT_PIT_VICTORY, FIGHTER));
+        CreatureController controller = createController(us);
+        controller.getStateMachine().changeState(CreatureState.COMBAT_PIT_VICTORY);
+
+        gameTime += 3.9;
+        controller.getStateMachine().update();
+        assertEquals(CreatureState.COMBAT_PIT_VICTORY, controller.getStateMachine().getCurrentState());
+        assertEquals(20000, entityData.getComponent(us, CreatureMood.class).other);
+
+        gameTime += 0.2;
+        controller.getStateMachine().update();
+        assertEquals(CreatureState.COMBAT_PIT, controller.getStateMachine().getCurrentState());
         assertEquals(3600, entityData.getComponent(us, CreatureMood.class).other);
     }
 
@@ -174,11 +196,10 @@ class CombatPitFightTest {
     void opponentLeavingThePitIsNoWin() {
         EntityId us = createFighter(KEEPER, 1, 5, pit);
         EntityId gone = createFighter(ENEMY, 1, 6, null);
-        entityData.setComponents(us, new AttackTarget(gone), new CreatureMood(0, 0, 0, 0, 0, 20000));
+        entityData.setComponent(us, new AttackTarget(gone));
         entityData.setComponent(gone, new Unconscious(10.0));
 
-        assertNull(createController(us).getAttackTarget());
-        assertEquals(20000, entityData.getComponent(us, CreatureMood.class).other);
+        assertFalse(createController(us).hasWonCombatPitFight());
     }
 
     /**
@@ -209,7 +230,7 @@ class CombatPitFightTest {
             case "getPlayer" -> keepers.get((Short) args[0]);
             default -> null;
         });
-        IGameTimer gameTimer = stub(IGameTimer.class, (name, args) -> "getGameTime".equals(name) ? 10.0 : null);
+        IGameTimer gameTimer = stub(IGameTimer.class, (name, args) -> "getGameTime".equals(name) ? gameTime : null);
         IEntityPositionLookup positionLookup = stub(IEntityPositionLookup.class,
                 (name, args) -> "getSensedEntities".equals(name) ? sensed.getOrDefault((EntityId) args[0], Set.of()) : null);
         ICreaturesController creaturesController = stub(ICreaturesController.class, (name, args) -> switch (name) {

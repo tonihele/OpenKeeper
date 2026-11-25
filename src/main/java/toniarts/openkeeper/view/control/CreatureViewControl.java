@@ -406,8 +406,9 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         if (creatureAi != null) {
             CreatureState state = creatureAi.getCreatureState();
 
-            // Dancing in the Casino and the jackpot celebration go on until the state changes
-            return state == CreatureState.WORK || state == CreatureState.DANCING || state == CreatureState.CELEBRATING;
+            // Dancing in the Casino and the jackpot and Combat Pit celebrations go on until the state changes
+            return state == CreatureState.WORK || state == CreatureState.DANCING || state == CreatureState.CELEBRATING
+                    || state == CreatureState.COMBAT_PIT_VICTORY;
         }
         return false;
     }
