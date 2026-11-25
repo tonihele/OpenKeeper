@@ -460,7 +460,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 case GO_TO_GOLD -> {
 
                     // From the nearest room
-                    keeperAi.current = getNearestRoom(playerController, keeperAi.target).getRoomInstance().getCenter();
+                    keeperAi.current = getNearestRoom(playerController, keeperAi.target).getRoomInstance().getReferenceTile();
                     setTask(keeperAi, KeeperAi.Task.DIG_PATH, "from the nearest room at " + keeperAi.current.x + "," + keeperAi.current.y);
                     keeperAi.nextTask = KeeperAi.Task.TAG_GOLD;
                     yield actions - 1;
@@ -737,7 +737,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 if (middle == null || isWaitingAfterFailedTarget(keeperAi, middle)) {
                     continue;
                 }
-                int distance = getDistance(getNearestRoom(playerController, middle).getRoomInstance().getCenter(), middle);
+                int distance = getDistance(getNearestRoom(playerController, middle).getRoomInstance().getReferenceTile(), middle);
                 for (int i = 0; i < nearest.length; i++) {
                     if (nearest[i] == null || distance < distances[i]) {
                         System.arraycopy(nearest, i, nearest, i + 1, nearest.length - 1 - i);
@@ -827,7 +827,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         int nearestDistance = Integer.MAX_VALUE;
         for (Set<IRoomController> rooms : playerController.getRoomControl().getRoomControllers().values()) {
             for (IRoomController room : rooms) {
-                int distance = getDistance(room.getRoomInstance().getCenter(), p);
+                int distance = getDistance(room.getRoomInstance().getReferenceTile(), p);
                 if (distance < nearestDistance) {
                     nearest = room;
                     nearestDistance = distance;
@@ -933,7 +933,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 }
             }
             if (!neighbours.isEmpty()) {
-                keeperAi.current = Utils.getRandomItem(neighbours).getRoomInstance().getCenter();
+                keeperAi.current = Utils.getRandomItem(neighbours).getRoomInstance().getReferenceTile();
             }
         }
         if (keeperAi.current == null) {
@@ -1009,7 +1009,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         Point target = null;
         for (IRoomController room : mapController.getRoomControllers()) {
             short id = room.getRoomInstance().getRoom().getRoomId();
-            Point centre = room.getRoomInstance().getCenter();
+            Point centre = room.getRoomInstance().getReferenceTile();
             if (room.getRoomInstance().getOwnerId() == Player.NEUTRAL_PLAYER_ID && !room.getRoomInstance().isDestroyed()
                     && (portal ? id == ROOM_PORTAL || id == ROOM_HERO_PORTAL : id == roomId) && !isWaitingAfterFailedTarget(keeperAi, centre)
                     && (target == null || getDistance(heart, centre) < getDistance(heart, target))) {
@@ -1021,7 +1021,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             return false;
         }
 
-        Point start = getNearestRoom(playerController, target).getRoomInstance().getCenter();
+        Point start = getNearestRoom(playerController, target).getRoomInstance().getReferenceTile();
         int range = ai.getDigToNeutralRoomsWithinTilesOfHeart();
         if (portal ? getDistance(start, target) > range * range : getDistance(heart, target) >= range * range) {
             start = getNearestOwnTileAround(keeperAi.playerId, target, ai.getDigToNeutralRoomsWithinTilesOfClaimedArea() + 1);
@@ -1148,7 +1148,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             return playerController.getKeeper().getDungeonHeartLocation();
         }
 
-        return Utils.getRandomItem(rooms).getRoomInstance().getCenter();
+        return Utils.getRandomItem(rooms).getRoomInstance().getReferenceTile();
     }
 
     private static boolean isCoreRoom(short roomId) {

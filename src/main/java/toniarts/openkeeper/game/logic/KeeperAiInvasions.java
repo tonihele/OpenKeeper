@@ -74,8 +74,8 @@ final class KeeperAiInvasions {
     private static final int ROOM_DEFENCE_TILES = 5;
 
     /**
-     * The flag goes on a corner of the enemy's Dungeon Heart, 2 tiles from
-     * its centre on both axes
+     * The flag goes 2 tiles from the reference tile of the enemy's Dungeon
+     * Heart on both axes
      */
     private static final int RALLY_FROM_HEART = 2;
 
@@ -227,7 +227,7 @@ final class KeeperAiInvasions {
         }
         IPlayerController playerController = playerControllers.get(keeperAi.playerId);
         IRoomController breachRoom = getNearestRoom(attacker, playerController.getKeeper().getDungeonHeartLocation());
-        IRoomController startRoom = breachRoom != null ? getNearestRoom(playerController, breachRoom.getRoomInstance().getCenter()) : null;
+        IRoomController startRoom = breachRoom != null ? getNearestRoom(playerController, breachRoom.getRoomInstance().getReferenceTile()) : null;
         if (breachRoom == null || startRoom == null) {
             return false;
         }
@@ -238,8 +238,8 @@ final class KeeperAiInvasions {
     }
 
     private void digTunnel(KeeperAi keeperAi, AI ai, KeeperAiEnemy keeperAiEnemy, IRoomController startRoom, IRoomController breachRoom) {
-        Point start = startRoom.getRoomInstance().getCenter();
-        Point target = breachRoom.getRoomInstance().getCenter();
+        Point start = startRoom.getRoomInstance().getReferenceTile();
+        Point target = breachRoom.getRoomInstance().getReferenceTile();
         keeperAiEnemy.tunnelsLeft--;
         entityData.setComponent(findEnemy(keeperAi.playerId, keeperAiEnemy.enemyId), keeperAiEnemy);
         startDig(keeperAi, start, target, "a tunnel to room " + breachRoom.getRoomInstance().getRoom().getRoomId()
@@ -421,7 +421,7 @@ final class KeeperAiInvasions {
                 continue;
             }
 
-            Point centre = heart.getRoomInstance().getCenter();
+            Point centre = heart.getRoomInstance().getReferenceTile();
             Point corner = heart.isDungeonHeart()
                     ? new Point(centre.x + (Utils.getRandom().nextBoolean() ? -RALLY_FROM_HEART : RALLY_FROM_HEART),
                             centre.y + (Utils.getRandom().nextBoolean() ? -RALLY_FROM_HEART : RALLY_FROM_HEART))
@@ -603,7 +603,7 @@ final class KeeperAiInvasions {
                 IRoomController found = null;
                 int foundThreat = weakest ? Integer.MAX_VALUE : 0;
                 for (IRoomController room : getRooms(enemy)) {
-                    int threat = battles.getThreat(enemy.getKeeper().getId(), WorldUtils.pointToVector3f(room.getRoomInstance().getCenter()),
+                    int threat = battles.getThreat(enemy.getKeeper().getId(), WorldUtils.pointToVector3f(room.getRoomInstance().getReferenceTile()),
                             ROOM_DEFENCE_TILES);
                     if (weakest ? threat < foundThreat : threat > foundThreat) {
                         found = room;
@@ -630,7 +630,7 @@ final class KeeperAiInvasions {
                 IRoomController furthest = null;
                 int furthestDistance = 0;
                 for (IRoomController room : getRooms(playerController)) {
-                    int distance = getDistance(room.getRoomInstance().getCenter(), heart);
+                    int distance = getDistance(room.getRoomInstance().getReferenceTile(), heart);
                     if (distance > furthestDistance) {
                         furthest = room;
                         furthestDistance = distance;
@@ -646,7 +646,7 @@ final class KeeperAiInvasions {
                 return playerController.getRoomControl().getDungeonHeart();
             }
             default -> {
-                return getNearestRoom(playerController, breachRoom.getRoomInstance().getCenter());
+                return getNearestRoom(playerController, breachRoom.getRoomInstance().getReferenceTile());
             }
         }
     }
@@ -677,7 +677,7 @@ final class KeeperAiInvasions {
         IRoomController nearest = null;
         int nearestDistance = Integer.MAX_VALUE;
         for (IRoomController room : getRooms(playerController)) {
-            int distance = getDistance(room.getRoomInstance().getCenter(), p);
+            int distance = getDistance(room.getRoomInstance().getReferenceTile(), p);
             if (distance < nearestDistance) {
                 nearest = room;
                 nearestDistance = distance;

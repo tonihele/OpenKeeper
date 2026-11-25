@@ -434,7 +434,7 @@ final class KeeperAiBattles {
                     }
                 }
                 IRoomController heart = enemy.getRoomControl().getDungeonHeart();
-                if (heart != null && isWithin(WorldUtils.pointToVector3f(heart.getRoomInstance().getCenter()), flag, range)) {
+                if (heart != null && isWithin(WorldUtils.pointToVector3f(heart.getRoomInstance().getReferenceTile()), flag, range)) {
                     enemies++;
                 }
             }
@@ -532,7 +532,7 @@ final class KeeperAiBattles {
                 lair = room;
                 break;
             }
-            Point tile = lair != null ? lair.getRoomInstance().getCenter() : getHeartDropTile(playerController.getKeeper());
+            Point tile = lair != null ? lair.getRoomInstance().getReferenceTile() : getHeartDropTile(playerController.getKeeper());
             decisionLog.log(keeperAi, "carry creature " + creature.getId().getId() + " to the " + (lair != null ? "Lair" : "Dungeon Heart"), tile, reason);
             carry(creature.getId(), tile, playerController);
 

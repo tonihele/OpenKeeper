@@ -250,7 +250,7 @@ final class KeeperAiCreatures {
             return;
         }
 
-        Point tile = portal.getRoomInstance().getCenter();
+        Point tile = portal.getRoomInstance().getReferenceTile();
         decisionLog.log(keeperAi, "carry creature " + weakest.getId().getId() + " to its Portal", tile,
                 "its Portals are full and it has " + researchers + " creatures that research");
         battles.carry(weakest.getId(), tile, playerController);
@@ -282,7 +282,7 @@ final class KeeperAiCreatures {
                 Short roomId = JOB_ROOMS.get(job.getJobType());
                 IRoomController room = roomId != null ? getRoom(playerController, roomId) : null;
                 if (room != null) {
-                    tile = room.getRoomInstance().getCenter();
+                    tile = room.getRoomInstance().getReferenceTile();
                     reason = "the creature likes to " + job.getJobType().name().toLowerCase() + " there";
                     break;
                 }
@@ -381,7 +381,7 @@ final class KeeperAiCreatures {
             case CreatureMood.REASON_NO_LAIR -> {
                 IRoomController lair = getRoom(playerController, ROOM_LAIR);
                 if (lair != null) {
-                    Point tile = lair.getRoomInstance().getCenter();
+                    Point tile = lair.getRoomInstance().getReferenceTile();
                     decisionLog.log(keeperAi, "carry creature " + creatureId.getId() + " to the Lair", tile, "unhappy without a lair");
                     battles.carry(creatureId, tile, playerController);
                 }
@@ -396,7 +396,7 @@ final class KeeperAiCreatures {
                     Short roomId = JOB_ROOMS.get(job.getJobType());
                     IRoomController room = roomId != null ? getRoom(playerController, roomId) : null;
                     if (room != null) {
-                        Point tile = room.getRoomInstance().getCenter();
+                        Point tile = room.getRoomInstance().getReferenceTile();
                         decisionLog.log(keeperAi, "carry creature " + creatureId.getId() + " to room " + roomId, tile,
                                 "unhappy without work, it likes to " + job.getJobType().name().toLowerCase());
                         battles.carry(creatureId, tile, playerController);
@@ -427,7 +427,7 @@ final class KeeperAiCreatures {
     /**
      * Gets rid of an angry creature. A computer player that sacrifices drops
      * it on a random tile of the pool of its Temple. Any other, and one
-     * whose hand could not do that, drops it on the middle of its Temple,
+     * whose hand could not do that, drops it on the reference tile of its Temple,
      * with no Temple of a Portal, with no Portal of a Hero Portal
      */
     private void disposeOf(KeeperAi keeperAi, IPlayerController playerController, AI ai, Entity creature) {
@@ -454,7 +454,7 @@ final class KeeperAiCreatures {
             room = getRoom(playerController, ROOM_HERO_PORTAL);
         }
         if (room != null) {
-            Point tile = room.getRoomInstance().getCenter();
+            Point tile = room.getRoomInstance().getReferenceTile();
             decisionLog.log(keeperAi, "carry creature " + creature.getId().getId() + " to room " + room.getRoomInstance().getRoom().getRoomId(),
                     tile, "angry");
             battles.carry(creature.getId(), tile, playerController);
@@ -587,7 +587,7 @@ final class KeeperAiCreatures {
     }
 
     /**
-     * Carries a prisoner to a room: to its middle, to a free tile of a
+     * Carries a prisoner to a room: to its reference tile, to a free tile of a
      * Torture Chamber, into the pool of a Temple, or to a tile of a Combat
      * Pit the creatures fight on
      */
@@ -597,7 +597,7 @@ final class KeeperAiCreatures {
             return;
         }
 
-        Point tile = room.getRoomInstance().getCenter();
+        Point tile = room.getRoomInstance().getReferenceTile();
         if (freeTile) {
             tile = getFreeTile(room);
         } else if (room instanceof CombatPitController) {
