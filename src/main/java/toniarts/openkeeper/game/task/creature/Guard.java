@@ -94,6 +94,21 @@ public final class Guard extends AbstractCapacityCriticalRoomTask {
         return ObjectType.GUARD;
     }
 
+    /**
+     * Counts the guard in the room's used capacity from the moment it is sent.
+     * Unlike the other rooms, DK II's capacity check (0x4E53B0) counts the
+     * creatures on their way to a Guard Room
+     *
+     * @param creature the guard
+     * @param setToCreature whether to set the task to the creature
+     */
+    @Override
+    public void assign(ICreatureController creature, boolean setToCreature) {
+        super.assign(creature, setToCreature);
+
+        getRoomObjectControl().addItem(creature.getEntityId(), null);
+    }
+
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
 

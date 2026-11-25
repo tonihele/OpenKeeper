@@ -23,6 +23,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
  * Repair a claimed wall
@@ -52,10 +53,17 @@ public final class RepairWallTileTask extends DigTileTask {
         return "Repair wall at " + getTaskLocation();
     }
 
+    /**
+     * Repairs the wall in blows of a tick's worth of the repair rate, as DK
+     * II's repair action does it (0x466660, 0x497AC0). The work animation is
+     * the worker's sleeping one, the imp's is called Imp_Claim1(Land).
+     *
+     * @param creature the worker
+     * @param executionDuration the time the worker has spent on the task
+     */
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
-            setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
+        if (isBlowDue(creature, executionDuration, Creature.AnimationType.SLEEPING)) {
 
             mapController.applyClaimTile(getTaskLocation(), playerId, creature);
 
