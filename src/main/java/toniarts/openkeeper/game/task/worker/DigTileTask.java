@@ -112,7 +112,25 @@ public class DigTileTask extends AbstractTileTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return isTileToDig() || getExecutionDuration(creature) > 0;
+        return (isTileToDig() || getExecutionDuration(creature) > 0) && (creature == null || hasWorkSpot());
+    }
+
+    /**
+     * Whether any open side is left to dig from. Once the gold has piled up
+     * over the limit on every side, there is no spot for DK II's search
+     * (0x469AF0) to find, and a digger on its way or still swinging gives the
+     * task up and looks for other work, as it does on a full pile (0x465870).
+     * Otherwise it would wait for a spot to dig from forever.
+     *
+     * @return true if there is a side to dig from
+     */
+    private boolean hasWorkSpot() {
+        for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
+            if (!p.equals(getTaskLocation()) && !mapController.isSolid(p) && isWorkSpot(p)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

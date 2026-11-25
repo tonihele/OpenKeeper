@@ -22,6 +22,8 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -40,6 +42,7 @@ import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -123,15 +126,7 @@ class DigTileTaskTest {
         for (int pile : new int[]{2000, 2001}) {
             Digging digging = new Digging(DIRT_HEALTH, 1);
             EntityData entityData = new DefaultEntityData();
-            EntityId gold = entityData.createEntity();
-            entityData.setComponents(gold, new ObjectComponent((short) 1, AbstractRoomController.ObjectType.GOLD), new Gold(pile, 2000));
-            IEntityPositionLookup lookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(),
-                    new Class<?>[]{IEntityPositionLookup.class}, (proxy, method, args) -> switch (method.getName()) {
-                case "getEntitiesInLocation" ->
-                    new Point(1, 2).equals(args[0]) ? List.of(gold) : List.of();
-                default ->
-                    throw new UnsupportedOperationException(method.getName());
-            });
+            IEntityPositionLookup lookup = goldPile(entityData, pile, new Point(1, 2)::equals);
             DigTileTask task = new DigTileTask(null, digging.mapController(), new Point(1, 1), PLAYER, entityData, lookup, 2000);
             List<String> calls = new ArrayList<>();
             ICreatureController digger = (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(),
@@ -164,6 +159,29 @@ class DigTileTaskTest {
         }
     }
 
+    @Test
+    void diggerGivesUpTheTileWhenEverySideHoldsAFullGoldPile() {
+
+        // With no spot left to dig from, the digger has nowhere to go. It drops the task and looks for other work
+        // rather than wait for a spot forever, in the middle of a swing too
+        Creature imp = CreatureSleepFixtures.digger("Imp", 15, 20, 0, 8);
+        Digging digging = new Digging(DIRT_HEALTH, 1);
+        EntityData entityData = new DefaultEntityData();
+        AtomicBoolean piledUp = new AtomicBoolean();
+        DigTileTask task = new DigTileTask(null, digging.mapController(), new Point(1, 1), PLAYER, entityData,
+                goldPile(entityData, 2001, p -> piledUp.get()), 2000);
+        ICreatureController digger = creature(imp);
+        task.assign(digger, false);
+        task.executeTask(digger, 0);
+        assertTrue(task.isValid(digger));
+
+        piledUp.set(true);
+
+        assertFalse(task.isValid(digger), "Still swinging");
+        assertFalse(task.isValid(creature(imp)), "Nobody else takes it");
+        assertTrue(task.isValid(null), "The tile stays tagged for when the gold has been taken away");
+    }
+
     /**
      * Ticks of the hits, and the tick the digger is done
      */
@@ -184,6 +202,21 @@ class DigTileTaskTest {
             }
         }
         throw new AssertionError("Still digging after " + maxTicks + " ticks");
+    }
+
+    /**
+     * A loose gold pile that lies on the given tiles
+     */
+    private static IEntityPositionLookup goldPile(EntityData entityData, int gold, Predicate<Point> where) {
+        EntityId pile = entityData.createEntity();
+        entityData.setComponents(pile, new ObjectComponent((short) 1, AbstractRoomController.ObjectType.GOLD), new Gold(gold, 2000));
+        return (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(),
+                new Class<?>[]{IEntityPositionLookup.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getEntitiesInLocation" ->
+                where.test((Point) args[0]) ? List.of(pile) : List.of();
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
     }
 
     private static ICreatureController creature(Creature creature) {
