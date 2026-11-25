@@ -65,7 +65,7 @@ class ResearchTest {
         Keeper keeper = new Keeper();
         keeper.setCurrentResearch(new ResearchableEntity((short) 1, ResearchableType.SPELL));
         Research research = new Research(null, null, new Point(1, 1), (short) 1, library, null,
-                new PlayerResearchControl(keeper, null), null);
+                new PlayerResearchControl(keeper, null, null), null);
 
         assertTrue(research.isValid(null));
 

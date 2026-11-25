@@ -97,7 +97,6 @@ class ShotsControllerTest {
     private final List<Object[]> spawnedCreatures = new ArrayList<>();
     private final List<EntityId> knockedDown = new ArrayList<>();
     private final Set<Point> waterTiles = new HashSet<>();
-    private final List<Object[]> spawnedCreatures = new ArrayList<>();
     private final List<List<Object>> playerEvents = new ArrayList<>();
     private final List<EntityId> pickedUpThings = new ArrayList<>();
     private final ShotsController shotsController;

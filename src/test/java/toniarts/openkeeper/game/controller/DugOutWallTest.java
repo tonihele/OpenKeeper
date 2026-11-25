@@ -155,6 +155,8 @@ class DugOutWallTest {
                 map;
             case "getTerrain" ->
                 (short) args[0] == floorId ? floor : path;
+            case "getThings" ->
+                List.of();
             default ->
                 throw new UnsupportedOperationException(name);
         });

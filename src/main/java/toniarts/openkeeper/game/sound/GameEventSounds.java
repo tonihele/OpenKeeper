@@ -137,6 +137,8 @@ public final class GameEventSounds {
                 add(sounds, ThingSounds.getCreateImpCategory(kwdFile), ThingSounds.SHOT_LAUNCH, event.position);
             case CALL_TO_ARMS_UNREACHABLE ->
                 add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MISC054.getId(), null);
+            case ALARM_RAISED ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MISC077.getId(), null);
             case NOT_ENOUGH_GOLD -> // Message 0x37 variant 6, which has no speech of its own and takes the default one
                 add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.GOLD002.getId(), null);
             case WORKSHOP_ITEM_MADE -> {
