@@ -117,6 +117,8 @@ public final class GameEventSounds {
                 add(sounds, ThingSounds.getCreateImpCategory(kwdFile), ThingSounds.SHOT_LAUNCH, event.position);
             case CALL_TO_ARMS_UNREACHABLE ->
                 add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MISC054.getId(), null);
+            case ALARM_RAISED ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MISC077.getId(), null);
             case TORTURE_ELECTROCUTED -> {
                 add(sounds, subject, ThingSounds.ELECTRIC_CHAIR_ZAP, event.position);
                 add(sounds, getCategory(kwdFile, event.targetKind, event.targetId), ThingSounds.CREATURE_ELECTROCUTED,
