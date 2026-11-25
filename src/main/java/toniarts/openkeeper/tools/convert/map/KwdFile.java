@@ -629,10 +629,13 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             }
             ai.setUnknown2(unknown2);
             ai.setMineGoldUntilGoldHeldIsGreaterThan(reader.readUnsignedShort());
-            ai.setWaitSecondsAfterPreviousAttackBeforeAttackingAgain(reader.readUnsignedShort());
+            ai.setWaitSecondsAfterPreviousAttackBeforeAttackingAgain(reader.readUnsignedByte());
+            reader.skipBytes(1); // The editor writes a short, but DK II reads one byte, so 300 seconds play as 44
             ai.setStartingMana(reader.readUnsignedInteger());
-            ai.setExploreUpToTilesToFindSpecials(reader.readUnsignedShort());
-            ai.setImpsToTilesRatio(reader.readUnsignedShort());
+            ai.setExploreUpToTilesToFindSpecials(reader.readUnsignedByte());
+            reader.skipBytes(1); // Not part of the value, DK II reads one byte
+            ai.setImpsToTilesRatio(reader.readUnsignedByte());
+            reader.skipBytes(1); // The same
             ai.setBuildAreaStartX(reader.readUnsignedShort());
             ai.setBuildAreaStartY(reader.readUnsignedShort());
             ai.setBuildAreaEndX(reader.readUnsignedShort());
@@ -2483,11 +2486,18 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                         case PLAYER_ROOMS:
                         case PLAYER_ROOM_SLABS:
                         case PLAYER_ROOM_SIZE:
-                        case PLAYER_ROOM_FURNITURE:
                             ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
                             trigger.setUserData("roomId", reader.readUnsignedByte());
                             trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
                             trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("value", reader.readUnsignedInteger());
+                            break;
+
+                        case PLAYER_ROOM_FURNITURE:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("roomId", reader.readUnsignedByte());
+                            trigger.setUserData("flag", reader.readUnsignedByte()); // Ignored by DKII
+                            trigger.setUserData("playerId", reader.readUnsignedByte()); // Ignored by DKII
                             trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
