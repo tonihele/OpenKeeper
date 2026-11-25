@@ -94,7 +94,7 @@ class MapControllerTest {
             default -> throw new UnsupportedOperationException(method.getName());
         });
         return new MapController(kwdFile, null, Map.of(MiscType.REINFORCE_WALL_HEALTH,
-                CreatureSleepFixtures.variable(MiscType.REINFORCE_WALL_HEALTH, 1000)), null, new DefaultEntityData(), levelInfo, null, null);
+                CreatureSleepFixtures.variable(MiscType.REINFORCE_WALL_HEALTH, 4000)), null, new DefaultEntityData(), levelInfo, null, null);
     }
 
 }
