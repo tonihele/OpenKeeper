@@ -24,6 +24,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.BattleSystem;
 import toniarts.openkeeper.game.logic.CallToArmsSystem;
@@ -31,6 +32,7 @@ import toniarts.openkeeper.game.logic.CasinoSystem;
 import toniarts.openkeeper.game.logic.ChickenAiSystem;
 import toniarts.openkeeper.game.logic.ChickenSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureAiSystem;
+import toniarts.openkeeper.game.logic.CreatureDisturbanceSystem;
 import toniarts.openkeeper.game.logic.CreatureExperienceSystem;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
 import toniarts.openkeeper.game.logic.CreatureMoodSystem;
@@ -50,6 +52,7 @@ import toniarts.openkeeper.game.logic.HealthSystem;
 import toniarts.openkeeper.game.logic.InfernoSystem;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
+import toniarts.openkeeper.game.logic.KeeperAiSystem;
 import toniarts.openkeeper.game.logic.KeeperDefeatSystem;
 import toniarts.openkeeper.game.logic.LooseObjectSystem;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
@@ -64,8 +67,10 @@ import toniarts.openkeeper.game.logic.PossessedSystem;
 import toniarts.openkeeper.game.logic.PrisonOvercrowdingSystem;
 import toniarts.openkeeper.game.logic.ShotSystem;
 import toniarts.openkeeper.game.logic.SlapSystem;
+import toniarts.openkeeper.game.logic.SpecialIdleEffectSystem;
 import toniarts.openkeeper.game.logic.SpinSystem;
 import toniarts.openkeeper.game.logic.SummonedReaperSystem;
+import toniarts.openkeeper.game.logic.TrainingDummySystem;
 import toniarts.openkeeper.game.logic.TremorSystem;
 import toniarts.openkeeper.game.logic.TrapSystem;
 import toniarts.openkeeper.game.logic.TurncoatSystem;
@@ -92,6 +97,7 @@ public final class GameLoopManager {
 
     private final IGameController gameController;
 
+    private final GameLogicManager gameLogicThread;
     private final PayDaySystem payDaySystem;
 
     /**
@@ -118,7 +124,7 @@ public final class GameLoopManager {
                 playerControllers.values(), gameSettings);
 
         // Game logic
-        final GameLogicManager gameLogicThread = new GameLogicManager(
+        gameLogicThread = new GameLogicManager(
                 gameWorldController.getMapController(),
                 new DecaySystem(entityData),
                 new WoodenBridgeDecaySystem(entityData, gameController.getGameTimer(), gameWorldController,
@@ -131,6 +137,8 @@ public final class GameLoopManager {
                         gameController.getGameTimer()),
                 new CreatureMoodSystem(entityData, levelInfo.getLevelData(), playerControllers.values(),
                         gameController.getGameTimer(), gameSettings),
+                new CreatureDisturbanceSystem(entityData, levelInfo.getLevelData(), gameWorldController.getMapController(),
+                        gameWorldController.getCreaturesController(), gameController.getGameTimer()),
                 payDaySystem,
                 new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings,
                         gameWorldController.getObjectsController()),
@@ -140,7 +148,8 @@ public final class GameLoopManager {
                         gameController.getGameTimer(), gameEventService),
                 new InfernoSystem(entityData, positionSystem, levelInfo.getLevelData(), gameController.getGameTimer()),
                 new CreatureTorturingSystem(entityData, gameWorldController.getCreaturesController(),
-                        gameWorldController.getMapController(), gameEventService, gameSettings),
+                        gameWorldController.getMapController(), gameEventService, gameSettings,
+                        levelInfo.getLevelData().getGameLevel().getTicksPerSec()),
                 new PrisonOvercrowdingSystem(entityData, gameWorldController.getMapController(), gameSettings),
                 new KeeperDefeatSystem(entityData, levelInfo, gameController, gameWorldController.getMapController(),
                         gameWorldController.getObjectsController(), players != null && !players.isEmpty()),
@@ -152,6 +161,11 @@ public final class GameLoopManager {
                 new PlayerManufactureSystem(entityData, levelInfo.getLevelData(), playerControllers.values(),
                         gameController.getGameTimer()),
                 (IGameLogicUpdatable) gameController,
+                Settings.getInstance().getBoolean(Settings.Setting.COMPUTER_PLAYER)
+                ? new KeeperAiSystem(entityData, level, playerControllers, gameWorldController, gameController.getNavigationService(),
+                        gameController.getGameTimer(),
+                        Settings.getInstance().getBoolean(Settings.Setting.COMPUTER_PLAYER_LOG))
+                : new GameLogicManager(),
                 new CreatureSpawnSystem(entityData, gameWorldController.getCreaturesController(), playerControllers.values(),
                         gameSettings, levelInfo, gameWorldController.getMapController(), gameEventService),
                 new ChickenSpawnSystem(entityData, gameWorldController.getObjectsController(),
@@ -167,12 +181,16 @@ public final class GameLoopManager {
                 new CasinoSystem(entityData, gameWorldController.getCreaturesController(),
                         gameWorldController.getMapController(), positionSystem, gameController.getGameTimer(), gameEventService, gameSettings),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
+                new TrainingDummySystem(entityData, levelInfo.getLevelData(), gameWorldController.getMapController(),
+                        gameController.getGameTimer()),
                 new CreatureViewSystem(entityData, levelInfo.getLevelData()),
                 new DoorViewSystem(entityData, positionSystem, levelInfo),
                 new BattleSystem(entityData, gameController.getGameTimer()),
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
+                new SpecialIdleEffectSystem(entityData, gameController.getGameTimer(),
+                        level.getGameLevel().getTicksPerSec(), gameWorldController.getMapController(), gameEventService),
                 new TrapSystem(entityData, level, gameController.getGameTimer(), positionSystem, playerControllers,
                         gameWorldController.getShotsController(), gameEventService),
                 new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
@@ -190,7 +208,8 @@ public final class GameLoopManager {
                         gameController.getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS),
                         levelInfo.getLevelData().getObject(FiveByFiveRotatedController.OBJECT_PLUG_ID).getMiscEffectId(),
                         levelInfo.getLevelData().getGameLevel().getTicksPerSec(), gameEventService),
-                new CreatureFallSystem(entityData, gameController.getGameTimer(), gameEventService));
+                new CreatureFallSystem(entityData, gameController.getGameTimer(), gameEventService,
+                        gameWorldController.getCreaturesController()));
         loops.add(new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "Animation"));
 
         // Steering
@@ -220,6 +239,17 @@ public final class GameLoopManager {
 
     public IGameController getGameController() {
         return gameController;
+    }
+
+    /**
+     * Queues a player action to run at the start of the next game logic tick.
+     * Player actions come from the render thread (or the network thread) and
+     * change the same state as the game logic does
+     *
+     * @param action the player action
+     */
+    public void runPlayerAction(Runnable action) {
+        gameLogicThread.enqueueAction(action);
     }
 
     public PayDaySystem getPayDaySystem() {

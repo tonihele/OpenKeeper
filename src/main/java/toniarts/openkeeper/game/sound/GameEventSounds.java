@@ -104,6 +104,13 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.CREATURE_BUILD_DOOR, event.position);
             case MELEE_HIT ->
                 addMeleeHit(sounds, event, kwdFile);
+            case SPECIAL_ACTIVATED -> {
+                int sound = event.subjectKind == ThingFlag.OBJECT
+                        ? ThingSounds.getSpecialActivationEvent(event.subjectId) : -1;
+                if (sound >= 0) {
+                    add(sounds, subject, sound, event.position);
+                }
+            }
             case PICKED_UP ->
                 add(sounds, subject, ThingSounds.PICK_UP, event.position);
             case DROPPED ->

@@ -19,7 +19,18 @@ package toniarts.openkeeper.game.controller;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.controller.player.PlayerDoorControl;
+import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.state.CheatState;
+import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.DoorFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.tools.convert.map.TrapFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -58,6 +69,44 @@ class CheatControllerTest {
         assertEquals(1, addedGold.size());
         assertEquals(PLAYER_ID, addedGold.get(0)[0]);
         assertEquals(250, addedGold.get(0)[1]);
+    }
+
+    @Test
+    void unlockingDoorsAndTrapsLeavesOutTheHeroes() {
+        List<Door> doors = List.of(DoorFixtures.door((short) 1, 0), DoorFixtures.door((short) 7, 0, Door.DoorFlag.IS_GOOD));
+        List<Trap> traps = List.of(TrapFixtures.trapWithFlags((short) 3), TrapFixtures.trapWithFlags((short) 14, Trap.TrapFlag.IS_GOOD));
+        Keeper keeper = new Keeper(false, PLAYER_ID);
+        PlayerDoorControl doorControl = new PlayerDoorControl(keeper, doors);
+        PlayerTrapControl trapControl = new PlayerTrapControl(keeper, traps);
+        IKwdFile kwdFile = stub(IKwdFile.class, name -> switch (name) {
+            case "getDoors" -> doors;
+            case "getTraps" -> traps;
+            default -> throw new UnsupportedOperationException(name);
+        });
+        IPlayerController player = stub(IPlayerController.class, name -> switch (name) {
+            case "getDoorControl" -> doorControl;
+            case "getTrapControl" -> trapControl;
+            default -> throw new UnsupportedOperationException(name);
+        });
+        IGameWorldController gameWorldController = stub(IGameWorldController.class, name -> null);
+        IGameController gameController = stub(IGameController.class, name -> switch (name) {
+            case "getGameWorldController" -> gameWorldController;
+            case "getPlayerController" -> player;
+            default -> throw new UnsupportedOperationException(name);
+        });
+
+        new CheatController(kwdFile, gameController, new com.simsilica.es.base.DefaultEntityData(), null)
+                .onCheat(CheatState.CheatType.UNLOCK_DOORS_TRAPS, PLAYER_ID);
+
+        // The Hero Barricade and the Hero Sentry Trap have no text, their Workshop icons said "Jelly"
+        assertEquals(List.of((short) 1), keeper.getAvailableDoors().stream().map(ResearchableEntity::getId).toList());
+        assertEquals(List.of((short) 3), keeper.getAvailableTraps().stream().map(ResearchableEntity::getId).toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T stub(Class<T> type, Function<String, Object> answer) {
+        return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type},
+                (proxy, method, args) -> answer.apply(method.getName()));
     }
 
 }

@@ -99,14 +99,20 @@ public final class CheatController implements ICheatController {
                 break;
             }
             case UNLOCK_DOORS_TRAPS: {
+
+                // Not the heroes' own doors and traps, they aren't a keeper's to build and have no name in DK II
                 PlayerDoorControl playerDoorControl = gameController.getPlayerController(playerId).getDoorControl();
                 for (Door door : kwdFile.getDoors()) {
-                    playerDoorControl.setTypeAvailable(door, true);
+                    if (!door.getFlags().contains(Door.DoorFlag.IS_GOOD)) {
+                        playerDoorControl.setTypeAvailable(door, true);
+                    }
                 }
 
                 PlayerTrapControl playerTrapControl = gameController.getPlayerController(playerId).getTrapControl();
                 for (Trap trap : kwdFile.getTraps()) {
-                    playerTrapControl.setTypeAvailable(trap, true);
+                    if (!trap.getFlags().contains(Trap.TrapFlag.IS_GOOD)) {
+                        playerTrapControl.setTypeAvailable(trap, true);
+                    }
                 }
                 break;
             }

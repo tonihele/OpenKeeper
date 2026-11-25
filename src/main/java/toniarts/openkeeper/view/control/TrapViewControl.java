@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.view.control;
 
+import com.jme3.anim.AnimComposer;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
@@ -24,11 +25,13 @@ import java.util.Objects;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.text.EntityTextParser;
 
 /**
@@ -77,7 +80,41 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
 
     @Override
     public boolean isStopAnimation() {
-        return true;
+        return currentState.blueprint;
+    }
+
+    private void playAnimation() {
+        ArtResource resource = getAnimationData(currentState);
+        AnimationLoader.playAnimation(spatial, resource, assetManager);
+        isAnimationPlaying = resource != null && resource.getType() == ArtResource.ArtResourceType.ANIMATING_MESH;
+        if (isAnimationPlaying) {
+            Number fps = resource.getData(ArtResource.KEY_FPS);
+            Number frames = resource.getData(ArtResource.KEY_FRAMES);
+            if (fps != null && fps.floatValue() > 0 && frames != null && frames.floatValue() > 0) {
+                spatial.depthFirstTraversal(model -> {
+                    AnimComposer composer = model.getControl(AnimComposer.class);
+                    if (composer != null) {
+                        // Converted clips use their own time base. Match the authored
+                        // duration without changing the shared clip or other instances.
+                        var clip = composer.getAnimClip(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
+                        if (clip != null) {
+                            composer.setGlobalSpeed((float) (clip.getLength() * fps.floatValue() / frames.floatValue()));
+                        }
+                    }
+                });
+            }
+        }
+        if (currentState.blueprint) {
+            spatial.depthFirstTraversal(model -> {
+                AnimComposer composer = model.getControl(AnimComposer.class);
+                if (composer != null) {
+                    composer.reset();
+                    composer.setEnabled(false);
+                }
+            });
+            isAnimationPlaying = false;
+            AssetUtils.setBlueprint(assetManager, spatial);
+        }
     }
 
     @Override
@@ -90,16 +127,16 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
     private void setState(TrapViewState current, TrapViewState target) {
         Objects.requireNonNull(target, "You need to give the target state!");
 
-        if (current == null || current.blueprint != target.blueprint) {
-            if (target.blueprint) {
-                AssetUtils.setBlueprint(assetManager, spatial);
-            } else if (current != null) {
-
-                // The trap got armed, the worker that armed it makes the sound
-                AssetUtils.removeBlueprint(spatial);
-            }
+        if (spatial == null) {
+            return;
         }
+        boolean constructionChanged = current == null || current.blueprint != target.blueprint;
         currentState = target;
+        if (constructionChanged) {
+            playAnimation();
+
+            // When the trap got armed, the worker that armed it makes the sound
+        }
     }
 
     @Override

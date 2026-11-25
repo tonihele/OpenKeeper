@@ -31,11 +31,14 @@ import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.events.ElementShowEvent;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.loaderv2.types.ElementType;
+import de.lessvoid.nifty.screen.KeyInputHandler;
 import de.lessvoid.nifty.screen.Screen;
+import de.lessvoid.nifty.tools.SizeValue;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.List;
 import org.bushe.swing.event.EventTopicSubscriber;
+import toniarts.openkeeper.gui.nifty.flowlayout.CustomScroll;
 
 /**
  *
@@ -209,6 +212,12 @@ public final class CustomTabGroupControl extends AbstractController implements T
      * tab is visible.
      */
     private int selectedIndex;
+    private int pinnedIndex = -1;
+    private boolean pinnable;
+    private boolean shiftDown;
+    private int layoutWidth = -1;
+    private int layoutHeight = -1;
+    private final KeyInputHandler modifierHandler = event -> false;
 
     /**
      * This value is set true once the template is gone.
@@ -249,6 +258,7 @@ public final class CustomTabGroupControl extends AbstractController implements T
 
         this.nifty = nifty;
         this.screen = screen;
+        pinnable = prmtrs.getAsBoolean("pinnable", false);
 
         tabButtonPanel = elmnt.findElementById("#tab-button-panel");
         contentPanel = elmnt.findElementById("#tab-content-panel");
@@ -450,10 +460,20 @@ public final class CustomTabGroupControl extends AbstractController implements T
                 continue;
             }
 
+            boolean visible = i == selectedIndex || i == pinnedIndex;
+            boolean split = pinnedIndex >= 0 && pinnedIndex != selectedIndex;
+            if (pinnable) {
+                tab.setConstraintX(SizeValue.percent(split && i == pinnedIndex ? 50 : 0));
+                tab.setConstraintY(SizeValue.px(0));
+                tab.setConstraintWidth(SizeValue.percent(split ? 50 : 100));
+                tab.setConstraintHeight(SizeValue.percent(100));
+            }
+            tab.setVisible(visible);
+            Element pin = button.findElementById("#pin");
+            if (pin != null) {
+                pin.setVisible(i == pinnedIndex);
+            }
             if (i == selectedIndex) {
-                if (!tab.isVisible()) {
-                    tab.show();
-                }
                 if (!"nifty-tab-button-active".equals(button.getStyle())) {
                     button.setStyle("nifty-tab-button-active");
                     button.findElementById("#selector").setVisible(true);
@@ -462,9 +482,6 @@ public final class CustomTabGroupControl extends AbstractController implements T
                 }
                 button.setRenderOrder(100000);
             } else {
-                if (tab.isVisible()) {
-                    tab.hide();
-                }
                 if (!"nifty-tab-button".equals(button.getStyle())) {
                     button.setStyle("nifty-tab-button");
                     button.findElementById("#selector").setVisible(false);
@@ -478,6 +495,7 @@ public final class CustomTabGroupControl extends AbstractController implements T
         Element element = getElement();
         if (element != null) {
             element.layoutElements();
+            refreshContentLayout();
         }
     }
 
@@ -495,6 +513,12 @@ public final class CustomTabGroupControl extends AbstractController implements T
     public void onStartScreen() {
         if (nifty == null || screen == null) {
             logger.log(Level.ERROR, "Starting screen failed. Seems the binding is not done yet.");
+        }
+        if (pinnable) {
+            screen.addPreKeyboardInputHandler(event -> {
+                shiftDown = event.isShiftDown();
+                return null;
+            }, modifierHandler);
         }
         String id = getId();
         if (id != null) {
@@ -583,6 +607,72 @@ public final class CustomTabGroupControl extends AbstractController implements T
             indexOffset = -1;
         }
 
-        setSelectedTabIndex(buttons.indexOf(clickedButton) + indexOffset);
+        int index = buttons.indexOf(clickedButton) + indexOffset;
+        if (pinnable && shiftDown) {
+            togglePinnedTab(index);
+        } else {
+            setSelectedTabIndex(index);
+        }
+    }
+
+    /** Shift-click pins one category; a second Shift-click releases it. */
+    public void togglePinnedTab(int index) {
+        if (!pinnable) {
+            return;
+        }
+        if (index < 0 || index >= getTabCount()) {
+            throw new IndexOutOfBoundsException("Index out of bounds: " + index);
+        }
+        pinnedIndex = pinnedIndex == index ? -1 : index;
+        setSelectedTabIndex(index);
+    }
+
+    public int getPinnedTabIndex() {
+        return pinnedIndex;
+    }
+
+    public boolean isTabVisible(Tab tab) {
+        int index = indexOf(tab);
+        return index >= 0 && (index == selectedIndex || index == pinnedIndex);
+    }
+
+    /** Recalculate page limits after a HUD width change, including pin/unpin. */
+    public void refreshLayout() {
+        if (pinnable && contentPanel != null
+                && (layoutWidth != contentPanel.getWidth() || layoutHeight != contentPanel.getHeight())) {
+            refreshContentLayout();
+        }
+    }
+
+    private void refreshContentLayout() {
+        layoutWidth = contentPanel.getWidth();
+        layoutHeight = contentPanel.getHeight();
+        for (Element tab : contentPanel.getChildren()) {
+            if (tab.isVisible()) {
+                refreshPaging(tab);
+            }
+        }
+    }
+
+    private void refreshPaging(Element element) {
+        CustomScroll scroll = element.getControl(CustomScroll.class);
+        if (scroll != null) {
+            scroll.refreshLayout();
+        }
+        CreaturePortraitScrollControl portraits = element.getControl(CreaturePortraitScrollControl.class);
+        if (portraits != null) {
+            portraits.refreshLayout();
+        }
+        for (Element child : element.getChildren()) {
+            refreshPaging(child);
+        }
+    }
+
+    @Override
+    public void onEndScreen() {
+        shiftDown = false;
+        if (pinnable && screen != null) {
+            screen.removePreKeyboardInputHandler(modifierHandler);
+        }
     }
 }

@@ -147,6 +147,42 @@ class HealthSystemDyingTest {
         assertEquals(List.of("emitEffect", "remove"), calls);
     }
 
+    @Test
+    void seededHealthBudgetTicksDownAndExpiresAtItsOwnDeadline() {
+        entityData.setComponents(creature, new Health(8, 1000), new Unconscious(-58));
+        healthSystem.processTick(TICK);
+        assertEquals(7, entityData.getComponent(creature, Health.class).health);
+        for (int i = 0; i < 6; i++) healthSystem.processTick(TICK);
+        assertNull(entityData.getComponent(creature, Death.class));
+        assertEquals(1, entityData.getComponent(creature, Health.class).health);
+        healthSystem.processTick(TICK);
+        assertNotNull(entityData.getComponent(creature, Death.class));
+    }
+
+    @Test
+    void carryingPreservesSeededHealthAndRemainingLifetime() {
+        entityData.setComponents(creature, new Health(8, 1000), new Unconscious(-58));
+        runSeconds(1);
+        assertEquals(4, entityData.getComponent(creature, Health.class).health);
+        entityData.setComponent(creature, new HauledBy(entityData.createEntity()));
+        runSeconds(70);
+        assertEquals(4, entityData.getComponent(creature, Health.class).health);
+        assertNull(entityData.getComponent(creature, Death.class));
+        entityData.removeComponent(creature, HauledBy.class);
+        runSeconds(1);
+        assertNotNull(entityData.getComponent(creature, Death.class));
+    }
+
+    @Test
+    void budgetLongerThanTheOrdinaryDyingDurationIsNotShortened() {
+        entityData.setComponents(creature, new Health(300, 1800), new Unconscious(15));
+        runSeconds(60);
+        assertNull(entityData.getComponent(creature, Death.class));
+        assertEquals(60, entityData.getComponent(creature, Health.class).health);
+        runSeconds(15);
+        assertNotNull(entityData.getComponent(creature, Death.class));
+    }
+
     private void runSeconds(int seconds) {
         for (int tick = 0; tick < seconds / TICK; tick++) {
             healthSystem.processTick(TICK);
@@ -165,7 +201,7 @@ class HealthSystemDyingTest {
     private HealthSystem createHealthSystem() {
         Creature dwarf = ShotFixtures.creature(CREATURE_ID, EnumSet.of(Creature.CreatureFlag.GENERATE_DEAD_BODY),
                 EnumSet.noneOf(Creature.CreatureFlag3.class));
-        IKwdFile kwdFile = proxy(IKwdFile.class, method -> method.equals("getCreature") ? dwarf : null);
+        IKwdFile kwdFile = proxy(IKwdFile.class, method -> switch (method) { case "getCreature" -> dwarf; case "getGameLevel" -> CreatureSleepFixtures.level(4); default -> null; });
         ILevelInfo levelInfo = proxy(ILevelInfo.class, method -> method.equals("getLevelData") ? kwdFile : null);
 
         IEntityController controller = proxy(IEntityController.class, calls::add);

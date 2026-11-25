@@ -49,7 +49,7 @@ public final class SoundManager {
      */
     public static void init(Application app) {
         engine = new SoundEngine(spec -> new JmeAudioBackend(app.getAssetManager(), spec,
-                () -> app.getListener().getLocation().y));
+                () -> app.getListener().getLocation()));
     }
 
     /**
