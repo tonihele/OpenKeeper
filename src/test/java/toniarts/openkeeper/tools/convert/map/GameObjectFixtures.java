@@ -39,6 +39,20 @@ public final class GameObjectFixtures {
         return object;
     }
 
+    /**
+     * A piece of furniture
+     *
+     * @param objectId the object ID
+     * @param width the width in tiles
+     * @return the object
+     */
+    public static GameObject furniture(short objectId, float width) {
+        GameObject object = gameObject("Object " + objectId);
+        object.setObjectId(objectId);
+        object.setWidth(width);
+        return object;
+    }
+
     public static ArtResource animation(int frames, int fps) {
         ArtResource animation = new ArtResource();
         animation.setData(ArtResource.KEY_FRAMES, frames);

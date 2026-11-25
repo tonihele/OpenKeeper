@@ -81,6 +81,9 @@ public interface IRoomController extends IRoomInformation {
      */
     public int getFloorFurnitureCount();
 
+    /** Returns this room's DKII PLAYER_ROOM_FURNITURE counter, separate from gameplay capacity. */
+    int getScriptFurnitureCount();
+
     /**
      * Get the number of wall furniture in a room
      *
