@@ -22,18 +22,21 @@ import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.ManufactureOrders;
+import toniarts.openkeeper.game.controller.creature.CreatureController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.logic.CreatureViewSystem;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -44,6 +47,7 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
 
     private final PlayerManufactureControl manufactureControl;
     private final IObjectsController objectsController;
+    private final int manufactureRounds = 6 + Utils.getRandom().nextInt(7);
     private Vector2f workPosition;
 
     public Manufacture(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room,
@@ -98,6 +102,17 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
     @Override
     protected ObjectType getRoomObjectType() {
         return ObjectType.CRATE;
+    }
+
+    @Override
+    public boolean moveToOtherSpot(ICreatureController creature, float executionDuration) {
+
+        // DK II works for 6 to 12 rounds of the work animation at a piece of furniture (0x470470), then goes to the
+        // closest piece nobody is at if there is one (0x470560). Without the animation the creature stays where it is
+        double roundTime = CreatureController.getAnimationTime(creature.getCreature(),
+                CreatureViewSystem.getManufactureAnimation(creature.getCreature()));
+        return roundTime > 0 && executionDuration >= manufactureRounds * roundTime
+                && taskManager.assignFreeRoomTask(creature, getRoom(), ObjectType.MANUFACTURER);
     }
 
     @Override
