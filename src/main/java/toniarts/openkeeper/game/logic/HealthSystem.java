@@ -193,6 +193,10 @@ public final class HealthSystem extends GameTimeCounter {
             // stops while the creature is carried (DKII.EXE 0x4599D0 skips the
             // tick when 0x4B5DE0 says it is being dragged)
             if (unconscious != null) {
+
+                // Nothing hurts or heals a knocked out creature, a heal cast on it is not kept for when it is
+                // imprisoned or carried to its lair. DK II leaves the health of a dying creature alone (0x4B2CE0)
+                entityData.removeComponent(entityId, Damage.class);
                 if (entityData.getComponent(entityId, HauledBy.class) != null) {
                     entityData.setComponent(entityId, new Unconscious(unconscious.startTime + tpf));
                 } else if (timeElapsed - unconscious.startTime >= timeToDeath) {
