@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.component.KeeperAiDropped;
 import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.DropValidator;
@@ -54,6 +55,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -105,7 +107,15 @@ final class KeeperAiBattles {
      * A Combat Pit fighter is taken out of the pit below this much health
      */
     private static final int PIT_FIGHTER_RETREAT_HEALTH_PERCENTAGE = 50;
-    static final Set<CreatureState> FIGHTING = Set.of(CreatureState.FIGHT, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL);
+
+    /**
+     * The states of a creature in a fight, class 0x16 of DK II's state table
+     * (0x47BBE0). Fleeing from a fight is in that class too (states 0xC9 to
+     * 0xCB, which the fight state 0x45F030 goes to when the creature is
+     * scared)
+     */
+    static final Set<CreatureState> FIGHTING = Set.of(CreatureState.FIGHT, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL,
+            CreatureState.FLEE);
 
     /**
      * The states the hand leaves a creature alone in
@@ -113,6 +123,16 @@ final class KeeperAiBattles {
     static final Set<CreatureState> HELPLESS = Set.of(CreatureState.DEAD, CreatureState.ENTERING_DUNGEON, CreatureState.PICKED_UP,
             CreatureState.UNCONSCIOUS, CreatureState.STUNNED, CreatureState.IMPRISONED, CreatureState.TORTURED, CreatureState.DRAGGED,
             CreatureState.FALLEN, CreatureState.GETTING_UP, CreatureState.COMBAT_PIT);
+
+    /**
+     * The states and tasks of a creature that looks for its Lair, goes to
+     * bed, sleeps, eats or collects its pay, group 7 of DK II's state table
+     * (0x47BBE0)
+     */
+    private static final Set<CreatureState> RESTING = Set.of(CreatureState.SLEEPING, CreatureState.GO_TO_SLEEP,
+            CreatureState.EATING, CreatureState.RECUPERATING);
+    private static final Set<TaskType> RESTING_TASKS = Set.of(TaskType.CLAIM_LAIR, TaskType.GO_TO_SLEEP, TaskType.GO_TO_EAT,
+            TaskType.COLLECT_PAY);
 
     /**
      * DK II counts the enemy threat 10 tiles around an attack, its own 4
@@ -627,10 +647,13 @@ final class KeeperAiBattles {
 
     /**
      * Answers the first attack in the queue, with one creature a turn. It
-     * drops fighters that are not busy and have more than half their health
-     * on the attack until their threat makes up what it needs there. Or it
+     * drops fighters that have more than half their health and don't fight,
+     * flee or rest on the attack until their threat makes up what it needs
+     * there, even ones it dropped a short while ago (DK II's 0x4FE0B0 skips
+     * the state groups 3 and 7 and the fight class, but has no wait). Or it
      * carries its creatures within 5 tiles of the attack to the Dungeon
-     * Heart, until it has carried away what it had there.
+     * Heart, until it has carried away what it had there. Never one that
+     * falls from the hand or heeds the Call to Arms.
      *
      * @param keeperAi the computer player
      * @param playerController its player
@@ -649,10 +672,11 @@ final class KeeperAiBattles {
             CreatureState state = creature.get(CreatureAi.class).getCreatureState();
             Health health = creature.get(Health.class);
             if (!kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId).getFlags().contains(Creature.CreatureFlag.IS_HORNY)
-                    && !HELPLESS.contains(state) && !isLeftAlone(creature)
-                    && (retreat ? isWithin(creature.get(Position.class).position, position, ATTACK_DROP_TILES)
+                    && !HELPLESS.contains(state) && state != CreatureState.CALL_TO_ARMS
+                    && entityData.getComponent(creature.getId(), CreatureFall.class) == null
+                    && (retreat ? !isLeftAlone(creature) && isWithin(creature.get(Position.class).position, position, ATTACK_DROP_TILES)
                             : !creature.get(CreatureComponent.class).worker && health.health * 2 > health.maxHealth
-                            && !FIGHTING.contains(state) && state != CreatureState.FLEE)) {
+                            && !FIGHTING.contains(state) && !isResting(creature))) {
                 picked = creature;
                 break;
             }
@@ -735,6 +759,17 @@ final class KeeperAiBattles {
             }
         }
         return doorTiles;
+    }
+
+    /**
+     * Whether a creature looks for its Lair, sleeps, eats or collects its
+     * pay. The computer player drops none of those on a fight (0x4FE0B0) nor
+     * where it trains (0x4FF5C0)
+     */
+    boolean isResting(Entity creature) {
+        TaskComponent task = entityData.getComponent(creature.getId(), TaskComponent.class);
+
+        return RESTING.contains(creature.get(CreatureAi.class).getCreatureState()) || task != null && RESTING_TASKS.contains(task.taskType);
     }
 
     /**

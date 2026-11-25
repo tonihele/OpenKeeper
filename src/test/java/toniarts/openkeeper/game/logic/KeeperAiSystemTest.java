@@ -669,11 +669,35 @@ class KeeperAiSystemTest {
             system.processTick(0.25f);
         }
 
-        // The sleeper counts as rested and goes first, then the next two
-        assertEquals(3, dropped.size());
+        // Not the sleeper, it rests
+        assertEquals(Set.of(first, second, third), dropped.keySet());
         assertEquals(new Point(5, 4), dropped.get(first));
-        assertTrue(dropped.containsKey(second) || dropped.containsKey(third));
-        assertTrue(!dropped.containsKey(horny) && !dropped.containsKey(worker) && !dropped.containsKey(fighter));
+        assertEquals(0, getKeeperAi().attacks);
+    }
+
+    @Test
+    void dropsNoCreatureThatRestsFleesOrHeedsTheCallToArmsOnAnAttackButOneItJustDropped() {
+        EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 100, 100, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT)));
+        createCreature(ENEMY_ID, new Point(8, 4), 100, 100, CreatureState.IDLE);
+        createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.EATING);
+        entityData.setComponent(createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.WORK),
+                new TaskComponent(1, null, new Point(1, 4), TaskType.COLLECT_PAY, 0, true));
+        entityData.setComponent(createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.WORK),
+                new TaskComponent(2, null, new Point(1, 4), TaskType.CLAIM_LAIR, 0, true));
+        createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.FLEE);
+        createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.CALL_TO_ARMS);
+        entityData.setComponent(createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE), new CreatureFall());
+        EntityId justDropped = createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
+        entityData.setComponent(justDropped, new KeeperAiDropped(90));
+        KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 175, true, 0), 1000);
+        gameTime = 100;
+        for (int tick = 0; tick < 10; tick++) {
+            system.processTick(0.25f);
+        }
+
+        // DK II's 0x4FE0B0 has no wait after a drop, unlike its other hand work
+        assertEquals(Map.of(justDropped, new Point(5, 4)), dropped);
         assertEquals(0, getKeeperAi().attacks);
     }
 
@@ -1379,6 +1403,25 @@ class KeeperAiSystemTest {
         }
 
         assertEquals(List.of(idle), slapped);
+    }
+
+    @Test
+    void slapsNoCreatureThatIsUnhappyOrFleesAsIdle() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+        EntityId unhappy = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        entityData.setComponent(unhappy, new CreatureMood().add(CreatureMood.REASON_NO_PAY, 1000));
+        createCreature(PLAYER_ID, new Point(8, 4), 100, 100, CreatureState.FLEE);
+        for (int tick = 0; tick < 2000; tick++) {
+            system.processTick(0.25f);
+        }
+        assertTrue(slapped.isEmpty());
+
+        // DK II gives an unhappy creature a status of its own, once content it is idle
+        entityData.removeComponent(unhappy, CreatureMood.class);
+        for (int tick = 0; tick < 2000 && slapped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+        assertEquals(List.of(unhappy), slapped);
     }
 
     @Test

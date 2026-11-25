@@ -122,14 +122,6 @@ final class KeeperAiCreatures {
     private static final int PIT_SHARE_NUMERATOR = 3;
     private static final int PIT_SHARE_DENOMINATOR = 4;
 
-    /**
-     * The states of a creature that sleeps, eats or goes to do so, DK II
-     * leaves those alone
-     */
-    private static final Set<CreatureState> RESTING = Set.of(CreatureState.SLEEPING, CreatureState.GO_TO_SLEEP,
-            CreatureState.EATING, CreatureState.RECUPERATING);
-    private static final Set<TaskType> RESTING_TASKS = Set.of(TaskType.CLAIM_LAIR, TaskType.GO_TO_SLEEP, TaskType.GO_TO_EAT);
-
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final IGameWorldController gameWorldController;
@@ -334,8 +326,7 @@ final class KeeperAiCreatures {
                 continue;
             }
 
-            int state = mood.getState(CreatureMood.toRuntimeThreshold(
-                    kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId).getAttributes().getUnhappyThreshold()));
+            int state = getMoodState(creature, mood);
             KeeperAiMood seen = entityData.getComponent(creature.getId(), KeeperAiMood.class);
             int seenState = seen != null ? seen.state : 0;
             if (state == seenState) {
@@ -662,12 +653,22 @@ final class KeeperAiCreatures {
     }
 
     /**
-     * A creature with nothing to do. DK II counts a fleeing fighter in too
+     * A creature with nothing to do, status 5 of DK II (0x478A20). An
+     * unhappy or angry creature has a status of its own there, so it is
+     * never idle. DK II also counts in some states OpenKeeper doesn't have,
+     * such as sulking, being hypnotised or reporting danger
      */
-    private static boolean isIdle(Entity creature) {
-        CreatureState state = creature.get(CreatureAi.class).getCreatureState();
+    private boolean isIdle(Entity creature) {
+        return creature.get(CreatureAi.class).getCreatureState() == CreatureState.IDLE
+                && getMoodState(creature, entityData.getComponent(creature.getId(), CreatureMood.class)) == 0;
+    }
 
-        return state == CreatureState.IDLE || (state == CreatureState.FLEE && !creature.get(CreatureComponent.class).worker);
+    /**
+     * @return 0 when the creature is content, 1 when unhappy, 2 when angry
+     */
+    private int getMoodState(Entity creature, CreatureMood mood) {
+        return mood == null ? 0 : mood.getState(CreatureMood.toRuntimeThreshold(
+                kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId).getAttributes().getUnhappyThreshold()));
     }
 
     private int getPortalCapacity(IPlayerController playerController) {
@@ -694,15 +695,14 @@ final class KeeperAiCreatures {
     }
 
     /**
-     * A creature the hand may take to put it to work: awake, not eating,
-     * not in a fight, not helpless and not dropped a short while ago
+     * A creature the hand may take to put it to work: not resting, not in
+     * a fight or fleeing one, not helpless and not dropped a short while ago
      */
     private boolean isFree(Entity creature) {
         CreatureState state = creature.get(CreatureAi.class).getCreatureState();
-        TaskComponent task = entityData.getComponent(creature.getId(), TaskComponent.class);
 
-        return !battles.isLeftAlone(creature) && !RESTING.contains(state) && !KeeperAiBattles.HELPLESS.contains(state)
-                && !KeeperAiBattles.FIGHTING.contains(state) && (task == null || !RESTING_TASKS.contains(task.taskType));
+        return !battles.isLeftAlone(creature) && !battles.isResting(creature) && !KeeperAiBattles.HELPLESS.contains(state)
+                && !KeeperAiBattles.FIGHTING.contains(state);
     }
 
     private boolean isTraining(Entity creature) {
