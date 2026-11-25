@@ -69,15 +69,6 @@ public interface IPlayerScreenController extends ScreenController {
 
     public String getTooltipText(String bundleId);
 
-    /**
-     * Fills in the values a tooltip text shows, like what the next pay day
-     * costs
-     *
-     * @param text the tooltip text
-     * @return the text with the values
-     */
-    public String formatTooltipText(String text);
-
     public void quitToMainMenu();
 
     public void quitToDebriefing();

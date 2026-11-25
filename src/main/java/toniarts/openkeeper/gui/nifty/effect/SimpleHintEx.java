@@ -27,9 +27,9 @@ import de.lessvoid.nifty.render.NiftyRenderEngine;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.tools.SizeValue;
 import de.lessvoid.nifty.tools.TargetElementResolver;
+import java.util.function.Supplier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import toniarts.openkeeper.game.state.IPlayerScreenController;
 
 /**
  * This is a simple extension to the Nifty {@link SimpleHint}. SimpleHint
@@ -39,6 +39,13 @@ import toniarts.openkeeper.game.state.IPlayerScreenController;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class SimpleHintEx implements EffectImpl {
+
+    /**
+     * Key of the element's user data that can hold a {@code Supplier<String>}
+     * of the hint text. An effect without a hintText asks it for the text each
+     * time the hint shows, so the text can show values as they are now.
+     */
+    public static final String HINT_TEXT_SUPPLIER = "hintTextSupplier";
 
     /**
      * target element.
@@ -71,11 +78,13 @@ public final class SimpleHintEx implements EffectImpl {
         TargetElementResolver resolver = new TargetElementResolver(nifty.getCurrentScreen(), element);
         targetElement = resolver.resolve(parameter.getProperty("targetElement"));
 
-        // Fill in the values the text shows, like the pay day's cost, as they are now
         String text = parameter.getProperty("hintText");
+        if (text == null) {
+            Supplier<String> textSupplier = element.getUserData(HINT_TEXT_SUPPLIER);
+            text = textSupplier != null ? textSupplier.get() : null;
+        }
         if (text != null) {
-            hintText = screen.getScreenController() instanceof IPlayerScreenController controller
-                    ? controller.formatTooltipText(text) : text;
+            hintText = text;
         }
     }
 

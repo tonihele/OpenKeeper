@@ -63,6 +63,7 @@ import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.gui.nifty.AbstractCreatureCardControl.CreatureUIState;
 import toniarts.openkeeper.gui.nifty.*;
+import toniarts.openkeeper.gui.nifty.effect.SimpleHintEx;
 import toniarts.openkeeper.gui.nifty.flowlayout.FlowLayoutControl;
 import toniarts.openkeeper.gui.nifty.guiicon.GuiIconBuilder;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
@@ -89,6 +90,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.*;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  *
@@ -664,15 +666,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     public String getTooltipText(String bundleId) {
         String result = Utils.getMainTextResourceBundle().getString(bundleId);
 
-        return formatTooltipText(result);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String formatTooltipText(String text) {
-        return state.getTooltipText(text);
+        return state.getTooltipText(result);
     }
 
     /**
@@ -845,6 +839,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     initHudItems(state.assetManager, entityData);
                 }
                 initPayDayRing();
+
+                // The heart's and the pay day's hints show values, so they ask for their text each time they show
+                screen.findElementById("heartHint").setUserData(SimpleHintEx.HINT_TEXT_SUPPLIER,
+                        (Supplier<String>) () -> getTooltipText("2140"));
+                screen.findElementById("payDayHint").setUserData(SimpleHintEx.HINT_TEXT_SUPPLIER,
+                        (Supplier<String>) () -> getTooltipText("2144"));
 
                 break;
             }
