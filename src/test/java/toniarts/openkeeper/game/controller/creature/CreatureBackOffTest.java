@@ -293,6 +293,7 @@ class CreatureBackOffTest {
             case "isBackOffOver" -> over.get();
             case "backOff" -> canBackOff.get();
             case "withdrawToHeroLair" -> false;
+            case "hasWonCombatPitFight" -> false;
             default -> throw new UnsupportedOperationException(method);
         }));
         return self.get();

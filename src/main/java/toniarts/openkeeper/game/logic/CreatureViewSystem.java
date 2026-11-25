@@ -301,6 +301,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
             case DANCING:
                 return Creature.AnimationType.DANCE;
             case CELEBRATING:
+            case COMBAT_PIT_VICTORY:
                 return Creature.AnimationType.HAPPY;
             case EATING:
                 return Creature.AnimationType.EATING;

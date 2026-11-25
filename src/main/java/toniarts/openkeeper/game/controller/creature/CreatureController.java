@@ -184,6 +184,10 @@ public final class CreatureController extends EntityController implements ICreat
      * How long the big winner of the Casino celebrates its jackpot, as in DK II (DKII.EXE 0x456EC0)
      */
     private static final float BIG_WINNER_CELEBRATION_SECONDS = 10f;
+    /**
+     * How long the winner of a Combat Pit fight cheers, as in DK II (DKII.EXE 0x457CF0)
+     */
+    private static final float COMBAT_PIT_VICTORY_SECONDS = 4f;
     private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
     /**
      * How long a creature that got a job from its job list doesn't pick from the list again, as in DK II (DKII.EXE
@@ -1005,14 +1009,6 @@ public final class CreatureController extends EntityController implements ICreat
         AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
         if (attackTarget != null && isCombatPitOpponent(attackTarget.entityId, pit)) {
             return creaturesController.createController(attackTarget.entityId);
-        }
-
-        // We beat our opponent, winning cheers us up. Picking the next opponent clears the beaten one, so this is once a win
-        CombatPitFighter beaten = attackTarget != null ? entityData.getComponent(attackTarget.entityId, CombatPitFighter.class) : null;
-        CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
-        if (beaten != null && pit.equals(beaten.pit) && isIncapacitated(attackTarget.entityId) && mood != null) {
-            entityData.setComponent(entityId, mood.add(CreatureMood.REASON_OTHER,
-                    (int) gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_COMBAT_PIT_VICTOR).getValue()));
         }
 
         EntityId nearestEnemy = null;
@@ -1910,6 +1906,27 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public boolean hasWonCombatPitFight() {
+        CombatPitFighter pitFighter = entityData.getComponent(entityId, CombatPitFighter.class);
+        AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
+        CombatPitFighter beaten = attackTarget != null ? entityData.getComponent(attackTarget.entityId, CombatPitFighter.class) : null;
+        if (pitFighter == null || beaten == null || !pitFighter.pit.equals(beaten.pit) || !isIncapacitated(attackTarget.entityId)) {
+            return false;
+        }
+        setAttackTarget(null);
+        return true;
+    }
+
+    @Override
+    public void cheerUpCombatPitVictor() {
+        CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
+        if (mood != null) {
+            entityData.setComponent(entityId, mood.add(CreatureMood.REASON_OTHER,
+                    (int) gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_COMBAT_PIT_VICTOR).getValue()));
+        }
+    }
+
+    @Override
     public boolean isIncapacitated() {
         return isIncapacitated(entityData, entityId);
     }
@@ -2650,6 +2667,12 @@ public final class CreatureController extends EntityController implements ICreat
             }
             case CELEBRATING -> {
                 stateTargetTime = BIG_WINNER_CELEBRATION_SECONDS;
+            }
+            case COMBAT_PIT_VICTORY -> {
+
+                // Happy over and over, and the one still playing at the end is played out (DK II 0x457CF0)
+                double happy = getAnimationTime(creature, Creature.AnimationType.HAPPY);
+                stateTargetTime = happy > 0 ? Math.ceil(COMBAT_PIT_VICTORY_SECONDS / happy) * happy : COMBAT_PIT_VICTORY_SECONDS;
             }
             case CHICKEN -> {
                 stateTargetTime = entityData.getComponent(entityId, CreatureAi.class).stateDuration;

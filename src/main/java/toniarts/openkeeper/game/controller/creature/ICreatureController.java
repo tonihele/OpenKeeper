@@ -235,6 +235,19 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public boolean isCombatPitFighter();
 
+    /**
+     * Has the creature just beaten its opponent in the Combat Pit. It lets go
+     * of the beaten one, so a win is told once
+     *
+     * @return true if we just won a fight in the Combat Pit
+     */
+    public boolean hasWonCombatPitFight();
+
+    /**
+     * The winner of a Combat Pit fight cheers up when it has celebrated
+     */
+    public void cheerUpCombatPitVictor();
+
     public boolean isTimeToReEvaluate();
 
     public void resetReEvaluationTimer();

@@ -373,6 +373,13 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
+
+            // The winner of a Combat Pit fight celebrates first (DK II 0x457CF0)
+            if (entity.hasWonCombatPitFight()) {
+                entity.getStateMachine().changeState(COMBAT_PIT_VICTORY);
+                return;
+            }
+
             IEntityController attackTarget = entity.getAttackTarget();
             if (attackTarget == null) {
                 entity.getStateMachine().changeState(entity.isCombatPitFighter() ? COMBAT_PIT : IDLE); // Nothing to do
@@ -870,6 +877,32 @@ public enum CreatureState implements State<ICreatureController> {
             } else if (entity.isTimeToReEvaluate()) {
                 entity.resetReEvaluationTimer();
                 entity.navigateToRandomPointInCombatPit();
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, COMBAT_PIT_VICTORY {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.stopCreature();
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Cheer, then the win cheers us up and we fight on (DK II 0x457CF0)
+            if (entity.isStateTimeExceeded()) {
+                entity.cheerUpCombatPitVictor();
+                entity.getStateMachine().changeState(COMBAT_PIT);
             }
         }
 
