@@ -654,6 +654,12 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             }
         }
 
+        // Started straight into a level for testing, no need for the outro and debriefing
+        if (win && Main.isLevelArgumentGiven()) {
+            quitToOS();
+            return;
+        }
+
         // Disable us to get rid of all interaction
         setEnabled(false);
         stateManager.attach(new EndGameState(this));
