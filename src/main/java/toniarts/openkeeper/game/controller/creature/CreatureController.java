@@ -1411,7 +1411,7 @@ public final class CreatureController extends EntityController implements ICreat
                 // Half of the swings play the second melee animation, if the first one is flagged for it (0x4B37D0)
                 CreatureMeleeAttack swing = new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime());
                 ArtResource melee = creature.getAnimation(Creature.AnimationType.MELEE_ATTACK);
-                swing.swipe = melee != null && melee.getFlags().contains(ArtResource.ArtResourceFlag.UNKNOWN_1)
+                swing.swipe = melee != null && melee.getFlags().contains(ArtResource.ArtResourceFlag.RANDOM_SWIPE)
                         && creature.getAnimation(Creature.AnimationType.SWIPE) != null && FastMath.rand.nextBoolean();
                 entityData.setComponent(entityId, swing);
                 stateMachine.changeState(CreatureState.MELEE_ATTACK);

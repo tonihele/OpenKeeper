@@ -695,7 +695,7 @@ class CreatureControllerTest {
         // The Knight's first melee animation is flagged, its second one takes 9 + 29 + 12 frames at 30 fps, 6.7 turns,
         // so a swing with it ends on turn 8
         CreatureSleepFixtures.setSwing(definition, Creature.AnimationType.MELEE_ATTACK, 30, 18, 9, 11,
-                ArtResource.ArtResourceFlag.UNKNOWN_1);
+                ArtResource.ArtResourceFlag.RANDOM_SWIPE);
         CreatureSleepFixtures.setSwing(definition, Creature.AnimationType.SWIPE, 29, 30, 9, 12);
         try (Fixture f = new Fixture(definition)) {
             EntityId target = f.meleeTarget();
