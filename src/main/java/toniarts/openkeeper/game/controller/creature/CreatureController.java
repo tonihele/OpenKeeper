@@ -58,6 +58,7 @@ import toniarts.openkeeper.game.component.JobPicked;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
@@ -82,6 +83,7 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
@@ -731,7 +733,7 @@ public final class CreatureController extends EntityController implements ICreat
                 //workNavigationRequired = false;
 
                 Point destination = WorldUtils.vectorToPoint(loc);
-                createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, workPosition);
+                createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getFaceLocation() : null, workPosition);
             }
         }
     }
@@ -869,7 +871,16 @@ public final class CreatureController extends EntityController implements ICreat
             return false;
         }
         Vector2f target = assignedTask.getTarget(this);
-        return target != null && isNear(target);
+        if (target == null) {
+            return false;
+        }
+
+        // A task may want us somewhere else on the tile, such as a trainee standing around its dummy
+        if (isNear(target)) {
+            return true;
+        }
+        Vector2f workPosition = assignedTask.getWorkPosition(this);
+        return workPosition != null && isAt(workPosition);
     }
 
     private boolean isNear(Vector2f target) {
@@ -2294,7 +2305,35 @@ public final class CreatureController extends EntityController implements ICreat
         updated.lastSleepTime = gameTime;
         updated.sleepStartTime = gameTime;
         entityData.setComponent(entityId, updated);
+
+        // DK II lays the creature exactly on its bed, facing the way the bed faces (0x46F910)
+        Position bed = updated.lairObjectId != null ? entityData.getComponent(updated.lairObjectId, Position.class) : null;
+        Position position = entityData.getComponent(entityId, Position.class);
+        if (bed != null && position != null) {
+            entityData.setComponent(entityId, new Position(bed.rotation,
+                    new Vector3f(bed.position.x, position.position.y, bed.position.z)));
+        }
+        setLairVisible(false);
         stateMachine.changeState(CreatureState.SLEEPING);
+    }
+
+    /**
+     * The sleep animation has the bed in it, so DK II hides the bed object
+     * while its owner sleeps and shows it again when it gets up, except the
+     * Hero bed (0x46FA60)
+     *
+     * @param visible whether the bed is drawn
+     */
+    private void setLairVisible(boolean visible) {
+        CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
+        if (creatureSleep == null || creatureSleep.lairObjectId == null) {
+            return;
+        }
+        ObjectViewState viewState = entityData.getComponent(creatureSleep.lairObjectId, ObjectViewState.class);
+        if (viewState != null && viewState.visible != visible && viewState.objectId != ObjectsController.OBJECT_HERO_BED_ID) {
+            entityData.setComponent(creatureSleep.lairObjectId, new ObjectViewState(viewState.objectId, viewState.state,
+                    viewState.animState, visible, viewState.lairCreatureTypeId));
+        }
     }
 
     @Override
@@ -2869,6 +2908,7 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void stopRecuperating() {
         entityData.removeComponent(entityId, CreatureRecuperating.class);
+        setLairVisible(true);
     }
 
     @Override

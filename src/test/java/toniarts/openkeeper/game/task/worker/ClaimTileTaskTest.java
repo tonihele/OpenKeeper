@@ -16,182 +16,271 @@
  */
 package toniarts.openkeeper.game.task.worker;
 
-import com.badlogic.gdx.ai.pfa.GraphPath;
-import com.jme3.math.Vector3f;
 import java.lang.reflect.Proxy;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.TileWork;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapDataInformation;
-import toniarts.openkeeper.game.map.IMapTileInformation;
-import toniarts.openkeeper.game.navigation.INavigationService;
-import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.map.IMapTileController;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
+import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.utils.Point;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
- * A worker nearer to a tile takes its claim over from the one assigned to it
- * (0x46AB50). The floor that digging has left is claimed by a worker walking
- * over it, once no tile around it is tagged for digging anymore (0x469600)
+ * DK II's claim action on ground nobody owns (0x496AA0, 0x4974C0), measured
+ * on a Dirt Path in the original: a level 1 imp adds 164 health a tick from
+ * the tick after it starts, the tile turns on the fifth, and the imp leaves
+ * when the loop of Imp_ClaimFloor (11 frames at 20 fps) that is playing has
+ * ended, 7 ticks after it started.
  */
 class ClaimTileTaskTest {
 
-    private final Set<Point> tagged = new HashSet<>();
-    private final Set<Point> gold = new HashSet<>();
-    private final ClaimTileTask task = new ClaimTileTask(navigationService(), mapController(), new Point(10, 10), (short) 3);
+    private static final int TICKS_PER_SECOND = 4;
+    private static final int FRESH_IMP = 80;
+    private static final short PLAYER = 3;
+    private static final Terrain DIRT_PATH = TerrainFixtures.terrain((short) 3, TerrainFixtures.flags(), 0, 1, 660, (short) 8);
+    private static final Terrain CLAIMED_PATH = TerrainFixtures.terrain((short) 8, TerrainFixtures.flags(Terrain.TerrainFlag.OWNABLE), 0, 1, 660, (short) 2);
 
     @Test
-    void nearerWorkerTakesTheClaimOver() {
-        Imp far = new Imp(new Vector3f(16, 0, 10), false);
-        task.assign(far.creature, true);
+    void impClaimsDirtPathInFiveTicks() {
+        Claiming claiming = new Claiming(1, TileWork.perTick(825 / TICKS_PER_SECOND, FRESH_IMP));
+        ClaimTileTask task = new ClaimTileTask(null, claiming.mapController(), new Point(1, 1), PLAYER);
+        ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20));
+        task.assign(imp, false);
 
-        Imp near = new Imp(new Vector3f(12, 0, 10), false);
+        int leaves = -1;
+        for (int tick = 0; tick < 20 && leaves < 0; tick++) {
+            claiming.tick = tick;
+            task.executeTask(imp, (float) tick / TICKS_PER_SECOND);
+            if (!task.isValid(imp)) {
+                leaves = tick;
+            }
+        }
 
-        assertTrue(task.isFull());
-        assertTrue(task.makeRoomFor(near.creature));
-        assertEquals(0, task.getAssigneeCount());
-        assertNull(far.task.get(), "The one that lost the claim looks for work again");
+        assertEquals(List.of(1, 2, 3, 4, 5), claiming.claims);
+        assertEquals(7, leaves);
     }
 
     @Test
-    void workerKeepsTheClaimFromOneFartherAway() {
-        Imp near = new Imp(new Vector3f(12, 0, 10), false);
-        task.assign(near.creature, true);
+    void othersCantTakeTheClaimedTileWhileTheImpFinishes() {
+        Claiming claiming = new Claiming(657, 164);
+        ClaimTileTask task = new ClaimTileTask(null, claiming.mapController(), new Point(1, 1), PLAYER);
+        ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20));
+        task.assign(imp, false);
 
-        assertFalse(task.makeRoomFor(new Imp(new Vector3f(16, 0, 10), false).creature));
-        assertEquals(1, task.getAssigneeCount());
-        assertEquals(task, near.task.get());
+        task.executeTask(imp, 0);
+        task.executeTask(imp, 0.25f);
+
+        assertEquals(true, task.isValid(imp));
+        assertFalse(task.isValid(creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20))));
+        assertFalse(task.isValid(null));
+    }
+
+    @Test
+    void impAttacksEnemyFloorEveryTickAndThenClaimsIt() {
+
+        // 28 a blow, 660 health: 24 blows, the second once the first loop (2.2 ticks) is over, as measured in DK II
+        Claiming claiming = new Claiming(1, TileWork.perTick(825 / TICKS_PER_SECOND, FRESH_IMP));
+        claiming.enemyHealth = 660;
+        claiming.perBlow = TileWork.perSwing(-140 / TICKS_PER_SECOND, FRESH_IMP);
+        ClaimTileTask task = new ClaimTileTask(null, claiming.mapController(), new Point(1, 1), PLAYER);
+        ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20));
+        task.assign(imp, false);
+
+        for (int tick = 0; tick < 100 && task.isValid(imp); tick++) {
+            claiming.tick = tick;
+            task.executeTask(imp, (float) tick / TICKS_PER_SECOND);
+        }
+
+        assertEquals(28, claiming.perBlow);
+        assertEquals(24, claiming.blows.size());
+        assertEquals(List.of(1, 4, 5), claiming.blows.subList(0, 3));
+        assertEquals(26, claiming.blows.get(23));
+        assertEquals(List.of(27, 28, 29, 30, 31), claiming.claims);
+    }
+
+    @Test
+    void impClaimsANeutralRoomInBlows() {
+
+        // A 3 x 3 neutral Lair has 90000 health in DK II, 4000 a blow: 23 blows, the second once the first loop is over
+        List<Integer> blows = new ArrayList<>();
+        int[] room = {90000};
+        int[] tick = {0};
+        IMapTileController tile = (IMapTileController) Proxy.newProxyInstance(IMapTileController.class.getClassLoader(),
+                new Class<?>[]{IMapTileController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getOwnerId" ->
+                room[0] > 0 ? (short) 0 : PLAYER;
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        IMapDataInformation<?> mapData = (IMapDataInformation<?>) Proxy.newProxyInstance(IMapDataInformation.class.getClassLoader(),
+                new Class<?>[]{IMapDataInformation.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getTile" ->
+                tile;
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
+                new Class<?>[]{IMapController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getMapData" ->
+                mapData;
+            case "isClaimableTile" ->
+                false;
+            case "isClaimableRoom" ->
+                room[0] > 0;
+            case "applyClaimTile" -> {
+                blows.add(tick[0]);
+                room[0] -= TileWork.perSwing(-20000 / TICKS_PER_SECOND, FRESH_IMP);
+                yield null;
+            }
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        ClaimRoomTask task = new ClaimRoomTask(null, mapController, new Point(1, 1), PLAYER);
+        List<GameEventType> events = new ArrayList<>();
+        ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20), events);
+        task.assign(imp, false);
+
+        for (; tick[0] < 100 && task.isValid(imp); tick[0]++) {
+            task.executeTask(imp, (float) tick[0] / TICKS_PER_SECOND);
+        }
+
+        assertEquals(23, blows.size());
+        assertEquals(List.of(1, 4, 5), blows.subList(0, 3));
+        assertEquals(25, blows.get(22));
+
+        // The room is claimed once, it is not heard with every blow
+        assertEquals(List.of(GameEventType.CREATURE_CLAIM_TILE), events);
+    }
+
+    @Test
+    void mendingOwnRoomIsNotHeard() {
+
+        // An enemy Imp chips at the keeper's room and the keeper's Imp mends it. The room never changes hands
+        int[] blows = {0};
+        IMapTileController tile = (IMapTileController) Proxy.newProxyInstance(IMapTileController.class.getClassLoader(),
+                new Class<?>[]{IMapTileController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getOwnerId" ->
+                PLAYER;
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        IMapDataInformation<?> mapData = (IMapDataInformation<?>) Proxy.newProxyInstance(IMapDataInformation.class.getClassLoader(),
+                new Class<?>[]{IMapDataInformation.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getTile" ->
+                tile;
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
+                new Class<?>[]{IMapController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getMapData" ->
+                mapData;
+            case "isClaimableTile" ->
+                false;
+            case "applyClaimTile" -> {
+                blows[0]++;
+                yield null;
+            }
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        ClaimRoomTask task = new ClaimRoomTask(null, mapController, new Point(1, 1), PLAYER);
+        List<GameEventType> events = new ArrayList<>();
+        ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20), events);
+        task.assign(imp, false);
+
+        for (int tick = 0; tick < 40; tick++) {
+            task.executeTask(imp, (float) tick / TICKS_PER_SECOND);
+        }
+
+        assertTrue(blows[0] > 5);
+        assertEquals(List.of(), events);
+    }
+
+    private static ICreatureController creature(Creature creature) {
+        return creature(creature, new ArrayList<>());
+    }
+
+    private static ICreatureController creature(Creature creature, List<GameEventType> events) {
+        return (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(),
+                new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getCreature" ->
+                creature;
+            case "fireEvent" -> {
+                events.add((GameEventType) args[0]);
+                yield null;
+            }
+            case "hashCode" ->
+                System.identityHashCode(proxy);
+            case "equals" ->
+                proxy == args[0];
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
     }
 
     /**
-     * A worker in the keeper's hand has no position, it is not on its way to
-     * the tile
+     * One Dirt Path being claimed, a claimed path once its health is full.
+     * With enemy health it starts as the enemy's claimed path, which turns
+     * into the Dirt Path once that health is gone
      */
-    @Test
-    void workerInTheHandLosesTheClaim() {
-        Imp held = new Imp(null, false);
-        task.assign(held.creature, true);
+    private static final class Claiming {
 
-        assertTrue(task.makeRoomFor(new Imp(new Vector3f(16, 0, 10), false).creature));
-        assertNull(held.task.get());
-    }
+        private final int perTick;
+        private final List<Integer> claims = new ArrayList<>();
+        private final List<Integer> blows = new ArrayList<>();
+        private int enemyHealth = 0;
+        private int perBlow = 0;
+        private int health;
+        private int tick = 0;
 
-    @Test
-    void workerClaimingTheTileKeepsIt() {
-        Imp claiming = new Imp(new Vector3f(16, 0, 10), true);
-        task.assign(claiming.creature, true);
+        private Claiming(int health, int perTick) {
+            this.health = health;
+            this.perTick = perTick;
+        }
 
-        assertFalse(task.makeRoomFor(new Imp(new Vector3f(12, 0, 10), false).creature));
-        assertEquals(task, claiming.task.get());
-    }
-
-    @Test
-    void onlyFloorLeftByDiggingIsClaimedOnTheWay() {
-        assertTrue(dugFloor().isDugFloorToClaim());
-        assertFalse(task.isDugFloorToClaim(), "Other floor is claimed in its turn");
-    }
-
-    @Test
-    void floorLeftByDiggingWaitsWhileATileAroundItIsTaggedForDigging() {
-        tagged.add(new Point(11, 11));
-
-        assertFalse(dugFloor().isDugFloorToClaim());
-
-        // The digging around it is done
-        tagged.clear();
-
-        assertTrue(dugFloor().isDugFloorToClaim());
-    }
-
-    @Test
-    void tileTaggedForMiningGoldDoesNotHoldTheFloorUp() {
-        tagged.add(new Point(9, 10));
-        gold.add(new Point(9, 10));
-
-        assertTrue(dugFloor().isDugFloorToClaim());
-    }
-
-    private ClaimTileTask dugFloor() {
-        return new ClaimTileTask(navigationService(), mapController(), new Point(10, 10), (short) 3, true);
-    }
-
-    /**
-     * A worker that remembers the task it is given
-     */
-    private static final class Imp {
-
-        private final AtomicReference<Task> task = new AtomicReference<>();
-        private final ICreatureController creature;
-
-        private Imp(Vector3f position, boolean claiming) {
-            creature = stub(ICreatureController.class, (proxy, name, args) -> switch (name) {
-                case "getPosition" -> position;
-                case "getOwnerId" -> (short) 3;
-                case "isAtAssignedTaskTarget" -> claiming;
-                case "setAssignedTask" -> {
-                    task.set((Task) args[0]);
+        private IMapController mapController() {
+            IMapDataInformation<?> mapData = (IMapDataInformation<?>) Proxy.newProxyInstance(IMapDataInformation.class.getClassLoader(),
+                    new Class<?>[]{IMapDataInformation.class}, (proxy, method, args) -> switch (method.getName()) {
+                case "getTile" ->
+                    null;
+                default ->
+                    throw new UnsupportedOperationException(method.getName());
+            });
+            return (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
+                    new Class<?>[]{IMapController.class}, (proxy, method, args) -> switch (method.getName()) {
+                case "getMapData" ->
+                    mapData;
+                case "getTerrain" ->
+                    enemyHealth == 0 && health < DIRT_PATH.getMaxHealth() ? DIRT_PATH : CLAIMED_PATH;
+                case "isClaimableTile" ->
+                    enemyHealth > 0 || health < DIRT_PATH.getMaxHealth();
+                case "applyClaimTile" -> {
+                    if (enemyHealth > 0) {
+                        blows.add(tick);
+                        enemyHealth = Math.max(0, enemyHealth - perBlow);
+                    } else {
+                        claims.add(tick);
+                        health = Math.min(DIRT_PATH.getMaxHealth(), health + perTick);
+                    }
                     yield null;
                 }
-                case "getAssignedTask" -> task.get();
-                case "unassingCurrentTask" -> {
-                    task.set(null);
-                    yield null;
-                }
-                case "equals" -> proxy == args[0];
-                case "hashCode" -> System.identityHashCode(proxy);
-                default -> null;
+                default ->
+                    throw new UnsupportedOperationException(method.getName());
             });
         }
-    }
 
-    private IMapController mapController() {
-        IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (proxy, name, args) -> switch (name) {
-            case "getTile" -> tile(args.length == 1 ? (Point) args[0] : new Point((int) args[0], (int) args[1]));
-            case "getWidth", "getHeight" -> 20;
-            default -> null;
-        });
-        return stub(IMapController.class, (proxy, name, args) -> switch (name) {
-            case "getMapData" -> mapData;
-            case "isClaimableTile" -> true;
-            default -> null;
-        });
-    }
-
-    private static INavigationService navigationService() {
-        GraphPath<?> path = stub(GraphPath.class, (proxy, name, args) -> null);
-        return stub(INavigationService.class, (proxy, name, args) -> switch (name) {
-            case "isAccessible" -> true;
-            case "findPath" -> path;
-            default -> null;
-        });
-    }
-
-    private IMapTileInformation tile(Point location) {
-        return stub(IMapTileInformation.class, (proxy, name, args) -> switch (name) {
-            case "getLocation" -> location;
-            case "isSelected" -> tagged.contains(location);
-            case "getGold" -> gold.contains(location) ? 1 : 0;
-            case "getX" -> location.x;
-            case "getY" -> location.y;
-            default -> null;
-        });
-    }
-
-    private interface Answer {
-
-        Object answer(Object proxy, String methodName, Object[] args);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> T stub(Class<T> type, Answer answer) {
-        return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type},
-                (proxy, method, args) -> answer.answer(proxy, method.getName(), args));
     }
 
 }
