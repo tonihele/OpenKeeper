@@ -84,6 +84,8 @@ class ShotsControllerTest {
     private static final short CREATE_CREATURE_ID = 10;
     private static final short IMP_ID = 1;
     private static final short GOLD_OBJECT_ID = 1;
+    private static final short CHICKEN_OBJECT_ID = 9;
+    private static final short TRAINING_DUMMY_OBJECT_ID = 14;
     private static final short SIGHT_OF_EVIL_ID = 33;
     private static final short DRAIN_ID = 42;
     private static final short SPIKE_ID = 27;
@@ -118,6 +120,7 @@ class ShotsControllerTest {
         shotsById.put(ShotFixtures.GAS_CLOUD_ID, ShotFixtures.gasCloud(ShotFixtures.GAS_CLOUD_ID));
         shotsById.put(ShotFixtures.GAS_MISSILE_ID, ShotFixtures.gasMissile());
         shotsById.put(ShotFixtures.GAS_MISSILE_CLOUD_ID, ShotFixtures.gasCloud(ShotFixtures.GAS_MISSILE_CLOUD_ID));
+        shotsById.put(ShotFixtures.HAIL_STORM_ID, ShotFixtures.hailStorm());
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         shotsById.put(HEAL_INSTANT_ID, ShotFixtures.healInstantShot(HEAL_INSTANT_ID, HEAL_ID));
         addShot(ARMOUR_ID, Shot.ProcessType.MODIFY_ARMOUR);
@@ -141,7 +144,12 @@ class ShotsControllerTest {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "getShotById" -> shotsById.get((Short) args[0]);
-                    case "getObject" -> (int) args[0] == GOLD_OBJECT_ID ? GameObjectFixtures.gameObject("Gold", GameObject.ObjectFlag.OBJECT_TYPE_GOLD) : null;
+                    case "getObject" -> switch ((int) args[0]) {
+                        case GOLD_OBJECT_ID -> GameObjectFixtures.gameObject("Gold", GameObject.ObjectFlag.OBJECT_TYPE_GOLD);
+                        case CHICKEN_OBJECT_ID -> GameObjectFixtures.gameObject("Chicken", GameObject.ObjectFlag.OBJECT_TYPE_FOOD, GameObject.ObjectFlag.DAMAGEABLE);
+                        case TRAINING_DUMMY_OBJECT_ID -> GameObjectFixtures.gameObject("Training Dummy");
+                        default -> null;
+                    };
                     case "getGameLevel" -> ShotFixtures.gameLevel(TICKS_PER_SECOND);
                     case "getCreature" -> (short) args[0] == REAPER_ID ? TrapFiringFixtures.creature(REAPER_ID, Creature.CreatureFlag.IS_HORNY) : null;
                     default -> null;
@@ -171,6 +179,7 @@ class ShotsControllerTest {
             return null;
         });
 
+        // The things picked up this tick are still on their tiles until the lookup catches up
         IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class},
                 (proxy, method, args) -> Stream.concat(entityData.findEntities(null, Position.class).stream()
                         .filter(entity -> new Point((int) args[0], (int) args[1]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position))),
@@ -432,6 +441,22 @@ class ShotsControllerTest {
     }
 
     @Test
+    void hitDoesTheShotsProcessOnlyIfTheShotIsMadeTo() {
+        EntityId target = createCreature();
+        EntityId shot = entityData.createEntity();
+        entityData.setComponent(shot, new ShotFlight(HEAL_ID, PLAYER_ID, null, target, 50, 0, new Vector3f(), new Vector3f(), 0, 1));
+
+        shotsController.hit(shot, target);
+        assertNull(entityData.getComponent(target, Damage.class));
+
+        // Modify Health heals what it hits, as in the original data
+        shotsById.put(HEAL_ID, ShotFixtures.shot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH, 0,
+                EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING)));
+        shotsController.hit(shot, target);
+        assertEquals(-50, entityData.getComponent(target, Damage.class).damage);
+    }
+
+    @Test
     void shotThatHitsAThingHurtsItsTargetAtOnce() {
         EntityId target = createCreature(ENEMY_ID, 13, 10);
         EntityId bystander = createCreature(ENEMY_ID, 13, 10);
@@ -445,19 +470,23 @@ class ShotsControllerTest {
     }
 
     @Test
-    void constantDamageShotHurtsEveryoneOnItsTileButTheOwnersCreatures() {
+    void constantDamageShotHurtsEveryoneInItsSquareButTheOwnersCreatures() {
         EntityId target = createCreature(ENEMY_ID, 10, 10);
         EntityId other = createCreature(ENEMY_ID, 10.3f, 9.8f);
         EntityId own = createCreature(PLAYER_ID, 10, 10);
+        EntityId lowerCorner = createCreature(ENEMY_ID, 9, 9);
         EntityId nextTile = createCreature(ENEMY_ID, 11, 10);
+        EntityId below = createCreature(ENEMY_ID, 10, 11);
 
-        // The Spike Trap
+        // The Spike Trap, radius 1: its own tile and the three on the lower side, all with the full damage
         shotsController.createShot(SPIKE_ID, 750, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
 
         assertEquals(750, entityData.getComponent(target, Damage.class).damage);
         assertEquals(750, entityData.getComponent(other, Damage.class).damage);
+        assertEquals(750, entityData.getComponent(lowerCorner, Damage.class).damage);
         assertNull(entityData.getComponent(own, Damage.class));
         assertNull(entityData.getComponent(nextTile, Damage.class));
+        assertNull(entityData.getComponent(below, Damage.class));
     }
 
     @Test
@@ -505,7 +534,7 @@ class ShotsControllerTest {
 
     @Test
     void damageFromOriginHurtsTheObjectsDoorsAndTrapsOfOtherPlayers() {
-        EntityId object = createThing(ENEMY_ID, new ObjectComponent(GOLD_OBJECT_ID, null));
+        EntityId object = createThing(ENEMY_ID, new ObjectComponent(CHICKEN_OBJECT_ID, null));
         EntityId door = createThing(ENEMY_ID, new DoorComponent(DOOR_ID, false, false));
         EntityId trap = createThing(ENEMY_ID, new TrapComponent(TRAP_ID));
         EntityId ownDoor = createThing(PLAYER_ID, new DoorComponent(DOOR_ID, false, false));
@@ -518,9 +547,37 @@ class ShotsControllerTest {
         assertNull(entityData.getComponent(ownDoor, Damage.class));
     }
 
+    /**
+     * DK II hurts only the objects marked damageable, like chickens, not room
+     * furniture or gold (0x4B2CE0)
+     */
+    @Test
+    void damageFromOriginSparesTheObjectsThatAreNotDamageable() {
+        EntityId dummy = createThing(ENEMY_ID, new ObjectComponent(TRAINING_DUMMY_OBJECT_ID, null));
+        EntityId gold = createThing(ENEMY_ID, new ObjectComponent(GOLD_OBJECT_ID, null));
+
+        shotsController.createShot(FIREBURST_ID, 800, 1, PLAYER_ID, new Vector3f(10, 1, 10), null, null);
+
+        assertNull(entityData.getComponent(dummy, Damage.class));
+        assertNull(entityData.getComponent(gold, Damage.class));
+    }
+
+    @Test
+    void damageFromOriginPassesOverAThingPickedUpThisTick() {
+        EntityId held = createCreature(ENEMY_ID, 10, 10);
+        entityData.removeComponent(held, Position.class);
+        pickedUpThings.add(held);
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+
+        shotsController.createShot(FIREBURST_ID, 800, 1, PLAYER_ID, new Vector3f(10, 1, 10), null, null);
+
+        assertNull(entityData.getComponent(held, Damage.class));
+        assertEquals(800, entityData.getComponent(target, Damage.class).damage);
+    }
+
     @Test
     void gasSparesDoorsAndTraps() {
-        EntityId object = createThing(ENEMY_ID, new ObjectComponent(GOLD_OBJECT_ID, null));
+        EntityId object = createThing(ENEMY_ID, new ObjectComponent(CHICKEN_OBJECT_ID, null));
         EntityId door = createThing(ENEMY_ID, new DoorComponent(DOOR_ID, false, false));
         EntityId trap = createThing(ENEMY_ID, new TrapComponent(TRAP_ID));
 
@@ -560,6 +617,22 @@ class ShotsControllerTest {
     }
 
     @Test
+    void creatureHailStormIsAShotThatStandsStillUntilItGoesOntoItsTarget() {
+        EntityId target = createCreature();
+        EntityId mistress = createCreature(PLAYER_ID, 1.5f, 4.5f);
+
+        assertTrue(shotsController.fireShot(ShotFixtures.HAIL_STORM_ID, 10, 2, PLAYER_ID, new Vector3f(1.5f, 1f, 4.5f), target,
+                mistress, 4));
+
+        ShotFlight flight = getShotFlight();
+        assertEquals(0, flight.velocity.length(), DELTA);
+        assertEquals(target, flight.target);
+        assertEquals(10, flight.shotData1);
+        assertEquals(2, flight.shotData2);
+        assertNull(entityData.getComponent(target, Damage.class));
+    }
+
+    @Test
     void childShotStaysWhereItsParentIsWithTheParentsValues() {
         EntityId target = createCreature();
         EntityId bileDemon = createCreature(PLAYER_ID, 1.5f, 4.5f);
@@ -574,6 +647,7 @@ class ShotsControllerTest {
         assertEquals(1, flight.shotData2);
         assertEquals(PLAYER_ID, flight.ownerId);
         assertEquals(bileDemon, flight.shooter);
+        assertEquals(target, flight.target);
         assertEquals(Vector3f.ZERO, flight.velocity);
         assertEquals(5, flight.health);
         assertEquals(new Vector3f(1.5f, 1f, 2f), entityData.getComponent(cloud, Position.class).position);
@@ -586,7 +660,7 @@ class ShotsControllerTest {
         EntityId halfway = createCreature(ENEMY_ID, 10.5f, 10);
         EntityId own = createCreature(PLAYER_ID, 10, 10);
         EntityId missile = entityData.createEntity();
-        entityData.setComponent(missile, new ShotFlight(ShotFixtures.GAS_MISSILE_ID, PLAYER_ID, null, 100, 1, new Vector3f(),
+        entityData.setComponent(missile, new ShotFlight(ShotFixtures.GAS_MISSILE_ID, PLAYER_ID, null, null, 100, 1, new Vector3f(),
                 new Vector3f(), 0, 16));
         shotsController.createChildShot(missile, ShotFixtures.GAS_MISSILE_CLOUD_ID, new Vector3f(10, 1, 10));
         EntityId cloud = entityData.findEntity(new FieldFilter<>(ShotFlight.class, "shotId", ShotFixtures.GAS_MISSILE_CLOUD_ID), ShotFlight.class);
@@ -733,7 +807,7 @@ class ShotsControllerTest {
     private EntityId createDrainShot(EntityId shooter) {
         EntityId shot = entityData.createEntity();
         entityData.setComponents(shot, new Position(0, new Vector3f(1.5f, 1f, 1.5f)),
-                new ShotFlight(DRAIN_ID, PLAYER_ID, shooter, 25, 0, new Vector3f(), new Vector3f(), 3, 128));
+                new ShotFlight(DRAIN_ID, PLAYER_ID, shooter, null, 25, 0, new Vector3f(), new Vector3f(), 3, 128));
         return shot;
     }
 
@@ -754,7 +828,7 @@ class ShotsControllerTest {
     private void hitWithPoisonSpit(EntityId target, int shotData1, int shotData2) {
         EntityId shot = entityData.createEntity();
         entityData.setComponents(shot, new Position(0, new Vector3f(10, 1, 10)), new ShotFlight(POISON_SPIT_ID, PLAYER_ID,
-                entityData.createEntity(), shotData1, shotData2, new Vector3f(), new Vector3f(10, 1, 10), 3, 20));
+                entityData.createEntity(), null, shotData1, shotData2, new Vector3f(), new Vector3f(10, 1, 10), 3, 20));
 
         shotsController.hit(shot, target);
     }

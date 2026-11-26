@@ -864,8 +864,8 @@ public final class CreatureController extends EntityController implements ICreat
     public boolean isAtAssignedTaskTarget() {
         Task assignedTask = getAssignedTask();
 
-        // Stopped comes first and the target is asked once, a task may search a path for its target
-        if (assignedTask == null || !isStopped()) {
+        // Stopped or at the end of the walk comes first and the target is asked once, a task may search a path for its target
+        if (assignedTask == null || !(isStopped() || isAtWalkEnd())) {
             return false;
         }
         Vector2f target = assignedTask.getTarget(this);
@@ -879,6 +879,21 @@ public final class CreatureController extends EntityController implements ICreat
         }
         Vector2f workPosition = assignedTask.getWorkPosition(this);
         return workPosition != null && isAt(workPosition);
+    }
+
+    /**
+     * DK II's walk is done on the tick the creature reaches its last point. The walk state (0x470C80) stops the
+     * creature right there (0x48ECE0) and goes on to the next state, it doesn't wait for it to come to rest
+     */
+    private boolean isAtWalkEnd() {
+        Navigation navigation = entityData.getComponent(entityId, Navigation.class);
+        if (navigation == null || navigation.navigationPath == null || navigation.navigationPath.isEmpty()) {
+            return false;
+        }
+        Vector3f currentPos = getPosition();
+
+        // Within the arrival tolerance the path following uses (EntitySteeringFactory)
+        return navigation.navigationPath.getLast().dst2(currentPos.x, currentPos.z) < 0.1f * 0.1f;
     }
 
     private boolean isNear(Vector2f target) {
@@ -2190,6 +2205,8 @@ public final class CreatureController extends EntityController implements ICreat
             interruptWork();
         }
 
+        pickUpLooseGold();
+
         stateMachine.update();
 
         // Also change our state component
@@ -2197,6 +2214,38 @@ public final class CreatureController extends EntityController implements ICreat
         if (creatureAi == null || stateMachine.getCurrentState() != creatureAi.getCreatureState()) {
             entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), stateMachine.getCurrentState(), creature.getId(),
                     creatureAi == null ? null : creatureAi.getTargetState()));
+        }
+    }
+
+    /**
+     * Picks up the loose gold where we stand, up to what we can carry, as DK
+     * II's creatures do on every tick (0x488930). A keeper's worker takes it
+     * anywhere, so the gold a full digger leaves at its feet goes with the
+     * next worker there. DK II's worker reaches a third of a tile round its
+     * feet, here the gold dropped on a tile joins the one pile of the tile.
+     * Other creatures, and a possessed worker, leave the gold in a Treasury
+     * or a Casino alone, and the Casino's big winner leaves all gold alone.
+     */
+    private void pickUpLooseGold() {
+        Gold gold = entityData.getComponent(entityId, Gold.class);
+        Position position = entityData.getComponent(entityId, Position.class);
+        if (gold == null || position == null || gold.gold >= gold.maxGold) {
+            return;
+        }
+        Point tile = WorldUtils.vectorToPoint(position.position);
+        if (!isWorker() || getOwnerId() < Player.KEEPER1_ID || entityData.getComponent(entityId, Possessed.class) != null) {
+            IRoomController room = mapController.getRoomControllerByCoordinates(tile);
+            if (entityData.getComponent(entityId, CasinoBigWinner.class) != null || room != null
+                    && (room.hasObjectControl(AbstractRoomController.ObjectType.GOLD) && !room.isDungeonHeart()
+                    || room.hasObjectControl(AbstractRoomController.ObjectType.GAMBLER))) {
+                return;
+            }
+        }
+        synchronized (GameWorldController.GOLD_LOCK) {
+            EntityId pile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, tile);
+            if (pile != null) {
+                giveObject(objectsController.createController(pile));
+            }
         }
     }
 

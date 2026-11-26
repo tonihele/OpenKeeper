@@ -61,7 +61,8 @@ class ShotSystemTest {
     private DefaultEntityData entityData;
     private final Shot fireball = ShotFixtures.fireball();
     private final Map<Short, Shot> shotsById = Map.of(ShotFixtures.FIREBALL_ID, fireball,
-            ShotFixtures.GAS_MISSILE_ID, ShotFixtures.gasMissile(), ShotFixtures.GRENADE_ID, ShotFixtures.grenade());
+            ShotFixtures.GAS_MISSILE_ID, ShotFixtures.gasMissile(), ShotFixtures.GRENADE_ID, ShotFixtures.grenade(),
+            ShotFixtures.HAIL_STORM_ID, ShotFixtures.hailStorm());
     private final Creature imp = ShotFixtures.creature(IMP_ID, EnumSet.noneOf(Creature.CreatureFlag.class),
             EnumSet.noneOf(Creature.CreatureFlag3.class));
     private final List<EntityId> creatures = new ArrayList<>();
@@ -315,6 +316,58 @@ class ShotSystemTest {
         assertNull(positionOf(shot));
     }
 
+    @Test
+    void hailStormGoesOntoItsTargetAndLeavesItsStormThere() {
+
+        // An enemy where the shot starts isn't hit, the shot hits its target
+        createCreature(ENEMY_ID, new Vector3f(1, 1, 1));
+        EntityId target = createCreature(ENEMY_ID, new Vector3f(4, 1, 1));
+        EntityId shot = createHailStorm(target);
+
+        shotSystem.processTick(0.25f);
+
+        assertEquals(1, hits.size());
+        assertEquals(target, hits.get(0)[1]);
+        assertChildShot(shot, ShotFixtures.HAIL_STORM_CLOUD_ID, new Vector3f(4, 1, 1));
+        assertNull(positionOf(shot));
+    }
+
+    @Test
+    void hailStormWithoutItsTargetLeavesItsStormWhereItIs() {
+        EntityId shot = createHailStorm(null);
+
+        shotSystem.processTick(0.25f);
+
+        assertTrue(hits.isEmpty());
+        assertChildShot(shot, ShotFixtures.HAIL_STORM_CLOUD_ID, new Vector3f(1, 1.3f, 1));
+        assertNull(positionOf(shot));
+    }
+
+    @Test
+    void shotCastOnItsShooterHitsOnlyItsShooter() {
+        createCreature(ENEMY_ID, new Vector3f(2, 1, 1));
+        EntityId shooter = createCreature(ENEMY_ID, new Vector3f(2, 1, 1));
+        EntityId shot = entityData.createEntity();
+        entityData.setComponents(shot,
+                new Position(0, new Vector3f(2, 1.3f, 1)),
+                new ShotFlight(ShotFixtures.FIREBALL_ID, PLAYER_ID, shooter, shooter, 50, 0, new Vector3f(), new Vector3f(2, 1.3f, 1),
+                        0, fireball.getHealth()));
+
+        shotSystem.processTick(0.25f);
+
+        assertEquals(1, hits.size());
+        assertEquals(shooter, hits.get(0)[1]);
+    }
+
+    private EntityId createHailStorm(EntityId target) {
+        EntityId shot = entityData.createEntity();
+        entityData.setComponents(shot,
+                new Position(0, new Vector3f(1, 1.3f, 1)),
+                new ShotFlight(ShotFixtures.HAIL_STORM_ID, PLAYER_ID, null, target, 10, 2, new Vector3f(), new Vector3f(1, 1.3f, 1),
+                        4, 1));
+        return shot;
+    }
+
     private void assertChildShot(EntityId shot, short shotTypeId, Vector3f position) {
         assertEquals(1, childShots.size());
         assertEquals(shot, childShots.get(0)[0]);
@@ -333,7 +386,7 @@ class ShotSystemTest {
         EntityId shot = entityData.createEntity();
         entityData.setComponents(shot,
                 new Position(0, new Vector3f(position)),
-                new ShotFlight(shotId, PLAYER_ID, null, 50, 0, velocity, new Vector3f(position), maxRange,
+                new ShotFlight(shotId, PLAYER_ID, null, null, 50, 0, velocity, new Vector3f(position), maxRange,
                         shotsById.get(shotId).getHealth()));
         return shot;
     }

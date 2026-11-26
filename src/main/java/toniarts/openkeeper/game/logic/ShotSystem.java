@@ -42,8 +42,9 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Moves the flying shots, one move a turn, and lets them hit. The order is
- * DKII.EXE's shot turn (0x4AB180): the range, a hit on a thing, the damage
- * around the shot, the move with a hit on a wall, then the shot's lifetime.
+ * DKII.EXE's shot turn (0x4AB180): the range, an instant shot's move onto its
+ * target, a hit on a thing, the damage around the shot, the move with a hit
+ * on a wall, then the shot's lifetime.
  */
 public final class ShotSystem implements IGameLogicUpdatable {
 
@@ -91,7 +92,21 @@ public final class ShotSystem implements IGameLogicUpdatable {
             health = 0;
         }
 
-        EntityId thing = findThingHit(shot, flight, position);
+        // An instant shot, like Hail Storm, goes onto its target and hits it, whatever the shot collides with. With
+        // its target gone it dies (0x4AFCB0, 0x4ABD60)
+        EntityId thing = null;
+        if (shot.getProcessType() == Shot.ProcessType.INSTANTANEOUS_HIT) {
+            Position target = flight.target != null ? entityData.getComponent(flight.target, Position.class) : null;
+            if (target != null) {
+                position = target.position;
+                thing = flight.target;
+            } else {
+                health = 0;
+            }
+        }
+        if (thing == null) {
+            thing = findThingHit(shot, flight, position);
+        }
         if (thing != null) {
             triggerEffect(shot.getHitThingEffectId(), position);
             createChildShot(entity.getId(), shot.getHitThingShotId(), position);
@@ -214,13 +229,16 @@ public final class ShotSystem implements IGameLogicUpdatable {
             return null;
         }
 
+        // A shot never hits its shooter, unless it was cast on its shooter, then it hits nothing else, like the Modify
+        // Health a Heal on the caster itself leaves (0x451570)
+        boolean castOnShooter = flight.shooter != null && flight.shooter.equals(flight.target);
         float radius = shot.getRadius();
         Point min = WorldUtils.vectorToPoint(position.x - radius, position.z - radius);
         Point max = WorldUtils.vectorToPoint(position.x + radius, position.z + radius);
         for (int x = min.x; x <= max.x; x++) {
             for (int y = min.y; y <= max.y; y++) {
                 for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
-                    if (!entityId.equals(flight.shooter) && isHit(shot, flight, position, entityId)) {
+                    if (entityId.equals(flight.shooter) == castOnShooter && isHit(shot, flight, position, entityId)) {
                         return entityId;
                     }
                 }

@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.badlogic.gdx.math.Vector2;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
@@ -44,6 +45,7 @@ import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.MeleeHit;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
@@ -56,8 +58,10 @@ import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -194,6 +198,44 @@ class CreatureControllerTest {
                 f.tick();
             }
             assertEquals(0, f.lairSearches);
+        }
+    }
+
+    @Test
+    void workerPicksUpTheLooseGoldAtItsFeet() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, workerComponent());
+            f.startWork(TaskType.TRAIN);
+            EntityId pile = f.goldPile(150);
+
+            // Up to what it carries, the rest stays in the pile
+            f.tick();
+            assertEquals(100, f.data.getComponent(f.entity, Gold.class).gold);
+            assertEquals(50, f.data.getComponent(pile, Gold.class).gold);
+        }
+    }
+
+    @Test
+    void creatureLeavesTheLooseGoldInATreasuryAlone() {
+        try (Fixture f = new Fixture(9)) {
+            f.startWork(TaskType.TRAIN);
+            EntityId pile = f.goldPile(60);
+            IRoomController lair = f.roomHere;
+            f.roomHere = proxy(IRoomController.class, (method, args) -> switch (method) {
+                case "getEntityId" -> f.room;
+                case "getOwnerId" -> (short) 3;
+                case "isDestroyed", "isRemoved", "isDungeonHeart" -> false;
+                case "hasObjectControl" -> args[0] == ObjectType.GOLD;
+                default -> throw new UnsupportedOperationException(method);
+            });
+            f.tick();
+            assertEquals(0, f.data.getComponent(f.entity, Gold.class).gold);
+
+            // Anywhere else it takes it
+            f.roomHere = lair;
+            f.tick();
+            assertEquals(60, f.data.getComponent(f.entity, Gold.class).gold);
+            assertNull(f.data.getComponent(pile, Gold.class));
         }
     }
 
@@ -868,6 +910,23 @@ class CreatureControllerTest {
         }
     }
 
+    @Test
+    void isAtTheTaskOnTheTickItsWalkReachesItsLastPoint() {
+        try (Fixture f = new Fixture(9)) {
+            f.startWork(TaskType.TRAIN);
+            List<Vector2> path = List.of(new Vector2(1, 4), new Vector2(3, 4));
+            f.data.setComponent(f.entity, new Navigation(new Point(3, 4), null, path));
+
+            // Next to the target, but still walking
+            f.data.setComponent(f.entity, new Position(0, new Vector3f(2.5f, WorldUtils.FLOOR_HEIGHT, 4)));
+            assertFalse(f.controller.isAtAssignedTaskTarget());
+
+            // DK II's walk is done when it reaches its last point, the creature doesn't come to rest first (0x470C80)
+            f.data.setComponent(f.entity, new Position(0, new Vector3f(2.95f, WorldUtils.FLOOR_HEIGHT, 4)));
+            assertTrue(f.controller.isAtAssignedTaskTarget());
+        }
+    }
+
     private static final class Fixture implements AutoCloseable {
         final EntityData data = new DefaultEntityData();
         final EntityId entity = data.createEntity();
@@ -879,6 +938,7 @@ class CreatureControllerTest {
         final Keeper keeper = new Keeper(false, (short) 3);
         IRoomController roomHere;
         Set<EntityId> sensed = Set.of();
+        List<EntityId> onTile = List.of();
         CreatureController controller;
         final java.util.function.Supplier<CreatureController> controllers;
         final CreatureSleepSystem sleepSystem;
@@ -933,7 +993,7 @@ class CreatureControllerTest {
                     objectiveAttempts.add(time);
                     yield false;
                 }
-                case "isTaskAvailable" -> false;
+                case "isTaskAvailable", "assignGoldToTreasuryTask" -> false;
                 case "assignClosestRoomTask" -> {
                     lairSearches++;
                     yield false;
@@ -980,6 +1040,7 @@ class CreatureControllerTest {
                 case "getSensedEntities" -> sensed;
                 case "getEntityLocation" -> null; // Not on a Hero Lair
                 case "getBlockingDoor" -> null;
+                case "getEntitiesInLocation" -> onTile;
                 default -> throw new UnsupportedOperationException(method);
             });
             IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
@@ -1007,8 +1068,20 @@ class CreatureControllerTest {
                 case "findPath" -> new DefaultGraphPath<>();
                 default -> throw new UnsupportedOperationException(method);
             });
+            IObjectsController objects = proxy(IObjectsController.class, (method, args) -> switch (method) {
+                case "createController" -> proxy(IObjectController.class, (method2, args2) -> switch (method2) {
+                    case "getType" -> ObjectType.GOLD;
+                    case "getEntityId" -> args[0];
+                    case "remove" -> {
+                        data.removeEntity((EntityId) args[0]);
+                        yield null;
+                    }
+                    default -> throw new UnsupportedOperationException(method2);
+                });
+                default -> throw new UnsupportedOperationException(method);
+            });
             controllers = () -> new CreatureController(entity, data, definition, navigation, taskManager, () -> time,
-                    settings, creatures, lookup, map, levelInfo, null, null, eventService);
+                    settings, creatures, lookup, map, levelInfo, objects, null, eventService);
             controller = controllers.get();
             sleepSystem = new CreatureSleepSystem(data, kwd, () -> time);
             moodSystem = new CreatureMoodSystem(data, kwd, List.of(), () -> time, settings);
@@ -1038,6 +1111,13 @@ class CreatureControllerTest {
             data.setComponent(entity, new TaskComponent(-1, null, null, type, 0, false));
             data.setComponent(entity, new CreatureAi(0, CreatureState.WORK, (short) 6));
             controller.getStateMachine().changeState(CreatureState.WORK);
+        }
+
+        EntityId goldPile(int gold) {
+            EntityId pile = data.createEntity();
+            data.setComponents(pile, new ObjectComponent((short) 1, ObjectType.GOLD), new Gold(gold, 2000));
+            onTile = List.of(pile);
+            return pile;
         }
 
         EntityId meleeTarget() {
