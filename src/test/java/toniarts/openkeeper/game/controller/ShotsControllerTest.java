@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.component.Alarm;
 import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Frozen;
@@ -68,6 +69,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -87,6 +89,8 @@ class ShotsControllerTest {
     private static final short CHICKEN_OBJECT_ID = 9;
     private static final short TRAINING_DUMMY_OBJECT_ID = 14;
     private static final short SIGHT_OF_EVIL_ID = 33;
+    private static final short SKELETON_ID = 9;
+    private static final int RAISE_DEAD_EFFECT_ID = 324;
     private static final short DRAIN_ID = 42;
     private static final short SPIKE_ID = 27;
     private static final short GAS_CLOUD_ID = 58;
@@ -107,6 +111,9 @@ class ShotsControllerTest {
     private final EntityData entityData = new DefaultEntityData();
     private final Map<Short, Shot> shotsById = new HashMap<>();
     private final List<Object[]> loadedObjects = new ArrayList<>();
+    private final List<EntityId> deadBodies = new ArrayList<>();
+    private final List<Object[]> raised = new ArrayList<>();
+    private final List<Object[]> effects = new ArrayList<>();
     private final Set<Point> waterTiles = new HashSet<>();
     private final List<Object[]> spawnedCreatures = new ArrayList<>();
     private final List<List<Object>> playerEvents = new ArrayList<>();
@@ -117,6 +124,7 @@ class ShotsControllerTest {
     ShotsControllerTest() {
         shotsById.put(ShotFixtures.THUNDERBOLT_ID, ShotFixtures.thunderbolt());
         shotsById.put(ShotFixtures.FIREBALL_ID, ShotFixtures.fireball());
+        shotsById.put(ShotFixtures.RAISE_DEAD_ID, ShotFixtures.raiseDead());
         shotsById.put(ShotFixtures.GAS_CLOUD_ID, ShotFixtures.gasCloud(ShotFixtures.GAS_CLOUD_ID));
         shotsById.put(ShotFixtures.GAS_MISSILE_ID, ShotFixtures.gasMissile());
         shotsById.put(ShotFixtures.GAS_MISSILE_CLOUD_ID, ShotFixtures.gasCloud(ShotFixtures.GAS_MISSILE_CLOUD_ID));
@@ -173,7 +181,9 @@ class ShotsControllerTest {
                     default -> null;
                 });
         GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> {
-            if (method.getName().equals("emitToPlayer")) {
+            if (method.getName().equals("emitEffect")) {
+                effects.add(args);
+            } else if (method.getName().equals("emitToPlayer")) {
                 playerEvents.add(List.of(args));
             }
             return null;
@@ -181,19 +191,27 @@ class ShotsControllerTest {
 
         // The things picked up this tick are still on their tiles until the lookup catches up
         IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class},
-                (proxy, method, args) -> Stream.concat(entityData.findEntities(null, Position.class).stream()
-                        .filter(entity -> new Point((int) args[0], (int) args[1]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position))),
-                        pickedUpThings.stream()).toList());
+                (proxy, method, args) -> args.length == 1 ? deadBodies.stream()
+                        .filter(entity -> ((Point) args[0]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position)))
+                        .toList()
+                        : Stream.concat(entityData.findEntities(null, Position.class).stream()
+                                .filter(entity -> new Point((int) args[0], (int) args[1]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position))),
+                                pickedUpThings.stream()).toList());
         IGameController gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(), new Class<?>[]{IGameController.class},
                 (proxy, method, args) -> method.getName().equals("getEntityLookupService") ? entityPositionLookup : null);
         ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class},
                 (proxy, method, args) -> {
-                    if (method.getName().equals("spawnCreature")) {
-                        spawnedCreatures.add(args);
-                        return null;
+                    switch (method.getName()) {
+                        case "turnCreatureIntoAnother" ->
+                            raised.add(args);
+                        case "spawnCreature" ->
+                            spawnedCreatures.add(args);
+                        default ->
+                            throw new UnsupportedOperationException(method.getName());
                     }
-                    throw new UnsupportedOperationException(method.getName());
+                    return null;
                 });
+
         shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, null, objectsController, creaturesController, gameEventService);
     }
 
@@ -438,6 +456,35 @@ class ShotsControllerTest {
 
         assertNull(entityData.getComponent(target, OnFire.class));
         assertEquals(50, entityData.getComponent(target, Damage.class).damage);
+    }
+
+    @Test
+    void raiseDeadRaisesTheDeadBodiesOnTheTileForTheCaster() {
+        EntityId hit = createDeadBody(new Vector3f(2.8f, 1f, 4f));
+        EntityId onTheTile = createDeadBody(new Vector3f(3.2f, 1f, 3.9f));
+        createDeadBody(new Vector3f(4f, 1f, 4f));
+        EntityId living = createCreature();
+        entityData.setComponent(living, new Position(0, new Vector3f(3f, 1f, 4f)));
+        deadBodies.add(living);
+        shotsController.fireShot(ShotFixtures.RAISE_DEAD_ID, SKELETON_ID, 0, PLAYER_ID, new Vector3f(1f, 1f, 4f), hit,
+                entityData.createEntity(), 3);
+        EntityId shot = entityData.findEntity(null, ShotFlight.class);
+
+        shotsController.hit(shot, hit);
+
+        assertEquals(2, raised.size());
+        assertArrayEquals(new Object[]{hit, PLAYER_ID, SKELETON_ID}, raised.get(0));
+        assertArrayEquals(new Object[]{onTheTile, PLAYER_ID, SKELETON_ID}, raised.get(1));
+        assertEquals(2, effects.size());
+        assertEquals(RAISE_DEAD_EFFECT_ID, effects.get(0)[0]);
+        assertEquals(new Vector3f(2.8f, 1f, 4f), effects.get(0)[1]);
+    }
+
+    private EntityId createDeadBody(Vector3f position) {
+        EntityId deadBody = entityData.createEntity();
+        entityData.setComponents(deadBody, new Position(0, position), new CreatureComponent(), new Death(0));
+        deadBodies.add(deadBody);
+        return deadBody;
     }
 
     @Test
