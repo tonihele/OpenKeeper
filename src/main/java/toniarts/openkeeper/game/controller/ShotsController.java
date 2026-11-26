@@ -43,6 +43,7 @@ import toniarts.openkeeper.game.controller.shot.InfernoShotProcessor;
 import toniarts.openkeeper.game.controller.shot.LightningShotProcessor;
 import toniarts.openkeeper.game.controller.shot.ShotFlightRules;
 import toniarts.openkeeper.game.controller.shot.ShotRequest;
+import toniarts.openkeeper.game.controller.shot.WindShotProcessor;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
@@ -77,6 +78,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SIGHT_OF_EV
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SUMMON_REAPER;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TREMOR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TURNCOAT;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.WIND;
 
 /**
  * Fires shots. What a shot does is decided by its process type, each
@@ -194,6 +196,7 @@ public final class ShotsController implements IShotsController {
             }
         });
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
+        result.put(WIND, new WindShotProcessor(entityData, kwdFile, gameController, mapController, creaturesController));
         result.put(FREEZE, this::freeze);
         result.put(ALARM, this::raiseAlarm);
         result.put(POISON_SPIT, this::poison);
@@ -504,6 +507,14 @@ public final class ShotsController implements IShotsController {
         // The new shot keeps the old one's values and target, not its own (0x4AB180)
         addShot(new ShotFlight(shotTypeId, flight.ownerId, flight.shooter, flight.target, flight.shotData1, flight.shotData2,
                 new Vector3f(), new Vector3f(position), 0, kwdFile.getShotById(shotTypeId).getHealth()));
+    }
+
+    @Override
+    public void fly(EntityId shotEntity) {
+        ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
+
+        process(new ShotRequest(kwdFile.getShotById(flight.shotId), flight.shotData1, flight.shotData2, flight.ownerId,
+                EntityController.getPosition(entityData, shotEntity), null, flight.shooter));
     }
 
     /**
