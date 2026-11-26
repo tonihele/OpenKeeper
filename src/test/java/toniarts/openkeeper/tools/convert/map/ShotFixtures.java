@@ -124,7 +124,6 @@ public final class ShotFixtures {
         shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.MOVE_TOWARDS_TARGET));
         return shot;
     }
-    }
 
     /**
      * The Gas Cloud or the Gas Missile's cloud, with the values of the

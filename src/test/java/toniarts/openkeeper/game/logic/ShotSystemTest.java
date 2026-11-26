@@ -233,7 +233,7 @@ class ShotSystemTest {
         entityData.removeComponent(deadBody, Health.class);
         entityData.setComponent(deadBody, new Death(0));
         EntityId shot = createShot(new Vector3f(1.3f, 1.3f, 1), new Vector3f(0.5f, 0, 0), 3);
-        entityData.setComponent(shot, new ShotFlight(ShotFixtures.RAISE_DEAD_ID, PLAYER_ID, null, 9, 0, new Vector3f(0.5f, 0, 0),
+        entityData.setComponent(shot, new ShotFlight(ShotFixtures.RAISE_DEAD_ID, PLAYER_ID, null, null, 9, 0, new Vector3f(0.5f, 0, 0),
                 new Vector3f(1.3f, 1.3f, 1), 3, raiseDead.getHealth()));
 
         // Through the living on the first turn
