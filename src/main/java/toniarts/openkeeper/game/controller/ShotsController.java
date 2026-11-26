@@ -24,14 +24,17 @@ import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Alarm;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Decay;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Poisoned;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Tremor;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.entity.EntityController;
@@ -230,14 +233,16 @@ public final class ShotsController implements IShotsController {
     }
 
     /**
-     * A shot that hits at once deals its damage by its damage type, whatever
-     * else the shot does (0x4AC3C0). The shot's data 1 is the damage:
+     * A shot deals its damage by its damage type, whatever else the shot does.
+     * A shot that hits at once does it once, a flying shot on every turn
+     * (0x4AC3C0). The shot's data 1 is the damage:
      * <ul>
      * <li>A shot that hits a thing (Magic Door) hurts its target.</li>
-     * <li>A shot with constant damage (Spike Trap) hurts the creatures on its
-     * tile.</li>
-     * <li>A shot with damage from its origin (Fireburst Trap, Gas Trap) hurts
-     * the creatures within shot data 2 tiles.</li>
+     * <li>A shot with constant damage (Spike Trap) hurts the creatures in a
+     * square twice shot data 2 wide.</li>
+     * <li>A shot with damage from its origin (Fireburst Trap, Gas Trap, Gas
+     * Cloud) hurts the things within shot data 2 tiles, the less the further
+     * they are (0x4AC6D0).</li>
      * </ul>
      *
      * @param request the shot
@@ -247,25 +252,27 @@ public final class ShotsController implements IShotsController {
         if (damageType == Shot.DamageType.HIT_THING && request.target() != null) {
             EntityController.setDamage(entityData, request.target(), request.shotData1());
         } else if (damageType == Shot.DamageType.CONSTANT) {
-            damageCreatures(request, 0);
-        } else if (damageType == Shot.DamageType.RANGE_FROM_ORIGIN) {
-            damageCreatures(request, request.shotData2());
+            damageCreatures(request);
+        } else if (damageType == Shot.DamageType.RANGE_FROM_ORIGIN && request.shotData2() > 0) {
+            damageFromOrigin(request);
         }
     }
 
     /**
-     * Area damage spares only the creatures of the player that fired the shot
-     * (0x4AC5A0)
+     * Constant damage (0x4AC5A0) hurts every creature but those of the player
+     * that fired the shot in a square of tiles twice the radius (shot data 2)
+     * wide, all with the full damage. The square runs from the radius below
+     * the shot's tile to one less than the radius above it, so a radius of 1,
+     * the Spike Trap's, covers the shot's tile and the three on its lower side
      *
      * @param request the shot
-     * @param radius how far the shot reaches in tiles, 0 for just its tile
      */
-    private void damageCreatures(ShotRequest request, int radius) {
+    private void damageCreatures(ShotRequest request) {
         IEntityPositionLookup entityPositionLookup = gameController.getEntityLookupService();
-        Vector3f origin = request.position();
-        Point tile = WorldUtils.vectorToPoint(origin);
-        for (int x = tile.x - radius; x <= tile.x + radius; x++) {
-            for (int y = tile.y - radius; y <= tile.y + radius; y++) {
+        Point tile = WorldUtils.vectorToPoint(request.position());
+        int radius = request.shotData2();
+        for (int x = tile.x - radius; x < tile.x + radius; x++) {
+            for (int y = tile.y - radius; y < tile.y + radius; y++) {
                 for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
                     Owner owner = entityData.getComponent(entityId, Owner.class);
                     if (owner == null || owner.ownerId == request.playerId()
@@ -275,18 +282,73 @@ public final class ShotsController implements IShotsController {
                     }
 
                     // One picked up this tick is still in the lookup, but not on the map
-                    Vector3f position = EntityController.getPosition(entityData, entityId);
-                    if (position == null) {
-                        continue;
-                    }
-                    float dx = position.x - origin.x;
-                    float dz = position.z - origin.z;
-                    if (radius == 0 || dx * dx + dz * dz <= radius * radius) {
+                    if (EntityController.getPosition(entityData, entityId) != null) {
                         EntityController.setDamage(entityData, entityId, request.shotData1());
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Damage from the origin (0x4AC6D0). The tiles within the radius are gone
+     * through row by row, and each thing of another player on them that is
+     * within the radius takes damage x (radius - distance) / radius. That is
+     * then the damage for the next thing, so the damage runs down within the
+     * turn, and once it is 0 nothing more is hit. Creatures and objects are
+     * hit, and doors and traps too unless the shot is gas.
+     *
+     * @param request the shot
+     */
+    private void damageFromOrigin(ShotRequest request) {
+        IEntityPositionLookup entityPositionLookup = gameController.getEntityLookupService();
+        boolean gas = request.shot().getAttackCategory() == Shot.AttackCategory.GAS;
+        int radius = request.shotData2();
+        int damage = request.shotData1();
+        Vector3f origin = request.position();
+        Point tile = WorldUtils.vectorToPoint(origin);
+        for (int y = tile.y - radius; y <= tile.y + radius; y++) {
+            for (int x = tile.x - radius; x <= tile.x + radius; x++) {
+                for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
+                    if (!isHitFromOrigin(entityId, request.playerId(), gas)) {
+                        continue;
+                    }
+
+                    // One picked up this tick is still in the lookup, but not on the map
+                    Vector3f position = EntityController.getPosition(entityData, entityId);
+                    if (position == null) {
+                        continue;
+                    }
+                    float distance = FastMath.sqrt(FastMath.sqr(position.x - origin.x) + FastMath.sqr(position.z - origin.z));
+                    if (distance >= radius) {
+                        continue;
+                    }
+                    damage = (int) (damage * (radius - distance) / radius);
+                    if (damage == 0) {
+                        return;
+                    }
+                    EntityController.setDamage(entityData, entityId, damage);
+                }
+            }
+        }
+    }
+
+    private boolean isHitFromOrigin(EntityId entityId, short playerId, boolean gas) {
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (owner == null || owner.ownerId == playerId || entityData.getComponent(entityId, Health.class) == null) {
+            return false;
+        }
+        if (entityData.getComponent(entityId, CreatureComponent.class) != null) {
+            return true;
+        }
+
+        // Of the objects only the damageable ones are hurt, like chickens, not the furniture (0x4B2CE0)
+        ObjectComponent object = entityData.getComponent(entityId, ObjectComponent.class);
+        if (object != null) {
+            return kwdFile.getObject(object.objectId).getFlags().contains(GameObject.ObjectFlag.DAMAGEABLE);
+        }
+        return !gas && (entityData.getComponent(entityId, DoorComponent.class) != null
+                || entityData.getComponent(entityId, TrapComponent.class) != null);
     }
 
     /**
@@ -360,20 +422,32 @@ public final class ShotsController implements IShotsController {
             EntityId shooter, float maxRange) {
         Shot shot = kwdFile.getShotById(shotTypeId);
         Vector3f targetPosition = getAimPoint(target);
-        if (!ShotFlightRules.isFlying(shot) || targetPosition == null) {
+
+        // A trap's shot flies if it moves towards its target, a creature's whenever it has a speed, like the
+        // Bile Demon's Gas Cloud (0x4984D0). A creature's instant shot, like Hail Storm, is a shot too, it stands
+        // still and goes onto its target in its turn (0x498870, 0x4AFCB0)
+        boolean creatureShot = shooter != null && entityData.getComponent(shooter, CreatureComponent.class) != null;
+        boolean flying = creatureShot
+                ? shot.getSpeed() > 0 || shot.getProcessType() == Shot.ProcessType.INSTANTANEOUS_HIT
+                : ShotFlightRules.isFlying(shot);
+        if (!flying || targetPosition == null) {
             return false;
         }
 
         Vector3f velocity = ShotFlightRules.aim(position, targetPosition, shot.getSpeed());
+        addShot(new ShotFlight(shotTypeId, playerId, shooter, target, shotData1, shotData2, velocity, new Vector3f(position),
+                maxRange, shot.getHealth()));
+
+        return true;
+    }
+
+    private void addShot(ShotFlight flight) {
         int ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
         EntityId entity = entityData.createEntity();
         entityData.setComponents(entity,
-                new Position(FastMath.atan2(velocity.x, velocity.z), new Vector3f(position)),
-                new ShotViewState(shotTypeId, velocity.mult(ticksPerSecond)),
-                new ShotFlight(shotTypeId, playerId, shooter, shotData1, shotData2, velocity, new Vector3f(position), maxRange,
-                        shot.getHealth()));
-
-        return true;
+                new Position(FastMath.atan2(flight.velocity.x, flight.velocity.z), new Vector3f(flight.start)),
+                new ShotViewState(flight.shotId, flight.velocity.mult(ticksPerSecond)),
+                flight);
     }
 
     /**
@@ -407,8 +481,29 @@ public final class ShotsController implements IShotsController {
             EntityController.setDamage(entityData, thing, flight.shotData1);
         }
 
-        process(new ShotRequest(shot, flight.shotData1, flight.shotData2, flight.ownerId,
-                EntityController.getPosition(entityData, shotEntity), thing, flight.shooter));
+        // Only a shot made to does its process on a hit. An instant shot's process is its move onto its target, on
+        // every turn (0x4ABD60)
+        if (shot.getShotProcessFlags().contains(Shot.ShotProcessFlag.HIT_COLLIDE_THING)) {
+            process(new ShotRequest(shot, flight.shotData1, flight.shotData2, flight.ownerId,
+                    EntityController.getPosition(entityData, shotEntity), thing, flight.shooter));
+        }
+    }
+
+    @Override
+    public void damageArea(EntityId shotEntity) {
+        ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
+
+        damage(new ShotRequest(kwdFile.getShotById(flight.shotId), flight.shotData1, flight.shotData2, flight.ownerId,
+                EntityController.getPosition(entityData, shotEntity), null));
+    }
+
+    @Override
+    public void createChildShot(EntityId shotEntity, short shotTypeId, Vector3f position) {
+        ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
+
+        // The new shot keeps the old one's values and target, not its own (0x4AB180)
+        addShot(new ShotFlight(shotTypeId, flight.ownerId, flight.shooter, flight.target, flight.shotData1, flight.shotData2,
+                new Vector3f(), new Vector3f(position), 0, kwdFile.getShotById(shotTypeId).getHealth()));
     }
 
     /**
