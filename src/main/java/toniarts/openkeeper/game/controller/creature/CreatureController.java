@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.CreatureMoodJob;
 import toniarts.openkeeper.game.component.CreaturePay;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
@@ -188,6 +189,7 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private static final float BIG_WINNER_CELEBRATION_SECONDS = 10f;
     private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
+    private static final int MOOD_JOB_INTERVAL_SECONDS = 5;
     /**
      * How long a creature that got a job from its job list doesn't pick from the list again, as in DK II (DKII.EXE
      * 0x4780E0)
@@ -604,6 +606,11 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
 
+        // Like in DK II, discontent comes before the jobs the creature likes
+        if (findMoodJob()) {
+            workResult.accept(true);
+            return;
+        }
         // DKII doesn't let a creature pick from its jobs again for 5 seconds after a pick that got it one. Until
         // then it goes on to its other choices, and the lack of work doesn't anger it (0x4780E0)
         JobPicked jobPicked = entityData.getComponent(entityId, JobPicked.class);
@@ -642,6 +649,64 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         workResult.accept(false);
+    }
+
+    /**
+     * Like in DK II, an angry creature takes a job from its angry list, and an
+     * unhappy creature, or an angry one that got none, from its unhappy list.
+     * Once a list gave a job, it rests for a while
+     *
+     * @return true if the creature got a job
+     */
+    private boolean findMoodJob() {
+        CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
+        int state = mood == null ? 0 : mood.getState(
+                CreatureMood.toRuntimeThreshold(creature.getAttributes().getUnhappyThreshold()));
+        if (state == 0) {
+            return false;
+        }
+        double gameTime = gameTimer.getGameTime();
+        CreatureMoodJob moodJob = entityData.getComponent(entityId, CreatureMoodJob.class);
+        if (moodJob == null) {
+            moodJob = new CreatureMoodJob(Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY);
+        }
+        if (state == 2 && gameTime - moodJob.angryJobTime >= MOOD_JOB_INTERVAL_SECONDS
+                && assignMoodJob(creature.getAngryJobs())) {
+            entityData.setComponent(entityId, new CreatureMoodJob(moodJob.unhappyJobTime, gameTime));
+            return true;
+        }
+        if (gameTime - moodJob.unhappyJobTime >= MOOD_JOB_INTERVAL_SECONDS
+                && assignMoodJob(creature.getUnhappyJobs())) {
+            entityData.setComponent(entityId, new CreatureMoodJob(gameTime, moodJob.angryJobTime));
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Starts the job a roll of 100 lands on, or else the first job on the list
+     * that the creature can start
+     */
+    private boolean assignMoodJob(Creature.JobPreference[] moodJobs) {
+        if (moodJobs == null) {
+            return false;
+        }
+        List<Creature.JobPreference> jobs = new ArrayList<>(List.of(moodJobs));
+        int roll = FastMath.rand.nextInt(100);
+        int chance = 0;
+        for (Creature.JobPreference job : moodJobs) {
+            chance += job.getChance();
+            if (roll <= chance) {
+                jobs.addFirst(job);
+                break;
+            }
+        }
+        for (Creature.JobPreference job : jobs) {
+            if (taskManager.assignTask(this, job.getJobType())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void addNoWorkAnger() {
@@ -3038,6 +3103,11 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public void playAnimation(Creature.AnimationType animation) {
+        entityData.setComponent(entityId, new CreatureViewState(creature.getCreatureId(), gameTimer.getGameTime(), animation));
+    }
+
+    @Override
     public void turnIntoChicken(double duration) {
         if (creature.getFlags().contains(Creature.CreatureFlag.IS_IMMUNE_TO_CHICKEN)) {
             return;
@@ -3285,6 +3355,21 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         entityData.setComponent(entityId, new Turncoat(playerId, gameTimer.getGameTime() + duration));
+    }
+
+    @Override
+    public void rebel() {
+        short keeperId = getOwnerId();
+        removeFromRoomStrorage();
+        removeLair();
+        entityData.setComponent(entityId, new Owner(Player.GOOD_PLAYER_ID, Player.GOOD_PLAYER_ID));
+        entityData.setComponent(entityId, new Objective(Thing.HeroParty.Objective.KILL_PLAYER, keeperId, 0));
+
+        // The mentor tells the keeper, like DK II (0x4750B0, message 0x13)
+        gameEventService.emitToPlayer(GameEventType.CREATURE_REBELLED, keeperId);
+
+        // Start on the objective
+        getStateMachine().changeState(CreatureState.IDLE);
     }
 
     private void convertCreature(EntityId entity, short playerId) {
