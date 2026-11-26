@@ -2105,11 +2105,9 @@ public final class CreatureController extends EntityController implements ICreat
                 return;
             }
         }
-        synchronized (GameWorldController.GOLD_LOCK) {
-            EntityId pile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, tile);
-            if (pile != null) {
-                giveObject(objectsController.createController(pile));
-            }
+        EntityId pile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, tile);
+        if (pile != null) {
+            giveObject(objectsController.createController(pile));
         }
     }
 
