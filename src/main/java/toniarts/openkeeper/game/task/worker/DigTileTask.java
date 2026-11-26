@@ -172,12 +172,10 @@ public class DigTileTask extends AbstractTileTask {
 
     /**
      * Digs in swings, as DK II's dig action does (0x496AA0, 0x496E00). Each
-     * swing hits the tile once, at its start, and then plays out. The first
-     * swing also plays the start of the animation. The swing that brings the
-     * tile down also plays the end of the animation, and only then does the
-     * digger move on. The stored execution duration is the time on the task
-     * when the current swing ends, 0 before the first swing and once the
-     * digger is done.
+     * swing hits the tile once, at its start. The swing that brings the tile
+     * down plays the animation out, and only then does the digger move on. The
+     * stored execution duration is the time on the task when the current
+     * swing ends, 0 before the first swing and once the digger is done.
      *
      * @param creature the digger
      * @param executionDuration the time the digger has spent on the task
@@ -201,34 +199,46 @@ public class DigTileTask extends AbstractTileTask {
         }
 
         creature.addGold(mapController.damageTile(getTaskLocation(), playerId, creature));
-        setExecutionDuration(creature, executionDuration + getSwingDuration(creature.getCreature(), swingEnd == 0, !isTileToDig()));
+        setExecutionDuration(creature, getSwingEnd(creature.getCreature(), executionDuration, swingEnd == 0, !isTileToDig()));
     }
 
     /**
-     * The length of one dig swing in seconds. DK II's dig action plays the
-     * creature's melee animation (the imp's is called Imp_Dig), frames / fps.
+     * When a dig swing ends. DK II's dig action plays the creature's melee
+     * animation (the imp's is called Imp_Dig), frames / fps, and keeps it
+     * looping from swing to swing. A swing is over once the animation has gone
+     * round (0x496AA0, 0x4B3C10). It only goes round once: the animation keeps
+     * the mark until it is started again, so the first swing lasts the start
+     * of the animation and one round, and every later swing a tick. The swing
+     * that brings the tile down stops the looping (0x496E00) and lasts until
+     * the round it is in and the end of the animation have played.
      *
      * @param creature the digger
-     * @param first whether this is the first swing, which plays the start of
-     * the animation
-     * @param last whether this swing brought the tile down and plays the end of
-     * the animation
-     * @return the swing length in seconds
+     * @param time the time on the task when the swing starts. The animation
+     * starts with the first swing, when the digger starts on the task
+     * @param first whether this is the first swing
+     * @param last whether this swing brought the tile down
+     * @return the time on the task when the swing ends
      */
-    private static float getSwingDuration(Creature creature, boolean first, boolean last) {
+    private static float getSwingEnd(Creature creature, float time, boolean first, boolean last) {
         ArtResource animation = creature.getAnimation(Creature.AnimationType.MELEE_ATTACK);
         Number fps = animation != null ? animation.getData(ArtResource.KEY_FPS) : null;
         if (fps == null || fps.intValue() <= 0) {
-            return 1f;
+            return time + 1f;
         }
-        int frames = animation.<Number>getData(ArtResource.KEY_FRAMES).intValue();
-        if (first && animation.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
-            frames += animation.<Number>getData(ArtResource.KEY_START_AF).intValue();
+        float round = animation.<Number>getData(ArtResource.KEY_FRAMES).floatValue() / fps.intValue();
+        float start = 0;
+        if (animation.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
+            start = animation.<Number>getData(ArtResource.KEY_START_AF).floatValue() / fps.intValue();
         }
-        if (last && animation.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
-            frames += animation.<Number>getData(ArtResource.KEY_END_AF).intValue();
+        if (!last) {
+            return first ? time + start + round : Math.nextUp(time);
         }
-        return (float) frames / fps.intValue();
+        float end = 0;
+        if (animation.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
+            end = animation.<Number>getData(ArtResource.KEY_END_AF).floatValue() / fps.intValue();
+        }
+        float roundPlayed = first ? -start : (time - start) % round;
+        return time + round - roundPlayed + end;
     }
 
     @Override

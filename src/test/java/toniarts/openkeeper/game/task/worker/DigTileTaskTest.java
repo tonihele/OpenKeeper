@@ -66,8 +66,8 @@ class DigTileTaskTest {
         int damage = TileWork.perSwing(6 * (-130 / TICKS_PER_SECOND), FRESH);
 
         // The second swing starts once the first, with the start of the animation, is over (1.3 s), and the
-        // dwarf leaves after the last swing and the end of the animation (1.33 s)
-        assertEquals(new Dig(List.of(0, 6), 12), dig(dwarf, DIRT_HEALTH, damage, 40));
+        // dwarf leaves after the rest of the animation's round and its end (1.13 s)
+        assertEquals(new Dig(List.of(0, 6), 11), dig(dwarf, DIRT_HEALTH, damage, 40));
     }
 
     @Test
@@ -81,16 +81,18 @@ class DigTileTaskTest {
     }
 
     @Test
-    void impHitsAWallOnceASwing() {
+    void impHitsAWallEveryTickAfterItsFirstSwing() {
         Creature imp = CreatureSleepFixtures.digger("Imp", 15, 20, 0, 8);
         int damage = TileWork.perSwing(-130 / TICKS_PER_SECOND, FRESH);
 
-        // A claimed wall of 1000 health, 26 a swing every 3 ticks: 39 swings, then the end of the animation
+        // A claimed wall of 1000 health, 26 a swing: 39 swings. The first lasts the animation's round (3 ticks),
+        // the others a tick each. The last, at 10 s, is a third of a round in: the rest of it and the end (0.9 s)
         Dig dig = dig(imp, 1000, damage, 200);
 
         assertEquals(39, dig.hits().size());
-        assertEquals(List.of(0, 3, 6, 9), dig.hits().subList(0, 4));
-        assertEquals(38 * 3 + 5, dig.leaves());
+        assertEquals(List.of(0, 3, 4, 5), dig.hits().subList(0, 4));
+        assertEquals(40, dig.hits().get(38));
+        assertEquals(44, dig.leaves());
     }
 
     @Test
