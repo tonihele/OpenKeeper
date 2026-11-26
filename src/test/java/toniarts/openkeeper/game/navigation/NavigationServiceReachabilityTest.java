@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.navigation;
 
+import com.simsilica.es.EntityId;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,6 +42,7 @@ class NavigationServiceReachabilityTest {
 
     private static final short KEEPER = 3;
     private static final short ENEMY = 4;
+    private static final EntityId DOOR = new EntityId(1);
 
     /**
      * Rows of land between rock: water, lava and the keeper's door in the
@@ -63,10 +65,11 @@ class NavigationServiceReachabilityTest {
     private int terrainLookups;
     private final NavigationService navigationService = createNavigationService();
 
-    private final INavigable walker = new Mover(KEEPER, false, false, false);
-    private final INavigable swimmer = new Mover(KEEPER, false, true, false);
-    private final INavigable flyer = new Mover(KEEPER, true, false, false);
-    private final INavigable enemy = new Mover(ENEMY, false, false, false);
+    private final INavigable walker = new Mover(KEEPER, false, false, false, false);
+    private final INavigable swimmer = new Mover(KEEPER, false, true, false, false);
+    private final INavigable flyer = new Mover(KEEPER, true, false, false, false);
+    private final INavigable enemy = new Mover(ENEMY, false, false, false, false);
+    private final INavigable doorBreaker = new Mover(ENEMY, false, false, false, true);
 
     @Test
     void waterLavaAndRockKeepTheMoversApart() {
@@ -89,6 +92,14 @@ class NavigationServiceReachabilityTest {
         assertTrue(navigationService.isReachable(new Point(2, 4), new Point(3, 4), enemy));
         assertFalse(navigationService.isReachable(new Point(1, 4), new Point(2, 4), enemy));
         assertFalse(navigationService.isReachable(new Point(1, 4), new Point(3, 4), enemy));
+    }
+
+    @Test
+    void anEnemyThatBreaksTheDoorHasAnAreaOfItsOwn() {
+        assertFalse(navigationService.isReachable(new Point(0, 4), new Point(4, 4), enemy));
+        assertTrue(navigationService.isReachable(new Point(0, 4), new Point(4, 4), doorBreaker));
+        assertTrue(navigationService.isReachable(new Point(4, 4), new Point(0, 4), doorBreaker));
+        assertFalse(navigationService.isReachable(new Point(1, 4), new Point(4, 4), enemy));
     }
 
     @Test
@@ -132,9 +143,8 @@ class NavigationServiceReachabilityTest {
             default -> null;
         });
         IEntityPositionLookup entityPositionLookup = stub(IEntityPositionLookup.class, (name, args) -> {
-            if ("isTileBlocked".equals(name)) {
-                Point p = ((IMapTileInformation) args[0]).getLocation();
-                return map[p.y][p.x] == 'D' && (short) args[1] != KEEPER;
+            if ("getBlockingDoor".equals(name)) {
+                return map[(int) args[1]][(int) args[0]] == 'D' && (short) args[2] != KEEPER ? DOOR : null;
             }
             return null;
         });
@@ -154,11 +164,17 @@ class NavigationServiceReachabilityTest {
         }));
     }
 
-    private record Mover(short getOwnerId, boolean canFly, boolean canWalkOnWater, boolean canWalkOnLava) implements INavigable {
+    private record Mover(short getOwnerId, boolean canFly, boolean canWalkOnWater, boolean canWalkOnLava, boolean breaksDoors)
+            implements INavigable {
 
         @Override
         public boolean canMoveDiagonally() {
             return true;
+        }
+
+        @Override
+        public boolean canBreakDoor(EntityId door) {
+            return breaksDoors;
         }
 
     }

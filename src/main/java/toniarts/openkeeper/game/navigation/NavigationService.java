@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.navigation;
 
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
@@ -38,6 +39,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -57,7 +59,7 @@ public final class NavigationService implements INavigationService, IGameLogicUp
     private final MapIndexedGraph pathFindingMap;
     private final MapPathFinder pathFinder;
     private final MapDistance heuristic;
-    private final Map<NavigableKey, Map<Point, Set<Point>>> reachableAreas = new ConcurrentHashMap<>();
+    private final Map<NavigableKey, Map<Point, ReachableArea>> reachableAreas = new ConcurrentHashMap<>();
 
     public NavigationService(IMapController mapController, IEntityPositionLookup entityPositionLookup) {
         this.mapController = mapController;
@@ -141,22 +143,27 @@ public final class NavigationService implements INavigationService, IGameLogicUp
 
     @Override
     public boolean isReachable(Point start, Point target, INavigable navigable) {
-        Map<Point, Set<Point>> areas = reachableAreas.computeIfAbsent(new NavigableKey(navigable), key -> new ConcurrentHashMap<>());
-        Set<Point> area = areas.get(start);
+        Map<Point, ReachableArea> areas = reachableAreas.computeIfAbsent(new NavigableKey(navigable), key -> new ConcurrentHashMap<>());
+        ReachableArea area = areas.get(start);
+        if (area != null && !area.isSameFor(navigable)) {
+
+            // It breaks other doors than the one the area was filled for, so it has an area of its own. Not kept
+            return getReachableArea(start, navigable).tiles().contains(target);
+        }
         if (area == null) {
             area = getReachableArea(start, navigable);
 
             // Every tile in the area has the same area. Unless the start can't be stepped back on, a locked door say
             IMapDataInformation<?> mapData = mapController.getMapData();
-            Set<Point> startArea = area;
+            ReachableArea startArea = area;
             if (Arrays.stream(WorldUtils.getSurroundingTiles(mapData, start, false)).anyMatch(p -> !p.equals(start)
-                    && startArea.contains(p) && isAccessible(mapData.getTile(p), mapData.getTile(start), navigable))) {
-                area.forEach(p -> areas.put(p, startArea));
+                    && startArea.tiles().contains(p) && isAccessible(mapData.getTile(p), mapData.getTile(start), navigable))) {
+                area.tiles().forEach(p -> areas.putIfAbsent(p, startArea));
             } else {
                 areas.put(start, area);
             }
         }
-        return area.contains(target);
+        return area.tiles().contains(target);
     }
 
     /**
@@ -166,23 +173,40 @@ public final class NavigationService implements INavigationService, IGameLogicUp
      *
      * @param start the start point
      * @param navigable the entity
-     * @return the reachable tiles, the start included
+     * @return the reachable tiles, the start included, and the doors met on the
+     * way
      */
-    private Set<Point> getReachableArea(Point start, INavigable navigable) {
+    private ReachableArea getReachableArea(Point start, INavigable navigable) {
         IMapDataInformation<?> mapData = mapController.getMapData();
         Set<Point> area = new HashSet<>();
+        Map<EntityId, Boolean> doors = new HashMap<>();
         area.add(start);
+        addDoor(start, navigable, doors);
         Deque<Point> open = new ArrayDeque<>(area);
         while (!open.isEmpty()) {
             Point p = open.poll();
             for (Point next : WorldUtils.getSurroundingTiles(mapData, p, false)) {
-                if (!area.contains(next) && isAccessible(mapData.getTile(p), mapData.getTile(next), navigable)) {
-                    area.add(next);
-                    open.add(next);
+                if (!area.contains(next)) {
+                    addDoor(next, navigable, doors);
+                    if (isAccessible(mapData.getTile(p), mapData.getTile(next), navigable)) {
+                        area.add(next);
+                        open.add(next);
+                    }
                 }
             }
         }
-        return area;
+        return new ReachableArea(area, doors);
+    }
+
+    /**
+     * Notes the door that blocks the tile and whether the entity breaks it.
+     * The area depends on it, as an entity that breaks the door gets through
+     */
+    private void addDoor(Point tile, INavigable navigable, Map<EntityId, Boolean> doors) {
+        EntityId door = entityPositionLookup.getBlockingDoor(tile.x, tile.y, navigable.getOwnerId());
+        if (door != null) {
+            doors.computeIfAbsent(door, navigable::canBreakDoor);
+        }
     }
 
     @Override
@@ -218,6 +242,23 @@ public final class NavigationService implements INavigationService, IGameLogicUp
         NavigableKey(INavigable navigable) {
             this(navigable.getClass(), navigable.getOwnerId(), navigable.canFly(), navigable.canWalkOnWater(),
                     navigable.canWalkOnLava(), navigable.canMoveDiagonally());
+        }
+
+    }
+
+    /**
+     * The tiles of a reachable area and the doors met while filling it, with
+     * whether the entity it was filled for breaks them
+     */
+    private record ReachableArea(Set<Point> tiles, Map<EntityId, Boolean> doors) {
+
+        /**
+         * Does the area hold for this entity too. It does unless the entity
+         * breaks a door met on the way that the other didn't, or the other way
+         * round, like a party follower that leaves the doors to its leader
+         */
+        boolean isSameFor(INavigable navigable) {
+            return doors.entrySet().stream().allMatch(door -> navigable.canBreakDoor(door.getKey()) == door.getValue());
         }
 
     }
