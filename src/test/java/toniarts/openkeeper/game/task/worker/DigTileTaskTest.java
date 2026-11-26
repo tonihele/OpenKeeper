@@ -118,12 +118,12 @@ class DigTileTaskTest {
     }
 
     @Test
-    void impStopsMiningOnAGoldPileOfMoreThanThePileOutsideATreasury() {
+    void impMinesOnUntilEverySpotOfItsSideHoldsAFullGoldPile() {
 
-        // DK II (0x465870): over MAX_GOLD_PILE_OUTSIDE_TREASURY (2000) at its feet the imp gives up the dig, at it it
-        // swings on
+        // DK II (0x465870, 0x469AF0): a spot over MAX_GOLD_PILE_OUTSIDE_TREASURY (2000) sends the imp to another of the
+        // side's three spots. The one pile on the tile stands for all three, so the imp gives up the side only over 6000
         Creature imp = CreatureSleepFixtures.digger("Imp", 15, 20, 0, 8);
-        for (int pile : new int[]{2000, 2001}) {
+        for (int pile : new int[]{2001, 6000, 6001}) {
             Digging digging = new Digging(DIRT_HEALTH, 1);
             EntityData entityData = new DefaultEntityData();
             IEntityPositionLookup lookup = goldPile(entityData, pile, new Point(1, 2)::equals);
@@ -150,11 +150,11 @@ class DigTileTaskTest {
 
             task.executeTask(digger, 0);
 
-            assertEquals(pile > 2000 ? List.of("unassingCurrentTask") : List.of("addGold"), calls, "pile " + pile);
-            assertEquals(pile > 2000 ? List.of() : List.of(0), digging.hits, "pile " + pile);
+            assertEquals(pile > 6000 ? List.of("unassingCurrentTask") : List.of("addGold"), calls, "pile " + pile);
+            assertEquals(pile > 6000 ? List.of() : List.of(0), digging.hits, "pile " + pile);
 
             // And DK II's search for a spot to dig from skips it (0x469AF0)
-            assertEquals(pile <= 2000, task.isWorkSpot(new Point(1, 2)), "pile " + pile);
+            assertEquals(pile <= 6000, task.isWorkSpot(new Point(1, 2)), "pile " + pile);
             assertTrue(task.isWorkSpot(new Point(0, 1)));
         }
     }
@@ -169,7 +169,7 @@ class DigTileTaskTest {
         EntityData entityData = new DefaultEntityData();
         AtomicBoolean piledUp = new AtomicBoolean();
         DigTileTask task = new DigTileTask(null, digging.mapController(), new Point(1, 1), PLAYER, entityData,
-                goldPile(entityData, 2001, p -> piledUp.get()), 2000);
+                goldPile(entityData, 6001, p -> piledUp.get()), 2000);
         ICreatureController digger = creature(imp);
         task.assign(digger, false);
         task.executeTask(digger, 0);

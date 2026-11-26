@@ -41,6 +41,12 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class DigTileTask extends AbstractTileTask {
 
+    /**
+     * The spots to dig from along each open side of the tile, DK II's spot
+     * search (0x469AF0)
+     */
+    private static final int SPOTS_PER_SIDE = 3;
+
     private final EntityData entityData;
     private final IEntityPositionLookup entityPositionLookup;
     private final int maxGoldPile;
@@ -79,7 +85,7 @@ public class DigTileTask extends AbstractTileTask {
                 openSides++;
             }
         }
-        return 3 * openSides;
+        return SPOTS_PER_SIDE * openSides;
     }
 
     @Override
@@ -93,21 +99,29 @@ public class DigTileTask extends AbstractTileTask {
     }
 
     /**
-     * Like DK II's search for a spot to dig from (0x469AF0), a spot with a
-     * loose gold pile of more than the level's biggest pile outside a Treasury
-     * is skipped
+     * Like DK II's search for a spot to dig from (0x469AF0), a side whose
+     * spots all hold a full loose gold pile is skipped
      */
     @Override
     protected boolean isWorkSpot(Point p) {
         return !isFullGoldPile(p);
     }
 
+    /**
+     * Whether the loose gold on a side leaves no spot to dig from. In DK II the
+     * gold a digger can't carry piles up at its feet (0x4510C0), a pile for
+     * each of the spots along the side, and a spot is full when its pile holds
+     * more than the level's biggest pile outside a Treasury (0x469AF0,
+     * 0x465870). A digger on a full spot moves to another spot of the side.
+     * OpenKeeper keeps one pile a tile, so the side is full once that pile
+     * holds more than all its spots may.
+     */
     private boolean isFullGoldPile(Point p) {
         if (entityData == null) {
             return false;
         }
         EntityId pile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, p);
-        return pile != null && entityData.getComponent(pile, Gold.class).gold > maxGoldPile;
+        return pile != null && entityData.getComponent(pile, Gold.class).gold > SPOTS_PER_SIDE * maxGoldPile;
     }
 
     @Override
@@ -180,8 +194,7 @@ public class DigTileTask extends AbstractTileTask {
         }
 
         // Like DK II (0x465870), before each swing the digger looks at the loose gold at its feet: the gold it can't
-        // carry piles up there. When the pile holds more than a pile outside a Treasury may, it stops and looks for
-        // other work
+        // carry piles up there. When every spot of its side is full, it stops and looks for other work
         if (isFullGoldPile(creature.getCreatureCoordinates())) {
             creature.unassingCurrentTask();
             return;
