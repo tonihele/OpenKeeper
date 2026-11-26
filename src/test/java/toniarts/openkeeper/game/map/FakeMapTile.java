@@ -30,6 +30,8 @@ public final class FakeMapTile implements IMapTileInformation {
     public short terrainId;
     public short ownerId;
     public EntityId roomId;
+    public int health;
+    public int maxHealth;
 
     public FakeMapTile(Point location) {
         this.location = location;
@@ -52,7 +54,7 @@ public final class FakeMapTile implements IMapTileInformation {
 
     @Override
     public int getHealth() {
-        return 0;
+        return health;
     }
 
     @Override
@@ -77,7 +79,7 @@ public final class FakeMapTile implements IMapTileInformation {
 
     @Override
     public int getMaxHealth() {
-        return 0;
+        return maxHealth;
     }
 
     @Override
@@ -107,7 +109,7 @@ public final class FakeMapTile implements IMapTileInformation {
 
     @Override
     public boolean isAtFullHealth() {
-        return true;
+        return health >= maxHealth;
     }
 
     @Override

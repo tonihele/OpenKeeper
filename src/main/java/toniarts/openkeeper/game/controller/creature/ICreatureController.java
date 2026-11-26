@@ -93,6 +93,7 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     /**
      * Handles the manual rest target after landing and getting up. Rest can be
      * assigned without fatigue debt, provided the creature's bed is in that Lair.
+     * Also sends a hurt creature to bed right after it has made its home.
      *
      * @return whether a sleep task was assigned
      */
@@ -128,6 +129,21 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean isWithinAttackDistance(EntityId attackTarget);
 
+    /**
+     * Does the creature have an attacking spell it can cast now
+     *
+     * @return has a ranged attack ready
+     */
+    public boolean hasRangedAttackReady();
+
+    /**
+     * Casts the first attacking spell that is ready at the target, without
+     * hurting it, like a trainee at a wall target
+     *
+     * @param target what to cast at
+     */
+    public void castTrainingShot(EntityId target);
+
     public void stopCreature();
 
     public void executeAttack(EntityId attackTarget);
@@ -142,6 +158,24 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * Drops the shot of an interrupted cast
      */
     public void cancelCastShot();
+
+    /**
+     * Lands the hit of the melee swing once the swing has reached the
+     * creature's shot delay
+     */
+    public void releaseMeleeHit();
+
+    /**
+     * Is the hit of the melee swing still to land
+     *
+     * @return true while the swing hasn't hit yet
+     */
+    public boolean hasPendingMeleeHit();
+
+    /**
+     * Drops the hit of an interrupted melee swing
+     */
+    public void cancelMeleeHit();
 
     public void navigateToAttackTarget(EntityId attackTarget);
 
@@ -498,5 +532,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @param playerId the new player ID
      */
     public void convertCreature(short playerId);
+
+    /**
+     * Makes the creature fight for another player for a while, as by the
+     * Turncoat spell. It stays owned by its keeper. Creatures immune to the
+     * spell stay as they are
+     *
+     * @param playerId the player the creature fights for
+     * @param duration how long, in seconds
+     */
+    public void turncoat(short playerId, double duration);
 
 }

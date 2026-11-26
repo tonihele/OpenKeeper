@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.OWNABLE;
 import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.SOLID;
+import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.TAGGABLE;
 
 /**
  * Values from the shipped GlobalVariables.kwd and Terrain.kwd, and the
@@ -46,6 +47,27 @@ class TileWorkTest {
         assertEquals(40, TileWork.perApplication(50, FRESH_IMP)); // Reinforce wall
         assertEquals(270, TileWork.perApplication(-300, FRESH_IMP + 10)); // Slapped
         assertEquals(300, TileWork.perApplication(-300, TileWork.FULL_EFFICIENCY));
+    }
+
+    @Test
+    void claimingGroundDropsTheFractionOfATick() {
+
+        // Measured in the original: a fresh imp adds 164 a tick to a Dirt Path, the claim rate of 825 at 4 ticks a second
+        assertEquals(164, TileWork.perTick(825 / 4, FRESH_IMP));
+        assertEquals(206, TileWork.perTick(825 / 4, TileWork.FULL_EFFICIENCY));
+        assertEquals(9, TileWork.perTick(50 / 4, FRESH_IMP)); // Reinforce wall
+
+        // The original's 80% is 0xCCC of 0x1000, just under, so the 5 a tick of repairing a wall comes to 3
+        assertEquals(3, TileWork.perTick(22 / 4, FRESH_IMP));
+    }
+
+    @Test
+    void attacksLandATicksWorth() {
+
+        // Measured in the original: an enemy's floor 28 a blow, a neutral room 4000 and an enemy's room 800
+        assertEquals(28, TileWork.perSwing(-140 / 4, FRESH_IMP));
+        assertEquals(4000, TileWork.perSwing(-20000 / 4, FRESH_IMP));
+        assertEquals(800, TileWork.perSwing(-4000 / 4, FRESH_IMP));
     }
 
     @Test
@@ -120,6 +142,19 @@ class TileWorkTest {
         assertFalse(TileWork.convertsAtFullHealth(terrain(9, 9, SOLID, OWNABLE))); // Reinforced Wall
         assertFalse(TileWork.convertsAtFullHealth(terrain(6, 6, SOLID))); // Gold, itself
         assertFalse(TileWork.convertsAtFullHealth(terrain(4, 4))); // Water, itself
+    }
+
+    @Test
+    void damageEligibilityMatchesDiggingAndOwnershipRules() {
+        Terrain rock = terrain(2, 9, SOLID, TAGGABLE);
+        Terrain ownPath = terrain(8, 2, OWNABLE, TAGGABLE);
+        Terrain dirtPath = terrain(3, 8, TAGGABLE);
+
+        assertTrue(TileWork.canDamageTile(rock, (short) 3, (short) 3));
+        assertTrue(TileWork.canDamageTile(ownPath, (short) 4, (short) 3));
+        assertFalse(TileWork.canDamageTile(ownPath, (short) 3, (short) 3));
+        assertFalse(TileWork.canDamageTile(dirtPath, (short) 0, (short) 3));
+        assertFalse(TileWork.canDamageTile(null, (short) 0, (short) 3));
     }
 
     private static List<Integer> mine(int damagePerApplication) {
