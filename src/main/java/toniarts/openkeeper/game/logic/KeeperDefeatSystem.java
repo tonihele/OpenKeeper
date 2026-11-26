@@ -221,12 +221,10 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
         if (room != null && room.isDungeonHeart()) {
 
             // The ruined heart no longer stores gold, what it held is no longer the keeper's
-            synchronized (GameWorldController.GOLD_LOCK) {
-                PlayerGoldControl goldControl = gameController.getPlayerControllers().get(keeper.getId()).getGoldControl();
-                goldControl.subGold(room.getUsedCapacity(ObjectType.GOLD));
-                goldControl.setGoldMax(goldControl.getGoldMax() - room.getMaxCapacity(ObjectType.GOLD));
-                room.destroy();
-            }
+            PlayerGoldControl goldControl = gameController.getPlayerControllers().get(keeper.getId()).getGoldControl();
+            goldControl.subGold(room.getUsedCapacity(ObjectType.GOLD));
+            goldControl.setGoldMax(goldControl.getGoldMax() - room.getMaxCapacity(ObjectType.GOLD));
+            room.destroy();
         }
     }
 

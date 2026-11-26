@@ -2366,11 +2366,9 @@ public final class CreatureController extends EntityController implements ICreat
                 return;
             }
         }
-        synchronized (GameWorldController.GOLD_LOCK) {
-            EntityId pile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, tile);
-            if (pile != null) {
-                giveObject(objectsController.createController(pile));
-            }
+        EntityId pile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, tile);
+        if (pile != null) {
+            giveObject(objectsController.createController(pile));
         }
     }
 
@@ -2408,13 +2406,11 @@ public final class CreatureController extends EntityController implements ICreat
             Point coordinates = getCreatureCoordinates();
 
             // Like in DKII (0x4510C0), the gold goes to the pile at our feet if there is one
-            synchronized (GameWorldController.GOLD_LOCK) {
-                EntityId goldPile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, coordinates);
-                if (goldPile != null) {
-                    Gold pile = entityData.getComponent(goldPile, Gold.class);
-                    entityData.setComponent(goldPile, new Gold(pile.gold + looseGold, pile.maxGold));
-                    return;
-                }
+            EntityId goldPile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, coordinates);
+            if (goldPile != null) {
+                Gold pile = entityData.getComponent(goldPile, Gold.class);
+                entityData.setComponent(goldPile, new Gold(pile.gold + looseGold, pile.maxGold));
+                return;
             }
             objectsController.addLooseGold(coordinates.x, coordinates.y, looseGold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
         }
