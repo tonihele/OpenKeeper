@@ -1253,7 +1253,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return assignClosestRoomTask(creature, ObjectType.GUARD, null, assign);
             }
             case DRINK: {
-                return assignClosestRoomTask(creature, ObjectType.GAMBLER, null, assign);
+
+                // DK II's Drink job (0x4560F0) only looks for a Casino, and so only asks for one, when the creature
+                // holds more gold than the stake
+                return creature.getGold() > Math.abs(gameSettings.get(Variable.MiscVariable.MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND).getValue())
+                        && assignClosestRoomTask(creature, ObjectType.GAMBLER, null, assign);
             }
             default:
                 return false;

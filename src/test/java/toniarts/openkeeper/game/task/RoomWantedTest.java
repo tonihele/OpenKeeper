@@ -23,6 +23,8 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
@@ -38,9 +40,11 @@ import toniarts.openkeeper.game.event.ServerEvents;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.tools.convert.map.CasinoVariableFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,28 +56,52 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
  */
 class RoomWantedTest {
 
+    private final TaskManager taskManager = new TaskManager(new DefaultEntityData(), stub(IGameWorldController.class, Map.of()),
+            stub(IMapController.class, Map.of("getMapData", stub(IMapDataInformation.class, Map.of("getWidth", 0, "getHeight", 0)),
+                    "getRoomsByFunction", List.of())),
+            stub(IObjectsController.class, Map.of()), stub(ICreaturesController.class, Map.of()), stub(INavigationService.class, Map.of()),
+            List.of(stub(IPlayerController.class, Map.of("getKeeper", new Keeper(false, Player.KEEPER1_ID)))),
+            stub(ILevelInfo.class, Map.of("getLevelData", stub(IKwdFile.class, Map.of()))), stub(IEntityPositionLookup.class, Map.of()),
+            Map.of(MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND,
+                    CasinoVariableFixtures.miscVariable(MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND, -8)));
+    private final List<RoomWanted> asked = new ArrayList<>();
+    private final EventListener<RoomWanted> listener = (type, event) -> asked.add(event);
+
+    @BeforeEach
+    void listen() {
+        EventBus.addListener(ServerEvents.ROOM_WANTED, listener);
+    }
+
+    @AfterEach
+    void stopListening() {
+        EventBus.removeListener(ServerEvents.ROOM_WANTED, listener);
+    }
+
     @Test
     void aCreatureAsksForTheRoomOfItsJobAndForAHatcheryWhenItsKeeperHasNone() {
-        IMapDataInformation<?> mapData = stub(IMapDataInformation.class, Map.of("getWidth", 0, "getHeight", 0));
-        IMapController mapController = stub(IMapController.class, Map.of("getMapData", mapData, "getRoomsByFunction", List.of()));
-        IPlayerController player = stub(IPlayerController.class, Map.of("getKeeper", new Keeper(false, Player.KEEPER1_ID)));
-        TaskManager taskManager = new TaskManager(new DefaultEntityData(), stub(IGameWorldController.class, Map.of()), mapController,
-                stub(IObjectsController.class, Map.of()), stub(ICreaturesController.class, Map.of()), stub(INavigationService.class, Map.of()),
-                List.of(player), stub(ILevelInfo.class, Map.of("getLevelData", stub(IKwdFile.class, Map.of()))), stub(IEntityPositionLookup.class, Map.of()), Map.of());
-        ICreatureController creature = stub(ICreatureController.class, Map.of(
-                "getOwnerId", Player.KEEPER1_ID,
-                "getCreatureCoordinates", new Point(5, 5)));
-        List<RoomWanted> asked = new ArrayList<>();
-        EventListener<RoomWanted> listener = (type, event) -> asked.add(event);
-        EventBus.addListener(ServerEvents.ROOM_WANTED, listener);
-        try {
-            assertFalse(taskManager.isTaskAvailable(creature, Creature.JobType.TRAIN));
-            assertFalse(taskManager.assignEatTask(creature));
-        } finally {
-            EventBus.removeListener(ServerEvents.ROOM_WANTED, listener);
-        }
+        ICreatureController creature = creature(0);
+
+        assertFalse(taskManager.isTaskAvailable(creature, Creature.JobType.TRAIN));
+        assertFalse(taskManager.assignEatTask(creature));
 
         assertEquals(List.of(new RoomWanted(Player.KEEPER1_ID, ObjectType.TRAINEE), new RoomWanted(Player.KEEPER1_ID, ObjectType.FOOD)), asked);
+    }
+
+    @Test
+    void aCreatureAsksForACasinoOnlyWithMoreGoldThanTheStake() {
+
+        // DK II's Drink job (0x4560F0) looks at the gold held before it looks for a Casino. The stake here is 8
+        assertFalse(taskManager.isTaskAvailable(creature(8), Creature.JobType.DRINK));
+        assertFalse(taskManager.isTaskAvailable(creature(9), Creature.JobType.DRINK));
+
+        assertEquals(List.of(new RoomWanted(Player.KEEPER1_ID, ObjectType.GAMBLER)), asked);
+    }
+
+    private static ICreatureController creature(int gold) {
+        return stub(ICreatureController.class, Map.of(
+                "getOwnerId", Player.KEEPER1_ID,
+                "getCreatureCoordinates", new Point(5, 5),
+                "getGold", gold));
     }
 
     /**
