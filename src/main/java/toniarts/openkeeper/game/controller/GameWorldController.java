@@ -1414,12 +1414,22 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     private void dropCreature(IRoomController roomController, EntityId entity, Point tile, Vector2f coordinates, short playerId) {
+        if (roomController != null && roomController.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
+            RoomTortureeControl torturees = roomController.getObjectControl(AbstractRoomController.ObjectType.TORTUREE);
+            synchronized (torturees) {
+                dropCreatureInRoom(roomController, entity, tile, coordinates, playerId);
+            }
+        } else {
+            dropCreatureInRoom(roomController, entity, tile, coordinates, playerId);
+        }
+    }
+
+    private void dropCreatureInRoom(IRoomController roomController, EntityId entity, Point tile, Vector2f coordinates, short playerId) {
         boolean tortureOrImprisonment = false;
         boolean torture = false;
         boolean imprison = false;
         boolean pitFighter = false;
         CreatureState creatureState = null;
-        Position devicePosition = null;
 
         CreatureState targetState = null;
         boolean leavingDungeon = false;
@@ -1459,15 +1469,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 // The victim goes on a free torture device. Like in DK II, a
                 // full chamber takes no more victims, the creature is just dropped
                 RoomTortureeControl torturees = roomController.getObjectControl(AbstractRoomController.ObjectType.TORTUREE);
-                EntityId device = torturees.addItem(entity, tile);
+                EntityId device = torturees.admit(entity, coordinates);
                 if (device != null) {
                     creatureState = CreatureState.TORTURED;
                     torture = true;
-                    devicePosition = entityData.getComponent(device, Position.class);
-
-                    // Set the component, continue the torturing time if such is possible
-                    CreatureTortured tortured = entityData.getComponent(entity, CreatureTortured.class);
-                    entityData.setComponent(entity, new CreatureTortured(tortured != null ? tortured.timeTortured : 0.0d, gameTimer.getGameTime(), gameTimer.getGameTime(), device));
                 }
             }
             tortureOrImprisonment = imprison || torture;
@@ -1488,16 +1493,13 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // Add position
         // Maybe in the future the physics deal with this and we just need to detect that we are airborne
         Vector3f pos = new Vector3f(coordinates.x, (tortureOrImprisonment ? WorldUtils.FLOOR_HEIGHT : WorldUtils.DROP_HEIGHT), coordinates.y);
-        if (devicePosition != null) {
-
-            // The victim is on the device and faces the way the device does
-            entityData.setComponent(entity, new Position(devicePosition.rotation,
-                    new Vector3f(devicePosition.position.x, WorldUtils.FLOOR_HEIGHT, devicePosition.position.z)));
-        } else {
+        if (!torture) {
             entityData.setComponent(entity, new Position(0, pos));
         }
 
-        restoreDroppedCreatureAi(entity, creatureState, targetState);
+        if (!torture) {
+            restoreDroppedCreatureAi(entity, creatureState, targetState);
+        }
 
         // Add the dropping component to the creature
         if (!tortureOrImprisonment) {
