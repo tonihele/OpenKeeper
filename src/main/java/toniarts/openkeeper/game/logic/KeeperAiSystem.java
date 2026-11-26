@@ -26,12 +26,13 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.KeeperAi;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -194,6 +195,14 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             ObjectType.TORTUREE, ROOM_TORTURE_CHAMBER, ObjectType.WORSHIPPER, ROOM_TEMPLE, ObjectType.GAMBLER, ROOM_CASINO);
 
     /**
+     * The game minutes an ask for a room lasts, 160 for the rooms not here.
+     * DK II's message 0x29 times out by its room after 128 game ticks for
+     * each unit of its table (0x4C4600, 0x6A03D8)
+     */
+    private static final Map<Short, Integer> ROOM_ASK_MINUTES = Map.of(ROOM_TREASURY, 224, ROOM_LAIR, 96, ROOM_HATCHERY, 96,
+            ROOM_PRISON, 320, ROOM_GRAVEYARD, 320);
+
+    /**
      * The room DK II's computer player likes to have each room next to
      */
     private static final Map<Short, Short> IDEAL_NEIGHBOURS = Map.ofEntries(
@@ -247,11 +256,15 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private final EntitySet objects;
 
     /**
-     * The latest room a creature of each computer player asked for since its
-     * last turn
+     * The rooms the creatures of the computer players asked for since their
+     * last turn, the first asked first
      */
-    private final Map<Short, ObjectType> roomsWanted = new ConcurrentHashMap<>();
-    private final EventListener<RoomWanted> roomWantedListener = (type, event) -> roomsWanted.put(event.playerId(), event.objectType());
+    private final Set<RoomWanted> roomsWanted = Collections.synchronizedSet(new LinkedHashSet<>());
+    private final EventListener<RoomWanted> roomWantedListener = (type, event) -> {
+        if (ais.containsKey(event.playerId())) {
+            roomsWanted.add(event);
+        }
+    };
 
     /**
      * @param entityData the entities, the computer players keep their state
@@ -368,11 +381,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             }
         }
 
-        // The latest room its creatures asked for is held for the next plan
-        ObjectType asked = roomsWanted.remove(keeperAi.playerId);
-        if (asked != null && ROOMS_WANTED.containsKey(asked)) {
-            holdWantedRoom(keeperAi, playerController, ROOMS_WANTED.get(asked));
-        }
+        // The rooms its creatures ask for wait their turn to be held for the next plan
+        askForRooms(keeperAi, playerController, ticksPerSecond);
 
         // Its creatures that have turned unhappy or angry are seen to as the news comes in
         creatures.answerMoods(keeperAi, playerController, ai);
@@ -1035,26 +1045,70 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     }
 
     /**
-     * Holds a room a creature asked for to be planned next, before the build
-     * order, as DK II does with its message 0x29 (0x4FA400, 0x4F93B0). The
-     * ask drops a Portal plan. It is held when no other room is, the room
-     * may be built, it isn't the room being planned and it has none of the
-     * kind. Otherwise it is let go, and a creature asks again the next time
-     * it looks for the room
+     * Queues the rooms its creatures asked for and goes through the queue,
+     * as DK II does with its message 0x29 (0x4C4600, 0x4C41E0, 0x4FA400). A
+     * room it has none of is asked for once while the ask lasts, and the
+     * asks wait their turn, the first asked first
      */
-    private void holdWantedRoom(KeeperAi keeperAi, IPlayerController playerController, short roomId) {
+    private void askForRooms(KeeperAi keeperAi, IPlayerController playerController, int ticksPerSecond) {
+        for (int i = 0; i < keeperAi.roomAskTicks.length; i++) {
+            if (keeperAi.roomAskTicks[i] > 0) {
+                keeperAi.roomAskTicks[i]--;
+            }
+        }
+        List<RoomWanted> asked = new ArrayList<>();
+        roomsWanted.removeIf(ask -> ask.playerId() == keeperAi.playerId && asked.add(ask));
+        int asks = 0;
+        while (keeperAi.roomAsks[asks] != 0) {
+            asks++;
+        }
+        for (RoomWanted ask : asked) {
+            Short roomId = ROOMS_WANTED.get(ask.objectType());
+            if (roomId != null && keeperAi.roomAskTicks[roomId] == 0
+                    && playerController.getRoomControl().getTypeCount(kwdFile.getRoomById(roomId)) == 0) {
+                keeperAi.roomAskTicks[roomId] = ROOM_ASK_MINUTES.getOrDefault(roomId, 160) * 60 * ticksPerSecond;
+                keeperAi.roomAsks[asks++] = roomId;
+            }
+        }
+
+        // An ask that has run out or is seen to leaves the queue
+        for (int i = 0; keeperAi.roomAsks[i] != 0;) {
+            if (keeperAi.roomAskTicks[keeperAi.roomAsks[i]] == 0 || holdWantedRoom(keeperAi, playerController, keeperAi.roomAsks[i])) {
+                System.arraycopy(keeperAi.roomAsks, i + 1, keeperAi.roomAsks, i, keeperAi.roomAsks.length - i - 1);
+            } else {
+                i++;
+            }
+        }
+    }
+
+    /**
+     * Holds a room a creature asked for to be planned next, before the build
+     * order (0x4FA400, 0x4F93B0). The ask drops a Portal plan. It is held
+     * when no other room is, the room may be built and it isn't the room
+     * being planned, even when it has one of the kind by now. While another
+     * room is held the ask waits
+     *
+     * @return whether the ask is seen to, false when it waits
+     */
+    private boolean holdWantedRoom(KeeperAi keeperAi, IPlayerController playerController, short roomId) {
         if (keeperAi.roomWanted && keeperAi.wantedRoomId == ROOM_PORTAL) {
             keeperAi.roomWanted = false;
         }
         Room room = kwdFile.getRoomById(roomId);
         ResearchableEntity availability = room != null ? playerController.getRoomControl().getTypes().get(room) : null;
-        if (!keeperAi.roomWanted && availability != null && availability.isDiscovered() && keeperAi.roomId != roomId
-                && playerController.getRoomControl().getTypeCount(room) == 0) {
+        if (availability == null || !availability.isDiscovered()) {
+            return true;
+        }
+        if (keeperAi.roomWanted) {
+            return false;
+        }
+        if (keeperAi.roomId != roomId) {
             log(keeperAi, "room " + roomId + " is next", null, "a creature asked for it");
             keeperAi.wantedRoomId = roomId;
             keeperAi.wantedRoomExpand = false;
             keeperAi.roomWanted = true;
         }
+        return true;
     }
 
     /**

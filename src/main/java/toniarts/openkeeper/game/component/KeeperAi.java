@@ -102,6 +102,19 @@ public final class KeeperAi implements EntityComponent {
     public boolean wantedRoomExpand;
 
     /**
+     * The rooms its creatures asked for that wait their turn, the first asked
+     * first, ending with 0. DK II keeps them in its message list and tries
+     * them again each turn
+     */
+    public short[] roomAsks = new short[32];
+
+    /**
+     * For each room by its id the game ticks until the ask for it runs out,
+     * 0 when there is none. The room isn't asked for again before then
+     */
+    public int[] roomAskTicks = new int[32];
+
+    /**
      * How many Portals it and the neutral player had when it last looked,
      * one taken from another player may ask for a bigger Lair
      */
@@ -253,6 +266,8 @@ public final class KeeperAi implements EntityComponent {
         this.wantedRoomId = keeperAi.wantedRoomId;
         this.roomWanted = keeperAi.roomWanted;
         this.wantedRoomExpand = keeperAi.wantedRoomExpand;
+        this.roomAsks = keeperAi.roomAsks.clone();
+        this.roomAskTicks = keeperAi.roomAskTicks.clone();
         this.portals = keeperAi.portals;
         this.direction = keeperAi.direction;
         this.current = keeperAi.current;
