@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Placeable;
@@ -54,6 +55,7 @@ import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
@@ -74,9 +76,12 @@ import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.Guard;
+import toniarts.openkeeper.game.task.creature.Leave;
 import toniarts.openkeeper.game.task.creature.Manufacture;
 import toniarts.openkeeper.game.task.creature.Pray;
+import toniarts.openkeeper.game.task.creature.Rebel;
 import toniarts.openkeeper.game.task.creature.Research;
+import toniarts.openkeeper.game.task.creature.Sulk;
 import toniarts.openkeeper.game.task.creature.Torture;
 import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
@@ -443,6 +448,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // Add rescue mission for the own troops and capture for the enemy
         for (Entity entity : entities) {
             Owner owner = entity.get(Owner.class);
+            KeeperAiNoPrisoner noPrisoner = entityData.getComponent(entity.getId(), KeeperAiNoPrisoner.class);
             for (Entry<Short, Set<Task>> entry : taskQueues.entrySet()) {
 
                 Task task = null;
@@ -450,9 +456,10 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
                     // Rescue
                     task = new RescueCreatureTask(this, navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey());
-                } else if (playerControllers.get(entry.getKey()).getKeeper().isEnemy(owner.ownerId)) {
+                } else if (playerControllers.get(entry.getKey()).getKeeper().isEnemy(owner.ownerId)
+                        && (noPrisoner == null || (noPrisoner.players & 1 << entry.getKey()) == 0)) {
 
-                    // Capture
+                    // Capture, unless a computer player has decided to let it die
                     task = new CaptureEnemyCreatureTask(navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey(), this);
                 }
 
@@ -761,10 +768,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         // Dig
         if (mapController.isSelected(mapTile, playerId)) {
-            addTask(playerId, new DigTileTask(navigationService, mapController, tile, playerId));
+            addTask(playerId, new DigTileTask(navigationService, mapController, tile, playerId, entityData, entityPositionLookup,
+                    (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue()));
         } // Claim wall
         else if (mapController.isClaimableWall(mapTile, terrain, playerId)) {
-            addTask(playerId, new ClaimWallTileTask(navigationService, mapController, tile, playerId));
+
+            // Nobody's reinforced wall only becomes work once it is below half its health (DKII.EXE 0x453E90)
+            if (!terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) || mapTile.getHealth() < mapTile.getMaxHealth() / 2) {
+                addTask(playerId, new ClaimWallTileTask(navigationService, mapController, tile, playerId));
+            }
         } // Claim
         else if (mapController.isClaimableTile(mapTile, terrain, playerId)) {
             addTask(playerId, new ClaimTileTask(navigationService, mapController, tile, playerId));
@@ -902,11 +914,13 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
             // Take a free point first. A room can take more than it has points, like one more
-            // trainee than the Training Room has dummies, so then the points are shared until it is full
+            // trainee than the Training Room has dummies, so then the points are shared until it is full.
+            // A Casino object takes one gambler only, DK II skips an object another creature has (0x4D7460)
             if (taskPoints != null) {
                 List<Point> freeCoordinates = new ArrayList<>(coordinates);
                 freeCoordinates.removeAll(taskPoints.values());
-                if (!freeCoordinates.isEmpty() || taskPoints.size() + control.getCurrentCapacity() >= control.getMaxCapacity()) {
+                if (!freeCoordinates.isEmpty() || objectType == ObjectType.GAMBLER
+                        || taskPoints.size() + control.getCurrentCapacity() >= control.getMaxCapacity()) {
                     coordinates = freeCoordinates;
                 }
             }
@@ -1237,9 +1251,80 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case DRINK: {
                 return assignClosestRoomTask(creature, ObjectType.GAMBLER, null, assign);
             }
+            case SULK: {
+
+                // Like in DK II, only a creature that sleeps and has a lair it can get to sulks
+                if (!creature.hasLair() || creature.getCreature().getAttributes().getTimeSleep() <= 0) {
+                    return false;
+                }
+                Sulk task = new Sulk(navigationService, mapController, creature, entityData, gameSettings);
+                if (!task.isReachable(creature)) {
+                    return false;
+                }
+                if (assign) {
+                    task.assign(creature, true);
+                    tasksByIds.put(task.getId(), task);
+                }
+                return true;
+            }
+            case LEAVE: {
+                return assignLeaveTask(creature, false, assign);
+            }
+            case REBEL: {
+
+                // Like in DK II, a rebel walks out through a portal, and turns on its keeper when it can't get to one
+                if (assignLeaveTask(creature, true, assign)) {
+                    return true;
+                }
+                if (creature.getOwnerId() == Player.GOOD_PLAYER_ID) {
+                    return false;
+                }
+                if (assign) {
+                    Rebel task = new Rebel(navigationService, mapController, creature,
+                            levelInfo.getLevelData().getGameLevel().getTicksPerSec());
+                    task.assign(creature, true);
+                    tasksByIds.put(task.getId(), task);
+                }
+                return true;
+            }
             default:
                 return false;
         }
+    }
+
+    /**
+     * Like in DK II, a creature that leaves walks out through the portal
+     * nearest in a straight line, whoever owns it, even when another portal is
+     * a shorter walk or it can't get to that one at all (0x459DE0). A rebel
+     * takes the nearest of its own keeper's portals, and only when it can get
+     * to it (0x475170)
+     */
+    private boolean assignLeaveTask(ICreatureController creature, boolean rebel, boolean assign) {
+        ThreeByThreeController nearest = null;
+        float nearestDistance = Float.MAX_VALUE;
+        for (IRoomController room : mapController.getRoomControllers()) {
+            if (!(room instanceof ThreeByThreeController portal) || (rebel && portal.getOwnerId() != creature.getOwnerId())) {
+                continue;
+            }
+
+            // DK II compares the squared distance to the middle of each portal
+            float distance = WorldUtils.pointToVector2f(portal.getEntranceCoordinate())
+                    .distanceSquared(creature.getPosition().x, creature.getPosition().z);
+            if (distance < nearestDistance) {
+                nearest = portal;
+                nearestDistance = distance;
+            }
+        }
+        Leave task = nearest == null ? null
+                : new Leave(navigationService, mapController, nearest.getEntranceCoordinate(), creature.getOwnerId(), nearest, entityData);
+        if (task != null && rebel && !task.isReachable(creature)) {
+            return false;
+        }
+        if (task != null && assign) {
+            task.assign(creature, true);
+            tasksByIds.put(task.getId(), task);
+        }
+        return task != null;
     }
 
     @Override

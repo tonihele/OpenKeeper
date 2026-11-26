@@ -28,6 +28,7 @@ import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static toniarts.openkeeper.tools.convert.map.RoomFixtures.room;
 import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.flags;
 import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.terrain;
 
@@ -77,7 +78,11 @@ class ClaimNotAttackableTest {
         mapData.getTile(1, 0).terrainId = terrainId;
         mapData.getTile(1, 0).ownerId = HEROES;
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
-                (proxy, method, args) -> "getTerrain".equals(method.getName()) ? terrains.get((Short) args[0]) : null);
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getTerrain" -> terrains.get((Short) args[0]);
+                    case "getDungeonHeart" -> room((short) 5, 0);
+                    default -> null;
+                });
 
         return new MapInformation<>(mapData, kwdFile, List.of(new Keeper(false, KEEPER), new Keeper(false, HEROES)));
     }
