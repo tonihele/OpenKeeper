@@ -22,12 +22,15 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Alarm;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Invisible;
+import toniarts.openkeeper.game.component.Invulnerable;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
@@ -44,6 +47,7 @@ import toniarts.openkeeper.game.controller.shot.InfernoShotProcessor;
 import toniarts.openkeeper.game.controller.shot.LightningShotProcessor;
 import toniarts.openkeeper.game.controller.shot.ShotFlightRules;
 import toniarts.openkeeper.game.controller.shot.ShotRequest;
+import toniarts.openkeeper.game.controller.shot.WindShotProcessor;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
@@ -70,7 +74,11 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.DRAIN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FEAR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INSTANTANEOUS_HIT;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INVISIBLE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INVUNERABLE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_ARMOUR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POISON_SPIT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
@@ -79,6 +87,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SIGHT_OF_EV
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SUMMON_REAPER;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TREMOR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TURNCOAT;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.WIND;
 
 /**
  * Fires shots. What a shot does is decided by its process type, each
@@ -163,6 +172,15 @@ public final class ShotsController implements IShotsController {
         });
         result.put(POSSESS_CREATURE, request -> creaturesController.createController(request.target()).setPossession(true));
         result.put(MODIFY_HEALTH, request -> EntityController.setDamage(entityData, request.target(), -request.shotData1()));
+        // Cast Armour: the first value is how long the armour lasts, in game ticks
+        result.put(MODIFY_ARMOUR, request -> entityData.setComponent(request.target(),
+                new Armour(gameTimer.getGameTime() + (double) request.shotData1() / kwdFile.getGameLevel().getTicksPerSec())));
+        // Invisible: the first value is how long it lasts, in seconds
+        result.put(INVISIBLE, request -> entityData.setComponent(request.target(),
+                new Invisible(gameTimer.getGameTime() + request.shotData1())));
+        // Invulnerable: the first value is how long it lasts, in seconds
+        result.put(INVUNERABLE, request -> entityData.setComponent(request.target(),
+                new Invulnerable(gameTimer.getGameTime() + request.shotData1())));
         result.put(CHICKEN, request -> {
             if (request.target() != null && creaturesController.isValidEntity(request.target())) {
                 creaturesController.createController(request.target()).turnIntoChicken(request.shotData1());
@@ -189,6 +207,12 @@ public final class ShotsController implements IShotsController {
         result.put(SUMMON_REAPER, request -> new ReaperSummoner(kwdFile, entityData, gameTimer, creaturesController).summon(request.shot().getShotId(),
                 request.shotData1(), request.playerId(), WorldUtils.vector3fToVector2f(request.position())));
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
+        // The shot is at its target at once and dies there, its death shot goes on with the same values
+        result.put(INSTANTANEOUS_HIT, request -> {
+            if (request.shot().getDeathShotId() != 0) {
+                createShot(request.shot().getDeathShotId(), request.shotData1(), request.shotData2(), request.playerId(), request.position(), request.target(), null);
+            }
+        });
         // Drain: the first value is how much of the shooter's full health it takes off the target, as a percentage,
         // but no more than the target has left. The shooter gets it
         result.put(DRAIN, request -> {
@@ -202,6 +226,7 @@ public final class ShotsController implements IShotsController {
         });
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
         result.put(RAISE_DEAD, this::raiseDead);
+        result.put(WIND, new WindShotProcessor(entityData, kwdFile, gameController, mapController, creaturesController));
         result.put(FREEZE, this::freeze);
         result.put(ALARM, this::raiseAlarm);
         result.put(POISON_SPIT, this::poison);
@@ -239,12 +264,13 @@ public final class ShotsController implements IShotsController {
     public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target, EntityId shooter) {
 
         // Creature attacks still apply their damage themselves, see CreatureController#executeAttack. Processing
-        // their shots here too would hit twice (Mistress and Fairy lightning share the keeper's process type)
-        if (shooter != null) {
+        // their shots here too would hit twice (Mistress and Fairy lightning share the keeper's process type).
+        // What a creature casts on its own side is no attack and is processed here
+        Shot shot = kwdFile.getShotById(shotTypeId);
+        if (shooter != null && shot.getCollideType() != Shot.CollideType.OWN_CREATURES) {
             return;
         }
 
-        Shot shot = kwdFile.getShotById(shotTypeId);
         ShotRequest request = new ShotRequest(shot, shotData1, shotData2, playerId, position, target);
         notifyShotHit(shot, target);
         damage(request);
@@ -502,8 +528,10 @@ public final class ShotsController implements IShotsController {
         ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
         Shot shot = kwdFile.getShotById(flight.shotId);
 
-        // The shot's data 1 is its damage (0x4AC420)
-        if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0) {
+        // The shot's data 1 is its damage. An invulnerable creature takes none
+        // and isn't set alight either (0x4AC420)
+        if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0
+                && entityData.getComponent(thing, Invulnerable.class) == null) {
             if (shot.getAttackCategory() == Shot.AttackCategory.FIRE) {
                 setAlight(thing);
             }
@@ -533,6 +561,14 @@ public final class ShotsController implements IShotsController {
         // The new shot keeps the old one's values and target, not its own (0x4AB180)
         addShot(new ShotFlight(shotTypeId, flight.ownerId, flight.shooter, flight.target, flight.shotData1, flight.shotData2,
                 new Vector3f(), new Vector3f(position), 0, kwdFile.getShotById(shotTypeId).getHealth()));
+    }
+
+    @Override
+    public void fly(EntityId shotEntity) {
+        ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
+
+        process(new ShotRequest(kwdFile.getShotById(flight.shotId), flight.shotData1, flight.shotData2, flight.ownerId,
+                EntityController.getPosition(entityData, shotEntity), null, flight.shooter));
     }
 
     /**

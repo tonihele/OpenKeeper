@@ -43,9 +43,9 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Moves the flying shots, one move a turn, and lets them hit. The order is
- * DKII.EXE's shot turn (0x4AB180): the range, an instant shot's move onto its
- * target, a hit on a thing, the damage around the shot, the move with a hit
- * on a wall, then the shot's lifetime.
+ * DKII.EXE's shot turn (0x4AB180): the range, what the shot does on every
+ * turn, an instant shot's move onto its target, a hit on a thing, the damage
+ * around the shot, the move with a hit on a wall, then the shot's lifetime.
  */
 public final class ShotSystem implements IGameLogicUpdatable {
 
@@ -91,6 +91,9 @@ public final class ShotSystem implements IGameLogicUpdatable {
         int health = flight.health;
         if (ShotFlightRules.isOutOfRange(flight.start, position, flight.maxRange)) {
             health = 0;
+        }
+        if (shot.getShotProcessFlags().contains(Shot.ShotProcessFlag.CONSTANT)) {
+            shotsController.fly(entity.getId());
         }
 
         // An instant shot, like Hail Storm, goes onto its target and hits it, whatever the shot collides with. With

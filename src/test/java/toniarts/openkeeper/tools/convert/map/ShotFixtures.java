@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumSet;
+import java.util.List;
 
 public final class ShotFixtures {
 
@@ -40,6 +41,11 @@ public final class ShotFixtures {
      * The Vampire's Raise Dead
      */
     public static final short RAISE_DEAD_ID = 40;
+
+    /**
+     * The Cyclone of the Wind spell
+     */
+    public static final short CYCLONE_ID = 41;
 
     /**
      * The fireball's effect when it hits a thing, "Spot Hit 4"
@@ -126,6 +132,18 @@ public final class ShotFixtures {
     }
 
     /**
+     * The Cyclone of the Wind spell, with the values of the original data
+     */
+    public static Shot cyclone() {
+        Shot shot = shot(CYCLONE_ID, Shot.ProcessType.WIND, 128, EnumSet.of(Shot.ShotProcessFlag.CONSTANT));
+        shot.setSpeed(0.25f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.NONE);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_OVER_TIME, Shot.ShotFlag.MOVE_TOWARDS_TARGET));
+        return shot;
+    }
+
+    /**
      * The Gas Cloud or the Gas Missile's cloud, with the values of the
      * original data
      *
@@ -208,6 +226,10 @@ public final class ShotFixtures {
         creature.getAttributes().setHeight(height);
     }
 
+    public static void setHealth(Creature creature, int health) {
+        creature.getAttributes().setHp(health);
+    }
+
     /**
      * The keeper's Thunderbolt, with the values of the original data
      */
@@ -220,6 +242,56 @@ public final class ShotFixtures {
      */
     public static Shot inferno() {
         return shot(INFERNO_ID, Shot.ProcessType.INFERNO, 30, EnumSet.of(Shot.ShotProcessFlag.CONSTANT));
+    }
+
+    /**
+     * Shot 53, Heal Instant Shot, as it ships in the original data: it is cast
+     * on own creatures and dies into the given shot
+     */
+    public static Shot healInstantShot(short shotId, short deathShotId) {
+        Shot shot = shot(shotId, Shot.ProcessType.INSTANTANEOUS_HIT, 1, EnumSet.of(Shot.ShotProcessFlag.CONSTANT));
+        shot.setCollideType(Shot.CollideType.OWN_CREATURES);
+        shot.setDeathShotId(deathShotId);
+        return shot;
+    }
+
+    /**
+     * A shot that flies to one of our own creatures, as the shots of Armour,
+     * Invulnerability, Invisibility and Haste do in the original data
+     */
+    public static Shot flyingSupportShot(short shotId, Shot.ProcessType processType) {
+        Shot shot = shot(shotId, processType, 1, EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING));
+        shot.setSpeed(0.5f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.OWN_CREATURES);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.MOVE_TOWARDS_TARGET));
+        return shot;
+    }
+
+    public static CreatureSpell creatureSpell(short creatureSpellId, EnumSet<CreatureSpell.CreatureSpellFlag> flags, CreatureSpell.AlternativeShot alternativeShot,
+            short shotTypeId, int shotData1) {
+        CreatureSpell creatureSpell = new CreatureSpell();
+        creatureSpell.setCreatureSpellId(creatureSpellId);
+        creatureSpell.setName("Creature spell " + creatureSpellId);
+        creatureSpell.setFlags(flags);
+        creatureSpell.setAlternativeShot(alternativeShot);
+        creatureSpell.setShotTypeId(shotTypeId);
+        creatureSpell.setShotData1(shotData1);
+        return creatureSpell;
+    }
+
+    /**
+     * A creature with one spell, whose shot leaves the given time into a cast
+     * that lasts a second
+     */
+    public static Creature caster(short creatureSpellId, float shotDelay) {
+        Creature creature = CasinoVariableFixtures.creatureWithAnimations((short) 1, Creature.AnimationType.CAST_SPELL);
+        Creature.Spell spell = new Creature.Spell();
+        spell.setCreatureSpellId(creatureSpellId);
+        spell.setShotDelay(shotDelay);
+        spell.setShotOffset(0, 0, 0);
+        creature.setSpells(List.of(spell));
+        return creature;
     }
 
     public static Creature creature(short creatureId, EnumSet<Creature.CreatureFlag> flags, EnumSet<Creature.CreatureFlag3> flags3) {
