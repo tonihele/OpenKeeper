@@ -22,6 +22,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,13 +30,19 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.KeeperDefeated;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.GameWorldController;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -43,6 +50,9 @@ import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapTileController;
+import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -50,14 +60,29 @@ import toniarts.openkeeper.utils.Point;
 
 /**
  * Watches the Dungeon Hearts. A keeper whose heart is destroyed is defeated:
- * he is marked destroyed, loses the game, his heart room is left in ruins,
- * his land goes back to nobody and his imps die.
+ * he is marked destroyed, loses the game, his heart room is left in ruins and
+ * his land goes back to nobody. From 5 turns later his imps die and his other
+ * creatures leave.
  * In a skirmish or multiplayer game the last keeper standing wins. In the
  * campaign, a level can have the last enemy heart leave a Portal Gem.
  */
 public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
     private static final short OBJECT_PORTAL_GEM_ID = 28;
+    /**
+     * DK II (0x4DAA10) deals with the creatures of a defeated keeper from 5
+     * turns after the defeat
+     */
+    private static final int TURNS_BEFORE_CREATURES_GO = 5;
+
+    /**
+     * A creature in these states is not in control of itself, or is in the
+     * middle of a swing or a cast, so it is sent away on a later turn
+     */
+    private static final Set<CreatureState> LEFT_ALONE = EnumSet.of(CreatureState.DEAD, CreatureState.ENTERING_DUNGEON,
+            CreatureState.PICKED_UP, CreatureState.UNCONSCIOUS, CreatureState.STUNNED, CreatureState.IMPRISONED,
+            CreatureState.TORTURED, CreatureState.DRAGGED, CreatureState.FALLEN, CreatureState.GETTING_UP,
+            CreatureState.SLAPPED, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL, CreatureState.CHICKEN);
 
     private final EntityData entityData;
     private final ILevelInfo levelInfo;
@@ -66,7 +91,9 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
     private final IObjectsController objectsController;
     private final boolean lastKeeperWins;
     private final EntitySet hearts;
+    private final EntitySet defeats;
     private final Map<EntityId, Short> heartOwners = new HashMap<>();
+    private final Map<Short, EntitySet> defeatedKeepersCreatures = new HashMap<>();
 
     /**
      * Watches the hearts
@@ -91,20 +118,41 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
         hearts = entityData.getEntities(new FieldFilter(ObjectComponent.class, "objectId", FiveByFiveRotatedController.OBJECT_HEART_ID),
                 ObjectComponent.class, Owner.class, Health.class);
         processAddedHearts(hearts);
+        defeats = entityData.getEntities(new FieldFilter(KeeperDefeated.class, "creaturesGone", false), KeeperDefeated.class);
     }
 
     @Override
     public void processTick(float tpf) {
-        if (!hearts.applyChanges()) {
-            return;
+        if (hearts.applyChanges()) {
+            processAddedHearts(hearts.getAddedEntities());
+            processChangedHearts(hearts.getChangedEntities());
+
+            // A removed entity has no components left, so we remember the owners
+            for (Entity heart : hearts.getRemovedEntities()) {
+                heartDestroyed(heart.getId());
+            }
         }
 
-        processAddedHearts(hearts.getAddedEntities());
-        processChangedHearts(hearts.getChangedEntities());
+        // Half a turn spares the rounding of the game time
+        defeats.applyChanges();
+        double delay = (TURNS_BEFORE_CREATURES_GO - 0.5) / levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+        double now = gameController.getGameTimer().getGameTime();
+        for (Entity defeat : defeats) {
+            KeeperDefeated keeperDefeated = defeat.get(KeeperDefeated.class);
+            if (now - keeperDefeated.time < delay) {
+                continue;
+            }
 
-        // A removed entity has no components left, so we remember the owners
-        for (Entity heart : hearts.getRemovedEntities()) {
-            heartDestroyed(heart.getId());
+            // Only the keeper's own creatures are looked at, and no more once they are all gone
+            EntitySet creatures = defeatedKeepersCreatures.computeIfAbsent(keeperDefeated.playerId,
+                    keeperId -> entityData.getEntities(new FieldFilter(Owner.class, "ownerId", keeperId), Owner.class, CreatureComponent.class));
+            creatures.applyChanges();
+            if (creatures.isEmpty()) {
+                defeatedKeepersCreatures.remove(keeperDefeated.playerId).release();
+                defeat.set(new KeeperDefeated(keeperDefeated.playerId, keeperDefeated.time, true));
+            } else {
+                sendCreaturesAway(creatures);
+            }
         }
     }
 
@@ -133,9 +181,9 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
         }
 
         keeper.setDestroyed(getKiller(heart, keeper.getId()));
+        entityData.setComponent(entityData.createEntity(), new KeeperDefeated(keeper.getId(), gameController.getGameTimer().getGameTime(), false));
         ruinHeartRoom(keeper);
         abandonLand(keeper.getId());
-        killImps(keeper.getId());
         if (!isAi(keeper)) {
             gameController.endGame(keeper.getId(), false);
         }
@@ -213,15 +261,46 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
     }
 
     /**
-     * The imps of a defeated keeper die, so that nobody claims his land back.
-     * DK II deals each of them damage equal to its health
+     * Like in DK II (0x4DAA10), on every turn the creatures of a defeated
+     * keeper are dealt with. The workers die, so that nobody claims his land
+     * back: each is dealt damage equal to its health. The others are sent out
+     * of the dungeon through the nearest portal, whatever they were doing. One
+     * already on its way, held in a Prison or not in control of itself is left
+     * alone. One that finds no portal to get to wanders about and tries again
+     * when its walk ends.<br>
+     * DK II credits the kill of the workers to the keeper who destroyed the
+     * heart (+0x132), there are no kill credits here yet
      *
-     * @param keeperId the defeated keeper
+     * @param creatures the creatures of the defeated keeper
      */
-    private void killImps(short keeperId) {
-        for (EntityId creature : entityData.findEntities(new FieldFilter(Owner.class, "ownerId", keeperId), Owner.class, CreatureComponent.class, Health.class)) {
-            if (entityData.getComponent(creature, CreatureComponent.class).worker) {
-                EntityController.setDamage(entityData, creature, entityData.getComponent(creature, Health.class).health);
+    private void sendCreaturesAway(EntitySet creatures) {
+        ICreaturesController creaturesController = gameController.getGameWorldController().getCreaturesController();
+        for (EntityId entity : creatures.getEntityIds()) {
+            if (entityData.getComponent(entity, CreatureImprisoned.class) != null) {
+                continue;
+            }
+            if (entityData.getComponent(entity, CreatureComponent.class).worker) {
+                Health health = entityData.getComponent(entity, Health.class);
+                if (health != null && health.health > 0) {
+                    EntityController.setDamage(entityData, entity, health.health);
+                }
+                continue;
+            }
+
+            ICreatureController creature = creaturesController.createController(entity);
+            Task task = creature.getAssignedTask();
+            CreatureState state = creature.getStateMachine().getCurrentState();
+            if ((task != null && task.getTaskType() == TaskType.LEAVE) || LEFT_ALONE.contains(state)
+                    || (state == CreatureState.WANDER && !creature.isStopped())) {
+                continue;
+            }
+
+            // The state it leaves lets go of its task first, the wander state keeps the new one
+            creature.getStateMachine().changeState(CreatureState.WANDER);
+            if (gameController.getTaskManager().assignTask(creature, Creature.JobType.LEAVE)) {
+                creature.getStateMachine().changeState(CreatureState.WORK);
+            } else {
+                creature.navigateToRandomPoint();
             }
         }
     }
@@ -299,6 +378,9 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         hearts.release();
+        defeats.release();
+        defeatedKeepersCreatures.values().forEach(EntitySet::release);
+        defeatedKeepersCreatures.clear();
         heartOwners.clear();
     }
 
