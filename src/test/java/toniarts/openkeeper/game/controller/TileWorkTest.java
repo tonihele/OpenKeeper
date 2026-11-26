@@ -50,6 +50,17 @@ class TileWorkTest {
     }
 
     @Test
+    void digSwingsLandOneTicksWorth() {
+
+        // Level 20 at 4 ticks a second, rates divided as whole numbers
+        assertEquals(1000, TileWork.perSwing(-5000 / 4, FRESH_IMP)); // Imp on rock, dirt (165) falls to one swing
+        assertEquals(154, TileWork.perSwing(6 * (-130 / 4), FRESH_IMP)); // Dwarf on anything, two swings for dirt
+        assertEquals(26, TileWork.perSwing(-130 / 4, FRESH_IMP)); // Imp on its own wall
+        assertEquals(2, TileWork.perSwing(-8 / 4, FRESH_IMP)); // Imp on an enemy wall
+        assertEquals(60, TileWork.perSwing(-300 / 4, FRESH_IMP)); // Mining
+    }
+
+    @Test
     void claimingGroundDropsTheFractionOfATick() {
 
         // Measured in the original: a fresh imp adds 164 a tick to a Dirt Path, the claim rate of 825 at 4 ticks a second
