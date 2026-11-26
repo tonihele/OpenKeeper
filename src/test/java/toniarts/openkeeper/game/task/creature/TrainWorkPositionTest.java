@@ -20,44 +20,45 @@ import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import java.lang.reflect.Proxy;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.tools.convert.map.TrainingDummyFixtures;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Where a researcher stands at the library's bookcase
+ * Where a trainee stands at the training dummy
  */
-class ResearchWorkPositionTest {
+class TrainWorkPositionTest {
 
-    private static final Point BOOKCASE = new Point(2, 2);
+    private static final Point DUMMY = new Point(2, 2);
 
     @Test
-    void researcherStandsInFrontOfTheBookcaseNotInIt() {
-        ICreatureController warlock = creatureAt(new Vector3f(0, 0, 2));
-        Research task = new Research(navigation(), map(), BOOKCASE, (short) 3, null, null, null, null);
+    void traineeStandsWithinReachOfTheDummy() {
+        ICreatureController goblin = creatureAt(new Vector3f(2, 0, 0));
+        Train task = train();
 
-        // The middle of the tile next to the bookcase, closest to the warlock, and from there halfway to the bookcase
-        assertEquals(new Vector2f(1, 2), task.getTarget(warlock));
-        assertEquals(new Vector2f(1.5f, 2), task.getWorkPosition(warlock));
+        // DK II puts the trainee 0x7FF / 4096 of a tile from the dummy in a random direction, a whole tile is out
+        // of a goblin's reach. The direction stays once picked
+        assertEquals(new Vector2f(2, 1), task.getTarget(goblin));
+        assertEquals(0x7FF / 4096f, task.getWorkPosition(goblin).distance(new Vector2f(DUMMY.x, DUMMY.y)), 0.0001f);
+        assertEquals(task.getWorkPosition(goblin), task.getWorkPosition(goblin));
         assertTrue(task.isFaceTarget());
     }
 
-    @Test
-    void researcherKeepsItsPlaceWhileWalkingThere() {
-        Vector3f position = new Vector3f(0, 0, 2);
-        ICreatureController warlock = creatureAt(position);
-        Research task = new Research(navigation(), map(), BOOKCASE, (short) 3, null, null, null, null);
-        Vector2f workPosition = task.getWorkPosition(warlock);
-
-        // On its way round the bookcase another free tile is closer, the place stays
-        position.set(2, 0, 4);
-        assertEquals(workPosition, task.getWorkPosition(warlock));
+    private static Train train() {
+        Map<MiscType, MiscVariable> settings = Map.of(
+                MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL, TrainingDummyFixtures.trainingVariable(MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL, 4),
+                MiscType.MODIFY_PLAYER_GOLD_WHILE_TRAINING_PER_SECOND, TrainingDummyFixtures.trainingVariable(MiscType.MODIFY_PLAYER_GOLD_WHILE_TRAINING_PER_SECOND, -10));
+        return new Train(navigation(), map(), DUMMY, (short) 3, null, null, null, settings, null, null, null);
     }
 
     private static ICreatureController creatureAt(Vector3f position) {
@@ -80,8 +81,6 @@ class ResearchWorkPositionTest {
     }
 
     private static INavigationService navigation() {
-
-        // An open library floor, the furniture doesn't block the way
         return (INavigationService) Proxy.newProxyInstance(
                 INavigationService.class.getClassLoader(), new Class<?>[]{INavigationService.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "isAccessible" -> true;

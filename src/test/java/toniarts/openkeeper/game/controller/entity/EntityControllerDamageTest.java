@@ -20,8 +20,10 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 
@@ -49,6 +51,18 @@ class EntityControllerDamageTest {
     }
 
     @Test
+    void armouredCreatureTakesHalf() {
+        EntityId entityId = creature(CreatureState.FIGHT, false);
+        entityData.setComponent(entityId, new Armour(20));
+        assertEquals(5, damageTaken(entityId, 10));
+
+        // Possession and armour count once
+        EntityId possessed = creature(CreatureState.FIGHT, true);
+        entityData.setComponent(possessed, new Armour(20));
+        assertEquals(5, damageTaken(possessed, 10));
+    }
+
+    @Test
     void creatureLyingStunnedTakesDouble() {
         assertEquals(20, damageTaken(creature(CreatureState.FALLEN, false), 10));
         assertEquals(20, damageTaken(creature(CreatureState.GETTING_UP, false), 10));
@@ -57,6 +71,22 @@ class EntityControllerDamageTest {
     @Test
     void possessedAndStunnedAddUp() {
         assertEquals(15, damageTaken(creature(CreatureState.FALLEN, true), 10));
+    }
+
+    @Test
+    void frozenCreatureTakesQuarterMore() {
+
+        // It stands in the stunned state while frozen, which doesn't double the damage
+        EntityId entityId = creature(CreatureState.STUNNED, false);
+        entityData.setComponent(entityId, new Frozen(0, 10));
+        assertEquals(125, damageTaken(entityId, 100));
+    }
+
+    @Test
+    void frozenAndPossessedAddUp() {
+        EntityId entityId = entityData.createEntity();
+        entityData.setComponents(entityId, new Possessed(0, 0), new Frozen(0, 10));
+        assertEquals(75, damageTaken(entityId, 100));
     }
 
     @Test

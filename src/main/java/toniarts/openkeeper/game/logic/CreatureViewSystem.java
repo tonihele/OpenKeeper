@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureTortured;
@@ -102,8 +103,16 @@ public final class CreatureViewSystem extends GameTimeCounter {
             Creature.AnimationType currentState = state.state;
             Creature.AnimationType targetState = currentState;
             boolean restart = false;
-            if (entityData.getComponent(entityId, CreatureFall.class) != null) {
-                targetState = Creature.AnimationType.FALLBACK;
+            CreatureFall creatureFall = entityData.getComponent(entityId, CreatureFall.class);
+            if (creatureFall != null) {
+
+                // A conjured creature comes down standing, only a dropped one tumbles and lands dazed. Falling
+                // into the portal, the creature struggles like in the hand instead of falling over
+                targetState = switch (creatureFall.fallType) {
+                    case DROPPED -> Creature.AnimationType.FALLBACK;
+                    case CONJURED -> Creature.AnimationType.IDLE_1;
+                    case PORTAL_DROP -> Creature.AnimationType.IN_HAND;
+                };
             } else if (entityData.getComponent(entityId, Navigation.class) != null) {
                 targetState = Creature.AnimationType.WALK;
             } else if (entityData.getComponent(entityId, Death.class) != null) {
@@ -121,18 +130,30 @@ public final class CreatureViewSystem extends GameTimeCounter {
                     if (restart) {
                         targetState = getGambleAnimation(kwdFile.getCreature(state.creatureId));
                     }
+                } else if (taskComponent != null && taskComponent.taskType == TaskType.TORTURE) {
+                    targetState = getTorturerAnimation(taskComponent.targetEntity, state);
+                } else if (taskComponent != null && taskComponent.taskType == TaskType.SULK) {
+
+                    // Like in DK II (0x482F80), the sulker stands and plays its angry animation once each time it sulks out loud
+                    targetState = currentState == Creature.AnimationType.ANGRY && isPlaying(state, 1)
+                            ? Creature.AnimationType.ANGRY : Creature.AnimationType.STAND_STILL;
                 } else if (taskComponent != null) {
                     targetState = taskComponent.taskType == TaskType.MANUFACTURE
                             ? getManufactureAnimation(kwdFile.getCreature(state.creatureId))
-                            : getAnimation(taskComponent.taskType);
+                            : getAnimation(taskComponent);
                 } else {
                     CreatureAi aiState = entityData.getComponent(entityId, CreatureAi.class);
                     if (aiState != null && aiState.getCreatureState() == CreatureState.CELEBRATING) {
                         targetState = getCelebrationAnimation(state);
                     } else if (aiState != null && aiState.getCreatureState() == CreatureState.TORTURED) {
-                        targetState = getTortureAnimation(entityId, state);
+                        CreatureTortured tortured = entityData.getComponent(entityId, CreatureTortured.class);
+                        targetState = getTortureAnimation(tortured != null ? tortured.device : null, state);
                     } else if (aiState != null) {
                         targetState = getAnimation(aiState.getCreatureState());
+                        CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+                        if (aiState.getCreatureState() == MELEE_ATTACK && meleeAttack != null && meleeAttack.swipe) {
+                            targetState = Creature.AnimationType.SWIPE;
+                        }
                     }
                 }
             }
@@ -194,11 +215,10 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * between. Like in DK II, the first shock comes when it sits down. The
      * others are on the Torture Wheel.
      */
-    private Creature.AnimationType getTortureAnimation(EntityId entityId, CreatureViewState state) {
-        CreatureTortured tortured = entityData.getComponent(entityId, CreatureTortured.class);
-        if (tortured != null && tortured.device != null) {
-            ObjectComponent device = entityData.getComponent(tortured.device, ObjectComponent.class);
-            if (device != null && device.objectId == ELECTRIC_CHAIR_OBJECT_ID) {
+    private Creature.AnimationType getTortureAnimation(EntityId device, CreatureViewState state) {
+        if (device != null) {
+            ObjectComponent deviceObject = entityData.getComponent(device, ObjectComponent.class);
+            if (deviceObject != null && deviceObject.objectId == ELECTRIC_CHAIR_OBJECT_ID) {
                 if (isShockDue(state, timeElapsed)) {
                     return Creature.AnimationType.TORTURED_CHAIR_SKELETON;
                 }
@@ -210,6 +230,18 @@ public final class CreatureViewSystem extends GameTimeCounter {
             }
         }
         return Creature.AnimationType.TORTURED_WHEEL;
+    }
+
+    /**
+     * Get the animation of a creature doing the Torture job: like in the
+     * original (action 0x3F, 0x483E90) it whips its victim with its first
+     * special animation, or it is tortured on the device itself
+     */
+    private Creature.AnimationType getTorturerAnimation(EntityId target, CreatureViewState state) {
+        if (target != null && entityData.getComponent(target, CreatureComponent.class) != null) {
+            return Creature.AnimationType.SPECIAL_1;
+        }
+        return getTortureAnimation(target, state);
     }
 
     /**
@@ -247,6 +279,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
             case RECUPERATING:
                 return Creature.AnimationType.SLEEPING;
             case MELEE_ATTACK:
+            case TELLING_OFF:
                 return Creature.AnimationType.MELEE_ATTACK;
             case CAST_SPELL:
                 return Creature.AnimationType.CAST_SPELL;
@@ -261,8 +294,8 @@ public final class CreatureViewSystem extends GameTimeCounter {
         }
     }
 
-    private static Creature.AnimationType getAnimation(TaskType taskType) {
-        switch (taskType) {
+    private static Creature.AnimationType getAnimation(TaskComponent taskComponent) {
+        switch (taskComponent.taskType) {
             case CLAIM_ROOM:
             case CLAIM_TILE:
                 return Creature.AnimationType.EATING;
@@ -272,7 +305,9 @@ public final class CreatureViewSystem extends GameTimeCounter {
             case DIG_TILE:
                 return Creature.AnimationType.DIG;
             case TRAIN:
-                return Creature.AnimationType.MELEE_ATTACK;
+
+                // Hitting a Training Dummy, or casting at a wall target
+                return taskComponent.targetEntity == null ? Creature.AnimationType.MELEE_ATTACK : Creature.AnimationType.CAST_SPELL;
             case RESEARCH:
                 return Creature.AnimationType.RESEARCHING;
             case PRAY:
@@ -343,7 +378,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * @param creature the creature manufacturing
      * @return the animation to show
      */
-    static Creature.AnimationType getManufactureAnimation(Creature creature) {
+    public static Creature.AnimationType getManufactureAnimation(Creature creature) {
         ArtResource manufacturing = creature.getAnimation(Creature.AnimationType.MANUFACTURING);
         if (manufacturing != null && manufacturing.getType() != ArtResource.ArtResourceType.NONE) {
             return Creature.AnimationType.MANUFACTURING;

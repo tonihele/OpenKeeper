@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.room.storage;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,12 +32,16 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
+import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -49,6 +54,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 public abstract class RoomTortureeControl extends AbstractRoomObjectControl<EntityId> {
 
     private static final short ELECTRIC_CHAIR_OBJECT_ID = 61;
+    private static final short TORTURE_COALS_OBJECT_ID = 62;
+    private static final short TORTURE_WATER_OBJECT_ID = 63;
 
     public RoomTortureeControl(IKwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
         super(kwdFile, parent, entityData, gameTimer, ObjectType.TORTUREE);
@@ -71,7 +78,7 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
      */
     @Override
     public EntityId addItem(EntityId torturee, Point p) {
-        EntityId device = getFreeDevice(torturee, p);
+        EntityId device = getFreeDevice(p);
         if (device == null) {
             return null;
         }
@@ -79,6 +86,7 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         objectsByCoordinate.computeIfAbsent(getDevicePoint(device), point -> new ArrayList<>()).add(torturee);
         setRoomStorageToItem(torturee, false);
         addCurrentCapacity(1);
+        killIfNotElectrocutable(torturee, device);
 
         return device;
     }
@@ -111,7 +119,7 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         }
         for (Map.Entry<EntityId, Point> entry : moved.entrySet()) {
             EntityId victim = entry.getKey();
-            EntityId device = getFreeDevice(victim, entry.getValue());
+            EntityId device = getFreeDevice(entry.getValue());
             if (device == null) {
                 entityData.removeComponent(victim, Stored.class);
                 entityData.removeComponent(victim, CreatureTortured.class);
@@ -123,6 +131,7 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
             entityData.setComponent(victim, new Position(devicePosition.rotation,
                     new Vector3f(devicePosition.position.x, WorldUtils.FLOOR_HEIGHT, devicePosition.position.z)));
             setDevice(victim, device);
+            killIfNotElectrocutable(victim, device);
         }
     }
 
@@ -168,20 +177,13 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         return false;
     }
 
-    private EntityId getFreeDevice(EntityId torturee, Point p) {
-        boolean electrocutable = canBeElectrocuted(torturee);
+    private EntityId getFreeDevice(Point p) {
         EntityId closest = null;
         int closestDistance = Integer.MAX_VALUE;
         for (EntityId device : getDevices()) {
-
-            // DK II electrocutes only the creatures flagged for it (data +0x686 bit 0x80000), the others don't stay
-            // on the chair
-            if (!electrocutable && isElectricChair(device)) {
-                continue;
-            }
             Point devicePoint = getDevicePoint(device);
             Collection<EntityId> victims = objectsByCoordinate.get(devicePoint);
-            if (victims != null && !victims.isEmpty()) {
+            if (victims != null && !victims.isEmpty() || isTorturedVoluntarily(device)) {
                 continue;
             }
             int distance = (p == null ? 0 : Math.abs(devicePoint.x - p.x) + Math.abs(devicePoint.y - p.y));
@@ -191,6 +193,34 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
             }
         }
         return closest;
+    }
+
+    /**
+     * DK II puts no victim on a device a creature tortures itself on
+     * (0x4F2180 skips devices with a creature in state 0x83 or 0x88), so the
+     * creature stays on it
+     */
+    private boolean isTorturedVoluntarily(EntityId device) {
+        for (EntityId creature : entityData.findEntities(new FieldFilter<>(TaskComponent.class, "targetEntity", device), TaskComponent.class)) {
+            TaskComponent task = entityData.getComponent(creature, TaskComponent.class);
+            if (task.taskType == TaskType.TORTURE && task.taskStarted) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Like DK II, a victim that can't be electrocuted (creature data +0x686
+     * bit 0x80000), such as an Imp or a Firefly, dies once it is on the
+     * Electric Chair: its on-device state (0x484CE0) sets its health to 0
+     * (0x4B2AD0)
+     */
+    private void killIfNotElectrocutable(EntityId victim, EntityId device) {
+        Health health = entityData.getComponent(victim, Health.class);
+        if (health != null && isElectricChair(device) && !canBeElectrocuted(victim)) {
+            EntityController.setDamage(entityData, victim, health.health);
+        }
     }
 
     private boolean canBeElectrocuted(EntityId creature) {
@@ -207,6 +237,13 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
     private List<EntityId> getDevices() {
         List<EntityId> devices = new ArrayList<>(parent.getFloorFurniture());
         devices.addAll(parent.getWallFurniture());
+
+        // The coals and water troughs under the wheels on the wall hold no victim
+        devices.removeIf(device -> {
+            ObjectComponent objectComponent = entityData.getComponent(device, ObjectComponent.class);
+            return objectComponent != null && (objectComponent.objectId == TORTURE_COALS_OBJECT_ID
+                    || objectComponent.objectId == TORTURE_WATER_OBJECT_ID);
+        });
         return devices;
     }
 

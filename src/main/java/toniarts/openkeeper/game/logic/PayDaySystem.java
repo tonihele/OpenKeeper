@@ -23,12 +23,14 @@ import com.simsilica.es.EntitySet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreaturePay;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.PayDayClock;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -47,13 +49,18 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
  * <li>On pay day every creature of the keeper is owed its wage, the pay of its
  * level, on top of what it is still owed. Prisoners and the tortured are left
  * out, and so is a creature that joined less than the pay day cut off time
- * before the pay day.</li>
+ * before the pay day. While the keeper's Call to Arms is up nobody gets a
+ * wage, the pay day still counts (DKII.EXE 0x4BE1A0).</li>
  * <li>A creature that is owed walks to one of the keeper's gold rooms to
  * collect it, see {@link toniarts.openkeeper.game.task.creature.CollectPay}.
  * After two tries that got nothing it waits for the next pay day.</li>
  * <li>While a creature is owed anything, its anger for not being paid grows
- * every tick, by its anger for no pay. It goes away when the creature is paid
- * in full.</li>
+ * every tick, by its anger for no pay, except when DKII holds the anger for
+ * the needs back, see {@link CreatureMoodSystem#isNeedAngerHeld}. It goes
+ * away when the creature is paid in full.</li>
+ * <li>The keeper's HUD shows the time left to the next pay day and what it
+ * costs (DKII.EXE 0x415000, 0x4BE290). The system keeps these in a
+ * {@link PayDayClock} for each keeper, updated once a second.</li>
  * </ul>
  */
 public final class PayDaySystem implements IGameLogicUpdatable {
@@ -62,7 +69,11 @@ public final class PayDaySystem implements IGameLogicUpdatable {
     private final IKwdFile kwdFile;
     private final IGameTimer gameTimer;
     private final Map<Short, IPlayerController> keepers = new HashMap<>();
-    private final Map<Short, Double> nextPayDays = new HashMap<>();
+    // Concurrent, the pay day can be called for from the cheat thread
+    private final Map<Short, Double> nextPayDays = new ConcurrentHashMap<>();
+    private final Map<Short, Double> lastPayDays = new HashMap<>();
+    private final Map<Short, EntityId> payDayClocks = new HashMap<>();
+    private double nextClockUpdate;
     private final double timeBeforeFirstPayDay;
     private final double payDayFrequency;
     private final double payDayCutOffTime;
@@ -116,6 +127,45 @@ public final class PayDaySystem implements IGameLogicUpdatable {
         for (Entity entity : creatureEntities) {
             updateAnger(entity);
         }
+
+        if (gameTime >= nextClockUpdate) {
+            nextClockUpdate = gameTime + 1;
+            updatePayDayClocks(gameTime);
+        }
+    }
+
+    private void updatePayDayClocks(double gameTime) {
+        for (Map.Entry<Short, EntityId> clock : payDayClocks.entrySet()) {
+            short keeperId = clock.getKey();
+            Double nextPayDay = nextPayDays.get(keeperId);
+            PayDayClock payDayClock = nextPayDay == null ? new PayDayClock(0, 0, getPayDayCost(keeperId))
+                    : new PayDayClock((int) Math.ceil(nextPayDay - gameTime),
+                            (int) Math.round(nextPayDay - lastPayDays.get(keeperId)), getPayDayCost(keeperId));
+            if (!payDayClock.equals(entityData.getComponent(clock.getValue(), PayDayClock.class))) {
+                entityData.setComponent(clock.getValue(), payDayClock);
+            }
+        }
+    }
+
+    /**
+     * What the keeper's next pay day costs, the wages of the creatures that
+     * will be paid on it (DKII.EXE 0x4BE290). What the creatures are still
+     * owed from before isn't part of it.
+     *
+     * @param keeperId the keeper
+     * @return the cost
+     */
+    private int getPayDayCost(short keeperId) {
+        int cost = 0;
+        for (Entity entity : creatureEntities) {
+            if (entity.get(Owner.class).ownerId == keeperId && isPaid(entity.getId())) {
+                CreaturePay pay = entityData.getComponent(entity.getId(), CreaturePay.class);
+                if (pay == null || !pay.skipNextPayDay) {
+                    cost += entity.get(CreatureComponent.class).pay;
+                }
+            }
+        }
+        return cost;
     }
 
     /**
@@ -134,6 +184,8 @@ public final class PayDaySystem implements IGameLogicUpdatable {
         for (Entity entity : creatureEntities) {
             if (entity.get(Owner.class).ownerId == keeperId && !entity.get(CreatureComponent.class).worker) {
                 nextPayDays.put(keeperId, gameTime + timeBeforeFirstPayDay);
+                lastPayDays.put(keeperId, gameTime);
+                nextClockUpdate = gameTime;
                 return;
             }
         }
@@ -141,12 +193,15 @@ public final class PayDaySystem implements IGameLogicUpdatable {
 
     private void payDay(short keeperId, IPlayerController keeper, double gameTime) {
         for (Entity entity : creatureEntities) {
-            if (entity.get(Owner.class).ownerId == keeperId && isPaid(entity.getId())) {
+            if (entity.get(Owner.class).ownerId == keeperId && isPaid(entity.getId())
+                    && !CreatureMoodSystem.isHeldByCallToArms(entityData, entity.getId())) {
                 addWage(entity, gameTime);
             }
         }
         keeper.getStatsControl().payDay();
         nextPayDays.put(keeperId, gameTime + payDayFrequency);
+        lastPayDays.put(keeperId, gameTime);
+        nextClockUpdate = gameTime;
     }
 
     /**
@@ -196,20 +251,38 @@ public final class PayDaySystem implements IGameLogicUpdatable {
 
         Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
         int anger = creature != null ? CreatureMood.toRuntimeValue(creature.getAttributes().getAngerNoPay()) : 0;
-        if (anger != 0) {
+        if (anger != 0 && !CreatureMoodSystem.isNeedAngerHeld(entityData, entity.getId(), creature)) {
             entityData.setComponent(entity.getId(), mood.add(CreatureMood.REASON_NO_PAY, anger));
         }
     }
 
+    /**
+     * Makes the keeper's pay day come on the next tick. Does nothing before
+     * the keeper's pay day clock has started, since there is nobody to pay.
+     * The next pay days follow from this one as usual. For testing.
+     *
+     * @param keeperId the keeper
+     */
+    public void payDayNow(short keeperId) {
+        nextPayDays.replace(keeperId, 0.0);
+    }
+
     @Override
     public void start() {
-
+        for (short keeperId : keepers.keySet()) {
+            EntityId clock = entityData.createEntity();
+            entityData.setComponents(clock, new Owner(keeperId, keeperId), new PayDayClock(0, 0, 0));
+            payDayClocks.put(keeperId, clock);
+        }
     }
 
     @Override
     public void stop() {
         creatureEntities.release();
         nextPayDays.clear();
+        lastPayDays.clear();
+        payDayClocks.values().forEach(entityData::removeEntity);
+        payDayClocks.clear();
     }
 
 }

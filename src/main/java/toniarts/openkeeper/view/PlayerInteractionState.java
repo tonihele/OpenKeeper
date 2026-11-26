@@ -45,6 +45,7 @@ import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import toniarts.openkeeper.Main;
@@ -69,6 +70,7 @@ import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerScreenController;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.gui.nifty.MapHoverHint;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -102,6 +104,21 @@ import toniarts.openkeeper.view.text.TextParser;
 public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     private static final float CURSOR_UPDATE_INTERVAL = 0.25f;
+
+    /**
+     * The status texts DK II shows for these room types (by room ID) instead
+     * of the tooltip texts the room data has
+     */
+    private static final Map<Short, String> ROOM_STATUS_TEXT_IDS = Map.of(
+            (short) 1, "2581", // Treasury
+            (short) 4, "2580", // Hatchery
+            (short) 6, "2582", // Library
+            (short) 7, "2583", // Training Room
+            (short) 9, "2585", // Guard Room
+            (short) 10, "2584", // Workshop
+            (short) 11, "2586", // Prison
+            (short) 14, "2587", // Graveyard
+            (short) 15, "2781"); // Casino
 
     private Main app;
     private GameClientState gameClientState;
@@ -143,6 +160,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private final Set<Integer> keys = new HashSet<>();
     private IEntityViewControl interactiveControl;
     private Label tooltip;
+    private MapHoverHint fogHint;
     private KeeperHandState keeperHandState;
     private PlayerEntityViewState playerEntityViewState;
 
@@ -176,6 +194,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         PlayerScreenController psc = this.stateManager.getState(PlayerState.class).getScreen();
         this.view = psc.getGuiConstraint();
         this.tooltip = psc.getTooltip();
+        fogHint = new MapHoverHint(view, Utils.getMainTextResourceBundle().getString("348"));
 
         // Init the keeper hand
         keeperHandState = new InteractionKeeperHandState();
@@ -198,6 +217,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     @Override
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
+        if (!enabled && fogHint != null) {
+            fogHint.clear();
+        }
 
         if (enabled && !inputListenerAdded) {
             app.getInputManager().addRawInputListener(inputListener);
@@ -218,6 +240,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     @Override
     public void cleanup() {
+        fogHint.clear();
         playerEntityViewState = null;
         this.stateManager.detach(keeperHandState);
         keeperHandState = null;
@@ -257,7 +280,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         selectionHandler.update(mousePosition);
         cursorIcon.update(mousePosition, interactionState.getType(), isOnMap && !isOnGui,
                 selectionHandler.getSelectionColor() != SelectionHandler.ColorIndicator.RED, cursorPrice);
-        if (isOnMap && !isOnGui && !isTaggable) {
+        if (isOnMap && !isOnGui && !isTaggable && !isPointedTileUnexplored()) {
             updateInteractiveObjectOnCursor();
         }
         updateCursorLight();
@@ -280,6 +303,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             updateStateFlags();
             timeFromLastUpdate = 0;
         }
+        fogHint.update(isPointedTileUnexplored(), tpf);
     }
 
     @Override
@@ -373,7 +397,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     }
 
     private boolean isInteractable() {
-        if (isOnGui || !isOnMap || isTaggable) {
+        if (isOnGui || !isOnMap || isTaggable || isPointedTileUnexplored()) {
             setInteractiveControl(null);
         }
 
@@ -407,6 +431,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 || interactiveControl.isInteractable(player.getPlayerId()));
     }
 
+    private boolean isPointedTileUnexplored() {
+        if (isOnGui || !isOnMap) {
+            return false;
+        }
+        IFogOfWarInformation fog = gameClientState.getFogOfWarInformation();
+        Point p = selectionHandler.getPointedTileIndex();
+        return fog != null && mapInformation.getMapData().getTile(p) != null && !fog.isExplored(p);
+    }
+
     private String getTileTooltip(Point p) {
         IMapTileInformation tile = mapInformation.getMapData().getTile(p);
         if (tile == null) {
@@ -424,11 +457,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         }
 
         // Text 0 is "Jelly", the terrains that have it have no tooltip
-        if (terrain.getTooltipStringId() == 0) {
+        int textId = textParser.getMapTileTextParser().getTooltipTextId(tile, terrain, player.getPlayerId());
+        if (textId == 0) {
             return "";
         }
 
-        return textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile);
+        return textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(textId)), tile);
     }
 
     private String getRoomTooltip(IMapTileInformation tile, Terrain terrain) {
@@ -438,7 +472,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         // Override dungeon heart JELLY text and the portal text, DK II ignores the stored ids
         Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-        String bundleKey = Integer.toString(room.getTooltipStringId());
+        String bundleKey = ROOM_STATUS_TEXT_IDS.getOrDefault(room.getRoomId(), Integer.toString(room.getTooltipStringId()));
         if (kwdFile.getDungeonHeart() == room) {
             bundleKey = "2579";
         } else if (kwdFile.getPortal() == room) {
@@ -482,17 +516,29 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         // See the results so we see what is going on
         Node object;
+        IEntityViewControl hit = null;
         for (int i = 0; i < results.size(); i++) {
 
             // TODO: Now just creature control, but all interaction objects
             object = results.getCollision(i).getGeometry().getParent().getParent();
             IEntityViewControl control = object.getControl(IEntityViewControl.class);
             if (control != null) {
-                setInteractiveControl(control);
-                return;
+
+                // A victim hanging on a wheel is hard to hit, its torture device gives it to the hand too
+                IEntityViewControl victim = playerEntityViewState.getTortureVictimOn(object);
+                hit = victim != null ? victim : control;
+                break;
             }
         }
-        setInteractiveControl(null);
+
+        // And so does the tile of the device, the cursor anywhere on it picks the victim
+        if (!(hit instanceof CreatureViewControl)) {
+            IEntityViewControl victim = playerEntityViewState.getTortureVictimOn(selectionHandler.getPointedTileIndex());
+            if (victim != null) {
+                hit = victim;
+            }
+        }
+        setInteractiveControl(hit);
     }
 
     private void setInteractiveControl(IEntityViewControl interactiveControl) {
@@ -675,6 +721,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
             timeFromLastUpdate = 0;
             updateStateFlags();
+            fogHint.update(isPointedTileUnexplored(), 0f);
             //updateCursor();
         }
 
@@ -793,7 +840,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 IEntityViewControl entityViewControl = keeperHandState.getItem();
                 if (entityViewControl != null) {
                     IMapTileInformation mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
-                    if (!isDropBlocked(entityViewControl, p)
+                    if (mapTile != null && !isDropBlocked(entityViewControl, p)
                             && entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
                         gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
 
@@ -848,11 +895,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         public void onKeyEvent(KeyInputEvent evt) {
             updateModifierKeys(evt);
 
-            if (evt.isPressed()) {
-                handleKeyPress(evt);
+            // Typing in the debug console mustn't work the keys, a "g" would hide the HUD
+            ConsoleState console = stateManager.getState(ConsoleState.class);
+            if (!evt.isPressed() || (console != null && console.isEnabled())) {
+                return;
             }
 
-            if (evt.isPressed() && evt.getKeyCode() == (int) Settings.Setting.TOGGLE_GUI.getDefaultValue()) {
+            handleKeyPress(evt);
+            if (evt.getKeyCode() == (int) Settings.Setting.TOGGLE_GUI.getDefaultValue()) {
                 stateManager.getState(PlayerState.class).getScreen().toggleGui();
             }
         }

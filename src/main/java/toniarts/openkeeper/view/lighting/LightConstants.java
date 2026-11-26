@@ -21,6 +21,7 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
+import toniarts.openkeeper.utils.PlayerColors;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -202,9 +203,9 @@ public final class LightConstants {
     // ---- portals ----
 
     /**
-     * Portal light radius
+     * Keep the light, including its shader falloff, inside the 3x3 Portal footprint.
      */
-    public static final float PORTAL_LIGHT_RADIUS_TILES = 2f;
+    public static final float PORTAL_LIGHT_RADIUS_TILES = 1.4f;
 
     /**
      * Portal light colour and intensity, used for the room ids 3 (Portal) and
@@ -213,7 +214,14 @@ public final class LightConstants {
     public static final int PORTAL_LIGHT_RED = 255;
     public static final int PORTAL_LIGHT_GREEN = 33;
     public static final int PORTAL_LIGHT_BLUE = 26;
-    public static final float PORTAL_LIGHT_INTENSITY = 1.0f;
+    // TODO: The Portal glow still does not match DKII; revisit its brightness and appearance.
+    public static final float PORTAL_LIGHT_INTENSITY = 2.0f;
+    /** Interval between the brief brightness dips measured in DKII. */
+    public static final float PORTAL_LIGHT_PULSE_SECONDS = 2.5f;
+    /** Smoothly dim and recover over one second per cycle. */
+    public static final float PORTAL_LIGHT_DIP_SECONDS = 1.0f;
+    /** Keep the Portal glowing at the darkest point of its pulse. */
+    public static final float PORTAL_LIGHT_MIN_BRIGHTNESS = 0.5f;
 
     // ---- thing lights (objects, creatures, shots, effects) ----
 
@@ -248,24 +256,6 @@ public final class LightConstants {
      */
     public static final float PLAYER_COLOURED_LIGHT_MAX_RADIUS_TILES = 0.8f;
 
-    /**
-     * The fixed 8-slot player colour table, shade 0 (the
-     * shade lights use). The slot is the player number: 0 unowned, 1 good
-     * (also the fallback), 2 neutral, 3..7 the keepers. It is code in the
-     * original, not data.
-     */
-    private static final int[][] PLAYER_LIGHT_COLOURS = {
-        {0, 0, 0},
-        {191, 213, 224},
-        {255, 255, 255},
-        {230, 50, 50},
-        {50, 78, 230},
-        {50, 230, 51},
-        {226, 230, 50},
-        {230, 50, 212}
-    };
-    private static final int PLAYER_LIGHT_FALLBACK_SLOT = 1;
-
     // ---- timing and flicker ----
 
     /**
@@ -293,11 +283,10 @@ public final class LightConstants {
      *
      * @param playerId the owner's player number, {@code null} if none
      * @return {r, g, b}, 0..255
+     * @see PlayerColors#getRgb(Short)
      */
     public static int[] getPlayerLightColour(Short playerId) {
-        int slot = playerId == null || playerId < 0 || playerId >= PLAYER_LIGHT_COLOURS.length
-                ? PLAYER_LIGHT_FALLBACK_SLOT : playerId;
-        return PLAYER_LIGHT_COLOURS[slot].clone();
+        return PlayerColors.getRgb(playerId);
     }
 
     /**

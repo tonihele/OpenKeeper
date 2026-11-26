@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Senses;
@@ -113,6 +115,12 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
                 continue;
             }
 
+            // A door is not walked through, whatever path the entity was following
+            if (isWalkingIntoBlockingDoor(entity, currentMapTile)) {
+                pushBack(entity, previousMapTile);
+                continue;
+            }
+
             int x = previousMapTile.getX();
             int y = previousMapTile.getY();
 
@@ -125,6 +133,26 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
             addEntityToTile(currentMapTile, entity);
         }
+    }
+
+    private boolean isWalkingIntoBlockingDoor(Entity entity, IMapTileInformation mapTile) {
+        if (entityData.getComponent(entity.getId(), Navigation.class) == null) {
+            return false;
+        }
+
+        Owner owner = entityData.getComponent(entity.getId(), Owner.class);
+        return owner != null && getBlockingDoor(mapTile.getX(), mapTile.getY(), owner.ownerId) != null;
+    }
+
+    /**
+     * Stops the entity and puts it back to the middle of the tile it came from
+     */
+    private void pushBack(Entity entity, IMapTileInformation mapTile) {
+        Position position = entity.get(Position.class);
+        Vector3f center = WorldUtils.pointToVector3f(mapTile.getX(), mapTile.getY());
+        center.y = position.position.y;
+        entityData.removeComponent(entity.getId(), Navigation.class);
+        entityData.setComponent(entity.getId(), new Position(position.rotation, center));
     }
 
     private void addEntityToTile(IMapTileInformation mapTile, Entity entity) {
@@ -176,6 +204,9 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
     @Override
     public List<EntityId> getEntitiesInLocation(int x, int y) {
+        if (x < 0 || y < 0 || x >= entitiesByMapTile.length || y >= entitiesByMapTile[x].length) {
+            return Collections.emptyList();
+        }
         Set<EntityId> entityIds = entitiesByMapTile[x][y];
         if (entityIds.isEmpty()) {
             return Collections.emptyList();
@@ -293,9 +324,14 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
     @Override
     public boolean isTileBlocked(int x, int y, short playerId) {
+        return getBlockingDoor(x, y, playerId) != null;
+    }
+
+    @Override
+    public EntityId getBlockingDoor(int x, int y, short playerId) {
         Set<EntityId> entityIds = obstaclesByMapTile[x][y];
         if (entityIds.isEmpty()) {
-            return false;
+            return null;
         }
 
         for (EntityId entityId : entityIds) {
@@ -305,15 +341,15 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
             }
 
             if (doorComponent.locked) {
-                return true;
+                return entityId;
             }
 
             Owner owner = entityData.getComponent(entityId, Owner.class);
 
-            return owner == null || owner.ownerId != playerId;
+            return owner == null || owner.ownerId != playerId ? entityId : null;
         }
 
-        return false;
+        return null;
     }
 
     @Override
@@ -331,7 +367,8 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
             // TODO: Every creature has hearing & vision 4, so I can just cheat this in, but should fix eventually
             // https://github.com/tonihele/OpenKeeper/issues/261
             if (tile != null) {
-                addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), null, sensedEntities);
+                addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee),
+                        entityData.getComponent(id, Owner.class).ownerId, true, sensedEntities);
             }
 
             // Remove us, the caller
@@ -350,11 +387,20 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
             return false;
         }
 
-        // Sense again, but stop at the doors that block us
+        // Sense again, but stop at all the doors that block us, barricades too
         Set<EntityId> sensedEntities = new HashSet<>();
-        addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), owner.ownerId, sensedEntities);
+        addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), owner.ownerId, false, sensedEntities);
 
         return !sensedEntities.contains(sensedEntityId);
+    }
+
+    private boolean isBarricade(IMapTileInformation tile) {
+        for (EntityId entityId : obstaclesByMapTile[tile.getX()][tile.getY()]) {
+            if (entityData.getComponent(entityId, DoorComponent.class) != null) {
+                return getEntityController(entityId, IDoorController.class).isBarricade();
+            }
+        }
+        return false;
     }
 
     /**
@@ -362,11 +408,13 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
      *
      * @param startTile the tile to sense from
      * @param range how many tiles further to sense
-     * @param playerId the player whose blocking doors stop the senses,
-     * {@code null} to sense through all doors
+     * @param playerId the player whose blocking doors stop the senses
+     * @param overBarricades whether the senses go over a barricade that blocks
+     * the player
      * @param sensedEntities the sensed entities
      */
-    private void addSensedEntities(IMapTileInformation startTile, int range, Short playerId, Set<EntityId> sensedEntities) {
+    private void addSensedEntities(IMapTileInformation startTile, int range, short playerId, boolean overBarricades,
+            Set<EntityId> sensedEntities) {
 
         // Go out one step at a time, so each tile is looked at only once
         Set<IMapTileInformation> visitedTiles = new HashSet<>();
@@ -374,13 +422,17 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         for (int distance = 0; distance <= range && !tiles.isEmpty(); distance++) {
             List<IMapTileInformation> nextTiles = new ArrayList<>();
             for (IMapTileInformation tile : tiles) {
-                if (tile == null || !visitedTiles.add(tile)
-                        || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID)
-                        || (playerId != null && isTileBlocked(tile, playerId))) {
+                if (!visitedTiles.add(tile) || blocksSenses(tile)) {
                     continue;
                 }
 
                 sensedEntities.addAll(entitiesByMapTile[tile.getX()][tile.getY()]);
+
+                // A door blocks the sight, as in DK II (0x4511A0), but creatures see over a barricade. The hearing
+                // follows the paths (0x45AFF0), so it only goes through a door the creature can walk through
+                if (isTileBlocked(tile, playerId) && !(overBarricades && isBarricade(tile))) {
+                    continue;
+                }
 
                 nextTiles.add(mapController.getMapData().getTile(tile.getX() + 1, tile.getY()));
                 nextTiles.add(mapController.getMapData().getTile(tile.getX() - 1, tile.getY()));
@@ -389,6 +441,52 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
             }
             tiles = nextTiles;
         }
+    }
+
+    private boolean blocksSenses(IMapTileInformation tile) {
+        return tile == null || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID);
+    }
+
+    /**
+     * Like DK II, goes along the line from tile to tile and checks every tile
+     * it enters. Where the line passes exactly through a corner, both tiles
+     * beside the corner block it too (DKII.EXE 0x4512F0).
+     */
+    @Override
+    public boolean hasLineOfSight(Vector3f from, Vector3f to) {
+        Point startTile = WorldUtils.vectorToPoint(from);
+        int x = startTile.x;
+        int y = startTile.y;
+        float dx = to.x - from.x;
+        float dz = to.z - from.z;
+        int stepX = dx > 0 ? 1 : -1;
+        int stepY = dz > 0 ? 1 : -1;
+
+        // How far along the line the next tile edge on each axis is, 1 being the whole line
+        float edgeX = dx == 0 ? Float.MAX_VALUE : ((x + stepX * 0.5f) * WorldUtils.TILE_WIDTH - from.x) / dx;
+        float edgeY = dz == 0 ? Float.MAX_VALUE : ((y + stepY * 0.5f) * WorldUtils.TILE_WIDTH - from.z) / dz;
+        var mapData = mapController.getMapData();
+        while (edgeX < 1 || edgeY < 1) {
+            boolean crossesX = edgeX <= edgeY;
+            boolean crossesY = edgeY <= edgeX;
+            if (crossesX && crossesY
+                    && (blocksSenses(mapData.getTile(x + stepX, y)) || blocksSenses(mapData.getTile(x, y + stepY)))) {
+                return false;
+            }
+            if (crossesX) {
+                x += stepX;
+                edgeX += WorldUtils.TILE_WIDTH / Math.abs(dx);
+            }
+            if (crossesY) {
+                y += stepY;
+                edgeY += WorldUtils.TILE_WIDTH / Math.abs(dz);
+            }
+            if (blocksSenses(mapData.getTile(x, y))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }

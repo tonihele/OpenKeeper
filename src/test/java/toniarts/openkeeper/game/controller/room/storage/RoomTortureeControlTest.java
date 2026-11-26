@@ -25,11 +25,15 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Point;
@@ -153,15 +157,47 @@ class RoomTortureeControlTest {
     }
 
     @Test
-    void creatureThatCantBeElectrocutedSkipsTheChair() {
+    void creatureThatCantBeElectrocutedDiesOnTheChair() {
         entityData.setComponent(chair, new ObjectComponent((short) 61, ObjectType.TORTUREE));
+        EntityId onChair = notElectrocutable();
+        EntityId onWheel = notElectrocutable();
+
+        // The test creature isn't flagged CAN_BE_ELECTROCUTED
+        assertEquals(chair, control.addItem(onChair, new Point(5, 3)));
+        assertEquals(1000, entityData.getComponent(onChair, Damage.class).damage);
+        assertEquals(wheel, control.addItem(onWheel, new Point(5, 3)));
+        assertNull(entityData.getComponent(onWheel, Damage.class));
+    }
+
+    private EntityId notElectrocutable() {
         CreatureComponent creature = new CreatureComponent();
         creature.creatureId = 6;
         EntityId victim = entityData.createEntity();
-        entityData.setComponent(victim, creature);
+        entityData.setComponents(victim, creature, new Health(1000, 1000));
+        return victim;
+    }
 
-        // The chair is closer, but the test creature isn't flagged CAN_BE_ELECTROCUTED
-        assertEquals(wheel, control.addItem(victim, new Point(5, 3)));
+    @Test
+    void troughUnderAWheelOnTheWallHoldsNoVictim() {
+
+        // The trough is closer, but only the wheel above it takes a victim
+        EntityId trough = device(new Point(6, 3));
+        entityData.setComponent(trough, new ObjectComponent((short) 62, ObjectType.TORTUREE));
+        devices.remove(chair);
+
+        assertEquals(wheel, control.addItem(entityData.createEntity(), new Point(6, 3)));
+    }
+
+    @Test
+    void victimSkipsTheDeviceACreatureTorturesItselfOn() {
+        EntityId mistress = entityData.createEntity();
+        entityData.setComponent(mistress, new TaskComponent(1, wheel, new Point(3, 3), TaskType.TORTURE, 0, true));
+        EntityId onItsWay = entityData.createEntity();
+        entityData.setComponent(onItsWay, new TaskComponent(2, chair, new Point(6, 3), TaskType.TORTURE, 0, false));
+
+        // The wheel is closer, but the Mistress is on it. The chair is only her colleague's destination
+        assertEquals(chair, control.addItem(entityData.createEntity(), new Point(3, 3)));
+        assertNull(control.addItem(entityData.createEntity(), new Point(3, 3)));
     }
 
     private IKwdFile kwdFile() {

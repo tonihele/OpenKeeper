@@ -171,6 +171,10 @@ public final class CustomScroll extends AbstractController {
     }
 
     private void rearrangeElements() {
+        rearrangeElements(List.of());
+    }
+
+    private void rearrangeElements(List<Element> retiredRows) {
 
         // Set the row Y constraints
         int i = 0;
@@ -191,6 +195,7 @@ public final class CustomScroll extends AbstractController {
 
         // Resize all the elements and set to correct rows
         currentRowIndex = 1;
+        int[] pendingMoves = {elements.size()};
         for (Element element : elements) {
             resizeRowElement(element);
 
@@ -203,6 +208,10 @@ public final class CustomScroll extends AbstractController {
                 // widths and positions after the move, not just before it.
                 content.layoutElements();
                 updatePagingControls();
+                if (--pendingMoves[0] == 0) {
+                    // Retire empty rows only after their icons have moved out.
+                    retiredRows.forEach(Element::markForRemoval);
+                }
             });
             currentRowIndex++;
             if (rows.size() < currentRowIndex) {
@@ -246,6 +255,31 @@ public final class CustomScroll extends AbstractController {
         rows.clear();
         currentRowIndex = 1;
         setEnable(false);
+    }
+
+    public void refreshLayout() {
+        if (rows.isEmpty() || elements.isEmpty()) {
+            updatePagingControls();
+            return;
+        }
+        if (content.getWidth() <= 0 || content.getHeight() <= 0) {
+            return;
+        }
+        double oneRowWidth = elements.stream().mapToDouble(icon ->
+                (double) icon.getWidth() * content.getHeight() / Math.max(1, icon.getHeight()) + ICON_MARGIN).sum();
+        int wantedRows = oneRowWidth > content.getWidth() ? maxRows : 1;
+        if (wantedRows != rows.size()) {
+            List<Element> retiredRows = new ArrayList<>();
+            while (rows.size() > wantedRows) {
+                retiredRows.add(rows.removeLast());
+            }
+            while (rows.size() < wantedRows) {
+                createRow();
+            }
+            rearrangeElements(retiredRows);
+        }
+        // Clamp the saved offset when a panel grows, without advancing a page.
+        scroll(0);
     }
 
     public void setEnable(boolean enable) {

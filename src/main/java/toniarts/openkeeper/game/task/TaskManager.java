@@ -17,34 +17,12 @@
 package toniarts.openkeeper.game.task;
 
 import com.jme3.math.FastMath;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
-import toniarts.openkeeper.utils.Point;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.SequencedMap;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -52,6 +30,7 @@ import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Placeable;
@@ -68,12 +47,15 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.TrapDeliveries;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
+import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableType;
@@ -93,9 +75,13 @@ import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.Guard;
+import toniarts.openkeeper.game.task.creature.Leave;
 import toniarts.openkeeper.game.task.creature.Manufacture;
 import toniarts.openkeeper.game.task.creature.Pray;
+import toniarts.openkeeper.game.task.creature.Rebel;
 import toniarts.openkeeper.game.task.creature.Research;
+import toniarts.openkeeper.game.task.creature.Sulk;
+import toniarts.openkeeper.game.task.creature.Torture;
 import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
 import toniarts.openkeeper.game.task.objective.KillCreatures;
@@ -125,8 +111,33 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
+
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.SequencedMap;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Task manager for several players. Can assign creatures to different tasks.
@@ -160,7 +171,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
     private final Map<EntityId, ICreatureController> creaturesByEntities = new HashMap<>();
     private final Map<Short, IPlayerController> playerControllers;
-    private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
+    private final Map<IRoomController, Map<Long, Point>> roomTasks = new HashMap<>();
     private final Map<ICreatureController, Consumer<Boolean>> unemployedCreatures = new HashMap<>();
     private final Set<ICreatureController> escapedThieves = new HashSet<>();
     private final TaskWorkerPriorityComparator taskWorkerPriorityComparator = new TaskWorkerPriorityComparator();
@@ -245,6 +256,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             processDeletedTasks(taskEntities.getRemovedEntities());
             processAddedTasks(taskEntities.getAddedEntities());
             processChangedTasks(taskEntities.getChangedEntities());
+            removeUnusedTasks();
         }
         if (unconsciousEntities.applyChanges()) {
             processDeletedUnconsciousEntities(unconsciousEntities.getRemovedEntities());
@@ -260,6 +272,19 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
         boolean trapBlueprintsChanged = trapBlueprintEntities.applyChanges();
         boolean doorBlueprintsChanged = doorBlueprintEntities.applyChanges();
+
+        // Placing a trap or a door sends the creatures on their way to work, and the idle ones, back to choose again,
+        // like a room change does (0x4C3860 and 0x4C33B0 call 0x4E8D30)
+        for (Entity entity : trapBlueprintEntities.getAddedEntities()) {
+            if (entity.get(TrapViewState.class).blueprint) {
+                resetCreatures(entity.get(Owner.class).ownerId);
+            }
+        }
+        for (Entity entity : doorBlueprintEntities.getAddedEntities()) {
+            if (entity.get(DoorComponent.class).blueprint) {
+                resetCreatures(entity.get(Owner.class).ownerId);
+            }
+        }
         if (crateEntities.applyChanges() || trapBlueprintsChanged || doorBlueprintsChanged || !crateDeliveryTasksScanned) {
             updateCrateDeliveryTasks();
             crateDeliveryTasksScanned = true;
@@ -378,9 +403,6 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             Task task = tasksByIds.get(taskId);
             if (task != null && creature != null) {
                 task.unassign(creature);
-                if (task.getAssigneeCount() == 0 && task.isRemovable()) {
-                    //tasksByIds.remove(taskId);
-                }
             }
         }
     }
@@ -398,11 +420,24 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             Task task = tasksByIds.get(oldTaskId);
             if (task != null && creature != null) {
                 task.unassign(creature);
-                if (task.getAssigneeCount() == 0 && task.isRemovable()) {
-                    //tasksByIds.remove(taskId);
-                }
             }
         }
+    }
+
+    /**
+     * Forgets the tasks that nobody has and that can't be given out anymore.
+     * Most tasks, such as the room, sleep and objective tasks, are made for
+     * one creature and are only looked up by the ID in its task component.
+     * Kept, they would pile up for the whole game
+     */
+    private void removeUnusedTasks() {
+        Set<Long> usedTaskIds = new HashSet<>(tasksIdsByEntities.values());
+        for (Set<Task> tasks : taskQueues.values()) {
+            for (Task task : tasks) {
+                usedTaskIds.add(task.getId());
+            }
+        }
+        tasksByIds.values().removeIf(task -> task.getAssigneeCount() == 0 && !usedTaskIds.contains(task.getId()));
     }
 
     private void processAddedUnconsciousEntities(Set<Entity> entities) {
@@ -410,6 +445,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // Add rescue mission for the own troops and capture for the enemy
         for (Entity entity : entities) {
             Owner owner = entity.get(Owner.class);
+            KeeperAiNoPrisoner noPrisoner = entityData.getComponent(entity.getId(), KeeperAiNoPrisoner.class);
             for (Entry<Short, Set<Task>> entry : taskQueues.entrySet()) {
 
                 Task task = null;
@@ -417,9 +453,10 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
                     // Rescue
                     task = new RescueCreatureTask(this, navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey());
-                } else if (playerControllers.get(entry.getKey()).getKeeper().isEnemy(owner.ownerId)) {
+                } else if (playerControllers.get(entry.getKey()).getKeeper().isEnemy(owner.ownerId)
+                        && (noPrisoner == null || (noPrisoner.players & 1 << entry.getKey()) == 0)) {
 
-                    // Capture
+                    // Capture, unless a computer player has decided to let it die
                     task = new CaptureEnemyCreatureTask(navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey(), this);
                 }
 
@@ -505,6 +542,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
             @Override
+            public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+                // Not interested
+            }
+
+            @Override
             public void onFogOfWarDisabled(short keeperId) {
                 // Not interested
             }
@@ -580,6 +622,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
             }
 
+            @Override
+            public void onRoomSelectionComplete(short keeperId, List<Point> tiles) {
+                resetCreatures(keeperId);
+            }
+
             private void scanBridgeSurroundings(List<Point> tiles) {
 
                 // Check first to see if we are on land or water
@@ -613,6 +660,49 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
         });
+    }
+
+    /**
+     * Stops the keeper's creatures that are on their way to a job, or idle,
+     * and sends them back to choose what to do. The original does this every
+     * time the keeper's rooms change (CPlayer::resetCreaturesState 0x4E8D30,
+     * called from the room list update 0x4F04F0) and when the keeper places a
+     * door or a trap (0x4C33B0, 0x4C3860). It resets a creature doing nothing
+     * (states 3 and 4), on an idle walk (state 6 going back to state 1), which a
+     * worker takes too, or walking to a room (state 7). A worker's other idle
+     * time and its work are left alone, and so are creatures on their way to
+     * make their lair: the original sends those back too, a mistake Flame's
+     * creatures_setup_lair_fix corrects. Creatures already in the room of
+     * their job carry on too, as the original only resets the walk to a room.
+     *
+     * @param playerId the keeper whose rooms changed
+     */
+    private void resetCreatures(short playerId) {
+        for (EntityId entityId : entityData.findEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class)) {
+            ICreatureController creature = creaturesController.createController(entityId);
+            boolean reset;
+            if (creature.getStateMachine().isInState(CreatureState.IDLE)) {
+                reset = !creature.isWorker() || !creature.isStopped();
+            } else {
+                reset = !creature.isWorker() && creature.getStateMachine().isInState(CreatureState.WORK)
+                        && isWalkingToJobRoom(creature, entityData.getComponent(entityId, TaskComponent.class));
+            }
+            if (reset) {
+                creature.stopCreature();
+                creature.getStateMachine().changeState(CreatureState.IDLE);
+            }
+        }
+    }
+
+    private boolean isWalkingToJobRoom(ICreatureController creature, TaskComponent task) {
+        if (task == null || task.taskType == TaskType.CLAIM_LAIR || creature.isAtAssignedTaskTarget()) {
+            return false;
+        }
+
+        // A creature already in the room starts the job without the walk (0x471A70), and moving about inside the room
+        // is part of the job
+        IRoomController room = task.targetLocation != null ? mapController.getRoomControllerByCoordinates(task.targetLocation) : null;
+        return room == null || room != mapController.getRoomControllerByCoordinates(creature.getCreatureCoordinates());
     }
 
     private void scanInitialTasks() {
@@ -667,9 +757,6 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             Task task = iter.next();
             if (task instanceof AbstractTileTask tileTask && tileTask.isRemovable()) {
                 iter.remove();
-                if (tileTask.getAssigneeCount() == 0) {
-                    //tasksByIds.remove(task.getId());
-                }
             }
         }
     }
@@ -678,10 +765,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         // Dig
         if (mapController.isSelected(mapTile, playerId)) {
-            addTask(playerId, new DigTileTask(navigationService, mapController, tile, playerId));
+            addTask(playerId, new DigTileTask(navigationService, mapController, tile, playerId, entityData, entityPositionLookup,
+                    (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue()));
         } // Claim wall
         else if (mapController.isClaimableWall(mapTile, terrain, playerId)) {
-            addTask(playerId, new ClaimWallTileTask(navigationService, mapController, tile, playerId));
+
+            // Nobody's reinforced wall only becomes work once it is below half its health (DKII.EXE 0x453E90)
+            if (!terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) || mapTile.getHealth() < mapTile.getMaxHealth() / 2) {
+                addTask(playerId, new ClaimWallTileTask(navigationService, mapController, tile, playerId));
+            }
         } // Claim
         else if (mapController.isClaimableTile(mapTile, terrain, playerId)) {
             addTask(playerId, new ClaimTileTask(navigationService, mapController, tile, playerId));
@@ -743,6 +835,36 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     /**
+     * Sends a creature working in a room to the closest point of the same room
+     * that has no task. The point the creature is at still has its task, so it
+     * is never picked
+     *
+     * @param creature the working creature
+     * @param room the room the creature works in
+     * @param objectType the type of room service
+     * @return true if the creature was given a new task
+     */
+    public boolean assignFreeRoomTask(ICreatureController creature, IRoomController room, ObjectType objectType) {
+        Map<Long, Point> taskPoints = roomTasks.computeIfAbsent(room, r -> new HashMap<>());
+        Set<Point> points = new HashSet<>(taskPoints.values());
+        Point currentPosition = creature.getCreatureCoordinates();
+        IRoomObjectControl<?> control = room.getObjectControl(objectType);
+        Point target = control.getAvailableCoordinates().stream()
+                .filter(p -> !points.contains(p) && room.isTileAccessible(null, p))
+                .min(Comparator.comparingInt(p -> WorldUtils.calculateDistance(currentPosition, p)))
+                .orElse(null);
+        if (target == null || navigationService.findPath(currentPosition, target, creature) == null) {
+            return false;
+        }
+
+        AbstractCapacityCriticalRoomTask task = (AbstractCapacityCriticalRoomTask) getRoomTask(objectType, target, null, creature, room);
+        taskPoints.put(task.getId(), target);
+        task.assign(creature, true);
+        tasksByIds.put(task.getId(), task);
+        return true;
+    }
+
+    /**
      * Assigns closest room task to a given creature of requested type or check
      * for validity
      *
@@ -753,13 +875,21 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
      * @return true if the task was assigned
      */
     private boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId targetEntity, boolean assign) {
+        return assignClosestRoomTask(creature, objectType, targetEntity, assign,
+                room -> room.getObjectControl(objectType).isFullCapacity() ? Collections.emptyList() : room.getObjectControl(objectType).getAvailableCoordinates());
+    }
+
+    private boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId targetEntity, boolean assign,
+            Function<IRoomController, Collection<Point>> spots) {
         Point currentPosition = creature.getCreatureCoordinates();
 
         // Get all the rooms of the given type
         List<IRoomController> rooms = mapController.getRoomsByFunction(objectType, creature.getOwnerId());
         Map<Integer, IRoomController> distancesToRooms = new TreeMap<>();
         for (IRoomController room : rooms) {
-            if (!room.getObjectControl(objectType).isFullCapacity()) {
+
+            // A destroyed room serves nobody, like a claimed ruined Dungeon Heart that no longer stores gold
+            if (!room.isDestroyed() && !spots.apply(room).isEmpty()) {
                 distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])), room
                 );
             }
@@ -768,21 +898,49 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // See that are they really accessible starting from the least distance one
         for (IRoomController room : distancesToRooms.values()) {
 
-            // FIXME: if we are to have more capacity than one per tile, we need to refactor
             // The whole rooms are always accessible, take a random point from the room like DK II seems to do
-            List<Point> coordinates = new ArrayList<>(room.getObjectControl(objectType).getAvailableCoordinates());
+            IRoomObjectControl control = room.getObjectControl(objectType);
+            List<Point> coordinates = new ArrayList<>(spots.apply(room));
             Iterator<Point> iter = coordinates.iterator();
-            Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.get(room);
+            Map<Long, Point> taskPoints = roomTasks.get(room);
             while (iter.hasNext()) {
                 Point p = iter.next();
-                if (!room.isTileAccessible(null, p) || (taskPoints != null && taskPoints.containsKey(p))) {
+                if (!room.isTileAccessible(null, p)) {
                     iter.remove();
                 }
             }
 
+            // Take a free point first. A room can take more than it has points, like one more
+            // trainee than the Training Room has dummies, so then the points are shared until it is full.
+            // A Casino object takes one gambler only, DK II skips an object another creature has (0x4D7460)
+            if (taskPoints != null) {
+                List<Point> freeCoordinates = new ArrayList<>(coordinates);
+                freeCoordinates.removeAll(taskPoints.values());
+                if (!freeCoordinates.isEmpty() || objectType == ObjectType.GAMBLER
+                        || taskPoints.size() + control.getCurrentCapacity() >= control.getMaxCapacity()) {
+                    coordinates = freeCoordinates;
+                }
+            }
+
+            if (objectType == ObjectType.TRAINEE) {
+                coordinates = getTrainingSpot(coordinates, room, creature);
+            }
+
             // Assign
             if (!coordinates.isEmpty()) {
-                Point target = Utils.getRandomItem(coordinates);
+                Point target;
+                if (objectType == ObjectType.SPECIAL || objectType == ObjectType.SPELL_BOOK) {
+                    Vector3f source = targetEntity != null ? EntityController.getPosition(entityData, targetEntity) : null;
+                    float originX = source != null ? source.x / WorldUtils.TILE_WIDTH : currentPosition.x;
+                    float originY = source != null ? source.z / WorldUtils.TILE_WIDTH : currentPosition.y;
+                    target = coordinates.stream().min(Comparator.comparingDouble(p -> {
+                        double dx = p.x - originX;
+                        double dy = p.y - originY;
+                        return dx * dx + dy * dy;
+                    })).orElseThrow();
+                } else {
+                    target = Utils.getRandomItem(coordinates);
+                }
                 if (navigationService.isReachable(creature.getCreatureCoordinates(), target, creature)) {
 
                     // Assign the task
@@ -797,7 +955,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                         if (taskPoints == null) {
                             taskPoints = new HashMap<>();
                         }
-                        taskPoints.put(target, abstractCapacityCriticalRoomTask);
+                        taskPoints.put(abstractCapacityCriticalRoomTask.getId(), target);
                         roomTasks.put(room, taskPoints);
                     }
                     task.assign(creature, true);
@@ -809,6 +967,81 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
 
         return false;
+    }
+
+    /**
+     * The torture devices with a victim on them
+     */
+    private Collection<Point> getTortureVictimSpots(IRoomController room) {
+        List<Point> spots = new ArrayList<>();
+        Set<EntityId> devices = new HashSet<>(room.getFloorFurniture());
+        devices.addAll(room.getWallFurniture());
+        for (EntityId device : devices) {
+            Point p = WorldUtils.vectorToPoint(entityData.getComponent(device, Position.class).position);
+            Collection<?> victims = room.getObjectControl(ObjectType.TORTUREE).getItems(p);
+            if (victims != null && !victims.isEmpty()) {
+                spots.add(p);
+            }
+        }
+        return spots;
+    }
+
+    /**
+     * Where the trainee trains, like DK II (Training_cpp_4F2FF0, 0x4F2FF0): at
+     * the closest Training Dummy. A trainee with an attacking spell ready
+     * shoots at the closest wall target instead half of the time, and when no
+     * dummy is free. DK II sends a trainee without one to a wall target only
+     * when the room has no dummies, but it can't train there.
+     *
+     * @param coordinates the free Training Dummy and wall target tiles
+     * @param room the Training Room
+     * @param creature the trainee
+     * @return the tile of the dummy or the wall target, empty if none suits
+     */
+    private List<Point> getTrainingSpot(List<Point> coordinates, IRoomController room, ICreatureController creature) {
+        Set<Point> wallTargets = getFurnitureTiles(room.getWallFurniture()).keySet();
+        boolean ranged = creature.hasRangedAttackReady();
+        boolean wallTargetFirst = ranged && Utils.getRandom().nextBoolean();
+        Point from = creature.getCreatureCoordinates();
+        Comparator<Point> closest = Comparator.comparingInt(p -> WorldUtils.calculateDistance(from, p));
+        Optional<Point> spot = coordinates.stream().filter(p -> wallTargets.contains(p) == wallTargetFirst).min(closest);
+        if (spot.isEmpty() && ranged) {
+            spot = coordinates.stream().min(closest);
+        }
+        return spot.map(List::of).orElse(List.of());
+    }
+
+    /**
+     * The tile a trainee shoots at a wall target from, like DK II
+     * (Training_cpp_4F3310, 0x4F3310): the room tile closest to the trainee
+     * that has no training furniture on it and sees the target
+     *
+     * @param room the Training Room
+     * @param creature the trainee
+     * @param wallTarget the wall target
+     * @return the tile, {@code null} if there is none
+     */
+    private Point getShootingTile(IRoomController room, ICreatureController creature, EntityId wallTarget) {
+        Vector3f target = entityData.getComponent(wallTarget, Position.class).position;
+        Set<Point> furniture = new HashSet<>(getFurnitureTiles(room.getWallFurniture()).keySet());
+        furniture.addAll(getFurnitureTiles(room.getFloorFurniture()).keySet());
+        Point from = creature.getCreatureCoordinates();
+        return room.getRoomInstance().getCoordinates().stream()
+                .filter(p -> !furniture.contains(p) && room.isTileAccessible(null, p)
+                && entityPositionLookup.hasLineOfSight(WorldUtils.pointToVector3f(p), target))
+                .min(Comparator.comparingInt(p -> WorldUtils.calculateDistance(from, p)))
+                .orElse(null);
+    }
+
+    private Map<Point, EntityId> getFurnitureTiles(Collection<EntityId> furniture) {
+        Map<Point, EntityId> tiles = new HashMap<>(furniture.size());
+        for (EntityId entityId : furniture) {
+            Position position = entityData.getComponent(entityId, Position.class);
+            if (position != null) {
+                tiles.put(WorldUtils.vectorToPoint(position.position), entityId);
+            }
+        }
+        return tiles;
     }
 
     private static Integer getShortestDistance(Point currentPosition, Point... coordinates) {
@@ -829,7 +1062,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new CarryGoldToTreasuryTask(navigationService, mapController, target, creature.getOwnerId(), room, gameWorldController);
             }
             case LAIR -> {
-                return new ClaimLair(navigationService, mapController, target, creature.getOwnerId(), room, this);
+                return new ClaimLair(navigationService, mapController, target, creature.getOwnerId(), room, this, gameSettings);
             }
             case RESEARCHER -> {
                 return new Research(navigationService, mapController, target, creature.getOwnerId(), room, this, playerControllers.get(creature.getOwnerId()).getResearchControl(), objectsController);
@@ -840,11 +1073,16 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case SPECIAL, SPELL_BOOK, CRATE -> {
                 return new CarryObjectToStorageTask(navigationService, mapController, target, creature.getOwnerId(), room, this, objectsController.createController(targetEntity));
             }
+            case TORTUREE -> {
+                return new Torture(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData);
+            }
             case CORPSE -> {
                 return new CarryCorpseToGraveyardTask(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData, targetEntity);
             }
             case TRAINEE -> {
-                return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()));
+                EntityId wallTarget = getFurnitureTiles(room.getWallFurniture()).get(target);
+                return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()),
+                        wallTarget, wallTarget != null ? getShootingTile(room, creature, wallTarget) : null);
             }
             case MANUFACTURER -> {
                 return new Manufacture(navigationService, mapController, target, creature.getOwnerId(), room, this,
@@ -873,14 +1111,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     protected void removeRoomTask(AbstractCapacityCriticalRoomTask task) {
-        Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.get(task.getRoom());
+        Map<Long, Point> taskPoints = roomTasks.get(task.getRoom());
         if (taskPoints != null) {
-            taskPoints.remove(task.getTaskLocation());
+            taskPoints.remove(task.getId());
             if (taskPoints.isEmpty()) {
                 roomTasks.remove(task.getRoom());
-                if (task.getAssigneeCount() == 0) {
-                    //tasksByIds.remove(task.getId(), task);
-                }
             }
         }
     }
@@ -890,9 +1125,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         AbstractObjectiveTask task = null;
         switch (objective) {
             case SEND_TO_ACTION_POINT: {
+
+                // Past his last waypoint the creature has no action point left to go to
+                if (creature.getObjectiveTargetActionPointId() == 0) {
+                    break;
+                }
                 ActionPoint actionPoint = levelInfo.getActionPoint(creature.getObjectiveTargetActionPointId());
                 if (actionPoint != null) {
-                    task = new SendToActionPoint(navigationService, mapController, actionPoint, creature.getOwnerId());
+                    task = new SendToActionPoint(navigationService, mapController, actionPoint, creature,
+                            levelInfo.getLevelData().getGameLevel().getTicksPerSec());
                 } else {
                     logger.log(Level.ERROR, "Creature is sent to action point {0}, but the level doesn't have it!", creature.getObjectiveTargetActionPointId());
                 }
@@ -988,6 +1229,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case TRAIN: {
                 return assignClosestRoomTask(creature, ObjectType.TRAINEE, null, assign);
             }
+            case TORTURE: {
+
+                // As in the original (0x483AE0), whip a victim if there is one, otherwise get on a free device
+                return assignClosestRoomTask(creature, ObjectType.TORTUREE, null, assign, this::getTortureVictimSpots)
+                        || assignClosestRoomTask(creature, ObjectType.TORTUREE, null, assign);
+            }
             case MANUFACTURE: {
                 return assignClosestRoomTask(creature, ObjectType.MANUFACTURER, null, assign);
             }
@@ -1000,9 +1247,80 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case DRINK: {
                 return assignClosestRoomTask(creature, ObjectType.GAMBLER, null, assign);
             }
+            case SULK: {
+
+                // Like in DK II, only a creature that sleeps and has a lair it can get to sulks
+                if (!creature.hasLair() || creature.getCreature().getAttributes().getTimeSleep() <= 0) {
+                    return false;
+                }
+                Sulk task = new Sulk(navigationService, mapController, creature, entityData, gameSettings);
+                if (!task.isReachable(creature)) {
+                    return false;
+                }
+                if (assign) {
+                    task.assign(creature, true);
+                    tasksByIds.put(task.getId(), task);
+                }
+                return true;
+            }
+            case LEAVE: {
+                return assignLeaveTask(creature, false, assign);
+            }
+            case REBEL: {
+
+                // Like in DK II, a rebel walks out through a portal, and turns on its keeper when it can't get to one
+                if (assignLeaveTask(creature, true, assign)) {
+                    return true;
+                }
+                if (creature.getOwnerId() == Player.GOOD_PLAYER_ID) {
+                    return false;
+                }
+                if (assign) {
+                    Rebel task = new Rebel(navigationService, mapController, creature,
+                            levelInfo.getLevelData().getGameLevel().getTicksPerSec());
+                    task.assign(creature, true);
+                    tasksByIds.put(task.getId(), task);
+                }
+                return true;
+            }
             default:
                 return false;
         }
+    }
+
+    /**
+     * Like in DK II, a creature that leaves walks out through the portal
+     * nearest in a straight line, whoever owns it, even when another portal is
+     * a shorter walk or it can't get to that one at all (0x459DE0). A rebel
+     * takes the nearest of its own keeper's portals, and only when it can get
+     * to it (0x475170)
+     */
+    private boolean assignLeaveTask(ICreatureController creature, boolean rebel, boolean assign) {
+        ThreeByThreeController nearest = null;
+        float nearestDistance = Float.MAX_VALUE;
+        for (IRoomController room : mapController.getRoomControllers()) {
+            if (!(room instanceof ThreeByThreeController portal) || (rebel && portal.getOwnerId() != creature.getOwnerId())) {
+                continue;
+            }
+
+            // DK II compares the squared distance to the middle of each portal
+            float distance = WorldUtils.pointToVector2f(portal.getEntranceCoordinate())
+                    .distanceSquared(creature.getPosition().x, creature.getPosition().z);
+            if (distance < nearestDistance) {
+                nearest = portal;
+                nearestDistance = distance;
+            }
+        }
+        Leave task = nearest == null ? null
+                : new Leave(navigationService, mapController, nearest.getEntranceCoordinate(), creature.getOwnerId(), nearest, entityData);
+        if (task != null && rebel && !task.isReachable(creature)) {
+            return false;
+        }
+        if (task != null && assign) {
+            task.assign(creature, true);
+            tasksByIds.put(task.getId(), task);
+        }
+        return task != null;
     }
 
     @Override
