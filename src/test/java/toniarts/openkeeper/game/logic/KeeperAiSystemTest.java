@@ -401,6 +401,18 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void measuresAPortalFromItsTopLeftTile() {
+        KeeperAiSystem system = createSystem(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 7, 1), 1000);
+        roomControl.onBuild(createRoom(LAIR, new Point(14, 8)));
+
+        // The Lair is the nearest room, 41 from the middle of the Portal but 61 from its top left tile, 49 is in range
+        createNeutralPortal(new Point(10, 3));
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
+    }
+
+    @Test
     void leavesAPortalOutsideItsBuildAreaAlone() {
         KeeperAiSystem system = createSystem(withBuildAreaEndX(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 15, 1), 9), 1000);
         createNeutralPortal(new Point(10, 3));
