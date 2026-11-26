@@ -471,7 +471,7 @@ public final class CreaturesController implements ICreaturesController {
             }
             case CONJURE -> {
                 creatureState = null;
-                entityData.setComponent(entity, new CreatureFall(true));
+                entityData.setComponent(entity, new CreatureFall(CreatureFall.FallType.CONJURED));
             }
             default ->
                 throw new RuntimeException("SpawnType " + spawnType + " not handled!");
@@ -821,6 +821,14 @@ public final class CreaturesController implements ICreaturesController {
     @Override
     public boolean isValidEntity(EntityId entityId) {
         return entityData.getComponent(entityId, CreatureComponent.class) != null;
+    }
+
+    @Override
+    public void leaveDungeon(EntityId entityId) {
+        // Like in DK II, the creature takes the gold it carries with it
+        entityData.removeComponent(entityId, Gold.class);
+        createController(entityId).removePossession();
+        entityData.removeEntity(entityId);
     }
 
     @Override
