@@ -268,18 +268,6 @@ public final class ShotFixtures {
         return shot;
     }
 
-    public static CreatureSpell creatureSpell(short creatureSpellId, EnumSet<CreatureSpell.CreatureSpellFlag> flags, CreatureSpell.AlternativeShot alternativeShot,
-            short shotTypeId, int shotData1) {
-        CreatureSpell creatureSpell = new CreatureSpell();
-        creatureSpell.setCreatureSpellId(creatureSpellId);
-        creatureSpell.setName("Creature spell " + creatureSpellId);
-        creatureSpell.setFlags(flags);
-        creatureSpell.setAlternativeShot(alternativeShot);
-        creatureSpell.setShotTypeId(shotTypeId);
-        creatureSpell.setShotData1(shotData1);
-        return creatureSpell;
-    }
-
     /**
      * A creature with one spell, whose shot leaves the given time into a cast
      * that lasts a second
