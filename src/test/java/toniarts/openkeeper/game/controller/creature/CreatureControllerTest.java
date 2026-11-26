@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.badlogic.gdx.math.Vector2;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
@@ -864,6 +865,23 @@ class CreatureControllerTest {
             assertFalse(f.controller.isAtAssignedTaskTarget());
 
             f.workPosition = new Vector2f(3.9f, 4.6f);
+            assertTrue(f.controller.isAtAssignedTaskTarget());
+        }
+    }
+
+    @Test
+    void isAtTheTaskOnTheTickItsWalkReachesItsLastPoint() {
+        try (Fixture f = new Fixture(9)) {
+            f.startWork(TaskType.TRAIN);
+            List<Vector2> path = List.of(new Vector2(1, 4), new Vector2(3, 4));
+            f.data.setComponent(f.entity, new Navigation(new Point(3, 4), null, path));
+
+            // Next to the target, but still walking
+            f.data.setComponent(f.entity, new Position(0, new Vector3f(2.5f, WorldUtils.FLOOR_HEIGHT, 4)));
+            assertFalse(f.controller.isAtAssignedTaskTarget());
+
+            // DK II's walk is done when it reaches its last point, the creature doesn't come to rest first (0x470C80)
+            f.data.setComponent(f.entity, new Position(0, new Vector3f(2.95f, WorldUtils.FLOOR_HEIGHT, 4)));
             assertTrue(f.controller.isAtAssignedTaskTarget());
         }
     }
