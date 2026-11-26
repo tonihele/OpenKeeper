@@ -94,6 +94,7 @@ import toniarts.openkeeper.game.component.KeeperSpellCast;
 import toniarts.openkeeper.game.component.LevelIndicator;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.MapTile;
+import toniarts.openkeeper.game.component.MeleeHit;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -103,6 +104,7 @@ import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.PathRetry;
+import toniarts.openkeeper.game.component.PayDayClock;
 import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.PlayerObjective;
@@ -214,6 +216,7 @@ public final class NetworkServer {
             Serializer.registerClass(PlayerSpell.class, new FieldSerializer());
             Serializer.registerClass(ResearchableType.class, new EnumSerializer());
             Serializer.registerClass(Casino.PayOut.class, new EnumSerializer());
+            Serializer.registerClass(CreatureFall.FallType.class, new EnumSerializer());
 
             // Events
             Serializer.registerClass(GameEventType.class, new EnumSerializer());
@@ -235,6 +238,7 @@ public final class NetworkServer {
             Serializer.registerClass(CreatureTypeAttraction.class, new FieldSerializer());
             Serializer.registerClass(DungeonHeart.class, new FieldSerializer());
             Serializer.registerClass(ImpGenerator.class, new FieldSerializer());
+            Serializer.registerClass(MeleeHit.class, new FieldSerializer());
             Serializer.registerClass(Portal.class, new FieldSerializer());
             Serializer.registerClass(CasinoBigWinner.class, new FieldSerializer());
             Serializer.registerClass(CasinoDisco.class, new FieldSerializer());
@@ -294,6 +298,7 @@ public final class NetworkServer {
             Serializer.registerClass(Owner.class, new FieldSerializer());
             Serializer.registerClass(Party.class, new FieldSerializer());
             Serializer.registerClass(PathRetry.class, new FieldSerializer());
+            Serializer.registerClass(PayDayClock.class, new FieldSerializer());
             Serializer.registerClass(Peaceful.class, new FieldSerializer());
             Serializer.registerClass(Placeable.class, new FieldSerializer());
             Serializer.registerClass(PlayerObjective.class, new FieldSerializer());

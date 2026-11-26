@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
+import com.jme3.math.FastMath;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
@@ -32,6 +33,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.utils.Utils;
 
 /**
  * Controls creature lairs in a room
@@ -62,7 +64,10 @@ public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId
         if (creatureDefinition.getLairObjectId() == 0) {
             return null;
         }
-        EntityId object = objectsController.loadObject(creatureDefinition.getLairObjectId(), owner.ownerId, p.x, p.y);
+
+        // DK II gives each new bed a random facing (0x48AD50)
+        float rotation = Utils.getRandom().nextInt(2048) * (FastMath.TWO_PI / 2048);
+        EntityId object = objectsController.loadObject(creatureDefinition.getLairObjectId(), owner.ownerId, p.x, p.y, rotation);
         ObjectViewState viewState = entityData.getComponent(object, ObjectViewState.class);
         entityData.setComponent(object, new ObjectViewState(viewState.objectId, viewState.state,
                 viewState.animState, viewState.visible, creatureComponent.creatureId));
