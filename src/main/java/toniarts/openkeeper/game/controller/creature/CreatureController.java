@@ -103,6 +103,7 @@ import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.logic.CreatureMoodSystem;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -714,7 +715,9 @@ public final class CreatureController extends EntityController implements ICreat
     /**
      * Like in DK II, an angry creature takes a job from its angry list, and an
      * unhappy creature, or an angry one that got none, from its unhappy list.
-     * Once a list gave a job, it rests for a while
+     * Once a list gave a job, it rests for a while. The creature tick
+     * (DKII.EXE 0x476FC0) rolls no mood job when it holds back the need anger
+     * (0x478D00 has the same checks), so not under the Call to Arms either
      *
      * @return true if the creature got a job
      */
@@ -722,7 +725,7 @@ public final class CreatureController extends EntityController implements ICreat
         CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
         int state = mood == null ? 0 : mood.getState(
                 CreatureMood.toRuntimeThreshold(creature.getAttributes().getUnhappyThreshold()));
-        if (state == 0) {
+        if (state == 0 || CreatureMoodSystem.isNeedAngerHeld(entityData, entityId, creature)) {
             return false;
         }
         double gameTime = gameTimer.getGameTime();
