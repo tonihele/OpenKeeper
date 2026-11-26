@@ -95,11 +95,9 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private static final int NOTHING_TO_DO_LOG_SECONDS = 60;
 
     /**
-     * How long a neutral room or a gold seam it could not dig to, or a room
-     * site its imps did not dig out in time, is left alone. DK II has no such
-     * wait, it digs to the same room again on its next Portal plan, to the
-     * same seam when it next needs gold, and finds the same site again for
-     * its next room (0x500C20, 0x4FCE70, 0x5012A0)
+     * How long a neutral room or a gold seam it could not dig to is left
+     * alone. DK II has no such wait, it digs to the same room again on its
+     * next Portal plan and to the same seam when it next needs gold
      */
     private static final int FAILED_TARGET_WAIT_SECONDS = 120;
 
@@ -344,13 +342,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         int ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
         int actions = ai.getSpeed();
 
-        // A task that takes too long is dropped, and a path or a room that does leaves its target or site alone for a while
+        // A task that takes too long is dropped, and a path that does leaves its target alone for a while
         keeperAi.taskTicks++;
         if (keeperAi.taskTicks > TASK_TIME_OUT_SECONDS * ticksPerSecond) {
             if (keeperAi.task == KeeperAi.Task.DIG_PATH) {
                 leaveTargetAlone(keeperAi, "the path took too long");
-            } else if (keeperAi.task == KeeperAi.Task.BUILD_ROOM) {
-                rememberFailedTarget(keeperAi, keeperAi.corner, "the room site took too long");
             }
             setTask(keeperAi, KeeperAi.Task.PLAN, "the task took too long");
             keeperAi.wallFollowing = false;
@@ -1323,8 +1319,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * room. Each time it gives up, the next search is for a smaller room,
      * and once the room is as small as it gets, a site with a tile less
      * between the rooms is taken too. DK II does not do that: it looks for the
-     * default size and gap for ever. A site its imps did not dig out in time
-     * is passed over for a while, DK II finds it again
+     * default size and gap for ever
      */
     private int findRoomSite(KeeperAi keeperAi, IPlayerController playerController, AI ai, int actions) {
         int size = ai.getDefaultSize();
@@ -1341,9 +1336,6 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         KeeperAiRoomSiteFinder.RoomSite site = null;
         for (int i = ai.getTilesLeftBetweenRooms(); site == null && i >= gap; i--) {
             site = finder.find(keeperAi.current, keeperAi.direction, size, i);
-            if (site != null && isWaitingAfterFailedTarget(keeperAi, site.corner())) {
-                site = null;
-            }
         }
         if (site != null) {
             keeperAi.roomSitesNotFound = 0;
