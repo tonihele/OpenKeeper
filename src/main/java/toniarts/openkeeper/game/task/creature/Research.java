@@ -16,13 +16,17 @@
  */
 package toniarts.openkeeper.game.task.creature;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.creature.CreatureController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.ResearchableEntity;
@@ -30,6 +34,9 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Research researchable entities for the keeper
@@ -40,6 +47,8 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
 
     private final PlayerResearchControl researchControl;
     private final IObjectsController objectsController;
+    private final int researchRounds = 7 + Utils.getRandom().nextInt(7);
+    private Vector2f workPosition;
 
     public Research(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room,
             TaskManager taskManager, PlayerResearchControl researchControl, IObjectsController objectsController) {
@@ -57,8 +66,8 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
     @Override
     public Vector2f getTarget(ICreatureController creature) {
 
-        // Next to the bookcase, it takes up the middle of its tile
-        return getTargetNextToFurniture(creature);
+        // The tile the researcher stands on
+        return WorldUtils.pointToVector2f(WorldUtils.vectorToPoint(getWorkPosition(creature)));
     }
 
     @Override
@@ -69,13 +78,41 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
     @Override
     public Vector2f getWorkPosition(ICreatureController creature) {
 
-        // DK II puts the researcher right in front of the bookcase
-        return getWorkPositionAtFurniture(creature);
+        // DK II puts the researcher in front of a bookcase, which faces north on an even row and south on an odd one
+        // (0x4EDFC0). The third kind of bookcase is read from behind half the time. At a book on the wall the
+        // researcher stands a quarter of a tile from the middle of the tile towards the wall (0x475A20). Picked
+        // once, the position is asked every tick
+        if (workPosition == null) {
+            IObjectController furniture = getFurniture(objectsController);
+            if (furniture == null) {
+                workPosition = WorldUtils.pointToVector2f(getTaskLocation());
+            } else if (isOnWall(furniture)) {
+                workPosition = getPositionAt(WorldUtils.pointToVector3f(getTaskLocation()), getAngleIntoRoom(furniture) + FastMath.PI, 0.25f);
+            } else {
+                float angle = (getTaskLocation().y & 1) * FastMath.PI;
+                if (AbstractRoomController.getTileRandom(getTaskLocation(), 3) == 2 && Utils.getRandom().nextBoolean()) {
+                    angle += FastMath.PI;
+                }
+                workPosition = getPositionAt(furniture.getPosition(), angle, getDistanceToFurniture(furniture, creature));
+            }
+        }
+        return workPosition;
     }
 
     @Override
     protected ObjectType getRoomObjectType() {
         return ObjectType.SPELL_BOOK;
+    }
+
+    @Override
+    public boolean moveToOtherSpot(ICreatureController creature, float executionDuration) {
+
+        // DK II researches for 7 to 13 rounds of the research animation at a
+        // bookcase, then goes to the closest bookcase nobody is at if there is
+        // one. Without the animation the creature stays where it is
+        double roundTime = CreatureController.getAnimationTime(creature.getCreature(), Creature.AnimationType.RESEARCHING);
+        return roundTime > 0 && executionDuration >= researchRounds * roundTime
+                && taskManager.assignFreeRoomTask(creature, getRoom(), ObjectType.RESEARCHER);
     }
 
     @Override

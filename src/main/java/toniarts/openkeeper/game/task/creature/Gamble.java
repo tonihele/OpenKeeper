@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task.creature;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -48,6 +49,7 @@ import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Gambles in the Casino, the room for the Drink job. Once a second the
@@ -83,6 +85,7 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
     private final int jackpotPayTimeLimit;
     private final int maxGoldPile;
     private int secondsGambled = 0;
+    private Vector2f workPosition;
 
     /**
      * Gambling in the Casino
@@ -139,7 +142,35 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public Vector2f getTarget(ICreatureController creature) {
-        return getAccessibleTargetNextToLocation(creature);
+
+        // The tile the gambler stands on
+        return WorldUtils.pointToVector2f(WorldUtils.vectorToPoint(getWorkPosition(creature)));
+    }
+
+    @Override
+    public Vector2f getWorkPosition(ICreatureController creature) {
+
+        // DK II puts the gambler on a circle round the object, 1.1 times half the object's width plus half its own.
+        // At a Roulette Table it stands on one of the two sides without a wheel, in front of the Alcove Barrels within
+        // an eighth of a turn either way, and elsewhere at a random angle (0x456500, 0x456690). Picked once, the
+        // position is asked every tick
+        if (workPosition == null) {
+            IObjectController furniture = getFurniture(objectsController);
+            if (furniture == null) {
+                workPosition = WorldUtils.pointToVector2f(getTaskLocation());
+            } else {
+                float angle;
+                if (furniture.getObject().getObjectId() == CasinoController.ROULETTE_TABLE_OBJECT_ID) {
+                    angle = random.nextBoolean() ? FastMath.HALF_PI : -FastMath.HALF_PI;
+                } else if (isOnWall(furniture)) {
+                    angle = getAngleIntoRoom(furniture) + (random.nextFloat() - 0.5f) * FastMath.HALF_PI;
+                } else {
+                    angle = random.nextFloat() * FastMath.TWO_PI;
+                }
+                workPosition = getPositionAt(furniture.getPosition(), angle, 1.1f * getDistanceToFurniture(furniture, creature));
+            }
+        }
+        return workPosition;
     }
 
     @Override
@@ -154,6 +185,8 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
+        super.executeTask(creature, executionDuration);
+
         while (secondsGambled + 1 <= executionDuration && canCoverStake(creature) && !isBigWinner(creature)) {
             secondsGambled++;
             gamble(creature, payOut.get());

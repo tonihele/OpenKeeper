@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 
 /**
  * Builds the {@link Variable} fixtures the Temple tests need. Lives in
@@ -88,6 +89,8 @@ public final class TempleFixtures {
         Room room = new Room();
         room.setRoomId((short) 13);
         room.setName("Temple");
+        room.setFlags(EnumSet.of(Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.HAS_WALLS, Room.RoomFlag.BUILDABLE,
+                Room.RoomFlag.HAS_FLAME));
         room.setObjects(Arrays.asList((short) 0, (short) 0, (short) 0, (short) 0, (short) 0, (short) 0));
         return room;
     }

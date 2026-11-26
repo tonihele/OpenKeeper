@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.state;
 
 import com.jme3.app.Application;
+import com.jme3.app.state.AppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
@@ -474,17 +475,20 @@ public final class GameClientState extends AbstractPauseAwareState {
                         getGuardPostTrapIds(),
                         getLevelVariable(Variable.MiscVariable.MiscType.GUARD_POST_REPORTING_DISTANCE_TILES));
                 effectManagerState = new EffectManagerState(kwdFile, app.getAssetManager());
-
-                // Attach the states
-                stateManager.attach(playerState);
-                stateManager.attach(playerMapViewState);
-                stateManager.attach(playerModelViewState);
-                stateManager.attach(minimapPanelState);
                 fullscreenMapState = new FullscreenMapState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
                         gameClientService.getEntityData(), kwdFile, GameClientState.this.players.values(), GameClientState.this::getPlayerName);
-                stateManager.attach(fullscreenMapState);
-                stateManager.attach(effectManagerState);
-                stateManager.attach(guardPostCounter);
+
+                // Attach the states
+                List<AppState> states = List.of(
+                        playerState,
+                        playerMapViewState,
+                        playerModelViewState,
+                        minimapPanelState,
+                        fullscreenMapState,
+                        effectManagerState,
+                        guardPostCounter
+                );
+                stateManager.attachAll(states);
 
                 // Wait until loaded
                 if (!mapDataLoaded) {
@@ -493,10 +497,22 @@ public final class GameClientState extends AbstractPauseAwareState {
                             try {
                                 mapDataLoadingObject.wait();
                             } catch (InterruptedException ex) {
-                                System.getLogger(GameClientState.class.getName()).log(Level.ERROR, "Map data loading interrupted!", ex);
+                                logger.log(Level.ERROR, "Map data loading interrupted!", ex);
                             }
                         }
                     }
+                }
+
+                // Wait until all states are attached
+                boolean allStatesInitialized = states.stream().allMatch(AppState::isInitialized);
+                while(!allStatesInitialized) {
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException ex) {
+                        logger.log(Level.ERROR, "Waiting for states init interrupted!", ex);
+                        break;
+                    }
+                    allStatesInitialized = states.stream().allMatch(AppState::isInitialized);
                 }
 
                 // Loaded up, send our ready signal on the next frame to ensure all the states are attached
