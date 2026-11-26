@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumSet;
+import java.util.List;
 
 /** Parser-package fixtures for native sleep-cycle integration tests. */
 public final class CreatureSleepFixtures {
@@ -43,6 +44,39 @@ public final class CreatureSleepFixtures {
         return creature;
     }
 
+    public static void setShotDelay(Creature creature, float shotDelay) {
+        creature.setShotDelay(shotDelay);
+    }
+
+    public static void setSwing(Creature creature, Creature.AnimationType animation, int frames, int fps, int startFrames, int endFrames,
+            ArtResource.ArtResourceFlag... flags) {
+        ArtResource swing = new ArtResource();
+        swing.setType(ArtResource.ArtResourceType.ANIMATING_MESH);
+        EnumSet<ArtResource.ArtResourceFlag> swingFlags = EnumSet.of(ArtResource.ArtResourceFlag.HAS_START_ANIMATION, ArtResource.ArtResourceFlag.HAS_END_ANIMATION);
+        swingFlags.addAll(List.of(flags));
+        swing.setFlags(swingFlags);
+        swing.setData(ArtResource.KEY_FRAMES, frames);
+        swing.setData(ArtResource.KEY_FPS, fps);
+        swing.setData(ArtResource.KEY_START_AF, (short) startFrames);
+        swing.setData(ArtResource.KEY_END_AF, (short) endFrames);
+        creature.setAnimation(animation, swing);
+    }
+
+    /**
+     * A worker whose animation for its work, eating for claiming and sleeping
+     * for reinforcing in DK II, has the given frames
+     */
+    public static Creature claimer(Creature.AnimationType animation, int frames, int fps) {
+        ArtResource work = new ArtResource();
+        work.setFlags(EnumSet.noneOf(ArtResource.ArtResourceFlag.class));
+        work.setData(ArtResource.KEY_FRAMES, frames);
+        work.setData(ArtResource.KEY_FPS, fps);
+        Creature creature = new Creature();
+        creature.setName("Imp");
+        creature.setAnimation(animation, work);
+        return creature;
+    }
+
     public static Creature worker() {
         Creature creature = sleeper(0);
         creature.setCreatureId((short) 1);
@@ -57,5 +91,28 @@ public final class CreatureSleepFixtures {
         variable.setVariableId(type);
         variable.setValue(value);
         return variable;
+    }
+
+    /**
+     * A creature whose melee animation, the one DK II's dig swing plays, has
+     * the given frames
+     */
+    public static Creature digger(String name, int frames, int fps, int startFrames, int endFrames) {
+        ArtResource melee = new ArtResource();
+        melee.setFlags(EnumSet.noneOf(ArtResource.ArtResourceFlag.class));
+        melee.setData(ArtResource.KEY_FRAMES, frames);
+        melee.setData(ArtResource.KEY_FPS, fps);
+        if (startFrames > 0) {
+            melee.getFlags().add(ArtResource.ArtResourceFlag.HAS_START_ANIMATION);
+            melee.setData(ArtResource.KEY_START_AF, startFrames);
+        }
+        if (endFrames > 0) {
+            melee.getFlags().add(ArtResource.ArtResourceFlag.HAS_END_ANIMATION);
+            melee.setData(ArtResource.KEY_END_AF, endFrames);
+        }
+        Creature creature = new Creature();
+        creature.setName(name);
+        creature.setAnimation(Creature.AnimationType.MELEE_ATTACK, melee);
+        return creature;
     }
 }

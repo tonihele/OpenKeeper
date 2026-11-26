@@ -39,7 +39,7 @@ public final class CreatureAttraction {
      * See if the keeper meets all the creature's attraction requirements:
      * <ul>
      * <li>room: the keeper's rooms of the type have at least the given number
-     * of tiles together</li>
+     * of tiles together, a room without a size needs none</li>
      * <li>gold: the keeper has at least the given amount of gold</li>
      * <li>mana: the keeper has at least the given amount of mana</li>
      * <li>creature: never stops the creature, the original compares the
@@ -79,15 +79,10 @@ public final class CreatureAttraction {
 
     private static boolean isRoomRequirementMet(Attraction attraction, IPlayerController player, IKwdFile kwdFile) {
         Room room = kwdFile.getRoomById(attraction.getRoomId());
-        int size = attraction.getRoomSize();
-        int tiles = getTileCount(room, player);
 
-        // Without a size the original asks for room capacity left for the creature type when it picks the
-        // creature, we just want the room
-        if (size == 0) {
-            return tiles > 0;
-        }
-        return tiles >= size;
+        // A room without a size is always met, like in the original. The Portal's choice then weighs the
+        // creature by the capacity of its rooms, so most still need theirs, but a Lair creature comes first
+        return getTileCount(room, player) >= attraction.getRoomSize();
     }
 
     private static int getTileCount(Room room, IPlayerController player) {

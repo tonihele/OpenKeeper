@@ -42,8 +42,9 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Moves the flying shots, one move a turn, and lets them hit. The order is
- * DKII.EXE's shot turn (0x4AB180): the range, a hit on a thing, the move with
- * a hit on a wall, then the shot's lifetime.
+ * DKII.EXE's shot turn (0x4AB180): the range, what the shot does on every
+ * turn, an instant shot's move onto its target, a hit on a thing, the damage
+ * around the shot, the move with a hit on a wall, then the shot's lifetime.
  */
 public final class ShotSystem implements IGameLogicUpdatable {
 
@@ -83,20 +84,41 @@ public final class ShotSystem implements IGameLogicUpdatable {
         ShotFlight flight = entity.get(ShotFlight.class);
         Shot shot = kwdFile.getShotById(flight.shotId);
         Vector3f position = entity.get(Position.class).position;
+
+        // A shot out of its range, or one that dies when it hits a thing, has the rest of its turn and dies at the end
+        // of it, it leaves its death shot (0x4AB180)
+        int health = flight.health;
         if (ShotFlightRules.isOutOfRange(flight.start, position, flight.maxRange)) {
-            entityData.removeEntity(entity.getId());
-            return;
+            health = 0;
+        }
+        if (shot.getShotProcessFlags().contains(Shot.ShotProcessFlag.CONSTANT)) {
+            shotsController.fly(entity.getId());
         }
 
-        EntityId thing = findThingHit(shot, flight, position);
-        if (thing != null) {
-            triggerEffect(shot.getHitThingEffectId(), position);
-            shotsController.hit(entity.getId(), thing);
-            if (shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_THING)) {
-                entityData.removeEntity(entity.getId());
-                return;
+        // An instant shot, like Hail Storm, goes onto its target and hits it, whatever the shot collides with. With
+        // its target gone it dies (0x4AFCB0, 0x4ABD60)
+        EntityId thing = null;
+        if (shot.getProcessType() == Shot.ProcessType.INSTANTANEOUS_HIT) {
+            Position target = flight.target != null ? entityData.getComponent(flight.target, Position.class) : null;
+            if (target != null) {
+                position = target.position;
+                thing = flight.target;
+            } else {
+                health = 0;
             }
         }
+        if (thing == null) {
+            thing = findThingHit(shot, flight, position);
+        }
+        if (thing != null) {
+            triggerEffect(shot.getHitThingEffectId(), position);
+            createChildShot(entity.getId(), shot.getHitThingShotId(), position);
+            shotsController.hit(entity.getId(), thing);
+            if (shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_THING)) {
+                health = 0;
+            }
+        }
+        shotsController.damageArea(entity.getId());
 
         Vector3f velocity = flight.velocity;
         if (thing == null && findThingHit(shot, flight, halfway.set(velocity).multLocal(0.5f).addLocal(position)) != null) {
@@ -107,20 +129,23 @@ public final class ShotSystem implements IGameLogicUpdatable {
         Move move = move(position, velocity);
         if (move.hitWall()) {
             triggerEffect(shot.getHitSolidEffectId(), move.position());
+            createChildShot(entity.getId(), shot.getHitSolidShotId(), move.position());
             if (shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_SOLID)) {
                 entityData.removeEntity(entity.getId());
                 return;
             }
         }
 
-        int health = flight.health;
         if (shot.getFlags().contains(Shot.ShotFlag.DIE_OVER_TIME)) {
             health--;
-            if (health < 1) {
-                triggerEffect(shot.getDeathEffectId(), move.position());
-                entityData.removeEntity(entity.getId());
-                return;
-            }
+        }
+        if (health < 1) {
+            triggerEffect(shot.getDeathEffectId(), move.position());
+            createChildShot(entity.getId(), shot.getDeathShotId(), move.position());
+            entityData.removeEntity(entity.getId());
+            return;
+        }
+        if (health != flight.health) {
             entityData.setComponent(entity.getId(), new ShotFlight(flight, health));
         }
         if (!move.hitWall()) {
@@ -173,6 +198,20 @@ public final class ShotSystem implements IGameLogicUpdatable {
         }
     }
 
+    /**
+     * The shot leaves its hit or death shot where it is, like the cloud of the
+     * Gas Missile (0x4ABD60, 0x4AB180)
+     *
+     * @param shot the shot entity
+     * @param shotTypeId the shot to leave, 0 for none
+     * @param position where to leave it
+     */
+    private void createChildShot(EntityId shot, short shotTypeId, Vector3f position) {
+        if (shotTypeId != 0) {
+            shotsController.createChildShot(shot, shotTypeId, position);
+        }
+    }
+
     private boolean isSolid(Vector3f position) {
         Point tile = WorldUtils.vectorToPoint(position);
 
@@ -193,13 +232,16 @@ public final class ShotSystem implements IGameLogicUpdatable {
             return null;
         }
 
+        // A shot never hits its shooter, unless it was cast on its shooter, then it hits nothing else, like the Modify
+        // Health a Heal on the caster itself leaves (0x451570)
+        boolean castOnShooter = flight.shooter != null && flight.shooter.equals(flight.target);
         float radius = shot.getRadius();
         Point min = WorldUtils.vectorToPoint(position.x - radius, position.z - radius);
         Point max = WorldUtils.vectorToPoint(position.x + radius, position.z + radius);
         for (int x = min.x; x <= max.x; x++) {
             for (int y = min.y; y <= max.y; y++) {
                 for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
-                    if (!entityId.equals(flight.shooter) && isHit(shot, flight, position, entityId)) {
+                    if (entityId.equals(flight.shooter) == castOnShooter && isHit(shot, flight, position, entityId)) {
                         return entityId;
                     }
                 }

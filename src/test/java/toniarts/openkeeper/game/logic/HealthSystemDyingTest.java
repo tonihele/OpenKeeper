@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.HauledBy;
@@ -128,6 +129,18 @@ class HealthSystemDyingTest {
         assertEquals(60, entityData.getComponent(creature, Health.class).health);
         runSeconds(15);
         assertNotNull(entityData.getComponent(creature, Death.class));
+    }
+
+    @Test
+    void healOnKnockedOutCreatureIsNotKeptForLater() {
+        entityData.setComponent(creature, new Damage(-1000));
+        healthSystem.processTick(TICK);
+
+        // Imprisoned, it doesn't get the heal now
+        entityData.removeComponent(creature, Unconscious.class);
+        entityData.setComponent(creature, new Health(10, 100));
+        healthSystem.processTick(TICK);
+        assertEquals(10, entityData.getComponent(creature, Health.class).health);
     }
 
     private void runSeconds(int seconds) {

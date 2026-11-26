@@ -109,11 +109,11 @@ class CreatureAttractionTest {
     }
 
     @Test
-    void roomWithoutSizeStillNeedsTheRoom() {
+    void roomWithoutSizeNeedsNoRoom() {
+
+        // DK II's first Goblin comes through the Portal before the keeper has a Lair
         Creature goblin = creature((short) 7, roomAttraction(lair.getRoomId(), 0));
 
-        assertFalse(CreatureAttraction.isSatisfied(goblin, player, level));
-        build(lair, 1);
         assertTrue(CreatureAttraction.isSatisfied(goblin, player, level));
     }
 
