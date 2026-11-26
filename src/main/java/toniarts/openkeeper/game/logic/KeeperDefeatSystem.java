@@ -93,6 +93,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
     private final EntitySet hearts;
     private final EntitySet defeats;
     private final Map<EntityId, Short> heartOwners = new HashMap<>();
+    private final Map<Short, EntitySet> defeatedKeepersCreatures = new HashMap<>();
 
     /**
      * Watches the hearts
@@ -117,7 +118,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
         hearts = entityData.getEntities(new FieldFilter(ObjectComponent.class, "objectId", FiveByFiveRotatedController.OBJECT_HEART_ID),
                 ObjectComponent.class, Owner.class, Health.class);
         processAddedHearts(hearts);
-        defeats = entityData.getEntities(KeeperDefeated.class);
+        defeats = entityData.getEntities(new FieldFilter(KeeperDefeated.class, "creaturesGone", false), KeeperDefeated.class);
     }
 
     @Override
@@ -138,8 +139,19 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
         double now = gameController.getGameTimer().getGameTime();
         for (Entity defeat : defeats) {
             KeeperDefeated keeperDefeated = defeat.get(KeeperDefeated.class);
-            if (now - keeperDefeated.time >= delay) {
-                sendCreaturesAway(keeperDefeated.playerId);
+            if (now - keeperDefeated.time < delay) {
+                continue;
+            }
+
+            // Only the keeper's own creatures are looked at, and no more once they are all gone
+            EntitySet creatures = defeatedKeepersCreatures.computeIfAbsent(keeperDefeated.playerId,
+                    keeperId -> entityData.getEntities(new FieldFilter(Owner.class, "ownerId", keeperId), Owner.class, CreatureComponent.class));
+            creatures.applyChanges();
+            if (creatures.isEmpty()) {
+                defeatedKeepersCreatures.remove(keeperDefeated.playerId).release();
+                defeat.set(new KeeperDefeated(keeperDefeated.playerId, keeperDefeated.time, true));
+            } else {
+                sendCreaturesAway(creatures);
             }
         }
     }
@@ -169,7 +181,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
         }
 
         keeper.setDestroyed(getKiller(heart, keeper.getId()));
-        entityData.setComponent(entityData.createEntity(), new KeeperDefeated(keeper.getId(), gameController.getGameTimer().getGameTime()));
+        entityData.setComponent(entityData.createEntity(), new KeeperDefeated(keeper.getId(), gameController.getGameTimer().getGameTime(), false));
         ruinHeartRoom(keeper);
         abandonLand(keeper.getId());
         if (!isAi(keeper)) {
@@ -261,11 +273,11 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
      * DK II credits the kill of the workers to the keeper who destroyed the
      * heart (+0x132), there are no kill credits here yet
      *
-     * @param keeperId the defeated keeper
+     * @param creatures the creatures of the defeated keeper
      */
-    private void sendCreaturesAway(short keeperId) {
+    private void sendCreaturesAway(EntitySet creatures) {
         ICreaturesController creaturesController = gameController.getGameWorldController().getCreaturesController();
-        for (EntityId entity : entityData.findEntities(new FieldFilter(Owner.class, "ownerId", keeperId), Owner.class, CreatureComponent.class)) {
+        for (EntityId entity : creatures.getEntityIds()) {
             if (entityData.getComponent(entity, CreatureImprisoned.class) != null) {
                 continue;
             }
@@ -369,6 +381,8 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
     public void stop() {
         hearts.release();
         defeats.release();
+        defeatedKeepersCreatures.values().forEach(EntitySet::release);
+        defeatedKeepersCreatures.clear();
         heartOwners.clear();
     }
 

@@ -21,7 +21,7 @@ import com.simsilica.es.EntityComponent;
 /**
  * A keeper whose Dungeon Heart was destroyed, and when. Like DK II's player
  * (+0xEE2), the time of the defeat is kept, the keeper's creatures are dealt
- * with from a few turns after it
+ * with from a few turns after it until none are left
  */
 public final class KeeperDefeated implements EntityComponent {
 
@@ -30,14 +30,19 @@ public final class KeeperDefeated implements EntityComponent {
      * The game time of the defeat
      */
     public double time;
+    /**
+     * Whether the keeper has no creatures left to deal with
+     */
+    public boolean creaturesGone;
 
     public KeeperDefeated() {
         // For serialization
     }
 
-    public KeeperDefeated(short playerId, double time) {
+    public KeeperDefeated(short playerId, double time, boolean creaturesGone) {
         this.playerId = playerId;
         this.time = time;
+        this.creaturesGone = creaturesGone;
     }
 
 }

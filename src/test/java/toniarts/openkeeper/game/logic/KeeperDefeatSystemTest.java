@@ -249,6 +249,23 @@ class KeeperDefeatSystemTest {
         assertEquals(CreatureState.WORK, stateMachines.get(fighter).getCurrentState());
     }
 
+    @Test
+    void defeatedKeeperIsDoneWithOnceItsCreaturesAreGone() {
+        EntityId fighter = creature(RIVAL, false);
+        KeeperDefeatSystem system = campaign(HUMAN, RIVAL);
+        defeat(system, RIVAL);
+        for (int turn = 1; turn <= 5; turn++) {
+            turn(system);
+        }
+        EntityId defeat = entityData.findEntity(null, KeeperDefeated.class);
+        assertFalse(entityData.getComponent(defeat, KeeperDefeated.class).creaturesGone);
+
+        // Once the creature has left, the keeper's creatures are no longer looked for
+        entityData.removeEntity(fighter);
+        turn(system);
+        assertTrue(entityData.getComponent(defeat, KeeperDefeated.class).creaturesGone);
+    }
+
     /**
      * Destroys the keeper's heart and plays the turn of the defeat
      */
