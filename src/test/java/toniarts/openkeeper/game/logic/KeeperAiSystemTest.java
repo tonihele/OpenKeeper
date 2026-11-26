@@ -2523,10 +2523,11 @@ class KeeperAiSystemTest {
 
         INavigationService navigationService = (INavigationService) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{INavigationService.class}, (proxy, method, args) -> {
-                    if (!"findPath".equals(method.getName())) {
-                        throw new UnsupportedOperationException(method.getName());
-                    }
-                    return findPath((Point) args[0], (Point) args[1]);
+                    return switch (method.getName()) {
+                        case "findPath" -> findPath((Point) args[0], (Point) args[1]);
+                        case "isReachable" -> findPath((Point) args[0], (Point) args[1]) != null;
+                        default -> throw new UnsupportedOperationException(method.getName());
+                    };
                 });
 
         return new KeeperAiSystem(entityData, kwdFile, Map.of(PLAYER_ID, playerController, enemyId, enemyController), gameWorldController,

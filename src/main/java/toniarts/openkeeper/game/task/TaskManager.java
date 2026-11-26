@@ -853,7 +853,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 .filter(p -> !points.contains(p) && room.isTileAccessible(null, p))
                 .min(Comparator.comparingInt(p -> WorldUtils.calculateDistance(currentPosition, p)))
                 .orElse(null);
-        if (target == null || navigationService.findPath(currentPosition, target, creature) == null) {
+        if (target == null || !navigationService.isReachable(currentPosition, target, creature)) {
             return false;
         }
 

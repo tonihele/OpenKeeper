@@ -1267,7 +1267,7 @@ public final class CreatureController extends EntityController implements ICreat
     private Point getHeartAttackTile(EntityId heart) {
         Point ourPosition = getCreatureCoordinates();
         return DungeonHeartTarget.getAttackTile(ourPosition, getHeartTile(heart), getMeleeRange(),
-                tile -> tile.equals(ourPosition) || isWalkable(tile) && navigationService.findPath(ourPosition, tile, this) != null);
+                tile -> tile.equals(ourPosition) || isWalkable(tile) && navigationService.isReachable(ourPosition, tile, this));
     }
 
     /**
