@@ -72,6 +72,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.CollectPay;
 import toniarts.openkeeper.game.task.creature.CollectWinnings;
+import toniarts.openkeeper.game.task.creature.Explore;
 import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
@@ -150,6 +151,11 @@ import java.util.stream.Collectors;
 public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private static final Logger logger = System.getLogger(TaskManager.class.getName());
+
+    /**
+     * How many random tiles a creature that explores tries (DK II 0x45A290)
+     */
+    private static final int EXPLORE_TRIES = 20;
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
@@ -1269,6 +1275,27 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case LEAVE: {
                 return assignLeaveTask(creature, false, assign);
+            }
+            case EXPLORE: {
+
+                // Like in DK II (0x45A290), the first of up to 20 random tiles of the map that nobody has claimed, that
+                // isn't solid and that it can get to
+                IMapDataInformation<IMapTileController> mapData = mapController.getMapData();
+                for (int i = 0; i < EXPLORE_TRIES && mapData.getWidth() > 0 && mapData.getHeight() > 0; i++) {
+                    Point p = new Point(Utils.getRandom().nextInt(mapData.getWidth()), Utils.getRandom().nextInt(mapData.getHeight()));
+                    IMapTileController tile = mapData.getTile(p);
+                    if (tile != null && tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID && !mapController.isSolid(p)) {
+                        Explore task = new Explore(navigationService, mapController, p, creature.getOwnerId());
+                        if (task.isReachable(creature)) {
+                            if (assign) {
+                                task.assign(creature, true);
+                                tasksByIds.put(task.getId(), task);
+                            }
+                            return true;
+                        }
+                    }
+                }
+                return false;
             }
             case REBEL: {
 
