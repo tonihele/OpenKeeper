@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.LevelIndicator;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -80,6 +81,7 @@ public final class ObjectsController implements IObjectsController {
     //public final static short OBJECT_GOLD_BAG_ID = 2;
     public final static short OBJECT_GOLD_PILE_ID = 3;
     public final static short OBJECT_SPELL_BOOK_ID = 4;
+    public final static short OBJECT_HERO_BED_ID = 6;
     public final static short OBJECT_CHICKEN_ID = 9;
     public final static short OBJECT_CALL_TO_ARMS_ID = 10;
     public final static short OBJECT_EGG_ID = 47;
@@ -243,6 +245,9 @@ public final class ObjectsController implements IObjectsController {
         }
         if (obj.getFlags().contains(GameObject.ObjectFlag.PLACEABLE)) {
             entityData.setComponent(entity, new Placeable());
+        }
+        if (obj.getStartState() == GameObject.State.MY_PET_DUNGEON_LEVEL_INDICATOR) {
+            entityData.setComponent(entity, new LevelIndicator(1));
         }
 
         // Mana flow

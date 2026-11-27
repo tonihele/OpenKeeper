@@ -185,9 +185,12 @@ public final class Utils {
      *
      * @param <T> item type
      * @param collection list
-     * @return random item from the collection or {@code null} if the list is empty
+     * @return random item from the collection or an empty optional if the collection is empty
      */
     public static <T> Optional<T> getRandomItem(Collection<T> collection) {
+        if (collection.isEmpty()) {
+            return Optional.empty();
+        }
         return collection.stream().skip(RANDOM.nextInt(collection.size())).findFirst();
     }
 
