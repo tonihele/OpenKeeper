@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
@@ -81,6 +82,7 @@ import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureAttractionFixtures;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -610,6 +612,73 @@ class CreatureControllerTest {
         }
     }
 
+    @Test
+    void withdrawsFromAFightToItsLair() {
+        try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
+            f.data.setComponent(f.bed, new Position(0, new Vector3f(20, WorldUtils.FLOOR_HEIGHT, 4)));
+            assertEquals(new Point(20, 4), withdrawalTile(f));
+        }
+    }
+
+    @Test
+    void withoutALairWithdrawsFromAFightToACornerOfItsHeartHoweverFarItIs() {
+        try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
+            f.data.removeComponent(f.entity, CreatureSleep.class);
+            f.rooms = List.of(room((short) 5, (short) 3, 41, 15, 5));
+
+            // The heart's reference tile is its first tile plus three, 44,18, and the corner two off it on both axes
+            assertTrue(Set.of(new Point(42, 16), new Point(42, 20), new Point(46, 16), new Point(46, 20)).contains(withdrawalTile(f)));
+        }
+    }
+
+    @Test
+    void withdrawsToOneOfItsRoomsButNotABridgeWhenItCanNotWalkToTheHeartCorner() {
+        try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
+            f.data.removeComponent(f.entity, CreatureSleep.class);
+            f.rooms = List.of(room((short) 5, (short) 3, 41, 15, 5), room((short) 8, (short) 3, 20, 2, 1),
+                    room((short) 1, (short) 4, 30, 2, 3), room((short) 1, (short) 3, 30, 10, 3));
+            f.walkable = p -> !Set.of(new Point(42, 16), new Point(42, 20), new Point(46, 16), new Point(46, 20)).contains(p);
+
+            // The heart itself or the Treasury, never the bridge or the other keeper's room
+            assertTrue(Set.of(new Point(44, 18), new Point(31, 11)).contains(withdrawalTile(f)));
+        }
+    }
+
+    /**
+     * Scares the fixture's worker with an enemy next to it, away from any heart
+     */
+    private static Point withdrawalTile(Fixture f) {
+        EntityId enemy = f.data.createEntity();
+        f.data.setComponents(enemy, new Owner((short) 1, (short) 1), new Health(1000, 1000), new Threat(100),
+                new Position(0, new Vector3f(4, WorldUtils.FLOOR_HEIGHT, 4)));
+        f.data.removeComponent(f.entity, Fearless.class);
+        f.sensed = Set.of(enemy);
+        f.keeper.setDungeonHeartLocation(new Point(60, 60));
+        f.roomHere = null;
+        f.controller.shouldFleeOrAttack();
+        assertEquals(CreatureState.FLEE, f.state());
+        Navigation navigation = f.data.getComponent(f.entity, Navigation.class);
+        return navigation != null ? navigation.target : null;
+    }
+
+    /**
+     * A square room of a keeper, its top left tile at x, y
+     */
+    private static IRoomController room(short roomId, short ownerId, int x, int y, int size) {
+        RoomInstance instance = new RoomInstance(CreatureAttractionFixtures.room(roomId));
+        for (int j = 0; j < size; j++) {
+            for (int i = 0; i < size; i++) {
+                instance.addCoordinate(new Point(x + i, y + j));
+            }
+        }
+        instance.setOwnerId(ownerId);
+        return proxy(IRoomController.class, (method, args) -> switch (method) {
+            case "getRoomInstance" -> instance;
+            case "isDungeonHeart" -> roomId == 5;
+            default -> throw new UnsupportedOperationException(method);
+        });
+    }
+
     private static CreatureState stateWhenThreatenedInHeart(short heartOwner, boolean destroyed) {
         try (Fixture f = new Fixture(9)) {
             EntityId hero = f.data.createEntity();
@@ -937,6 +1006,8 @@ class CreatureControllerTest {
         final Creature definition;
         final Keeper keeper = new Keeper(false, (short) 3);
         IRoomController roomHere;
+        List<IRoomController> rooms = List.of();
+        java.util.function.Predicate<Point> walkable = p -> true;
         Set<EntityId> sensed = Set.of();
         List<EntityId> onTile = List.of();
         CreatureController controller;
@@ -984,6 +1055,7 @@ class CreatureControllerTest {
             });
             IMapController map = proxy(IMapController.class, (method, args) -> switch (method) {
                 case "getRoomControllerByCoordinates" -> roomHere;
+                case "getRoomControllers" -> rooms;
                 default -> throw new UnsupportedOperationException(method);
             });
             ITaskManager taskManager = proxy(ITaskManager.class, (method, args) -> switch (method) {
@@ -1065,7 +1137,7 @@ class CreatureControllerTest {
                 default -> throw new UnsupportedOperationException(method);
             });
             INavigationService navigation = proxy(INavigationService.class, (method, args) -> switch (method) {
-                case "findPath" -> new DefaultGraphPath<>();
+                case "findPath" -> walkable.test((Point) args[1]) ? new DefaultGraphPath<>() : null;
                 default -> throw new UnsupportedOperationException(method);
             });
             IObjectsController objects = proxy(IObjectsController.class, (method, args) -> switch (method) {

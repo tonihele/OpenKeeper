@@ -519,7 +519,8 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
-            if (entity.isStateTimeExceeded() && !entity.shouldFleeOrAttack()) {
+            // The withdrawal home is walked to its end, as DK II's (0x4611D0, state 0xCA once there)
+            if (entity.isStateTimeExceeded() && entity.isStopped() && !entity.shouldFleeOrAttack()) {
                 entity.getStateMachine().changeState(IDLE);
             }
         }

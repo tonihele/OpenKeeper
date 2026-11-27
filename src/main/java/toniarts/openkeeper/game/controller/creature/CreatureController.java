@@ -172,6 +172,16 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private static final int FLEE_DISTANCE = 7;
     /**
+     * The bridges, which a keeper's creature never withdraws to: the Wooden,
+     * Stone and Hero Stone Bridge (DK II 0x4C63D0 skips room types 8, 0x11
+     * and 0x16)
+     */
+    private static final Set<Short> BRIDGE_ROOM_IDS = Set.of((short) 8, (short) 17, (short) 22);
+    /**
+     * How many random rooms a withdrawing creature tries (DK II 0x4611D0)
+     */
+    private static final int WITHDRAW_ROOM_TRIES = 3;
+    /**
      * How far, in tiles, a recuperating hero wanders on its own land (DK II
      * 0x461B50 asks 0x461BB0 for a tile this far)
      */
@@ -2133,6 +2143,14 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void flee() {
+
+        // A keeper's creature withdraws from a fight to its home (DK II 0x4611D0)
+        Point home = getOwnerId() >= Player.KEEPER1_ID ? findWithdrawalTile() : null;
+        if (home != null) {
+            createNavigation(getCreatureCoordinates(), home, null);
+            return;
+        }
+
         Point threat = findThreatLocation();
         if (threat != null) {
             fleeFrom(threat);
@@ -2147,6 +2165,53 @@ public final class CreatureController extends EntityController implements ICreat
         } else {
             navigateToRandomPoint();
         }
+    }
+
+    /**
+     * Where a keeper's creature withdraws to from a fight, as DK II does
+     * (0x4611D0): its lair, else a corner of its keeper's Dungeon Heart, two
+     * tiles off the heart's reference tile on both axes, the sides picked at
+     * random, else one of three tries at a random room of its keeper, the
+     * bridges left out (0x4C63D0). The corner and the rooms only count when
+     * the creature can walk there. An imp has no lair, so it goes back to the
+     * heart however far it is
+     *
+     * @return the tile to withdraw to, null if there is none
+     */
+    private Point findWithdrawalTile() {
+        Point lair = getLairLocation();
+        if (lair != null) {
+            return lair;
+        }
+
+        Point ourLocation = getCreatureCoordinates();
+        List<IRoomController> rooms = new ArrayList<>();
+        IRoomController heart = null;
+        for (IRoomController room : mapController.getRoomControllers()) {
+            if (room.getRoomInstance().getOwnerId() == getOwnerId() && !room.getRoomInstance().isDestroyed()
+                    && !BRIDGE_ROOM_IDS.contains(room.getRoomInstance().getRoom().getRoomId())) {
+                rooms.add(room);
+                if (room.isDungeonHeart()) {
+                    heart = room;
+                }
+            }
+        }
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        if (heart != null) {
+            Point reference = heart.getRoomInstance().getReferenceTile();
+            Point corner = new Point(reference.x + (random.nextBoolean() ? -2 : 2), reference.y + (random.nextBoolean() ? -2 : 2));
+            if (navigationService.findPath(ourLocation, corner, this) != null) {
+                return corner;
+            }
+        }
+        for (int i = 0; i < WITHDRAW_ROOM_TRIES && !rooms.isEmpty(); i++) {
+            Point reference = rooms.get(random.nextInt(rooms.size())).getRoomInstance().getReferenceTile();
+            if (navigationService.findPath(ourLocation, reference, this) != null) {
+                return reference;
+            }
+        }
+
+        return null;
     }
 
     /**
