@@ -109,10 +109,8 @@ public final class PlayerGoldControl implements RoomListener {
     @Override
     public void onCaptured(IRoomController room) {
         if (room.canStoreGold()) {
-            synchronized (GameWorldController.GOLD_LOCK) {
-                int goldMax = getGoldMax() + room.getMaxCapacity(ObjectType.GOLD);
-                setGold(Math.min(getGold() + room.getUsedCapacity(ObjectType.GOLD), goldMax), goldMax);
-            }
+            int goldMax = getGoldMax() + room.getMaxCapacity(ObjectType.GOLD);
+            setGold(Math.min(getGold() + room.getUsedCapacity(ObjectType.GOLD), goldMax), goldMax);
         }
     }
 
@@ -125,9 +123,7 @@ public final class PlayerGoldControl implements RoomListener {
     @Override
     public void onCapturedByEnemy(IRoomController room) {
         if (room.canStoreGold()) {
-            synchronized (GameWorldController.GOLD_LOCK) {
-                setGold(Math.max(getGold() - room.getUsedCapacity(ObjectType.GOLD), 0), getGoldMax() - room.getMaxCapacity(ObjectType.GOLD));
-            }
+            setGold(Math.max(getGold() - room.getUsedCapacity(ObjectType.GOLD), 0), getGoldMax() - room.getMaxCapacity(ObjectType.GOLD));
         }
     }
 

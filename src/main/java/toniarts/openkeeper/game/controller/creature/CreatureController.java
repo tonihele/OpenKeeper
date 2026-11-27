@@ -51,6 +51,7 @@ import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
@@ -102,6 +103,7 @@ import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.logic.CreatureMoodSystem;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -114,6 +116,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -329,7 +332,62 @@ public final class CreatureController extends EntityController implements ICreat
             return true;
         }
 
+        // With nobody to fight, a dead body is worth a spell
+        return castCorpseSpell();
+    }
+
+    /**
+     * Casts our spell for dead bodies, Raise Dead, on the nearest dead body we
+     * sense within the spell's range (0x45CB00)
+     *
+     * @return true if we cast the spell
+     */
+    private boolean castCorpseSpell() {
+        CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+        if (creatureSpells == null) {
+            return false;
+        }
+
+        for (EntityId creatureSpellEntity : creatureSpells.creatureSpells) {
+            CreatureSpell spell = entityData.getComponent(creatureSpellEntity, CreatureSpell.class);
+            toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId);
+            if (!isAttackRecharged(spell) || !creatureSpell.getFlags().contains(CreatureSpellFlag.IS_DEFENSIVE)) {
+                continue;
+            }
+
+            // The Imp's Teleport is defensive too, but it has no shot
+            Shot shot = levelInfo.getLevelData().getShotById(creatureSpell.getShotTypeId());
+            if (shot == null || shot.getCollideType() != Shot.CollideType.DEAD_BODIES) {
+                continue;
+            }
+
+            EntityId deadBody = getNearestDeadBody(spell.range);
+            if (deadBody != null) {
+                entityData.setComponent(creatureSpellEntity, new CreatureSpell(spell, gameTimer.getGameTime()));
+                stopCreature();
+                stateMachine.changeState(CreatureState.CAST_SPELL);
+                entityData.setComponent(entityId, new CastShot(spell.creatureSpellId, deadBody, spell.range,
+                        gameTimer.getGameTime() + getShotDelay(spell.creatureSpellId)));
+
+                return true;
+            }
+        }
+
         return false;
+    }
+
+    private EntityId getNearestDeadBody(float range) {
+        EntityId nearestDeadBody = null;
+        float nearestDistance = range;
+        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            if (entityData.getComponent(entity, Death.class) != null && entityData.getComponent(entity, CreatureComponent.class) != null
+                    && getDistanceToCreature(entity) <= nearestDistance) {
+                nearestDistance = getDistanceToCreature(entity);
+                nearestDeadBody = entity;
+            }
+        }
+
+        return nearestDeadBody;
     }
 
     /**
@@ -657,7 +715,9 @@ public final class CreatureController extends EntityController implements ICreat
     /**
      * Like in DK II, an angry creature takes a job from its angry list, and an
      * unhappy creature, or an angry one that got none, from its unhappy list.
-     * Once a list gave a job, it rests for a while
+     * Once a list gave a job, it rests for a while. The creature tick
+     * (DKII.EXE 0x476FC0) rolls no mood job when it holds back the need anger
+     * (0x478D00 has the same checks), so not under the Call to Arms either
      *
      * @return true if the creature got a job
      */
@@ -665,7 +725,7 @@ public final class CreatureController extends EntityController implements ICreat
         CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
         int state = mood == null ? 0 : mood.getState(
                 CreatureMood.toRuntimeThreshold(creature.getAttributes().getUnhappyThreshold()));
-        if (state == 0) {
+        if (state == 0 || CreatureMoodSystem.isNeedAngerHeld(entityData, entityId, creature)) {
             return false;
         }
         double gameTime = gameTimer.getGameTime();
@@ -2306,11 +2366,9 @@ public final class CreatureController extends EntityController implements ICreat
                 return;
             }
         }
-        synchronized (GameWorldController.GOLD_LOCK) {
-            EntityId pile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, tile);
-            if (pile != null) {
-                giveObject(objectsController.createController(pile));
-            }
+        EntityId pile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, tile);
+        if (pile != null) {
+            giveObject(objectsController.createController(pile));
         }
     }
 
@@ -2348,13 +2406,11 @@ public final class CreatureController extends EntityController implements ICreat
             Point coordinates = getCreatureCoordinates();
 
             // Like in DKII (0x4510C0), the gold goes to the pile at our feet if there is one
-            synchronized (GameWorldController.GOLD_LOCK) {
-                EntityId goldPile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, coordinates);
-                if (goldPile != null) {
-                    Gold pile = entityData.getComponent(goldPile, Gold.class);
-                    entityData.setComponent(goldPile, new Gold(pile.gold + looseGold, pile.maxGold));
-                    return;
-                }
+            EntityId goldPile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, coordinates);
+            if (goldPile != null) {
+                Gold pile = entityData.getComponent(goldPile, Gold.class);
+                entityData.setComponent(goldPile, new Gold(pile.gold + looseGold, pile.maxGold));
+                return;
             }
             objectsController.addLooseGold(coordinates.x, coordinates.y, looseGold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
         }
