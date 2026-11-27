@@ -1670,6 +1670,15 @@ class KeeperAiSystemTest {
         tellMood(creature, 0);
         tellMood(creature, 1);
 
+        // DK II has one message of an unhappy creature at a time, the second one is not news while the first lasts
+        system.processTick(0.25f);
+        assertTrue(dropped.isEmpty());
+
+        // Once the first is content again, the second is news
+        tellMood(justDropped, 0);
+        system.processTick(0.25f);
+        tellMood(creature, 0);
+        tellMood(creature, 1);
         system.processTick(0.25f);
 
         assertEquals(Map.of(creature, new Point(1, 4)), dropped);

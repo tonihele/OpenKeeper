@@ -60,6 +60,7 @@ public class CreatureMoodSystemTest {
     private static final short CREATURE_ID = 7;
 
     private final EntityData entityData = new DefaultEntityData();
+    private final Creature creatureType = CreatureMoodFixtures.creature(CREATURE_ID, "Knight", (short) 6, (short) 100, (short) 50);
 
     @Test
     public void keeperCreatureWithoutLairGetsAngry() {
@@ -125,6 +126,27 @@ public class CreatureMoodSystemTest {
         }
     }
 
+    @Test
+    public void keeperIsNotToldOfAnEmotionlessCreature() {
+        CreatureMoodFixtures.emotionless(creatureType);
+        EntityId creature = creature(KEEPER_ID);
+        CreatureMoodSystem system = createSystem();
+        List<CreatureUpset> told = new ArrayList<>();
+        EventListener<CreatureUpset> listener = (type, event) -> told.add(event);
+        EventBus.addListener(ServerEvents.CREATURE_UPSET, listener);
+        try {
+
+            // DK II leaves creature data +0x68A bit 4 out of its anger changes and messages (0x478B80)
+            entityData.setComponent(creature, new CreatureMood().add(CreatureMood.REASON_GENERAL, 40000));
+            system.processTick(0.25f);
+            system.processTick(0.25f);
+            assertEquals(List.of(), told);
+        } finally {
+            EventBus.removeListener(ServerEvents.CREATURE_UPSET, listener);
+            system.stop();
+        }
+    }
+
     private EntityId creature(short ownerId) {
         EntityId entityId = entityData.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();
@@ -142,7 +164,7 @@ public class CreatureMoodSystemTest {
 
     private CreatureMoodSystem createSystem() {
         Room lair = RoomFixtures.room((short) 2, 0, Room.RoomFlag.BUILDABLE);
-        Creature creature = CreatureMoodFixtures.creature(CREATURE_ID, "Knight", (short) 6, (short) 100, (short) 50);
+        Creature creature = creatureType;
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
                 new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getRoomById" -> lair;

@@ -1096,15 +1096,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
     /**
      * Takes a message into the inbox, unless one like it is still there: an
-     * ask for the same room, a claim of a room of the same kind, news of the
-     * same creature, or any other message of the same kind. A creature that
-     * starts a fight is news each time. An ask for a room it has one of by now
-     * is dropped, as is a full room DK II doesn't tell it of. A full inbox
-     * makes way for it by dropping its oldest message, like DK II's list.<br>
-     * DK II has one message of an unhappy and one of an angry creature at a
-     * time (0x4C4600), and its creatures mostly calm down within a minute of
-     * being seen to. OpenKeeper's stay upset much longer, so that would leave
-     * the others unseen to, and each creature has its own message here
+     * ask for the same room, a claim of a room of the same kind, or any other
+     * message of the same kind. So there is one message of an unhappy and one
+     * of an angry creature at a time. A creature that starts a fight is news
+     * each time. An ask for a room it has one of by now is dropped, as is a
+     * full room DK II doesn't tell it of. A full inbox makes way for it by
+     * dropping its oldest message, like DK II's list
      */
     private void receive(KeeperAi keeperAi, IPlayerController playerController, News item, int ticksPerSecond) {
         KeeperAi.Message message = item.message();
@@ -1137,11 +1134,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             default -> {
             }
         }
-        boolean byValue = message == KeeperAi.Message.ROOM_WANTED || message == KeeperAi.Message.ROOM_TOO_SMALL
-                || message == KeeperAi.Message.ROOM_CLAIMED || message == KeeperAi.Message.UNHAPPY || message == KeeperAi.Message.ANGRY;
+        boolean byRoom = message == KeeperAi.Message.ROOM_WANTED || message == KeeperAi.Message.ROOM_TOO_SMALL
+                || message == KeeperAi.Message.ROOM_CLAIMED;
         int count = 0;
         while (count < keeperAi.messages.length && keeperAi.messages[count] != null) {
-            if (units > 0 && keeperAi.messages[count] == message && (!byValue || keeperAi.messageValues[count] == value)) {
+            if (units > 0 && keeperAi.messages[count] == message && (!byRoom || keeperAi.messageValues[count] == value)) {
                 return;
             }
             count++;

@@ -184,12 +184,14 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
      * Keeps the mood a keeper's creature is in, and tells the keeper when it
      * turns unhappy or angry. DK II posts its messages 0x11 and 0x12 then,
      * when the anger rises past a threshold (0x478B80, 0x478C30); calming
-     * down is no news
+     * down is no news. An emotionless creature type (creature data +0x68A
+     * bit 4) is never news, DK II changes no anger for it there
      */
     private void tellMood(Entity entity) {
         Owner owner = entity.get(Owner.class);
         Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
-        if (owner.ownerId <= Player.NEUTRAL_PLAYER_ID || creature == null) {
+        if (owner.ownerId <= Player.NEUTRAL_PLAYER_ID || creature == null
+                || creature.getFlags2() != null && creature.getFlags2().contains(Creature.CreatureFlag2.IS_EMOTIONLESS)) {
             return;
         }
 

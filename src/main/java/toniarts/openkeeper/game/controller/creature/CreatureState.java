@@ -372,9 +372,14 @@ public enum CreatureState implements State<ICreatureController> {
         public void enter(ICreatureController entity) {
             entity.unassingCurrentTask();
 
-            // The keeper hears of each fight its creatures start (DK II 0x45EB20)
-            EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(entity.getOwnerId(), KeeperAttacked.Target.CREATURE,
-                    entity.getCreatureCoordinates()));
+            // The keeper hears of each fight its creatures start (DK II 0x45EB20). DK II swings and casts within its
+            // fight state, so coming back from a swing or a spell is no news. Nor is a spell on a friend or on a dead
+            // body, DK II's fight mode 3 (CCreature+0x529, set by 0x45CB00), which here goes through the spell too
+            CreatureState previous = entity.getStateMachine().getPreviousState();
+            if (previous != MELEE_ATTACK && previous != CAST_SPELL) {
+                EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(entity.getOwnerId(), KeeperAttacked.Target.CREATURE,
+                        entity.getCreatureCoordinates()));
+            }
         }
 
         @Override
