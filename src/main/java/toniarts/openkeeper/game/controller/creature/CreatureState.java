@@ -18,8 +18,11 @@ package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.State;
 import com.badlogic.gdx.ai.msg.Telegram;
+import com.simsilica.event.EventBus;
 import java.util.function.Consumer;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
+import toniarts.openkeeper.game.event.KeeperAttacked;
+import toniarts.openkeeper.game.event.ServerEvents;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -368,6 +371,10 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void enter(ICreatureController entity) {
             entity.unassingCurrentTask();
+
+            // The keeper hears of each fight its creatures start (DK II 0x45EB20)
+            EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(entity.getOwnerId(), KeeperAttacked.Target.CREATURE,
+                    entity.getCreatureCoordinates()));
         }
 
         @Override

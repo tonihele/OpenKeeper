@@ -20,6 +20,7 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import com.simsilica.event.EventBus;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Collection;
@@ -37,6 +38,7 @@ import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.KeeperAiMood;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
@@ -44,6 +46,8 @@ import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.event.CreatureUpset;
+import toniarts.openkeeper.game.event.ServerEvents;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -104,6 +108,9 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
     @Override
     public void processTick(float tpf) {
         entities.applyChanges();
+        for (Entity entity : entities.getChangedEntities()) {
+            tellMood(entity);
+        }
         for (Entity entity : entities) {
             CreatureMood mood = entity.get(CreatureMood.class);
             CreatureSleep sleep = entity.get(CreatureSleep.class);
@@ -170,6 +177,35 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
                                 stateName(oldState), stateName(newState), counters(updatedMood)});
                 }
             }
+        }
+    }
+
+    /**
+     * Keeps the mood a keeper's creature is in, and tells the keeper when it
+     * turns unhappy or angry. DK II posts its messages 0x11 and 0x12 then,
+     * when the anger rises past a threshold (0x478B80, 0x478C30); calming
+     * down is no news
+     */
+    private void tellMood(Entity entity) {
+        Owner owner = entity.get(Owner.class);
+        Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
+        if (owner.ownerId <= Player.NEUTRAL_PLAYER_ID || creature == null) {
+            return;
+        }
+
+        int state = entity.get(CreatureMood.class).getState(CreatureMood.toRuntimeThreshold(creature.getAttributes().getUnhappyThreshold()));
+        KeeperAiMood told = entityData.getComponent(entity.getId(), KeeperAiMood.class);
+        int toldState = told != null ? told.state : 0;
+        if (state == toldState) {
+            return;
+        }
+        if (state == 0) {
+            entityData.removeComponent(entity.getId(), KeeperAiMood.class);
+        } else {
+            entityData.setComponent(entity.getId(), new KeeperAiMood(state));
+        }
+        if (state > toldState) {
+            EventBus.publish(ServerEvents.CREATURE_UPSET, new CreatureUpset(owner.ownerId, entity.getId(), state == 2));
         }
     }
 

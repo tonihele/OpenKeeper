@@ -34,6 +34,8 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.RoomWanted;
 import toniarts.openkeeper.game.event.ServerEvents;
@@ -52,29 +54,26 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * A creature that looks for a room its keeper has none of tells its keeper,
- * as DK II's room searches post the "room wanted" message (0x29)
+ * as DK II's room searches post the "room wanted" message (0x29), and one
+ * that finds them full tells it they are too small (0x2A)
  */
 class RoomWantedTest {
 
-    private final TaskManager taskManager = new TaskManager(new DefaultEntityData(), stub(IGameWorldController.class, Map.of()),
-            stub(IMapController.class, Map.of("getMapData", stub(IMapDataInformation.class, Map.of("getWidth", 0, "getHeight", 0)),
-                    "getRoomsByFunction", List.of())),
-            stub(IObjectsController.class, Map.of()), stub(ICreaturesController.class, Map.of()), stub(INavigationService.class, Map.of()),
-            List.of(stub(IPlayerController.class, Map.of("getKeeper", new Keeper(false, Player.KEEPER1_ID)))),
-            stub(ILevelInfo.class, Map.of("getLevelData", stub(IKwdFile.class, Map.of()))), stub(IEntityPositionLookup.class, Map.of()),
-            Map.of(MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND,
-                    CasinoVariableFixtures.miscVariable(MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND, -8)));
+    private final TaskManager taskManager = createTaskManager(List.of());
     private final List<RoomWanted> asked = new ArrayList<>();
-    private final EventListener<RoomWanted> listener = (type, event) -> asked.add(event);
+    private final List<RoomWanted> tooSmall = new ArrayList<>();
+    private final EventListener<RoomWanted> listener = (type, event) -> (type == ServerEvents.ROOM_WANTED ? asked : tooSmall).add(event);
 
     @BeforeEach
     void listen() {
         EventBus.addListener(ServerEvents.ROOM_WANTED, listener);
+        EventBus.addListener(ServerEvents.ROOM_TOO_SMALL, listener);
     }
 
     @AfterEach
     void stopListening() {
         EventBus.removeListener(ServerEvents.ROOM_WANTED, listener);
+        EventBus.removeListener(ServerEvents.ROOM_TOO_SMALL, listener);
     }
 
     @Test
@@ -95,6 +94,29 @@ class RoomWantedTest {
         assertFalse(taskManager.isTaskAvailable(creature(9), Creature.JobType.DRINK));
 
         assertEquals(List.of(new RoomWanted(Player.KEEPER1_ID, ObjectType.GAMBLER)), asked);
+    }
+
+    @Test
+    void aCreatureThatFindsTheRoomsForItsJobFullTellsItsKeeperTheyAreTooSmall() {
+        IRoomController full = stub(IRoomController.class, Map.of("isDestroyed", false,
+                "getObjectControl", stub(IRoomObjectControl.class, Map.of("isFullCapacity", true))));
+
+        assertFalse(createTaskManager(List.of(full)).isTaskAvailable(creature(0), Creature.JobType.TRAIN));
+
+        // DK II's message 0x2A
+        assertEquals(List.of(new RoomWanted(Player.KEEPER1_ID, ObjectType.TRAINEE)), tooSmall);
+        assertEquals(List.of(), asked);
+    }
+
+    private static TaskManager createTaskManager(List<IRoomController> rooms) {
+        return new TaskManager(new DefaultEntityData(), stub(IGameWorldController.class, Map.of()),
+                stub(IMapController.class, Map.of("getMapData", stub(IMapDataInformation.class, Map.of("getWidth", 0, "getHeight", 0)),
+                        "getRoomsByFunction", rooms)),
+                stub(IObjectsController.class, Map.of()), stub(ICreaturesController.class, Map.of()), stub(INavigationService.class, Map.of()),
+                List.of(stub(IPlayerController.class, Map.of("getKeeper", new Keeper(false, Player.KEEPER1_ID)))),
+                stub(ILevelInfo.class, Map.of("getLevelData", stub(IKwdFile.class, Map.of()))), stub(IEntityPositionLookup.class, Map.of()),
+                Map.of(MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND,
+                        CasinoVariableFixtures.miscVariable(MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND, -8)));
     }
 
     private static ICreatureController creature(int gold) {

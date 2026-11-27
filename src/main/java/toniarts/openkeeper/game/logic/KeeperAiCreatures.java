@@ -309,45 +309,54 @@ final class KeeperAiCreatures {
     }
 
     /**
-     * Sees to each of its creatures whose mood has just turned for the
-     * worse, once, as DK II's computer player does when the message about
-     * it comes in. An unhappy creature is made happy when its settings say
-     * so. An angry one is got rid of when they say that, or else made happy
-     * when they say that. None of it takes an action.
+     * Sees to a creature that turned unhappy or angry, as DK II's computer
+     * player does for its messages 0x11 and 0x12 (0x4FA400). An unhappy
+     * creature is made happy when its settings say so. An angry one is got
+     * rid of when they say that, or else made happy when they say that. None
+     * of it takes an action.
      *
      * @param keeperAi the computer player
      * @param playerController its player
      * @param ai its settings
+     * @param creatureId the creature
+     * @param angry whether it turned angry rather than unhappy
+     * @return whether it is seen to, false to try again on the next turn: DK
+     * II tries again to get rid of an angry creature until it has, and to
+     * make one happy while three attacks wait to be answered (0x4F9520,
+     * 0x4F9710)
      */
-    void answerMoods(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
-        for (Entity creature : battles.getCreatures(keeperAi.playerId)) {
-            CreatureMood mood = entityData.getComponent(creature.getId(), CreatureMood.class);
-            if (mood == null) {
-                continue;
-            }
-
-            int state = getMoodState(creature, mood);
-            KeeperAiMood seen = entityData.getComponent(creature.getId(), KeeperAiMood.class);
-            int seenState = seen != null ? seen.state : 0;
-            if (state == seenState) {
-                continue;
-            }
-            if (state == 0) {
-                entityData.removeComponent(creature.getId(), KeeperAiMood.class);
-            } else {
-                entityData.setComponent(creature.getId(), new KeeperAiMood(state));
-            }
-
-            // A creature that calms down is no news
-            if (state < seenState) {
-                continue;
-            }
-            if (state == 2 && ai.isDisposeOfAngryCreatures()) {
-                disposeOf(keeperAi, playerController, ai, creature);
-            } else if (state == 2 ? ai.isTryToMakeAngryOnesHappy() : ai.isTryToMakeUnhappyOnesHappy()) {
-                makeHappy(keeperAi, playerController, creature, mood.getDominantReason());
+    boolean answerMood(KeeperAi keeperAi, IPlayerController playerController, AI ai, EntityId creatureId, boolean angry) {
+        Entity creature = null;
+        for (Entity owned : battles.getCreatures(keeperAi.playerId)) {
+            if (owned.getId().equals(creatureId)) {
+                creature = owned;
             }
         }
+        CreatureMood mood = entityData.getComponent(creatureId, CreatureMood.class);
+        if (creature == null || mood == null) {
+            return true;
+        }
+        if (angry && ai.isDisposeOfAngryCreatures()) {
+            return disposeOf(keeperAi, playerController, ai, creature);
+        }
+        if (angry ? ai.isTryToMakeAngryOnesHappy() : ai.isTryToMakeUnhappyOnesHappy()) {
+            return makeHappy(keeperAi, playerController, creature, mood.getDominantReason())
+                    || keeperAi.attacks < keeperAi.attackNeeds.length;
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether a creature is still in the mood its keeper was told of
+     *
+     * @param creatureId the creature
+     * @param angry angry or else unhappy
+     * @return true while it is
+     */
+    boolean isUpset(EntityId creatureId, boolean angry) {
+        KeeperAiMood mood = entityData.getComponent(creatureId, KeeperAiMood.class);
+        return mood != null && mood.state == (angry ? 2 : 1);
     }
 
     /**
@@ -355,8 +364,10 @@ final class KeeperAiCreatures {
      * Treasury or a chicken from the Hatchery dropped on it, the creature
      * itself dropped in the Lair, or in the first room for one of its jobs
      * unless the hand dropped it a short while ago
+     *
+     * @return whether it did
      */
-    private void makeHappy(KeeperAi keeperAi, IPlayerController playerController, Entity creature, int reason) {
+    private boolean makeHappy(KeeperAi keeperAi, IPlayerController playerController, Entity creature, int reason) {
         EntityId creatureId = creature.getId();
         EntityId held = playerController.getHandControl().peek();
         switch (reason) {
@@ -374,23 +385,23 @@ final class KeeperAiCreatures {
                     }
                 }
                 if (chicken == null) {
-                    return;
+                    return false;
                 }
                 gameWorldController.pickUp(chicken, keeperAi.playerId);
             }
             case CreatureMood.REASON_NO_LAIR -> {
                 IRoomController lair = getRoom(playerController, ROOM_LAIR);
-                if (lair != null) {
-                    Point tile = lair.getRoomInstance().getReferenceTile();
-                    decisionLog.log(keeperAi, "carry creature " + creatureId.getId() + " to the Lair", tile, "unhappy without a lair");
-                    battles.carry(creatureId, tile, playerController);
+                if (lair == null) {
+                    return false;
                 }
-                return;
+                Point tile = lair.getRoomInstance().getReferenceTile();
+                decisionLog.log(keeperAi, "carry creature " + creatureId.getId() + " to the Lair", tile, "unhappy without a lair");
+                return battles.carry(creatureId, tile, playerController);
             }
             case CreatureMood.REASON_NO_WORK -> {
                 Creature.JobPreference[] jobs = kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId).getHappyJobs();
                 if (jobs == null || battles.isLeftAlone(creature)) {
-                    return;
+                    return false;
                 }
                 for (Creature.JobPreference job : jobs) {
                     Short roomId = JOB_ROOMS.get(job.getJobType());
@@ -399,15 +410,14 @@ final class KeeperAiCreatures {
                         Point tile = room.getRoomInstance().getReferenceTile();
                         decisionLog.log(keeperAi, "carry creature " + creatureId.getId() + " to room " + roomId, tile,
                                 "unhappy without work, it likes to " + job.getJobType().name().toLowerCase());
-                        battles.carry(creatureId, tile, playerController);
-                        return;
+                        return battles.carry(creatureId, tile, playerController);
                     }
                 }
-                return;
+                return false;
             }
             default -> {
                 if (getRoom(playerController, ROOM_TREASURY) == null) {
-                    return;
+                    return false;
                 }
                 gameWorldController.getGold(creature.get(CreatureComponent.class).pay, keeperAi.playerId);
             }
@@ -415,13 +425,16 @@ final class KeeperAiCreatures {
 
         // The gold or the chicken the hand has taken is dropped on the creature
         EntityId gift = playerController.getHandControl().peek();
-        if (gift != null && !gift.equals(held)) {
-            Vector3f position = creature.get(Position.class).position;
-            Point tile = WorldUtils.vectorToPoint(position);
-            decisionLog.log(keeperAi, "drop " + (reason == CreatureMood.REASON_NO_FOOD ? "a chicken" : "its pay")
-                    + " on creature " + creatureId.getId(), tile, "unhappy");
-            gameWorldController.drop(gift, tile, new Vector2f(position.x, position.z), creatureId, keeperAi.playerId);
+        if (gift == null || gift.equals(held)) {
+            return false;
         }
+        Vector3f position = creature.get(Position.class).position;
+        Point tile = WorldUtils.vectorToPoint(position);
+        decisionLog.log(keeperAi, "drop " + (reason == CreatureMood.REASON_NO_FOOD ? "a chicken" : "its pay")
+                + " on creature " + creatureId.getId(), tile, "unhappy");
+        gameWorldController.drop(gift, tile, new Vector2f(position.x, position.z), creatureId, keeperAi.playerId);
+
+        return true;
     }
 
     /**
@@ -429,8 +442,10 @@ final class KeeperAiCreatures {
      * it on a random tile of the pool of its Temple. Any other, and one
      * whose hand could not do that, drops it on the reference tile of its Temple,
      * with no Temple of a Portal, with no Portal of a Hero Portal
+     *
+     * @return whether it did
      */
-    private void disposeOf(KeeperAi keeperAi, IPlayerController playerController, AI ai, Entity creature) {
+    private boolean disposeOf(KeeperAi keeperAi, IPlayerController playerController, AI ai, Entity creature) {
         IRoomController room = getRoom(playerController, ROOM_TEMPLE);
         if (ai.getDisposalMethod() == AI.CreatureDisposalPolicy.SACRIFICE && room instanceof TempleController temple) {
             List<Point> pool = new ArrayList<>();
@@ -443,7 +458,7 @@ final class KeeperAiCreatures {
                 Point tile = Utils.getRandomItem(pool);
                 decisionLog.log(keeperAi, "sacrifice creature " + creature.getId().getId(), tile, "angry");
                 if (battles.carry(creature.getId(), tile, playerController)) {
-                    return;
+                    return true;
                 }
             }
         }
@@ -453,12 +468,14 @@ final class KeeperAiCreatures {
         if (room == null) {
             room = getRoom(playerController, ROOM_HERO_PORTAL);
         }
-        if (room != null) {
-            Point tile = room.getRoomInstance().getReferenceTile();
-            decisionLog.log(keeperAi, "carry creature " + creature.getId().getId() + " to room " + room.getRoomInstance().getRoom().getRoomId(),
-                    tile, "angry");
-            battles.carry(creature.getId(), tile, playerController);
+        if (room == null) {
+            return false;
         }
+        Point tile = room.getRoomInstance().getReferenceTile();
+        decisionLog.log(keeperAi, "carry creature " + creature.getId().getId() + " to room " + room.getRoomInstance().getRoom().getRoomId(),
+                tile, "angry");
+
+        return battles.carry(creature.getId(), tile, playerController);
     }
 
     /**

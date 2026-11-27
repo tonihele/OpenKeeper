@@ -19,9 +19,9 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * The mood of a creature its computer player has seen last, so that it
- * answers each turn for the worse once. DK II's computer player gets a
- * message for it
+ * The mood a keeper's creature is in, unhappy or angry, as its keeper was
+ * told of it last. The keeper is told of each turn for the worse once, DK II
+ * posts a message for it
  */
 public final class KeeperAiMood implements EntityComponent {
 

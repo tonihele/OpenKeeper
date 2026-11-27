@@ -828,12 +828,13 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     public boolean assignGoldToTreasuryTask(ICreatureController creature) {
 
         // See if the creature's player lacks of gold. When the gold doesn't fit, DK II asks for a Treasury
-        // if there is none (0x4BA420)
+        // if there is none, or else tells that the Treasury is too small (0x4BA420)
         IPlayerController player = playerControllers.get(creature.getOwnerId());
         if (!player.getGoldControl().isFullCapacity()) {
             return assignClosestRoomTask(creature, ObjectType.GOLD, null);
         }
-        EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(creature.getOwnerId(), ObjectType.GOLD));
+        boolean treasury = mapController.getRoomsByFunction(ObjectType.GOLD, creature.getOwnerId()).stream().anyMatch(room -> !room.isDungeonHeart());
+        EventBus.publish(treasury ? ServerEvents.ROOM_TOO_SMALL : ServerEvents.ROOM_WANTED, new RoomWanted(creature.getOwnerId(), ObjectType.GOLD));
         return false;
     }
 
@@ -905,6 +906,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])), room
                 );
             }
+        }
+
+        // With all of them full, the keeper is told they are too small (DK II's message 0x2A)
+        if (distancesToRooms.isEmpty() && rooms.stream().anyMatch(room -> !room.isDestroyed())) {
+            EventBus.publish(ServerEvents.ROOM_TOO_SMALL, new RoomWanted(creature.getOwnerId(), objectType));
         }
 
         // See that are they really accessible starting from the least distance one

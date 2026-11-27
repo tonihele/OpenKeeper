@@ -20,6 +20,7 @@ import com.jme3.math.Vector2f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.event.EventBus;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.control.Container;
@@ -32,6 +33,8 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.event.KeeperAttacked;
+import toniarts.openkeeper.game.event.ServerEvents;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.map.IMapData;
@@ -511,7 +514,14 @@ public final class MapController extends Container implements IMapController {
         // Nobody's reinforced wall is repaired, not dug out (DKII.EXE 0x497960)
         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() != playerId
                 && !(terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID)) {
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+
+            // The owner hears that its land or its room is being claimed (DK II 0x498BB0, 0x497DF0)
+            boolean room = terrain.getFlags().contains(Terrain.TerrainFlag.ROOM);
+            if (tile.getOwnerId() != Player.NEUTRAL_PLAYER_ID && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(tile.getOwnerId(),
+                        room ? KeeperAttacked.Target.ROOM : KeeperAttacked.Target.LAND, point));
+            }
+            if (room) {
                 damageRoom(point, playerId, creature);
             } else {
                 damageTile(point, playerId, creature);

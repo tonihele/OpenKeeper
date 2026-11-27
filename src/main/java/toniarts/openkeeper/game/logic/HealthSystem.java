@@ -22,6 +22,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
+import com.simsilica.event.EventBus;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CombatPitFighter;
@@ -60,14 +61,18 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.entity.EntityController;
+import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.event.KeeperAttacked;
+import toniarts.openkeeper.game.event.ServerEvents;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -451,6 +456,7 @@ public final class HealthSystem extends GameTimeCounter {
                 if (damage.damage > 0) {
                     gameEventService.emit(GameEventType.CREATURE_HURT, entityId);
                     extendStun(entityId, gameTime);
+                    tellHeartHit(entityId);
                 }
             }
 
@@ -548,6 +554,23 @@ public final class HealthSystem extends GameTimeCounter {
         }
 
         return delta;
+    }
+
+    /**
+     * Tells a keeper that its Dungeon Heart was hit, as DK II does with its
+     * message 1 (0x4DA200)
+     */
+    private void tellHeartHit(EntityId entityId) {
+        ObjectComponent object = entityData.getComponent(entityId, ObjectComponent.class);
+        if (object == null || object.objectId != FiveByFiveRotatedController.OBJECT_HEART_ID) {
+            return;
+        }
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        Position position = entityData.getComponent(entityId, Position.class);
+        if (owner != null && position != null) {
+            EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(owner.ownerId, KeeperAttacked.Target.HEART,
+                    WorldUtils.vectorToPoint(position.position)));
+        }
     }
 
     /**
