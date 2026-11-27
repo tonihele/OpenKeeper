@@ -908,8 +908,10 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
         }
 
-        // With all of them full, the keeper is told they are too small (DK II's message 0x2A)
-        if (distancesToRooms.isEmpty() && rooms.stream().anyMatch(room -> !room.isDestroyed())) {
+        // With all of them full, the keeper is told they are too small (DK II's message 0x2A, for example from the
+        // Training Room search 0x4F3560 when a room fails its capacity check)
+        if (distancesToRooms.isEmpty() && !rooms.isEmpty()
+                && rooms.stream().allMatch(room -> !room.isDestroyed() && room.getObjectControl(objectType).isFullCapacity())) {
             EventBus.publish(ServerEvents.ROOM_TOO_SMALL, new RoomWanted(creature.getOwnerId(), objectType));
         }
 
