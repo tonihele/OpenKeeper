@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -529,7 +530,9 @@ final class KeeperAiCreatures {
     /**
      * Slaps its idle creatures, each one with more than half its health and
      * not still quick from a slap has one chance in a hundred. Each slap
-     * takes an action.
+     * takes an action. Quick means its speed is still changed, for the 100
+     * seconds of DK II's speed timer (creature +0x459, 0x48B8A0), not only
+     * the minute of the faster work.
      *
      * @param keeperAi the computer player
      * @param actions the actions it has left
@@ -542,7 +545,8 @@ final class KeeperAiCreatures {
             }
             Health health = creature.get(Health.class);
             if (isIdle(creature) && health.health > health.maxHealth * SLAP_HEALTH_PERCENTAGE / 100
-                    && entityData.getComponent(creature.getId(), Slapped.class) == null && Utils.getRandom().nextInt(SLAP_CHANCE) == 0) {
+                    && entityData.getComponent(creature.getId(), Slapped.class) == null
+                    && entityData.getComponent(creature.getId(), SpeedChange.class) == null && Utils.getRandom().nextInt(SLAP_CHANCE) == 0) {
                 decisionLog.log(keeperAi, "slap creature " + creature.getId().getId(), null, "idle");
                 gameWorldController.interact(creature.getId(), keeperAi.playerId);
                 actions--;

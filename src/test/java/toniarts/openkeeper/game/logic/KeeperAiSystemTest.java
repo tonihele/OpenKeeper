@@ -68,6 +68,7 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Threat;
@@ -1557,6 +1558,25 @@ class KeeperAiSystemTest {
         }
 
         assertEquals(List.of(reinforcer), slapped);
+    }
+
+    @Test
+    void slapsNoCreatureWhileItsSpeedIsChanged() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+
+        // The faster work of a slap is over, the speed of it not yet
+        EntityId quick = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        entityData.setComponent(quick, new SpeedChange(100));
+        for (int tick = 0; tick < 2000; tick++) {
+            system.processTick(0.25f);
+        }
+        assertTrue(slapped.isEmpty());
+
+        entityData.removeComponent(quick, SpeedChange.class);
+        for (int tick = 0; tick < 2000 && slapped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+        assertEquals(List.of(quick), slapped);
     }
 
     @Test
