@@ -73,6 +73,7 @@ import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.PrisonEscape;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.ReturnToHeroLair;
@@ -97,6 +98,8 @@ import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.PrisonController;
+import toniarts.openkeeper.game.controller.room.storage.RoomPrisonerControl;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ObjectiveType;
@@ -2927,6 +2930,49 @@ public final class CreatureController extends EntityController implements ICreat
                 createNavigation(tile, destination, null);
                 return;
             }
+        }
+    }
+
+    @Override
+    public void freePrisoners() {
+
+        // Only from a tile of a Prison that has a door, and the break is done from the door (DK II 0x473C60)
+        Point tile = getCreatureCoordinates();
+        if (!(mapController.getRoomControllerByCoordinates(tile) instanceof PrisonController prison)
+                || prison.getDoor() == null) {
+            stateMachine.changeState(CreatureState.IDLE);
+            return;
+        }
+        if (!tile.equals(prison.getDoor())) {
+            if (isStopped() && createNavigation(tile, prison.getDoor(), prison.getRoomInstance().getCenter())) {
+                stateMachine.changeState(CreatureState.IDLE);
+            }
+            return;
+        }
+
+        // The friends still held inside set off for the door, all on the same tick (0x4E2E70)
+        prison.<RoomPrisonerControl>getObjectControl(AbstractRoomController.ObjectType.PRISONER).breakOut(this::isAlly);
+        stateMachine.changeState(CreatureState.IDLE);
+    }
+
+    @Override
+    public void escapePrison() {
+        if (entityData.getComponent(entityId, PrisonEscape.class) == null) {
+            return;
+        }
+
+        // To the tile of the cage below the door, from there onto the door, and free once on it (DK II 0x4739E0)
+        Point tile = getCreatureCoordinates();
+        if (!(mapController.getRoomControllerByCoordinates(tile) instanceof PrisonController prison)) {
+            return;
+        }
+        Point door = prison.getDoor();
+        if (door == null || tile.equals(door)) {
+            prison.<RoomPrisonerControl>getObjectControl(AbstractRoomController.ObjectType.PRISONER).free(entityId);
+            stateMachine.changeState(CreatureState.IDLE);
+        } else if (isStopped()) {
+            Point belowDoor = new Point(door.x, door.y + 1);
+            createNavigation(tile, tile.equals(belowDoor) ? door : belowDoor, null);
         }
     }
 

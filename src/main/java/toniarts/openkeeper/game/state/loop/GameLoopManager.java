@@ -55,6 +55,7 @@ import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.logic.KeeperAiSystem;
 import toniarts.openkeeper.game.logic.KeeperDefeatSystem;
 import toniarts.openkeeper.game.logic.LooseObjectSystem;
+import toniarts.openkeeper.game.logic.JailBreakSystem;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
 import toniarts.openkeeper.game.logic.MovementSystem;
 import toniarts.openkeeper.game.logic.OnFireSystem;
@@ -127,6 +128,7 @@ public final class GameLoopManager {
         gameLogicThread = new GameLogicManager(
                 gameWorldController.getMapController(),
                 new DecaySystem(entityData),
+                new JailBreakSystem(entityData, levelInfo, gameWorldController.getMapController()),
                 new WoodenBridgeDecaySystem(entityData, gameController.getGameTimer(), gameWorldController,
                         level, gameWorldController.getMapController(),
                         gameController.getLevelVariable(Variable.MiscVariable.MiscType.WOOD_BRIDGE_LIFE_ON_LAVA_SECONDS)),

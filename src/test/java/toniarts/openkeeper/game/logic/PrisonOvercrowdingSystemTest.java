@@ -29,6 +29,7 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.PrisonEscape;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -47,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * A Prison takes in prisoners over its safe capacity, and each one taken in
- * over it risks a jail break that frees them all
+ * over it risks a jail break in which they all set off for the door
  */
 class PrisonOvercrowdingSystemTest {
 
@@ -86,7 +87,7 @@ class PrisonOvercrowdingSystemTest {
     }
 
     @Test
-    void aPrisonerOverTheSafeCapacityCanFreeThemAll() {
+    void aPrisonerOverTheSafeCapacityCanLetThemAllOut() {
         PrisonOvercrowdingSystem system = createSystem(100);
         EntityId hero = imprison(HERO);
         EntityId enemy = imprison(ENEMY_KEEPER);
@@ -95,10 +96,9 @@ class PrisonOvercrowdingSystemTest {
         EntityId extra = imprison(HERO);
         system.processTick(0.25f);
 
-        assertFree(hero, HERO);
-        assertFree(enemy, ENEMY_KEEPER);
-        assertFree(extra, HERO);
-        assertEquals(0, prison.getCurrentCapacity());
+        assertBreakingOut(hero);
+        assertBreakingOut(enemy);
+        assertBreakingOut(extra);
     }
 
     @Test
@@ -127,8 +127,8 @@ class PrisonOvercrowdingSystemTest {
         EntityId last = imprison(HERO);
         system.processTick(0.25f);
 
-        assertFree(first, HERO);
-        assertFree(last, HERO);
+        assertBreakingOut(first);
+        assertBreakingOut(last);
     }
 
     @Test
@@ -148,13 +148,14 @@ class PrisonOvercrowdingSystemTest {
         assertNotNull(entityData.getComponent(prisoner, CreatureImprisoned.class));
         assertNotNull(entityData.getComponent(prisoner, Stored.class));
         assertEquals(CAPTOR, entityData.getComponent(prisoner, Owner.class).controlId);
+        assertNull(entityData.getComponent(prisoner, PrisonEscape.class));
     }
 
-    private void assertFree(EntityId prisoner, short ownerId) {
-        assertNull(entityData.getComponent(prisoner, CreatureImprisoned.class));
-        assertNull(entityData.getComponent(prisoner, Stored.class));
-        assertEquals(ownerId, entityData.getComponent(prisoner, Owner.class).controlId);
-        assertEquals(CreatureState.IDLE, entityData.getComponent(prisoner, CreatureAi.class).getCreatureState());
+    private void assertBreakingOut(EntityId prisoner) {
+
+        // Still a prisoner until it is through the door
+        assertNotNull(entityData.getComponent(prisoner, CreatureImprisoned.class));
+        assertNotNull(entityData.getComponent(prisoner, PrisonEscape.class));
     }
 
     private EntityId imprison(short ownerId) {
