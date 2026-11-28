@@ -31,10 +31,8 @@ import toniarts.openkeeper.game.component.CreaturePay;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.PayDayClock;
-import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
-import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -51,13 +49,15 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
  * <li>On pay day every creature of the keeper is owed its wage, the pay of its
  * level, on top of what it is still owed. Prisoners and the tortured are left
  * out, and so is a creature that joined less than the pay day cut off time
- * before the pay day.</li>
+ * before the pay day. While the keeper's Call to Arms is up nobody gets a
+ * wage, the pay day still counts (DKII.EXE 0x4BE1A0).</li>
  * <li>A creature that is owed walks to one of the keeper's gold rooms to
  * collect it, see {@link toniarts.openkeeper.game.task.creature.CollectPay}.
  * After two tries that got nothing it waits for the next pay day.</li>
  * <li>While a creature is owed anything, its anger for not being paid grows
- * every tick, by its anger for no pay. It goes away when the creature is paid
- * in full.</li>
+ * every tick, by its anger for no pay, except when DKII holds the anger for
+ * the needs back, see {@link CreatureMoodSystem#isNeedAngerHeld}. It goes
+ * away when the creature is paid in full.</li>
  * <li>The keeper's HUD shows the time left to the next pay day and what it
  * costs (DKII.EXE 0x415000, 0x4BE290). The system keeps these in a
  * {@link PayDayClock} for each keeper, updated once a second.</li>
@@ -193,7 +193,8 @@ public final class PayDaySystem implements IGameLogicUpdatable {
 
     private void payDay(short keeperId, IPlayerController keeper, double gameTime) {
         for (Entity entity : creatureEntities) {
-            if (entity.get(Owner.class).ownerId == keeperId && isPaid(entity.getId())) {
+            if (entity.get(Owner.class).ownerId == keeperId && isPaid(entity.getId())
+                    && !CreatureMoodSystem.isHeldByCallToArms(entityData, entity.getId())) {
                 addWage(entity, gameTime);
             }
         }
@@ -250,7 +251,7 @@ public final class PayDaySystem implements IGameLogicUpdatable {
 
         Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
         int anger = creature != null ? CreatureMood.toRuntimeValue(creature.getAttributes().getAngerNoPay()) : 0;
-        if (anger != 0 && !isTorturingItself(entity.getId())) {
+        if (anger != 0 && !CreatureMoodSystem.isNeedAngerHeld(entityData, entity.getId(), creature)) {
             entityData.setComponent(entity.getId(), mood.add(CreatureMood.REASON_NO_PAY, anger));
         }
     }
@@ -264,17 +265,6 @@ public final class PayDaySystem implements IGameLogicUpdatable {
      */
     public void payDayNow(short keeperId) {
         nextPayDays.replace(keeperId, 0.0);
-    }
-
-    /**
-     * A creature that is on a torture device because it likes it. DKII leaves
-     * the anger for unmet needs alone there (DKII.EXE 0x478D00 skips the
-     * states with state flag 2, and the on device state 0x83 has it)
-     */
-    private boolean isTorturingItself(EntityId entityId) {
-        TaskComponent task = entityData.getComponent(entityId, TaskComponent.class);
-        return task != null && task.taskType == TaskType.TORTURE && task.taskStarted
-                && (task.targetEntity == null || entityData.getComponent(task.targetEntity, CreatureComponent.class) == null);
     }
 
     @Override

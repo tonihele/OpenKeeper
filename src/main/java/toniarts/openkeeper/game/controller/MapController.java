@@ -618,32 +618,32 @@ public final class MapController extends Container implements IMapController {
      */
     private int getDamage(IMapTileController tile, Terrain terrain, short playerId, ICreatureController creature) {
         // Calculate the damage, the work variables are rates per game second
-        float rate;
-        int multiplier = (creature != null && kwdFile.getDwarf() == creature.getCreature() ? (int) getLevelVariable(Variable.MiscVariable.MiscType.DWARF_DIGGING_MULTIPLIER) : 1);
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-                if (tile.getOwnerId() == playerId) {
-                    rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_OWN_WALL_HEALTH) * multiplier;
-                } else {
-                    rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_ENEMY_WALL_HEALTH) * multiplier;
-                }
-            } else if (tile.getGold() > 0) {
+
+            // One swing, DK II's 0x496E00 and 0x4971D0. A swing lands one tick's worth of the rate
+            Variable.MiscVariable.MiscType rate;
+            int multiplier = 1;
+            if (tile.getGold() > 0) {
 
                 // Mining damages the seam like any dig, the gold comes out in proportion
-                rate = getLevelVariable(Variable.MiscVariable.MiscType.MINE_GOLD_HEALTH);
+                rate = Variable.MiscVariable.MiscType.MINE_GOLD_HEALTH;
+            } else if (creature != null && creature.getCreature() != kwdFile.getImp()) {
+
+                // Other diggers than imps hit six times the own wall rate, whoever owns the tile
+                rate = Variable.MiscVariable.MiscType.DIG_OWN_WALL_HEALTH;
+                multiplier = 6;
+            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+                rate = (tile.getOwnerId() == playerId ? Variable.MiscVariable.MiscType.DIG_OWN_WALL_HEALTH : Variable.MiscVariable.MiscType.DIG_ENEMY_WALL_HEALTH);
             } else {
-                rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_ROCK_HEALTH) * multiplier;
+                rate = Variable.MiscVariable.MiscType.DIG_ROCK_HEALTH;
             }
+            return TileWork.perSwing(multiplier * ((int) getLevelVariable(rate) / kwdFile.getGameLevel().getTicksPerSec()), getEfficiency(creature));
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() != playerId) {
 
             // Attack enemy tile, which goes on every tick (DK II 0x497670)
-            rate = (int) getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_TILE_HEALTH) / kwdFile.getGameLevel().getTicksPerSec();
-        } else {
-            throw new UnsupportedOperationException("Wat?! Tried to damage tile " + terrain.getName() + " at " + tile.getLocation() + "!");
+            return TileWork.perSwing((int) getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_TILE_HEALTH) / kwdFile.getGameLevel().getTicksPerSec(), getEfficiency(creature));
         }
-        return terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
-                ? TileWork.perApplication(rate, getEfficiency(creature))
-                : TileWork.perSwing((int) rate, getEfficiency(creature));
+        throw new UnsupportedOperationException("Wat?! Tried to damage tile " + terrain.getName() + " at " + tile.getLocation() + "!");
     }
 
     /**
