@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.logic;
 
 import com.badlogic.gdx.ai.steer.SteeringAcceleration;
 import com.badlogic.gdx.math.Vector2;
+import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
@@ -152,7 +153,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
         if (steeringBehavior == null) {
 
             // The fug, can't navigate, are we there already??
-            entityData.removeComponent(entity.getId(), Navigation.class);
+            removeNavigation(entity.getId(), navigation);
             return;
         }
         steerableEntitiesByEntityId.put(entity.getId(), steerableEntity);
@@ -204,13 +205,24 @@ public final class MovementSystem implements IGameLogicUpdatable {
         }
     }
 
+    /**
+     * Removes the navigation we are done with. The game logic runs on another
+     * thread and may have given the entity a new path since we last applied
+     * the changes, that one is not ours to remove.
+     */
+    private void removeNavigation(EntityId entityId, Navigation navigation) {
+        if (entityData.getComponent(entityId, Navigation.class) == navigation) {
+            entityData.removeComponent(entityId, Navigation.class);
+        }
+    }
+
     private void applySteering(EntityId entityId, ISteerableEntity steerableEntity, SteeringAcceleration<Vector2> steering, float tpf) {
 
         // We are done
         if (steering.isZero()
                 && steerableEntity.getLinearVelocity().isZero(steerableEntity.getZeroLinearSpeedThreshold())
                 && isZeroAngular(steerableEntity.getAngularVelocity(), steerableEntity.getZeroLinearSpeedThreshold())) {
-            entityData.removeComponent(entityId, Navigation.class);
+            removeNavigation(entityId, movableEntities.getEntity(entityId).get(Navigation.class));
             return;
         }
 
@@ -247,10 +259,10 @@ public final class MovementSystem implements IGameLogicUpdatable {
         Position oldPosition = entityData.getComponent(entityId, Position.class);
         if (oldPosition != null) {
 
-            // Re-use the vector, the position might be already removed from another thread
-            oldPosition.position.x = steerableEntity.getPosition().x;
-            oldPosition.position.z = steerableEntity.getPosition().y;
-            entityData.setComponent(entityId, new Position(-steerableEntity.getOrientation(), oldPosition.position));
+            // The position might be already removed from another thread. A new vector, the other threads
+            // are still reading the old position
+            entityData.setComponent(entityId, new Position(-steerableEntity.getOrientation(),
+                    new Vector3f(steerableEntity.getPosition().x, oldPosition.position.y, steerableEntity.getPosition().y)));
         }
     }
 

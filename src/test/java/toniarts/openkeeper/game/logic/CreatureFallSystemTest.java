@@ -47,7 +47,8 @@ class CreatureFallSystemTest {
     private final DefaultEntityData entityData = new DefaultEntityData();
     private final List<EntityId> left = new ArrayList<>();
     private final List<GameEventType> events = new ArrayList<>();
-    private final CreatureFallSystem fallSystem = new CreatureFallSystem(entityData, () -> 0,
+    private final CreatureFallSystem fallSystem = new CreatureFallSystem(entityData);
+    private final CreatureLandingSystem landingSystem = new CreatureLandingSystem(entityData, () -> 0,
             proxy(GameEventService.class, args -> events.add((GameEventType) args[0])),
             proxy(ICreaturesController.class, args -> left.add((EntityId) args[0])));
 
@@ -81,9 +82,11 @@ class CreatureFallSystemTest {
 
         // Still falling
         fallSystem.processTick(0.1f);
+        landingSystem.processTick(0f);
         assertTrue(left.isEmpty());
 
         fallSystem.processTick(10f);
+        landingSystem.processTick(0f);
         assertEquals(List.of(GameEventType.CREATURE_LAND), events);
         assertEquals(WorldUtils.UNDERFLOOR_HEIGHT, entityData.getComponent(creature, Position.class).position.y,
                 "it falls through the floor");
@@ -94,6 +97,7 @@ class CreatureFallSystemTest {
     private EntityId fall(CreatureFall creatureFall, float stunDuration) {
         EntityId creature = drop(creatureFall, stunDuration);
         fallSystem.processTick(10f);
+        landingSystem.processTick(0f);
 
         return creature;
     }
