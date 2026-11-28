@@ -123,6 +123,9 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
      */
     void levelUpCreatures(short playerId, int level);
 
+    /** Counts living owned non-worker creatures at or above the minimum level. */
+    int getCreatureCountAtLevel(short playerId, int minimumLevel);
+
     /**
      * Sets the level of the Hero Toolbox creatures ("I am a tool") that are
      * still standing in the toolbox, on the Hero Lair
