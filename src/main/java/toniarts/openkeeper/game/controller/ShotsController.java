@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Invisible;
 import toniarts.openkeeper.game.component.Invulnerable;
+import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
@@ -38,6 +39,7 @@ import toniarts.openkeeper.game.component.Poisoned;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Tremor;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -87,6 +89,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SIGHT_OF_EV
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SUMMON_REAPER;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TREMOR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TURNCOAT;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.WEB_AREA_EFFECT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.WIND;
 
 /**
@@ -229,6 +232,7 @@ public final class ShotsController implements IShotsController {
         result.put(WIND, new WindShotProcessor(entityData, kwdFile, gameController, mapController, creaturesController));
         result.put(FREEZE, this::freeze);
         result.put(ALARM, this::raiseAlarm);
+        result.put(WEB_AREA_EFFECT, this::web);
         result.put(POISON_SPIT, this::poison);
 
         // The Fear Trap's shot does nothing itself: DK II's handler for it is empty (the FEAR entry of the shot table
@@ -463,6 +467,46 @@ public final class ShotsController implements IShotsController {
         entityData.setComponents(alarm, new Alarm(), new Owner(request.playerId(), request.playerId()),
                 new Position(0, new Vector3f(request.position())), new Decay(gameTimer.getGameTime(), ALARM_DURATION));
         gameEventService.emitToPlayer(GameEventType.ALARM_RAISED, request.playerId());
+    }
+
+    /**
+     * The Maiden's web (0x4B0050). Every creature closer than shot data 2
+     * tiles to where the web lands is caught, whoever owns it, only the
+     * shooter is left out. A creature caught walks at a quarter of its own
+     * speed for shot data 1 seconds, unless its speed is already changed
+     * (0x48CAD0).<br>
+     * The web asks 0x48CAD0 for 90 % less speed, which is below the quarter
+     * that 0x48CAD0 keeps at least. DK II 1.7 does that sum unsigned and ends
+     * up at the speed cap instead, we follow the intent.
+     *
+     * @param request the shot
+     */
+    private void web(ShotRequest request) {
+        IEntityPositionLookup entityPositionLookup = gameController.getEntityLookupService();
+        Vector3f origin = request.position();
+        Point tile = WorldUtils.vectorToPoint(origin);
+        int radius = request.shotData2();
+        for (int x = Math.max(0, tile.x - radius); x <= Math.min(mapController.getMapData().getWidth() - 1, tile.x + radius); x++) {
+            for (int y = Math.max(0, tile.y - radius); y <= Math.min(mapController.getMapData().getHeight() - 1, tile.y + radius); y++) {
+                for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
+                    Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+                    CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+                    if (entityId.equals(request.shooter()) || mobile == null || creatureComponent == null
+                            || entityData.getComponent(entityId, SpeedChange.class) != null) {
+                        continue;
+                    }
+
+                    Vector3f position = EntityController.getPosition(entityData, entityId);
+                    float dx = position.x - origin.x;
+                    float dz = position.z - origin.z;
+                    if (dx * dx + dz * dz < radius * radius) {
+                        entityData.setComponents(entityId,
+                                new Mobile(mobile.canFly, mobile.canWalkOnWater, mobile.canWalkOnLava, creatureComponent.speed / 4),
+                                new SpeedChange(gameTimer.getGameTime() + request.shotData1()));
+                    }
+                }
+            }
+        }
     }
 
     private void notifyShotHit(Shot shot, EntityId target) {
