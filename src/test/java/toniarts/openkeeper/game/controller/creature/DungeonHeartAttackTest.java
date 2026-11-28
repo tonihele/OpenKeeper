@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -29,6 +30,8 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.ChaseBackOff;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.Damage;
@@ -37,6 +40,7 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -57,10 +61,12 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -74,6 +80,7 @@ class DungeonHeartAttackTest {
 
     private EntityData entityData;
     private Map<Short, Creature> creatures;
+    private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> settings;
     private Map<EntityId, Set<EntityId>> sensed;
     private Set<Point> solidTiles;
     private int pathSearches;
@@ -86,6 +93,11 @@ class DungeonHeartAttackTest {
         creatures = new HashMap<>();
         creatures.put(FIGHTER, HeartAttackFixtures.creature(FIGHTER, Creature.FightStyle.BLOCKER));
         creatures.put(IMP, HeartAttackFixtures.creature(IMP, Creature.FightStyle.NON_FIGHTER));
+        settings = Map.of(
+                Variable.MiscVariable.MiscType.GOOD_CREATURES_CHASE_ENEMY_DURATION_SECONDS,
+                CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.GOOD_CREATURES_CHASE_ENEMY_DURATION_SECONDS, 3),
+                Variable.MiscVariable.MiscType.EVIL_CREATURES_CHASE_ENEMY_DURATION_SECONDS,
+                CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.EVIL_CREATURES_CHASE_ENEMY_DURATION_SECONDS, 7));
         sensed = new HashMap<>();
         solidTiles = new HashSet<>();
         pathSearches = 0;
@@ -142,14 +154,175 @@ class DungeonHeartAttackTest {
     }
 
     @Test
-    void creatureLeavesTheHeartForAWorkerNearerThanTheHeart() {
-        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 12));
+    void creatureNextToTheHeartStaysOnItEvenForAWorkerAttackingIt() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 8));
         EntityId heart = createHeart(KEEPER);
-        EntityId worker = createCreature(KEEPER, IMP, new Point(11, 12));
+        EntityId worker = createCreature(KEEPER, IMP, new Point(11, 8));
+        sensed.put(hero, Set.of(heart, worker));
+        entityData.setComponent(hero, new AttackTarget(heart));
+
+        assertEquals(heart, createController(hero).getAttackTarget().getEntityId());
+
+        entityData.setComponent(hero, new AttackTarget(heart));
+        entityData.setComponent(worker, new AttackTarget(hero));
+        assertEquals(heart, createController(hero).getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void creatureOnItsWayLeavesTheHeartForAWorkerNearerThanThePillar() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 13));
+        EntityId heart = createHeart(KEEPER);
+        EntityId worker = createCreature(KEEPER, IMP, new Point(10, 14));
         sensed.put(hero, Set.of(heart, worker));
         entityData.setComponent(hero, new AttackTarget(heart));
 
         assertEquals(worker, createController(hero).getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void creatureHittingTheHeartPicksItsTargetAgainEveryTenTurns() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 12));
+        EntityId heart = createHeart(KEEPER);
+        EntityId defender = createCreature(KEEPER, FIGHTER, new Point(10, 16));
+        sensed.put(hero, Set.of(heart, defender));
+
+        // Ten turns at four turns a second, the game time is 10.0
+        entityData.setComponent(hero, new AttackTarget(heart, 7.6, new Point(10, 12), Double.NaN));
+        assertEquals(heart, createController(hero).getAttackTarget().getEntityId());
+
+        entityData.setComponent(hero, new AttackTarget(heart, 7.5, new Point(10, 12), Double.NaN));
+        assertEquals(defender, createController(hero).getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void creatureInReachPicksItsTargetAgainOnAnotherTileOrAfterTenTurns() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 20));
+        EntityId target = createCreature(KEEPER, FIGHTER, new Vector3f(10.4f, 0, 20));
+        EntityId nearer = createCreature(KEEPER, FIGHTER, new Vector3f(10.1f, 0, 20));
+        sensed.put(hero, Set.of(target, nearer));
+
+        entityData.setComponent(hero, new AttackTarget(target, 7.6, new Point(10, 20), Double.NaN));
+        assertEquals(target, createController(hero).getAttackTarget().getEntityId());
+
+        entityData.setComponent(hero, new AttackTarget(target, 7.6, new Point(10, 19), Double.NaN));
+        assertEquals(nearer, createController(hero).getAttackTarget().getEntityId());
+
+        entityData.setComponent(hero, new AttackTarget(target, 7.5, new Point(10, 20), Double.NaN));
+        assertEquals(nearer, createController(hero).getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void fighterKeepsTheCreatureInReachItFightsWhenAnotherIsNearer() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 20));
+        EntityId target = createCreature(KEEPER, FIGHTER, new Vector3f(10.4f, 0, 20));
+        EntityId nearer = createCreature(KEEPER, FIGHTER, new Vector3f(10.1f, 0, 20));
+        sensed.put(hero, Set.of(target, nearer));
+        entityData.setComponent(hero, new AttackTarget(target, 7.5, new Point(10, 19), Double.NaN));
+
+        CreatureController controller = createController(hero);
+        controller.getStateMachine().changeState(CreatureState.FIGHT);
+        assertEquals(target, controller.getAttackTarget().getEntityId());
+
+        controller.getStateMachine().changeState(CreatureState.MELEE_ATTACK);
+        assertEquals(target, controller.getAttackTarget().getEntityId());
+
+        // Knocked out, it goes for the next one
+        entityData.setComponent(target, new Unconscious(9));
+        assertEquals(nearer, controller.getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void impPicksItsTargetAgainEveryFourTurns() {
+        EntityId imp = createCreature(KEEPER, IMP, new Point(10, 20));
+        EntityId target = createCreature(HERO, FIGHTER, new Vector3f(10.4f, 0, 20));
+        EntityId nearer = createCreature(HERO, FIGHTER, new Vector3f(10.1f, 0, 20));
+        sensed.put(imp, Set.of(target, nearer));
+
+        entityData.setComponent(imp, new AttackTarget(target, 9.1, new Point(10, 20), Double.NaN));
+        assertEquals(target, createController(imp).getAttackTarget().getEntityId());
+
+        entityData.setComponent(imp, new AttackTarget(target, 9.0, new Point(10, 20), Double.NaN));
+        assertEquals(nearer, createController(imp).getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void creatureChasingPicksAgainEveryTurnAndStopsWhenItPicksAnother() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 20));
+        EntityId target = createCreature(KEEPER, FIGHTER, new Point(10, 23));
+        EntityId nearer = createCreature(KEEPER, FIGHTER, new Point(10, 22));
+        sensed.put(hero, Set.of(target, nearer));
+
+        entityData.setComponent(hero, new AttackTarget(target, 9.9, new Point(10, 20), Double.NaN));
+        assertEquals(nearer, createController(hero).getAttackTarget().getEntityId());
+
+        // Out of sight it is not picked again, so the chase ends
+        sensed.put(hero, Set.of());
+        entityData.setComponent(hero, new AttackTarget(target, 9.9, new Point(10, 20), Double.NaN));
+        assertNull(createController(hero).getAttackTarget());
+    }
+
+    @Test
+    void creatureChasesAWorkerThatRunsAway() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 20));
+        EntityId worker = createCreature(KEEPER, IMP, new Point(10, 23));
+        entityData.setComponent(worker, new CreatureAi(5, CreatureState.FLEE, IMP));
+        sensed.put(hero, Set.of(worker));
+
+        assertEquals(worker, createController(hero).getAttackTarget().getEntityId());
+        assertEquals(10.0, entityData.getComponent(hero, AttackTarget.class).chaseStartTime);
+    }
+
+    @Test
+    void goodCreatureGivesUpTheChaseAfterThreeSecondsAndBacksOff() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 20));
+        EntityId worker = createCreature(KEEPER, IMP, new Point(10, 23));
+        entityData.setComponent(worker, new CreatureAi(5, CreatureState.FLEE, IMP));
+        sensed.put(hero, Set.of(worker));
+
+        entityData.setComponent(hero, new AttackTarget(worker, 9.9, new Point(10, 20), 7.1));
+        assertEquals(worker, createController(hero).getAttackTarget().getEntityId());
+        assertEquals(7.1, entityData.getComponent(hero, AttackTarget.class).chaseStartTime);
+        assertNull(entityData.getComponent(hero, ChaseBackOff.class));
+
+        entityData.setComponent(hero, new AttackTarget(worker, 9.9, new Point(10, 20), 7.0));
+        assertNull(createController(hero).getAttackTarget());
+        assertNull(entityData.getComponent(hero, AttackTarget.class));
+        assertEquals(10.0, entityData.getComponent(hero, ChaseBackOff.class).time);
+    }
+
+    @Test
+    void evilCreatureChasesForSevenSeconds() {
+        EntityId keeperCreature = createCreature(KEEPER, FIGHTER, new Point(10, 20));
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 23));
+        entityData.setComponent(hero, new CreatureAi(0, CreatureState.FLEE, FIGHTER));
+        sensed.put(keeperCreature, Set.of(hero));
+
+        entityData.setComponent(keeperCreature, new AttackTarget(hero, 9.9, new Point(10, 20), 3.1));
+        assertEquals(hero, createController(keeperCreature).getAttackTarget().getEntityId());
+
+        entityData.setComponent(keeperCreature, new AttackTarget(hero, 9.9, new Point(10, 20), 3.0));
+        assertNull(createController(keeperCreature).getAttackTarget());
+    }
+
+    @Test
+    void creatureBackingOffLeavesThoseThatRunAwayAloneForSixtyTurns() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 20));
+        EntityId worker = createCreature(KEEPER, IMP, new Point(10, 23));
+        entityData.setComponent(worker, new CreatureAi(5, CreatureState.FLEE, IMP));
+        sensed.put(hero, Set.of(worker));
+
+        // Sixty turns at four turns a second, the game time is 10.0
+        entityData.setComponent(hero, new ChaseBackOff(-4.9));
+        assertNull(createController(hero).getAttackTarget());
+
+        entityData.setComponent(hero, new ChaseBackOff(-5.0));
+        assertEquals(worker, createController(hero).getAttackTarget().getEntityId());
+
+        // One in reach is still hit
+        entityData.removeComponent(hero, AttackTarget.class);
+        entityData.setComponent(hero, new ChaseBackOff(9.0));
+        entityData.setComponent(worker, new Position(0, new Vector3f(10.3f, 0, 20)));
+        assertNotNull(createController(hero).getAttackTarget());
     }
 
     @Test
@@ -206,6 +379,20 @@ class DungeonHeartAttackTest {
 
         assertNull(entityData.getComponent(hero, AttackTarget.class));
         assertNull(entityData.getComponent(hero, Navigation.class));
+    }
+
+    @Test
+    void creatureTurnsToItsTargetAtItsTurnSpeed() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 20));
+        EntityId target = createCreature(KEEPER, FIGHTER, new Point(11, 20));
+        CreatureController controller = createController(hero);
+
+        // A quarter of a turn, at an eighth of a turn every game turn
+        assertFalse(controller.turnToAttackTarget(target));
+        assertEquals(FastMath.QUARTER_PI, entityData.getComponent(hero, Position.class).rotation, 0.0001f);
+        assertTrue(controller.turnToAttackTarget(target));
+        assertEquals(FastMath.HALF_PI, entityData.getComponent(hero, Position.class).rotation, 0.0001f);
+        assertTrue(controller.turnToAttackTarget(target));
     }
 
     @Test
@@ -269,12 +456,16 @@ class DungeonHeartAttackTest {
     }
 
     private EntityId createCreature(short ownerId, short creatureId, Point tile) {
+        return createCreature(ownerId, creatureId, new Vector3f(tile.x, 0, tile.y));
+    }
+
+    private EntityId createCreature(short ownerId, short creatureId, Vector3f position) {
         EntityId entity = entityData.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();
         creatureComponent.creatureId = creatureId;
         creatureComponent.worker = creatureId == IMP;
         entityData.setComponents(entity, creatureComponent, new Owner(ownerId, ownerId), new Health(1000, 1000),
-                new Position(0, new Vector3f(tile.x, 0, tile.y)), new CreatureMeleeAttack(0, 100, 1, 0.5f));
+                new Position(0, position), new CreatureMeleeAttack(0, 100, 1, 0.5f));
         return entity;
     }
 
@@ -331,7 +522,7 @@ class DungeonHeartAttackTest {
         CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
 
         return new CreatureController(entity, entityData, creatures.get(creatureComponent.creatureId), navigationService,
-                null, gameTimer, Map.of(), creaturesController, positionLookup, mapController, levelInfo, objectsController, null,
+                null, gameTimer, settings, creaturesController, positionLookup, mapController, levelInfo, objectsController, null,
                 stub(GameEventService.class, (name, args) -> null));
     }
 

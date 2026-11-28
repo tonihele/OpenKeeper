@@ -72,6 +72,26 @@ public final class DungeonHeartTarget {
     }
 
     /**
+     * Finds the Arch Pillar of the heart nearest to the given position
+     *
+     * @param from the position, in world coordinates
+     * @param heartTile the tile at the centre of the heart
+     * @return the pillar's position, in world coordinates
+     */
+    public static Vector2f getNearestPillar(Vector2f from, Point heartTile) {
+        Vector2f centre = WorldUtils.pointToVector2f(heartTile);
+        Vector2f nearest = null;
+        for (Vector2f offset : PILLARS) {
+            Vector2f pillar = centre.add(offset.mult(WorldUtils.TILE_WIDTH));
+            if (nearest == null || pillar.distanceSquared(from) < nearest.distanceSquared(from)) {
+                nearest = pillar;
+            }
+        }
+
+        return nearest;
+    }
+
+    /**
      * Can a creature standing here hit the heart. It has to be within its melee
      * range and half a tile of a pillar (0x45CB00, 0x45E8F0).
      *
@@ -104,6 +124,7 @@ public final class DungeonHeartTarget {
      * none
      */
     public static Point getAttackTile(Point from, Point heartTile, float meleeRange, Predicate<Point> isReachable) {
+        Vector2f position = WorldUtils.pointToVector2f(from);
         List<Point> ring = new ArrayList<>();
         for (int x = -RING_DISTANCE; x <= RING_DISTANCE; x++) {
             for (int y = -RING_DISTANCE; y <= RING_DISTANCE; y++) {
@@ -115,7 +136,8 @@ public final class DungeonHeartTarget {
                 }
             }
         }
-        ring.sort(Comparator.comparingDouble(tile -> tile.distance(from)));
+        ring.sort(Comparator.comparingDouble((Point tile) -> getNearestPillar(WorldUtils.pointToVector2f(tile), heartTile).distanceSquared(position))
+                .thenComparingDouble(tile -> tile.distance(from)));
         for (Point tile : ring) {
             if (isReachable.test(tile)) {
                 return tile;

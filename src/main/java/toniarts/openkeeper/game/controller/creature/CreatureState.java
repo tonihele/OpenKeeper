@@ -22,6 +22,7 @@ import java.util.function.Consumer;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
@@ -80,6 +81,12 @@ public enum CreatureState implements State<ICreatureController> {
         }
 
         private static void findStuffToDo(ICreatureController entity, Consumer<Boolean> workResult) {
+
+            // Back to where we withdrew from, before anything else (DK II's idle state 0x4773D0)
+            if (entity.goBackToWhereWeFought()) {
+                workResult.accept(true);
+                return;
+            }
 
             // See if we should just follow
             if (entity.getParty() != null && !entity.getParty().isPartyLeader(entity)) {
@@ -378,16 +385,23 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            // A badly hurt hero may withdraw to the hero lair, before fear is weighed (DK II 0x45F030)
-            if (entity.withdrawToHeroLair()) {
-                entity.getStateMachine().changeState(HERO_RECUPERATING);
-                return;
-            }
-
-            // A scared creature backs off from its target for a while (DK II 0x45F030)
-            if (entity.isScared()) {
-                entity.getStateMachine().changeState(BACK_OFF);
-                return;
+            // DK II checks first whether we are cornered (0x45F030 calls 0x460C50). Only one that isn't may withdraw,
+            // a badly hurt hero to the hero lair and a keeper's badly hurt creature far from its heart towards the
+            // heart (0x45EDA0, 0x4611D0), and then weigh its fear: a scared creature backs off from its target for a
+            // while, then withdraws (0x45EC80)
+            if (!entity.isCornered()) {
+                if (entity.withdrawToHeroLair()) {
+                    entity.getStateMachine().changeState(HERO_RECUPERATING);
+                    return;
+                }
+                // Finding nowhere to withdraw to, it goes on to weigh its fear (0x45F030)
+                if (entity.shouldWithdrawToHeart() && entity.flee()) {
+                    return;
+                }
+                if (entity.isScared()) {
+                    entity.getStateMachine().changeState(BACK_OFF);
+                    return;
+                }
             }
 
             // Our own creatures come first
@@ -398,9 +412,13 @@ public enum CreatureState implements State<ICreatureController> {
             // If we have reached the target, stop and fight!
             if (entity.isWithinAttackDistance(attackTarget.getEntityId())) {
 
-                // Attack!!
+                // Attack!! The original stops chasing and attacks from the next turn on, once it faces the target
+                // (0x470E30, 0x45F030)
+                boolean arriving = !entity.isStopped();
                 entity.stopCreature();
-                entity.executeAttack(attackTarget.getEntityId());
+                if (!arriving && entity.turnToAttackTarget(attackTarget.getEntityId())) {
+                    entity.executeAttack(attackTarget.getEntityId());
+                }
             } else {
                 entity.navigateToAttackTarget(attackTarget.getEntityId());
             }
@@ -513,12 +531,23 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void enter(ICreatureController entity) {
+
+            // ICreatureController.flee() picks where to go before it comes here, as DK II's 0x4611D0 does
             entity.unassingCurrentTask();
-            entity.flee();
         }
 
         @Override
         public void update(ICreatureController entity) {
+
+            // A worker's withdraw ends once it gets there (DK II's 0xCA), then it goes back to
+            // work, or withdraws again if an enemy is still after it and it finds somewhere to go
+            if (entity.getCreature().getFightStyle() == Creature.FightStyle.NON_FIGHTER && entity.isStopped()) {
+                if (!entity.shouldFleeOrAttack()
+                        || (entity.getStateMachine().isInState(FLEE) && !entity.flee())) {
+                    entity.getStateMachine().changeState(IDLE);
+                }
+                return;
+            }
             if (entity.isStateTimeExceeded() && !entity.shouldFleeOrAttack()) {
                 entity.getStateMachine().changeState(IDLE);
             }
@@ -544,13 +573,21 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void update(ICreatureController entity) {
 
-            // We withdraw when our time is up or we can't back away, and fight again once we aren't scared (DK II 0x4602E0)
-            if (entity.isBackOffOver()) {
-                entity.getStateMachine().changeState(FLEE);
+            // We withdraw when our time is up or we can't back away, and fight again once we aren't scared (DK II 0x4602E0).
+            // Finding nowhere to withdraw to, we stay backing off and try again on the next tick.
+            // With the enemy at one of our Guard Rooms we don't withdraw at all (0x460B50)
+            if (entity.isBackOffOver() && !entity.isEnemyAtOurGuardRoom()) {
+                entity.flee();
             } else if (!entity.isScared() || entity.getAttackTarget() == null) {
                 entity.getStateMachine().changeState(FIGHT);
             } else if (!entity.backOff()) {
-                entity.getStateMachine().changeState(FLEE);
+
+                // Cornered, with no way back, it fights on (0x4602E0)
+                if (entity.isCornered()) {
+                    entity.getStateMachine().changeState(FIGHT);
+                } else {
+                    entity.flee();
+                }
             }
         }
 
@@ -775,6 +812,12 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void update(ICreatureController entity) {
 
+            // The fear is checked during the swing too. Stepping back keeps the swing going, so its hit still lands,
+            // but walking away at once cuts it short (DK II 0x45F030, 0x4602E0, 0x471890)
+            if (!entity.isCornered() && entity.isScared() && !entity.canStepBack()) {
+                entity.getStateMachine().changeState(BACK_OFF);
+                return;
+            }
             // The swing lasts until both the animation is over and the hit has landed
             entity.releaseMeleeHit();
             if (entity.isStateTimeExceeded() && !entity.hasPendingMeleeHit()) {
@@ -801,9 +844,9 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void update(ICreatureController entity) {
 
-            // The fear is checked during the cast too, and a scared caster backs off at once, cutting its cast short
-            // (DK II 0x45F030, 0x471890)
-            if (entity.isScared()) {
+            // The fear is checked during the cast too. Stepping back keeps the cast going, but walking away at once
+            // cuts it short (DK II 0x45F030, 0x4602E0, 0x471890)
+            if (!entity.isCornered() && entity.isScared() && !entity.canStepBack()) {
                 entity.getStateMachine().changeState(BACK_OFF);
                 return;
             }
