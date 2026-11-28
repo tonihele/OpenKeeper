@@ -1411,7 +1411,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         // The creatures in the original don't seem to make anykind of reservations on the food items, I've seen them "fight over food", first come first serve
         // Hmm, is this a good way to find the food, performance-wise...?
-        List<EntityId> foods = new ArrayList<>(entityData.findEntities(new FieldFilter(Owner.class, "ownerId", creature.getOwnerId()), Food.class, Owner.class, Position.class));
+        // Not filtered by the owner field: that would go through the owner of every entity, map tiles included
+        // The tiles come from the food's own position: the position lookup learns of food made earlier in this tick
+        // only on its next update
+        Map<EntityId, Point> foods = new HashMap<>();
+        for (EntityId food : entityData.findEntities(null, Food.class, Owner.class, Position.class)) {
+            if (entityData.getComponent(food, Owner.class).ownerId == creature.getOwnerId()) {
+                foods.put(food, WorldUtils.vectorToPoint(entityData.getComponent(food, Position.class).position));
+            }
+        }
         if (foods.isEmpty()) {
 
             // DK II's search for food asks for a Hatchery when there is none (0x4DED00)
@@ -1420,21 +1428,13 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
 
         // Sort by manhattan distance in relation to the creature
-        Collections.sort(foods, new Comparator<EntityId>() {
-
-            private final Point currentLocation = creature.getCreatureCoordinates();
-
-            @Override
-            public int compare(EntityId entityId, EntityId entityId1) {
-                int result = Integer.compare(WorldUtils.calculateDistance(currentLocation, entityPositionLookup.getEntityLocation(entityId).getLocation()), WorldUtils.calculateDistance(currentLocation, entityPositionLookup.getEntityLocation(entityId1).getLocation()));
-                return result;
-            }
-
-        });
+        Point currentLocation = creature.getCreatureCoordinates();
+        List<EntityId> sortedFoods = new ArrayList<>(foods.keySet());
+        sortedFoods.sort(Comparator.comparingInt(food -> WorldUtils.calculateDistance(currentLocation, foods.get(food))));
 
         // Pick closest we can actually access
-        for (EntityId food : foods) {
-            Point target = entityPositionLookup.getEntityLocation(food).getLocation();
+        for (EntityId food : sortedFoods) {
+            Point target = foods.get(food);
             if (navigationService.isReachable(creature.getCreatureCoordinates(), target, creature)) {
                 GoToEat task = new GoToEat(navigationService, mapController, entityPositionLookup, food, entityData, creature);
                 task.assign(creature, true);
