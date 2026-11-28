@@ -234,7 +234,11 @@ class CombatPitFightTest {
             case "createController" -> createController((EntityId) args[0]);
             default -> null;
         });
-        INavigationService navigationService = stub(INavigationService.class, (name, args) -> "findPath".equals(name) ? new DefaultGraphPath<>() : null);
+        INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
+            case "findPath" -> new DefaultGraphPath<>();
+            case "isReachable" -> true;
+            default -> null;
+        });
 
         return new CreatureController(entity, entityData, creatures.get(FIGHTER), navigationService,
                 null, gameTimer, gameSettings, creaturesController, positionLookup, null, levelInfo, null, null,

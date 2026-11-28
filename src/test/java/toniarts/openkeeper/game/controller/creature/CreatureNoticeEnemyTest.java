@@ -205,6 +205,7 @@ class CreatureNoticeEnemyTest {
                 walk.forEach(point -> path.add(tile(point)));
                 yield path;
             }
+            case "isReachable" -> walk != null;
             default -> throw new UnsupportedOperationException(method);
         });
         CreatureController controller = new CreatureController(hero, data, heroData, navigationService, null, () -> 0,

@@ -236,6 +236,18 @@ class WorkerTaskAssignmentTest {
         }
     }
 
+    /**
+     * The land is a row, walking goes along it tile by tile
+     */
+    private boolean isOnLand(Point start, Point end) {
+        for (int x = Math.min(start.x, end.x); x <= Math.max(start.x, end.x); x++) {
+            if (start.y != end.y || !land.contains(new Point(x, start.y))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static int assignedCount(List<Task> tasks) {
         int count = 0;
         for (Task task : tasks) {
@@ -256,7 +268,7 @@ class WorkerTaskAssignmentTest {
             default -> null;
         });
         INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
-            case "isAccessible" -> land.contains(((IMapTileInformation) args[1]).getLocation());
+            case "isReachable" -> isOnLand((Point) args[0], (Point) args[1]);
             default -> null;
         });
         Keeper keeper = new Keeper(false, PLAYER_ID);
