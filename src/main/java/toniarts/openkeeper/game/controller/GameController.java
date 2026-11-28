@@ -141,6 +141,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                 gameWorldController.getCreaturesController(), gameWorldController.getDoorsController(),
                 gameWorldController.getObjectsController());
         gameWorldController.setEntityPositionLookup(positionSystem);
+        gameWorldController.setRoomAttackMessages(new RoomAttackMessages(entityData, playerService, gameTimer));
 
         // Navigation
         navigationService = new NavigationService(gameWorldController.getMapController(), positionSystem);
@@ -152,7 +153,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
         // The triggers
         controllers.add(new PartyTriggerLogicController(this, levelInfo, gameTimer,
-                gameWorldController.getMapController(), gameWorldController.getCreaturesController()));
+                gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService));
         controllers.add(new CreatureTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
                 playerService, entityData));
@@ -164,7 +165,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                 playerService, entityData, gameWorldController.getDoorsController()));
         controllers.add(new ActionPointTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                positionSystem));
+                playerService, positionSystem));
         playerTriggers = new PlayerTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
                 playerService);
@@ -178,7 +179,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
         int triggerId = levelInfo.kwdFile.getGameLevel().getTriggerId();
         if (triggerId != 0) {
-            triggerControl = new TriggerControl(this, levelInfo, gameTimer, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), triggerId);
+            triggerControl = new TriggerControl(this, levelInfo, gameTimer, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService, triggerId);
         }
 
     }
@@ -494,9 +495,13 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         private final SafeArrayList<GameTimer> timers = new SafeArrayList<>(GameTimer.class, LEVEL_TIMER_MAX_COUNT);
         private final Map<Integer, ActionPoint> actionPointsById = new HashMap<>();
         private final List<ActionPoint> actionPoints = new ArrayList<>();
+        private boolean creatureMoodsEnabled = false;
+        private boolean systemMessagesEnabled = false;
+        private boolean timerSpeechEnabled = false;
 
         public LevelInfo(IKwdFile kwdFile) {
             this.kwdFile = kwdFile;
+            creatureMoodsEnabled = true; // The original turns them on at the start of every level
         }
 
         public void load() {
@@ -573,6 +578,36 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         @Override
         public List<ActionPoint> getActionPoints() {
             return actionPoints;
+        }
+
+        @Override
+        public boolean isCreatureMoodsEnabled() {
+            return creatureMoodsEnabled;
+        }
+
+        @Override
+        public void setCreatureMoodsEnabled(boolean enabled) {
+            this.creatureMoodsEnabled = enabled;
+        }
+
+        @Override
+        public boolean isSystemMessagesEnabled() {
+            return systemMessagesEnabled;
+        }
+
+        @Override
+        public void setSystemMessagesEnabled(boolean enabled) {
+            this.systemMessagesEnabled = enabled;
+        }
+
+        @Override
+        public boolean isTimerSpeechEnabled() {
+            return timerSpeechEnabled;
+        }
+
+        @Override
+        public void setTimerSpeechEnabled(boolean enabled) {
+            this.timerSpeechEnabled = enabled;
         }
 
         @Override

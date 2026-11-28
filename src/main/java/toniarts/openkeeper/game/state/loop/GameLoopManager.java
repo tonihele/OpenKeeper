@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.logic.CreatureAiSystem;
 import toniarts.openkeeper.game.logic.CreatureDisturbanceSystem;
 import toniarts.openkeeper.game.logic.CreatureExperienceSystem;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
+import toniarts.openkeeper.game.logic.CreatureMoodSwitchSystem;
 import toniarts.openkeeper.game.logic.CreatureMoodSystem;
 import toniarts.openkeeper.game.logic.CreatureSleepSystem;
 import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
@@ -160,6 +161,7 @@ public final class GameLoopManager {
                 new PlayerSpellbookSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
                 new PlayerManufactureSystem(entityData, levelInfo.getLevelData(), playerControllers.values(),
                         gameController.getGameTimer()),
+                new CreatureMoodSwitchSystem(entityData, levelInfo::isCreatureMoodsEnabled),
                 (IGameLogicUpdatable) gameController,
                 Settings.getInstance().getBoolean(Settings.Setting.COMPUTER_PLAYER)
                 ? new KeeperAiSystem(entityData, level, playerControllers, gameWorldController, gameController.getNavigationService(),

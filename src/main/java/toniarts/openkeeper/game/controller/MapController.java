@@ -78,6 +78,7 @@ public final class MapController extends Container implements IMapController {
     private final GameEventService gameEventService;
     private final Consumer<Short> enemyBreachListener;
     private final Consumer<Short> dungeonBreachListener;
+    private RoomAttackMessages roomAttackMessages;
 
     private final Map<EntityId, IRoomController> roomControllers = new HashMap<>();
     private final SafeArrayList<MapListener> mapListeners = new SafeArrayList<>(MapListener.class);
@@ -385,6 +386,11 @@ public final class MapController extends Container implements IMapController {
     }
 
     @Override
+    public void setRoomAttackMessages(RoomAttackMessages roomAttackMessages) {
+        this.roomAttackMessages = roomAttackMessages;
+    }
+
+    @Override
     public Collection<IRoomController> getRoomControllers() {
         return roomControllers.values();
     }
@@ -567,6 +573,15 @@ public final class MapController extends Container implements IMapController {
                 // DKII emits 56 to the owner before 57 to the worker, before replacement.
                 dungeonBreachListener.accept(tile.getOwnerId());
                 enemyBreachListener.accept(playerId);
+            }
+
+            // Bringing down a claimed wall of another player is a breach, the owner is told
+            if (tile.getOwnerId() != 0 && tile.getOwnerId() != playerId
+                    && terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
+                    && terrain.getDestroyedTypeTerrainId() != terrain.getTerrainId()) {
+                if (roomAttackMessages != null) {
+                    roomAttackMessages.dungeonBreached(tile.getOwnerId(), point);
+                }
             }
 
             // TODO: effect, drop loot & checks, claimed walls should also get destroyed if all adjacent tiles are not in cotrol anymore
