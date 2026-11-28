@@ -45,7 +45,7 @@ class CreatureLeaveDungeonTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final CreaturesController controller = new CreaturesController(stub(IKwdFile.class), entityData,
-            Collections.emptyMap(), stub(IGameTimer.class), stub(IGameController.class), stub(IMapController.class), null);
+            Collections.emptyMap(), stub(IGameTimer.class), stub(IGameController.class), stub(IMapController.class), null, null);
 
     @Test
     void portalsShunTheTypeThatLeft() {

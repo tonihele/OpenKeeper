@@ -106,7 +106,7 @@ class LoadGameTest {
         game.start();
         game.getGameWorldController().addGold(KEEPER_ID, 1500);
         EntityId inHand = game.getGameWorldController().getObjectsController().addLooseGold(1, 1, 100, 1000);
-        game.getPlayerController(KEEPER_ID).getHandControl().push(inHand);
+        game.getPlayerController(KEEPER_ID).getHandControl().push(inHand, 0);
         for (int tick = 0; tick < 4; tick++) {
             game.processTick(0.25f);
         }

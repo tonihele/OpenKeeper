@@ -51,7 +51,7 @@ class SpawnCreaturesAtHeartTest {
         IPlayerController player = stub(IPlayerController.class, (method, args) -> rooms);
         IGameController game = stub(IGameController.class, (method, args) -> player);
         IKwdFile kwdFile = stub(IKwdFile.class, (method, args) -> List.of());
-        CreaturesController controller = new CreaturesController(kwdFile, new DefaultEntityData(), null, null, game, null, null);
+        CreaturesController controller = new CreaturesController(kwdFile, new DefaultEntityData(), null, null, game, null, null, null);
 
         assertDoesNotThrow(() -> controller.spawnCreatures((short) 1, PLAYER_ID, 1, 1));
     }
