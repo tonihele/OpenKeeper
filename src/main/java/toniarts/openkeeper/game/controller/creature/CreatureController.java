@@ -129,6 +129,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
+import java.util.random.RandomGenerator;
 
 /**
  * Controls an entity with {@link CreatureAi} component. Basically supports the
@@ -480,6 +481,25 @@ public final class CreatureController extends EntityController implements ICreat
             if (destination != null) {
                 createNavigation(start, destination, null);
             }
+        }
+    }
+
+    @Override
+    public void navigateToDungeonHeart() {
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+        Point heart = keeper != null ? keeper.getDungeonHeartLocation() : null;
+        IRoomController room = heart != null ? mapController.getRoomControllerByCoordinates(heart) : null;
+        if (room == null || room.isDestroyed() || entityData.getComponent(entityId, Position.class) == null) {
+            return;
+        }
+
+        // DK II measures from the heart's reference tile, the one right of and below its middle (0x4E4590), and
+        // goes two tiles off it on each axis, either way at random
+        RandomGenerator random = Utils.getRandom();
+        Point corner = new Point(heart.x + (random.nextBoolean() ? -1 : 3), heart.y + (random.nextBoolean() ? -1 : 3));
+        IMapTileInformation tile = mapController.getMapData().getTile(corner);
+        if (tile != null && navigationService.isAccessible(tile, tile, this)) {
+            createNavigation(getCreatureCoordinates(), corner, null);
         }
     }
 

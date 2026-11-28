@@ -67,14 +67,18 @@ public enum CreatureState implements State<ICreatureController> {
         }
 
         /**
-         * Walks an idle creature that found nothing to do to a random spot. A
-         * hero stays where it is: in DK II a hero whose objective can't start
-         * does nothing until it tries again (hero idle state 0x477850)
+         * Walks an idle creature that found nothing to do. A keeper's creature
+         * goes to its Dungeon Heart, the last of DK II's idle choices
+         * (0x478680), workers and neutral creatures to a random spot. A hero
+         * stays where it is: in DK II a hero whose objective can't start does
+         * nothing until it tries again (hero idle state 0x477850)
          *
          * @param entity the idle creature
          */
         private static void wander(ICreatureController entity) {
-            if (entity.getOwnerId() != Player.GOOD_PLAYER_ID) {
+            if (entity.getOwnerId() >= Player.KEEPER1_ID && !entity.isWorker()) {
+                entity.navigateToDungeonHeart();
+            } else if (entity.getOwnerId() != Player.GOOD_PLAYER_ID) {
                 entity.navigateToRandomPoint();
             }
         }
