@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.view;
 
+import com.jme3.anim.AnimComposer;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.input.InputManager;
@@ -25,19 +26,28 @@ import com.jme3.input.controls.AnalogListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseAxisTrigger;
 import com.jme3.math.FastMath;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.WatchedEntity;
 import java.lang.System.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.Frozen;
+import toniarts.openkeeper.game.component.PossessedAbility;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.sound.FootstepSounds;
+import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameClientState;
+import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
@@ -69,6 +79,23 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
      * unit of mouse analog input adds, the roll is clamped by the walk cycle
      */
     private static final float TURN_ROLL_DEGREES_PER_ANALOG = 60f;
+    /**
+     * The swipe meshes look down their negative z axis with x to the right,
+     * the camera down its positive z axis with x to the left
+     */
+    private static final Quaternion SWIPE_ROTATION = new Quaternion().fromAngleAxis(FastMath.PI, Vector3f.UNIT_Y);
+    /**
+     * The field of view, in degrees, normally and in sniper mode. The zoom
+     * isn't in the data, the sniper one is tunable.
+     */
+    private static final float FIELD_OF_VIEW = 45f;
+    private static final float SNIPER_FIELD_OF_VIEW = 20f;
+    /**
+     * How far to the side of the head a footstep is heard, in tiles, walking
+     * and running (0x40E910)
+     */
+    private static final float STEP_DISTANCE = 3f;
+    private static final float RUNNING_STEP_DISTANCE = 0.125f;
 
     private Main app;
     private AppStateManager stateManager;
@@ -81,6 +108,12 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
     private PossessionCamera camera;
     private PossessionWalkCycle walkCycle;
     private boolean inputRegistered = false;
+    private WatchedEntity watchedTarget;
+    private CreatureViewState shownViewState;
+    private Spatial swipe;
+    private float swipeTimeLeft;
+    private boolean secondSwipe;
+    private float fieldOfView = FIELD_OF_VIEW;
 
     private boolean moveForward;
     private boolean moveBackward;
@@ -91,6 +124,7 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
 
     private final Vector2f sentDirection = new Vector2f();
     private float sentRotation;
+    private float sentPitch;
     private byte sentSpeedMode;
     private float timeSinceSend;
 
@@ -149,6 +183,8 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
             if (entityViewState != null) {
                 entityViewState.setHiddenEntity(target);
             }
+            watchedTarget = stateManager.getState(GameClientState.class).getGameClientService().getEntityData()
+                    .watchEntity(target, CreatureViewState.class, Frozen.class);
 
             resetMovement();
             registerInput();
@@ -161,6 +197,11 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
             if (entityViewState != null) {
                 entityViewState.setHiddenEntity(null);
             }
+            if (watchedTarget != null) {
+                watchedTarget.release();
+                watchedTarget = null;
+            }
+            removeSwipe();
             targetSpatial = null;
         }
     }
@@ -170,7 +211,8 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
      */
     private void loadCameraStartLocation() {
         Camera cam = app.getCamera();
-        cam.setFrustumPerspective(45, (float) cam.getWidth() / cam.getHeight(), 0.01f, VIEW_DISTANCE_TILES * WorldUtils.TILE_WIDTH);
+        fieldOfView = FIELD_OF_VIEW;
+        cam.setFrustumPerspective(fieldOfView, (float) cam.getWidth() / cam.getHeight(), 0.01f, VIEW_DISTANCE_TILES * WorldUtils.TILE_WIDTH);
         if (targetSpatial != null) {
             updateCameraLocation();
             Vector3f facing = targetSpatial.getWorldRotation().mult(Vector3f.UNIT_Z);
@@ -182,6 +224,7 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
             cam.setAxes(Vector3f.UNIT_X, Vector3f.UNIT_Y, Vector3f.UNIT_Z);
         }
         sentRotation = getFacing();
+        sentPitch = getPitch();
     }
 
     private void updateCameraLocation() {
@@ -246,6 +289,11 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
             return;
         }
 
+        // Like DK II (0x40E910), a frozen possessed creature can't look around either
+        if (watchedTarget != null && watchedTarget.get(Frozen.class) != null) {
+            return;
+        }
+
         switch (name) {
             case CAMERA_VIEW_LEFT -> {
                 camera.rotate(value, true);
@@ -286,14 +334,115 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
             boolean moving = axisValue(moveForward, moveBackward) != 0 || axisValue(moveLeft, moveRight) != 0;
             walkCycle.update(tpf, moving);
             updateCameraLocation();
+            playFootsteps(walkCycle.takeSteps());
             camera.setRoll(walkCycle.getRollDegrees());
             sendMovement(tpf);
+            updateZoom();
         }
+        updateSwipe(tpf);
 
         // Update audio listener position
         app.getListener().setLocation(app.getCamera().getLocation());
         app.getListener().setRotation(app.getCamera().getRotation());
         SoundManager.setListener(WorldUtils.vectorToPoint(app.getCamera().getLocation()));
+    }
+
+    /**
+     * Plays the footsteps of the possessed creature. DK II (0x40E910) plays
+     * the left one to the left of the head and the right one to the right, 3
+     * tiles out, or an eighth of a tile while running, and the wading ones on
+     * water.
+     *
+     * @param steps the steps from {@link PossessionWalkCycle#takeSteps()}
+     */
+    private void playFootsteps(int steps) {
+        if (steps == 0) {
+            return;
+        }
+        Vector3f head = app.getCamera().getLocation();
+        Vector3f left = app.getCamera().getLeft().clone().setY(0).normalizeLocal()
+                .multLocal((run ? RUNNING_STEP_DISTANCE : STEP_DISTANCE) * WorldUtils.TILE_WIDTH);
+        PlayerEntityViewState entityViewState = stateManager.getState(GameClientState.class).getEntityViewState();
+        boolean inWater = entityViewState != null && entityViewState.isWater(targetSpatial.getWorldTranslation());
+        if ((steps & PossessionWalkCycle.LEFT_STEP) != 0) {
+            ThingSounds.play(creature.getSoundCategory(), FootstepSounds.getEvent(FootstepSounds.POSSESSED_LEFT, inWater),
+                    head.add(left));
+        }
+        if ((steps & PossessionWalkCycle.RIGHT_STEP) != 0) {
+            ThingSounds.play(creature.getSoundCategory(), FootstepSounds.getEvent(FootstepSounds.POSSESSED_RIGHT, inWater),
+                    head.subtract(left));
+        }
+    }
+
+    /**
+     * Shows the swipe of the melee attack in front of the camera when the
+     * possessed creature swings. DKII.EXE (0x4100F0) takes turns between the
+     * two melee swipes of the creature, if it has the second one.
+     */
+    private void updateSwipe(float tpf) {
+        if (watchedTarget != null && watchedTarget.applyChanges()) {
+            CreatureViewState viewState = watchedTarget.get(CreatureViewState.class);
+            boolean newViewState = viewState != shownViewState;
+            shownViewState = viewState;
+            if (newViewState && viewState != null && viewState.state == Creature.AnimationType.MELEE_ATTACK) {
+                boolean second = secondSwipe && creature.getMelee2Swipe() != Creature.Swipe.NONE;
+                secondSwipe = !second && creature.getMelee2Swipe() != Creature.Swipe.NONE;
+                showSwipe(second ? creature.getMelee2Swipe() : creature.getMelee1Swipe());
+            }
+        }
+
+        if (swipe != null) {
+            swipeTimeLeft -= tpf;
+            if (swipeTimeLeft <= 0) {
+                removeSwipe();
+            } else {
+                Camera cam = app.getCamera();
+                swipe.setLocalTranslation(cam.getLocation());
+                swipe.setLocalRotation(cam.getRotation().mult(SWIPE_ROTATION));
+            }
+        }
+    }
+
+    private void showSwipe(Creature.Swipe type) {
+        removeSwipe();
+        if (type == null || type.getModelName() == null) {
+            return;
+        }
+
+        swipe = AssetUtils.loadModel(app.getAssetManager(), type.getModelName(), null);
+        swipeTimeLeft = 0;
+        swipe.depthFirstTraversal(spatial -> {
+            AnimComposer animComposer = spatial.getControl(AnimComposer.class);
+            if (animComposer != null) {
+                animComposer.setCurrentAction(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
+                animComposer.setEnabled(true);
+                swipeTimeLeft = Math.max(swipeTimeLeft, (float) animComposer.getAnimClip(KmfModelLoader.DUMMY_ANIM_CLIP_NAME).getLength());
+            }
+        });
+        app.getRootNode().attachChild(swipe);
+    }
+
+    private void removeSwipe() {
+        if (swipe != null) {
+            swipe.removeFromParent();
+            swipe = null;
+        }
+    }
+
+    /**
+     * Zooms the view in while the creature is in sniper mode, the server tells
+     * whether it is
+     */
+    private void updateZoom() {
+        PossessedAbility possessedAbility = stateManager.getState(GameClientState.class).getGameClientService().getEntityData()
+                .getComponent(target, PossessedAbility.class);
+        float wanted = possessedAbility != null && possessedAbility.ability == Creature.SpecialAbility.SNIPER_MODE
+                ? SNIPER_FIELD_OF_VIEW : FIELD_OF_VIEW;
+        if (wanted != fieldOfView) {
+            fieldOfView = wanted;
+            Camera cam = app.getCamera();
+            cam.setFrustumPerspective(fieldOfView, (float) cam.getWidth() / cam.getHeight(), cam.getFrustumNear(), cam.getFrustumFar());
+        }
     }
 
     /**
@@ -304,14 +453,17 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
 
         Vector2f direction = computeMovementDirection();
         float rotation = getFacing();
+        float pitch = getPitch();
         byte speedMode = getSpeedMode();
 
         boolean changed = hasMovementChanged(direction, speedMode);
-        boolean rotated = Math.abs(rotation - sentRotation) > ROTATION_SEND_THRESHOLD;
+        boolean rotated = Math.abs(rotation - sentRotation) > ROTATION_SEND_THRESHOLD
+                || Math.abs(pitch - sentPitch) > ROTATION_SEND_THRESHOLD;
         if (changed || (rotated && timeSinceSend >= ROTATION_SEND_INTERVAL)) {
-            stateManager.getState(GameClientState.class).getGameClientService().setPossessedMovement(direction, rotation, speedMode);
+            stateManager.getState(GameClientState.class).getGameClientService().setPossessedMovement(direction, rotation, pitch, speedMode);
             sentDirection.set(direction);
             sentRotation = rotation;
+            sentPitch = pitch;
             sentSpeedMode = speedMode;
             timeSinceSend = 0;
         }
@@ -346,10 +498,12 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
     }
 
     private byte getSpeedMode() {
-        if (run) {
-            return PossessedMovement.SPEED_RUN;
+
+        // DK II takes the run speed while the run key is held, then the creep speed while creeping (0x40E910)
+        if (creep) {
+            return PossessedMovement.SPEED_CREEP;
         }
-        return creep ? PossessedMovement.SPEED_CREEP : PossessedMovement.SPEED_WALK;
+        return run ? PossessedMovement.SPEED_RUN : PossessedMovement.SPEED_WALK;
     }
 
     /**
@@ -378,6 +532,13 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
         return FastMath.atan2(dir.x, dir.z);
     }
 
+    /**
+     * The pitch of the camera, positive looking up, in radians
+     */
+    private float getPitch() {
+        return FastMath.asin(FastMath.clamp(app.getCamera().getDirection().y, -1, 1));
+    }
+
     private void resetMovement() {
         moveForward = false;
         moveBackward = false;
@@ -391,6 +552,15 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
         if (walkCycle != null) {
             walkCycle.reset();
         }
+    }
+
+    /**
+     * Get the data of the possessed creature
+     *
+     * @return the possessed creature, {@code null} if there is none
+     */
+    public Creature getCreature() {
+        return creature;
     }
 
     public void setTarget(EntityId target) {

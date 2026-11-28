@@ -106,6 +106,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private PauseMenuSettings pauseMenuSettings;
 
     private static final String NOT_IMPLEMENTED_TEXT = "Currently not implemented";
+    private static final String ABILITY_ACTIVE_EFFECT_KEY = "active";
+
     private static final String FLASH_EFFECT_KEY = "flash";
     
     private static final Logger logger = System.getLogger(PlayerScreenController.class.getName());
@@ -193,6 +195,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
             }
             updatePossessionHealth();
             updateCallToArms();
+            if (screen != null && SCREEN_POSSESSION_ID.equals(screen.getScreenId())) {
+                updatePossessionActiveAbilities();
+            }
             if (state != null && screen != null && SCREEN_HUD_ID.equals(screen.getScreenId())) {
                 updateWorkshopAvailability();
             }
@@ -234,6 +239,56 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }.build(payDay).getControl(ResearchEffectControl.class);
         payDayRing.initJme(state.app);
         payDayRing.setResearch(payDayTimeLeft);
+    }
+
+    /**
+     * Marks the abilities that are on with the selection frame, DK II draws it
+     * behind their icon (0x420D10). Called from the render thread, like the
+     * rest of the screen update.
+     */
+    private void updatePossessionActiveAbilities() {
+        EntityId target = state.stateManager.getState(PossessionInteractionState.class).getTarget();
+        Creature creature = state.getPossessionCreature();
+        if (target == null || creature == null) {
+            return;
+        }
+        updatePossessionAbilityActive(1, isPossessionAbilityActive(entityData, target, creature.getFirstPersonSpecialAbility1()));
+        updatePossessionAbilityActive(2, isPossessionAbilityActive(entityData, target, creature.getFirstPersonSpecialAbility2()));
+    }
+
+    private void updatePossessionAbilityActive(int index, boolean active) {
+        Element icon = screen.findElementById("creature-ability_" + index);
+        if (icon == null) {
+            return;
+        }
+        if (active) {
+            icon.startEffect(EffectEventId.onCustom, null, ABILITY_ACTIVE_EFFECT_KEY);
+        } else {
+            icon.resetSingleEffect(EffectEventId.onCustom, ABILITY_ACTIVE_EFFECT_KEY);
+        }
+    }
+
+    /**
+     * Is the possessed creature using the ability right now: a bat, a praying
+     * or a worker carrying creature has it in {@link PossessedAbility}, a
+     * disguised one is {@link Disguised} and a hypnotising one has a
+     * {@link Hypnotised} creature.
+     *
+     * @param data the entity data
+     * @param creature the possessed creature
+     * @param ability the ability to check
+     * @return {@code true} if the ability is on
+     */
+    boolean isPossessionAbilityActive(EntityData data, EntityId creature, Creature.SpecialAbility ability) {
+        return switch (ability) {
+            case TURN_TO_BAT, PRAY, PICK_UP_WORKERS -> {
+                PossessedAbility active = data.getComponent(creature, PossessedAbility.class);
+                yield active != null && active.ability == ability;
+            }
+            case DISGUISE_N_STEAL -> data.getComponent(creature, Disguised.class) != null;
+            case HYPNOTISE -> data.findEntity(new FieldFilter<>(Hypnotised.class, "entity", creature), Hypnotised.class) != null;
+            default -> false;
+        };
     }
 
     /**
@@ -1021,9 +1076,17 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
         createCreatureMeleeIcon(creature.getFirstPersonMeleeResource().getName()).build(contentPanel);
 
-        // TODO: creature spells, check creature level availiablity
-        //CreatureSpell cs = state.stateManager.getState(GameState.class).getLevelData().getCreatureSpellById(s.getCreatureSpellId());
-        //createCreatureSpellIcon(cs, index++).build(nifty, screen, contentPanel);
+        // The spells the creature has at its level, the keys pick them in the creature's order
+        EntityId target = state.stateManager.getState(PossessionInteractionState.class).getTarget();
+        CreatureExperience experience = target != null ? entityData.getComponent(target, CreatureExperience.class) : null;
+        int level = experience != null ? experience.level : 1;
+        int index = 1;
+        for (Creature.Spell spell : creature.getSpells()) {
+            if (spell.getLevelAvailable() <= level) {
+                createCreatureSpellIcon(state.getKwdFile().getCreatureSpellById(spell.getCreatureSpellId()), index).build(contentPanel);
+            }
+            index++;
+        }
     }
 
     @Override
@@ -1812,6 +1875,15 @@ public final class PlayerScreenController implements IPlayerScreenController {
                         effectParameter("filename", AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                                 + File.separator + "GUI/Icons/selected-creature.png"));
                         post(true);
+                    }
+                });
+                onCustomEffect(new EffectBuilder("imageOverlay") {
+                    {
+                        customKey(ABILITY_ACTIVE_EFFECT_KEY);
+                        effectParameter("filename", AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                                + File.separator + "GUI/Icons/selected-creature.png"));
+                        post(true);
+                        effectParameter("neverStopRendering", "true");
                     }
                 });
             }

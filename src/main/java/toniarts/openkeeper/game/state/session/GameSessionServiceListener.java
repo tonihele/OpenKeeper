@@ -189,20 +189,39 @@ public interface GameSessionServiceListener {
      *
      * @param direction normalized movement direction on the map plane
      * @param rotation the facing of the creature
+     * @param pitch the pitch of the view, positive looking up, in radians
      * @param speedMode one of the {@code PossessedMovement.SPEED_*} constants
      * @param playerId the player who is possessing
      */
     @Asynchronous
-    public void onSetPossessedMovement(Vector2f direction, float rotation, byte speedMode, short playerId);
+    public void onSetPossessedMovement(Vector2f direction, float rotation, float pitch, byte speedMode, short playerId);
 
     /**
      * Player starts or stops attacking with the possessed creature
      *
      * @param attacking whether the attack button is held down
+     * @param spell 0 for the melee attack, 1 to 3 for the creature's spells
      * @param playerId the player who is possessing
      */
     @Asynchronous
-    public void onSetPossessedAttack(boolean attacking, short playerId);
+    public void onSetPossessedAttack(boolean attacking, int spell, short playerId);
+
+    /**
+     * Player uses a first person ability of the possessed creature
+     *
+     * @param ability 1 or 2, the creature's first or second ability
+     * @param playerId the player who is possessing
+     */
+    @Asynchronous
+    public void onUsePossessedAbility(int ability, short playerId);
+
+    /**
+     * Player wants the creature the possessed creature looks at in its group
+     *
+     * @param playerId the player who is possessing
+     */
+    @Asynchronous
+    public void onAddPossessedFollower(short playerId);
 
     /**
      * Player wants to stop possessing

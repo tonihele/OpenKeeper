@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.logic.CreatureAiSystem;
 import toniarts.openkeeper.game.logic.CreatureDisturbanceSystem;
 import toniarts.openkeeper.game.logic.CreatureExperienceSystem;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
+import toniarts.openkeeper.game.logic.CreatureLandingSystem;
 import toniarts.openkeeper.game.logic.CreatureMoodSystem;
 import toniarts.openkeeper.game.logic.CreatureSleepSystem;
 import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
@@ -177,6 +178,9 @@ public final class GameLoopManager {
                         gameController.getGameTimer(), gameController.getNavigationService()),
                 new CallToArmsSystem(entityData, level, playerControllers.values(),
                         gameWorldController.getCreaturesController(), gameController.getGameTimer(), gameEventService),
+                new CreatureLandingSystem(entityData, gameWorldController.getMapController(),
+                        gameController.getLevelVariable(Variable.MiscVariable.MiscType.GRAVITY_CONSTANT),
+                        gameController.getGameTimer(), gameEventService, gameWorldController.getCreaturesController()),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
                 new CasinoSystem(entityData, gameWorldController.getCreaturesController(),
                         gameWorldController.getMapController(), positionSystem, gameController.getGameTimer(), gameEventService, gameSettings),
@@ -188,7 +192,7 @@ public final class GameLoopManager {
                 new BattleSystem(entityData, gameController.getGameTimer()),
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
-                new HaulingSystem(entityData),
+                new HaulingSystem(entityData, gameWorldController.getCreaturesController()),
                 new SpecialIdleEffectSystem(entityData, gameController.getGameTimer(),
                         level.getGameLevel().getTicksPerSec(), gameWorldController.getMapController(), gameEventService),
                 new TrapSystem(entityData, level, gameController.getGameTimer(), positionSystem, playerControllers,
@@ -208,8 +212,7 @@ public final class GameLoopManager {
                         gameController.getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS),
                         levelInfo.getLevelData().getObject(FiveByFiveRotatedController.OBJECT_PLUG_ID).getMiscEffectId(),
                         levelInfo.getLevelData().getGameLevel().getTicksPerSec(), gameEventService),
-                new CreatureFallSystem(entityData, gameController.getGameTimer(), gameEventService,
-                        gameWorldController.getCreaturesController()));
+                new CreatureFallSystem(entityData));
         loops.add(new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "Animation"));
 
         // Steering

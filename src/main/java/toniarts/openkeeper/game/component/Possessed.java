@@ -44,6 +44,17 @@ public final class Possessed implements EntityComponent {
      */
     public double attackPressTime = Double.NaN;
 
+    /**
+     * 0 for the melee attack, 1 to 3 for the creature's spells in the order
+     * the creature has them
+     */
+    public int attackSpell;
+
+    /**
+     * The keeper picks a creature to join the group instead of swinging
+     */
+    public boolean attackGroup;
+
     public Possessed() {
         // For serialization
     }
@@ -54,10 +65,20 @@ public final class Possessed implements EntityComponent {
     }
 
     public Possessed(int manaDrain, double manaCheckTime, boolean attackHeld, double attackPressTime) {
+        this(manaDrain, manaCheckTime, attackHeld, attackPressTime, 0);
+    }
+
+    public Possessed(int manaDrain, double manaCheckTime, boolean attackHeld, double attackPressTime, int attackSpell) {
         this.manaDrain = manaDrain;
         this.manaCheckTime = manaCheckTime;
         this.attackHeld = attackHeld;
         this.attackPressTime = attackPressTime;
+        this.attackSpell = attackSpell;
+    }
+
+    public Possessed(int manaDrain, double manaCheckTime, boolean attackHeld, double attackPressTime, boolean attackGroup) {
+        this(manaDrain, manaCheckTime, attackHeld, attackPressTime, 0);
+        this.attackGroup = attackGroup;
     }
 
     public boolean isAttackPending() {

@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
+import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -40,15 +42,25 @@ import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Invisible;
 import toniarts.openkeeper.game.component.Invulnerable;
+import toniarts.openkeeper.game.component.Mobile;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
+import toniarts.openkeeper.game.component.SpeedBlur;
+import toniarts.openkeeper.game.component.SpeedChange;
+import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.Teleport;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.controller.ShotsController;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.task.ITaskManager;
+import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.AlternativeShot;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
@@ -66,7 +78,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A creature in a fight casting its spells for its own side, with the Heal
- * Creature of the Warlock in the original data
+ * Creature of the Warlock in the original data, and an Imp speeding itself up
+ * or teleporting on the way to a job
  */
 class CreatureSupportSpellTest {
 
@@ -84,6 +97,9 @@ class CreatureSupportSpellTest {
     private List<Object[]> shots;
     private List<Object[]> firedShots;
     private Shot shot;
+    private List<Object[]> effects;
+    private Task task;
+    private boolean reachable;
     private double gameTime;
     private EntityId us;
     private EntityId spell;
@@ -95,6 +111,9 @@ class CreatureSupportSpellTest {
         shots = new ArrayList<>();
         firedShots = new ArrayList<>();
         shot = ShotFixtures.healInstantShot(HEAL_SHOT_ID, MODIFY_HEALTH_SHOT_ID);
+        effects = new ArrayList<>();
+        task = stub(Task.class, (name, args) -> null);
+        reachable = true;
         gameTime = 10;
 
         us = createFighter(KEEPER, new Vector3f(5, 0, 5), 1000);
@@ -233,7 +252,7 @@ class CreatureSupportSpellTest {
     void spellsWithoutAnEffectYetAreNotCast() {
         createFighter(KEEPER, new Vector3f(5, 0, 7), 100);
 
-        assertFalse(createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.HASTE).castSupportSpell());
+        assertFalse(createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.NONE).castSupportSpell());
     }
 
     @Test
@@ -307,6 +326,168 @@ class CreatureSupportSpellTest {
     }
 
     @Test
+    void castsHasteOnABadlyHurtFriendWhoseSpeedIsNotChanged() {
+        EntityId friend = createFighter(KEEPER, new Vector3f(5, 0, 7), 100);
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.HASTE);
+
+        assertTrue(controller.castSupportSpell());
+        assertEquals(friend, getCastTarget());
+
+        entityData.setComponent(friend, new SpeedChange(30));
+        gameTime += RECHARGE;
+        assertFalse(controller.castSupportSpell());
+    }
+
+    @Test
+    void theHasteShotLandsOnItsCaster() {
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.speed = 1f;
+        entityData.setComponents(us, creatureComponent, new Mobile(false, false, false, 1f), new Health(100, 1000));
+
+        // Haste Creature, its shot flies. We are the one of our fighters that needs it
+        shot = ShotFixtures.flyingSupportShot(HEAL_SHOT_ID, Shot.ProcessType.MODIFY_SPEED);
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.HASTE,
+                createShotsController(shot));
+        assertTrue(controller.castSupportSpell());
+
+        gameTime += SHOT_DELAY;
+        controller.releaseCastShot();
+
+        assertNotNull(entityData.getComponent(us, SpeedChange.class));
+        assertEquals(4f, entityData.getComponent(us, Mobile.class).maxSpeed);
+    }
+
+    @Test
+    void anImpSpeedsItselfUpWhenItSetsOffToAJob() {
+        entityData.setComponent(us, new TaskComponent(1, null, null, TaskType.DIG_TILE, 0, false));
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.IS_DEFENSIVE, CreatureSpellFlag.IMP_HASTE, CreatureSpellFlag.CAST_ON_OTHERS),
+                AlternativeShot.NONE);
+
+        controller.navigateToAssignedTask();
+
+        // At once and without a cast
+        assertEquals(1, shots.size());
+        assertArrayEquals(new Object[]{HEAL_SHOT_ID, HEAL_AMOUNT, 0, KEEPER, new Vector3f(5, 0, 5), us, us}, shots.get(0));
+        assertEquals(gameTime, entityData.getComponent(spell, CreatureSpell.class).attactStartTime);
+        assertNull(entityData.getComponent(us, CastShot.class));
+    }
+
+    @Test
+    void anImpThatSpeedsItselfUpShowsTheSpeedBlurForThePercentageInGameTicks() {
+        entityData.setComponent(us, new TaskComponent(1, null, null, TaskType.DIG_TILE, 0, false));
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.IS_DEFENSIVE, CreatureSpellFlag.IMP_HASTE, CreatureSpellFlag.CAST_ON_OTHERS),
+                AlternativeShot.NONE);
+
+        controller.navigateToAssignedTask();
+
+        // 0x4651A0 sets the blur timer to the spell's first value, 4 ticks a second here
+        assertEquals(gameTime + HEAL_AMOUNT / 4.0, entityData.getComponent(us, SpeedBlur.class).endTime);
+    }
+
+    @Test
+    void anImpSpeedsItselfUpAgainOnceTheSpellIsRecharged() {
+        entityData.setComponent(us, new TaskComponent(1, null, null, TaskType.DIG_TILE, 0, false));
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.IS_DEFENSIVE, CreatureSpellFlag.IMP_HASTE, CreatureSpellFlag.CAST_ON_OTHERS),
+                AlternativeShot.NONE);
+
+        controller.navigateToAssignedTask();
+        gameTime += RECHARGE / 2;
+        controller.navigateToAssignedTask();
+        assertEquals(1, shots.size());
+
+        gameTime += RECHARGE;
+        controller.navigateToAssignedTask();
+        assertEquals(2, shots.size());
+    }
+
+    @Test
+    void otherSpellsAreNotCastOnTheWayToAJob() {
+        entityData.setComponent(us, new TaskComponent(1, null, null, TaskType.DIG_TILE, 0, false));
+
+        createController().navigateToAssignedTask();
+
+        assertTrue(shots.isEmpty());
+        assertNull(entityData.getComponent(spell, CreatureSpell.class).attactStartTime);
+    }
+
+    @Test
+    void anImpTeleportsToAJobMoreThanTwoTilesAway() {
+        assignJob(TaskType.DIG_TILE, new Vector2f(5, 8));
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.IS_DEFENSIVE, CreatureSpellFlag.IMP_TELEPORT,
+                CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.NONE);
+
+        controller.navigateToAssignedTask();
+
+        // It jumps out where it is instead of walking, and the spell recharges
+        assertEquals(new Vector3f(5, 0, 8), entityData.getComponent(us, Teleport.class).destination);
+        assertNull(entityData.getComponent(us, Navigation.class));
+        assertEquals(gameTime, entityData.getComponent(spell, CreatureSpell.class).attactStartTime);
+        assertArrayEquals(new Object[]{321, new Vector3f(5, 0, 5), 0f}, effects.get(0));
+    }
+
+    @Test
+    void theImpLandsOnTheJobAfterFourTicksAndCarriesOnTwoTicksLater() {
+
+        // Gold for the Treasury is no reason to walk
+        assignJob(TaskType.CARRY_GOLD_TO_TREASURY, new Vector2f(5, 8));
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.IS_DEFENSIVE, CreatureSpellFlag.IMP_TELEPORT,
+                CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.NONE);
+        controller.navigateToAssignedTask();
+
+        gameTime += 0.75;
+        controller.processTick(0.25f);
+        assertEquals(new Vector3f(5, 0, 5), entityData.getComponent(us, Position.class).position);
+
+        gameTime += 0.25;
+        controller.processTick(0.25f);
+        assertEquals(new Vector3f(5, 0, 8), entityData.getComponent(us, Position.class).position);
+        assertArrayEquals(new Object[]{322, new Vector3f(5, 0, 8), 0f}, effects.get(1));
+
+        gameTime += 0.25;
+        controller.processTick(0.25f);
+        assertNotNull(entityData.getComponent(us, Teleport.class));
+
+        gameTime += 0.25;
+        controller.processTick(0.25f);
+        assertNull(entityData.getComponent(us, Teleport.class));
+    }
+
+    @Test
+    void anImpWalksToAJobTwoTilesAway() {
+        assignJob(TaskType.DIG_TILE, new Vector2f(7, 7));
+
+        createController(EnumSet.of(CreatureSpellFlag.IS_DEFENSIVE, CreatureSpellFlag.IMP_TELEPORT, CreatureSpellFlag.CAST_ON_OTHERS),
+                AlternativeShot.NONE).navigateToAssignedTask();
+
+        assertNull(entityData.getComponent(us, Teleport.class));
+        assertNotNull(entityData.getComponent(us, Navigation.class));
+        assertNull(entityData.getComponent(spell, CreatureSpell.class).attactStartTime);
+    }
+
+    @Test
+    void anImpWalksWhenItTakesSomethingSomewhere() {
+        assignJob(TaskType.CARRY_CORPSE_TO_GRAVEYARD, new Vector2f(5, 8));
+
+        createController(EnumSet.of(CreatureSpellFlag.IS_DEFENSIVE, CreatureSpellFlag.IMP_TELEPORT, CreatureSpellFlag.CAST_ON_OTHERS),
+                AlternativeShot.NONE).navigateToAssignedTask();
+
+        assertNull(entityData.getComponent(us, Teleport.class));
+        assertNull(entityData.getComponent(spell, CreatureSpell.class).attactStartTime);
+    }
+
+    @Test
+    void anImpDoesNotTeleportWhereItCannotWalk() {
+        assignJob(TaskType.DIG_TILE, new Vector2f(5, 8));
+        reachable = false;
+
+        createController(EnumSet.of(CreatureSpellFlag.IS_DEFENSIVE, CreatureSpellFlag.IMP_TELEPORT, CreatureSpellFlag.CAST_ON_OTHERS),
+                AlternativeShot.NONE).navigateToAssignedTask();
+
+        assertNull(entityData.getComponent(us, Teleport.class));
+        assertNull(entityData.getComponent(spell, CreatureSpell.class).attactStartTime);
+    }
+
+    @Test
     void hitsDoAnInvulnerableCreatureNoHarmUntilItWearsOff() {
         EntityId enemy = createFighter(Player.KEEPER2_ID, new Vector3f(5, 0, 6), 1000);
         entityData.setComponents(enemy, new Invulnerable(15), new CreatureFall());
@@ -320,6 +501,18 @@ class CreatureSupportSpellTest {
                 new HashMap<>(), null, null, null, null, null, null, null).processTick(0.25f);
         controller.setDamage(enemy, 100);
         assertEquals(100, entityData.getComponent(enemy, Damage.class).damage);
+    }
+
+    private void assignJob(TaskType taskType, Vector2f target) {
+        entityData.setComponent(us, new TaskComponent(1, null, null, taskType, 0, false));
+        task = stub(Task.class, (name, args) -> switch (name) {
+            case "getTarget" ->
+                target;
+            case "getTaskType" ->
+                taskType;
+            default ->
+                null;
+        });
     }
 
     private EntityId getCastTarget() {
@@ -375,11 +568,22 @@ class CreatureSupportSpellTest {
                         creatureSpell;
                     case "getShotById" ->
                         shot;
+                    case "getGameLevel" ->
+                        ShotFixtures.gameLevel(4);
                     default ->
                         null;
                 }) : null);
-        return new CreatureController(us, entityData, ShotFixtures.caster(HEAL_SPELL_ID, SHOT_DELAY), null, null, gameTimer, new HashMap<>(), null,
-                positionLookup, null, levelInfo, null, shotsController, stub(GameEventService.class, (name, args) -> null));
+        ITaskManager taskManager = stub(ITaskManager.class, (name, args) -> "getTaskById".equals(name) ? task : null);
+        INavigationService navigationService = stub(INavigationService.class,
+                (name, args) -> "findPath".equals(name) && reachable ? new DefaultGraphPath<>() : null);
+        GameEventService gameEventService = stub(GameEventService.class, (name, args) -> {
+            if (name.equals("emitEffect")) {
+                effects.add(args);
+            }
+            return null;
+        });
+        return new CreatureController(us, entityData, ShotFixtures.caster(HEAL_SPELL_ID, SHOT_DELAY), navigationService, taskManager, gameTimer,
+                new HashMap<>(), null, positionLookup, null, levelInfo, null, shotsController, gameEventService);
     }
 
     @FunctionalInterface

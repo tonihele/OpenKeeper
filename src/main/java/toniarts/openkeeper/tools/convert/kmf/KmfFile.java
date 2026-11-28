@@ -492,9 +492,9 @@ public final class KmfFile {
         //Read the controls
         for (int i = 0; i < controlCount; i++) {
             AnimControl control = new AnimControl();
-            control.setUnknown1(rawKmf.readUnsignedShort());
-            control.setUnknown2(rawKmf.readUnsignedShort());
-            control.setUnknown3(rawKmf.readUnsignedInteger());
+            control.setSprite(rawKmf.readUnsignedShort());
+            control.setVertex(rawKmf.readUnsignedShort());
+            control.setId(rawKmf.readUnsignedInteger());
             controls.add(control);
         }
 

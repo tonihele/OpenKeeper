@@ -16,9 +16,12 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.EnumSet;
+import java.util.List;
+
 /**
- * Builds the level variables a possessed creature's attack reads, their
- * setters are protected
+ * Builds the level variables and creature spells a possessed creature's
+ * attack reads, their setters are protected
  *
  * @author OpenKeeper
  */
@@ -39,6 +42,58 @@ public final class PossessionFixtures {
         variable.setVariableId(type);
         variable.setValue(value);
         return variable;
+    }
+
+    public static void setSpells(Creature creature, List<Creature.Spell> spells) {
+        creature.setSpells(spells);
+    }
+
+    /**
+     * The shot data 1, the damage, of the spells made here
+     */
+    public static final int SHOT_DAMAGE = 50;
+
+    public static void setAbilities(Creature creature, Creature.SpecialAbility ability1, Creature.SpecialAbility ability2) {
+        creature.setFirstPersonSpecialAbility1(ability1);
+        creature.setFirstPersonSpecialAbility2(ability2);
+    }
+
+    public static void setEyeHeight(Creature creature, float eyeHeight) {
+        creature.getAttributes().setEyeHeight(eyeHeight);
+    }
+
+    public static Creature.Spell spell(short creatureSpellId, int levelAvailable, float shotDelay) {
+        Creature.Spell spell = new Creature.Spell();
+        spell.setCreatureSpellId(creatureSpellId);
+        spell.setLevelAvailable((short) levelAvailable);
+        spell.setShotDelay(shotDelay);
+        spell.setShotOffset(0, 0, 0);
+        return spell;
+    }
+
+    public static CreatureSpell creatureSpell(short creatureSpellId, short shotTypeId, float rechargeTime, float range,
+            EnumSet<CreatureSpell.CreatureSpellFlag> flags) {
+        CreatureSpell creatureSpell = new CreatureSpell();
+        creatureSpell.setCreatureSpellId(creatureSpellId);
+        creatureSpell.setShotTypeId(shotTypeId);
+        creatureSpell.setRechargeTime(rechargeTime);
+        creatureSpell.setRange(range);
+        creatureSpell.setShotData1(SHOT_DAMAGE);
+        creatureSpell.setFlags(flags);
+        return creatureSpell;
+    }
+
+    /**
+     * The Imp's own haste, Imp Haste (spell 37) as it ships in the original
+     * data: 150 % speed for 15 seconds
+     */
+    public static CreatureSpell impHaste(short creatureSpellId, short shotTypeId, float rechargeTime) {
+        CreatureSpell creatureSpell = creatureSpell(creatureSpellId, shotTypeId, rechargeTime, 0,
+                EnumSet.of(CreatureSpell.CreatureSpellFlag.IS_DEFENSIVE, CreatureSpell.CreatureSpellFlag.IMP_HASTE,
+                        CreatureSpell.CreatureSpellFlag.CAST_ON_OTHERS));
+        creatureSpell.setShotData1(150);
+        creatureSpell.setShotData2(15);
+        return creatureSpell;
     }
 
 }

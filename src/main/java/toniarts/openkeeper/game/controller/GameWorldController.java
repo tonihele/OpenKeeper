@@ -54,6 +54,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.Teleport;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Turncoat;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -1250,6 +1251,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         entityData.removeComponent(entity, CombatPitFighter.class);
         entityData.removeComponent(entity, FollowTarget.class);
         entityData.removeComponent(entity, HauledBy.class);
+        entityData.removeComponent(entity, Teleport.class);
 
         // TODO: Should we some sort of room component and notify the room handlers instead?
         // Handle stored stuff

@@ -238,13 +238,23 @@ public final class GameClientService extends AbstractClientService
     }
 
     @Override
-    public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
-        getDelegate().setPossessedMovement(direction, rotation, speedMode);
+    public void setPossessedMovement(Vector2f direction, float rotation, float pitch, byte speedMode) {
+        getDelegate().setPossessedMovement(direction, rotation, pitch, speedMode);
     }
 
     @Override
-    public void setPossessedAttack(boolean attacking) {
-        getDelegate().setPossessedAttack(attacking);
+    public void setPossessedAttack(boolean attacking, int spell) {
+        getDelegate().setPossessedAttack(attacking, spell);
+    }
+
+    @Override
+    public void usePossessedAbility(int ability) {
+        getDelegate().usePossessedAbility(ability);
+    }
+
+    @Override
+    public void addPossessedFollower() {
+        getDelegate().addPossessedFollower();
     }
 
     @Override

@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Invisible;
 import toniarts.openkeeper.game.component.Invulnerable;
+import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
@@ -38,6 +39,8 @@ import toniarts.openkeeper.game.component.Poisoned;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.SpeedBlur;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Tremor;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -80,6 +83,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INVUNERABLE
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_ARMOUR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_SPEED;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POISON_SPIT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.RAISE_DEAD;
@@ -172,6 +176,28 @@ public final class ShotsController implements IShotsController {
         });
         result.put(POSSESS_CREATURE, request -> creaturesController.createController(request.target()).setPossession(true));
         result.put(MODIFY_HEALTH, request -> EntityController.setDamage(entityData, request.target(), -request.shotData1()));
+        // Haste and Slow: the first value is the new speed as a percentage of the current one, the second how many
+        // seconds it lasts. The speed stays between a quarter of the creature's own and a tile a game tick, and a
+        // speed change that is still running is left as it is. Then, like 0x4AE000, a creature faster than its own
+        // speed shows the speed blur for as many game ticks as the second value, a slower one none
+        result.put(MODIFY_SPEED, request -> {
+            Mobile mobile = entityData.getComponent(request.target(), Mobile.class);
+            CreatureComponent creature = entityData.getComponent(request.target(), CreatureComponent.class);
+            if (mobile == null || creature == null) {
+                return;
+            }
+            if (entityData.getComponent(request.target(), SpeedChange.class) == null) {
+                float speed = FastMath.clamp(mobile.maxSpeed * request.shotData1() / 100, creature.speed / 4, kwdFile.getGameLevel().getTicksPerSec());
+                mobile = new Mobile(mobile.canFly, mobile.canWalkOnWater, mobile.canWalkOnLava, speed);
+                entityData.setComponents(request.target(), mobile, new SpeedChange(gameTimer.getGameTime() + request.shotData2()));
+            }
+            if (mobile.maxSpeed > creature.speed) {
+                entityData.setComponent(request.target(), new SpeedBlur(gameTimer.getGameTime()
+                        + request.shotData2() / (double) kwdFile.getGameLevel().getTicksPerSec()));
+            } else if (mobile.maxSpeed < creature.speed) {
+                entityData.removeComponent(request.target(), SpeedBlur.class);
+            }
+        });
         // Cast Armour: the first value is how long the armour lasts, in game ticks
         result.put(MODIFY_ARMOUR, request -> entityData.setComponent(request.target(),
                 new Armour(gameTimer.getGameTime() + (double) request.shotData1() / kwdFile.getGameLevel().getTicksPerSec())));
@@ -475,9 +501,18 @@ public final class ShotsController implements IShotsController {
     @Override
     public boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target,
             EntityId shooter, float maxRange) {
-        Shot shot = kwdFile.getShotById(shotTypeId);
-        Vector3f targetPosition = getAimPoint(target);
+        return fireShot(shotTypeId, shotData1, shotData2, playerId, position, target, getAimPoint(target), shooter, maxRange);
+    }
 
+    @Override
+    public boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, Vector3f targetPosition,
+            EntityId shooter, float maxRange) {
+        return fireShot(shotTypeId, shotData1, shotData2, playerId, position, null, targetPosition, shooter, maxRange);
+    }
+
+    private boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target,
+            Vector3f targetPosition, EntityId shooter, float maxRange) {
+        Shot shot = kwdFile.getShotById(shotTypeId);
         // A trap's shot flies if it moves towards its target, a creature's whenever it has a speed, like the
         // Bile Demon's Gas Cloud (0x4984D0). A creature's instant shot, like Hail Storm, is a shot too, it stands
         // still and goes onto its target in its turn (0x498870, 0x4AFCB0)
