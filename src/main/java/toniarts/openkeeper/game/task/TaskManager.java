@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.task;
 
-import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
@@ -118,13 +117,11 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -856,7 +853,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 .filter(p -> !points.contains(p) && room.isTileAccessible(null, p))
                 .min(Comparator.comparingInt(p -> WorldUtils.calculateDistance(currentPosition, p)))
                 .orElse(null);
-        if (target == null || navigationService.findPath(currentPosition, target, creature) == null) {
+        if (target == null || !navigationService.isReachable(currentPosition, target, creature)) {
             return false;
         }
 
@@ -944,8 +941,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 } else {
                     target = Utils.getRandomItem(coordinates);
                 }
-                GraphPath<IMapTileInformation> path = navigationService.findPath(creature.getCreatureCoordinates(), target, creature);
-                if (path != null || target == creature.getCreatureCoordinates()) {
+                if (navigationService.isReachable(creature.getCreatureCoordinates(), target, creature)) {
 
                     // Assign the task
                     Task task = getRoomTask(objectType, target, targetEntity, creature, room);
@@ -1358,7 +1354,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
             Point target = Utils.getRandomItem(coordinates);
-            if (target.equals(currentPosition) || navigationService.findPath(currentPosition, target, creature) != null) {
+            if (navigationService.isReachable(currentPosition, target, creature)) {
                 Task task = new CollectPay(navigationService, mapController, target, creature.getOwnerId(), room, gameWorldController, entityData);
                 task.assign(creature, true);
                 tasksByIds.put(task.getId(), task);
@@ -1394,20 +1390,13 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         });
 
         // Pick closest we can actually access
-        Set<Point> reachableArea = null;
         for (EntityId food : foods) {
             Point target = entityPositionLookup.getEntityLocation(food).getLocation();
-            if (target == creature.getCreatureCoordinates() || ((reachableArea == null || reachableArea.contains(target))
-                    && navigationService.findPath(creature.getCreatureCoordinates(), target, creature) != null)) {
+            if (navigationService.isReachable(creature.getCreatureCoordinates(), target, creature)) {
                 GoToEat task = new GoToEat(navigationService, mapController, entityPositionLookup, food, entityData, creature);
                 task.assign(creature, true);
                 tasksByIds.put(task.getId(), task);
                 return true;
-            }
-
-            // A search that fails goes through all of the creature's land first. Not again for each food out of its reach
-            if (reachableArea == null) {
-                reachableArea = getReachableArea(creature, creature.getCreatureCoordinates());
             }
         }
 
@@ -1425,7 +1414,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             List<Point> coordinates = new ArrayList<>(room.getRoomInstance().getCoordinates());
             coordinates.removeIf(p -> !room.isTileAccessible(null, p));
             Point target = Utils.getRandomItem(coordinates);
-            if (target != null && (target.equals(currentLocation) || navigationService.findPath(currentLocation, target, creature) != null)) {
+            if (target != null && navigationService.isReachable(currentLocation, target, creature)) {
                 CollectWinnings task = new CollectWinnings(navigationService, mapController, target, creature.getOwnerId(), room, entityData, gameWorldController);
                 task.assign(creature, true);
                 tasksByIds.put(task.getId(), task);
@@ -1493,7 +1482,6 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             ICreatureController creature = workerEntry.getKey();
             Consumer<Boolean> workResult = workerEntry.getValue();
             final Point currentLocation = creature.getCreatureCoordinates();
-            Set<Point> reachableArea = getReachableArea(creature, currentLocation);
 
             // Give points by distance and priority. The distance is to the task's own tile: finding the spot to work from, and
             // whether it can be reached, takes path finding, which canAssign() does only for the tasks being handed out (#671)
@@ -1502,7 +1490,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 // A task is worked on its tile or next to it. One out of the worker's reach would cost a path search that
                 // goes through all of the worker's land before it fails
                 if (Arrays.stream(WorldUtils.getSurroundingTiles(mapController.getMapData(), task.getTaskLocation(), false))
-                        .noneMatch(reachableArea::contains)) {
+                        .noneMatch(p -> navigationService.isReachable(currentLocation, p, creature))) {
                     continue;
                 }
 
@@ -1544,32 +1532,6 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         unemployedWorkers.forEach((t, u) -> {
             u.accept(Boolean.FALSE);
         });
-    }
-
-    /**
-     * The tiles a creature can walk to from where it stands, the same steps the
-     * path finding takes. DK II keeps the connected areas of the map, so a path
-     * to somewhere out of reach fails at once (DKII.EXE 0x4C9400, 0x4D0150)
-     *
-     * @param creature the creature
-     * @param start the tile the creature stands on
-     * @return the reachable tiles, the start included
-     */
-    private Set<Point> getReachableArea(ICreatureController creature, Point start) {
-        IMapDataInformation<IMapTileController> mapData = mapController.getMapData();
-        Set<Point> area = new HashSet<>();
-        area.add(start);
-        Deque<Point> open = new ArrayDeque<>(area);
-        while (!open.isEmpty()) {
-            Point p = open.poll();
-            for (Point next : WorldUtils.getSurroundingTiles(mapData, p, false)) {
-                if (!area.contains(next) && navigationService.isAccessible(mapData.getTile(p), mapData.getTile(next), creature)) {
-                    area.add(next);
-                    open.add(next);
-                }
-            }
-        }
-        return area;
     }
 
     static record TaskWorkerPriority(Task task, ICreatureController creature, int points, Consumer<Boolean> workResult) {
