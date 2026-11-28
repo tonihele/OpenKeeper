@@ -115,8 +115,9 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
         this.mapController = mapController;
         chanceOfDyingWhenConverted = (int) gameSettings.get(Variable.MiscVariable.MiscType.TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED).getValue();
 
-        // Have the position also here, since the player may move tortured entities between torture rooms, kinda still tortured but not counting towards death at the time
-        torturedEntities = entityData.getEntities(CreatureTortured.class, CreatureComponent.class, Position.class, Owner.class);
+        // Mind the position also here, since the player may move tortured entities between torture rooms, kinda still tortured but not counting towards death at the time
+        // It is read per tick instead of being in the set, a set gets every change of its components, and Position changes with every step of every creature
+        torturedEntities = entityData.getEntities(CreatureTortured.class, CreatureComponent.class, Owner.class);
         keeperInformation = entityData.getEntities(KeeperInformation.class);
     }
 
@@ -131,10 +132,11 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
         // Process ticks
         for (Entity entity : torturedEntities) {
             // Keep track of the chamber on every tick, the room may be gone before the next check
-            IRoomController chamber = getChamber(entity);
+            Position position = entityData.getComponent(entity.getId(), Position.class);
+            IRoomController chamber = position != null ? getChamber(entity, position) : null;
             CreatureTortured creatureTortured = entity.get(CreatureTortured.class);
             if (chamber != null) {
-                playTortureSounds(entity, creatureTortured.device);
+                playTortureSounds(entity, creatureTortured.device, position);
             }
             // Like in DK II, the torture works once a second, and that second takes a tick more (0x47B590)
             if (timeElapsed - creatureTortured.tortureCheckTime < tortureInterval || chamber == null) {
@@ -214,7 +216,7 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
      * Electric Chair zaps, on the same tick as the victim turns into its skeleton, and on the other devices the
      * victim cries out all the time
      */
-    private void playTortureSounds(Entity victim, EntityId device) {
+    private void playTortureSounds(Entity victim, EntityId device, Position position) {
         ObjectComponent deviceObject = device != null ? entityData.getComponent(device, ObjectComponent.class) : null;
         if (deviceObject == null) {
             return;
@@ -226,12 +228,12 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
         CreatureViewState view = entityData.getComponent(victim.getId(), CreatureViewState.class);
         if (view != null && CreatureViewSystem.isShockDue(view, timeElapsed)) {
             gameEventService.emitAt(GameEventType.TORTURE_ELECTROCUTED, GameEvent.ThingFlag.OBJECT, deviceObject.objectId,
-                    victim.getId(), victim.get(Position.class).position);
+                    victim.getId(), position.position);
         }
     }
 
-    private IRoomController getChamber(Entity entity) {
-        IRoomController chamber = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(entity.get(Position.class).position));
+    private IRoomController getChamber(Entity entity, Position position) {
+        IRoomController chamber = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
         if (chamber == null || !chamber.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
             return null;
         }

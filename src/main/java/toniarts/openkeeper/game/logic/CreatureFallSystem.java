@@ -53,7 +53,8 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
         this.gameEventService = gameEventService;
         this.creaturesController = creaturesController;
 
-        fallEntities = entityData.getEntities(CreatureFall.class, Position.class, CreatureComponent.class);
+        // Position is not in the set, a set gets every change of its components, and Position changes with every step of every creature
+        fallEntities = entityData.getEntities(CreatureFall.class, CreatureComponent.class);
     }
 
     @Override
@@ -67,10 +68,13 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
             // Like in DK II, the floor in the middle of the portal is a level lower, the creature falls through
             CreatureFall.FallType fallType = entity.get(CreatureFall.class).fallType;
             float floorHeight = fallType == CreatureFall.FallType.PORTAL_DROP ? WorldUtils.UNDERFLOOR_HEIGHT : WorldUtils.FLOOR_HEIGHT;
-            Position position = entity.get(Position.class);
+            Position position = entityData.getComponent(entity.getId(), Position.class);
+            if (position == null) {
+                continue;
+            }
             Position newPosition = new Position(position.rotation, position.position);
             newPosition.position.y = Math.max(newPosition.position.y - tpf * GRAVITY, floorHeight);
-            entity.set(newPosition);
+            entityData.setComponent(entity.getId(), newPosition);
             if (newPosition.position.y == floorHeight) {
 
                 // We'll just remove this and add the AI
