@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.tools.convert;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -51,12 +52,23 @@ public final class FileResourceReader implements ISeekableResourceReader {
 
     @Override
     public IResourceChunkReader readChunk(int size) throws IOException {
-        ByteBuffer buffer = allocateBuffer(size);
-        int result = file.read(buffer);
-        if(result == -1) {
+        ResourceReaderSupport.checkLength(size);
+        if (size == 0) {
+            return new ResourceChunkReader(allocateBuffer(0));
+        }
+
+        long remaining = file.size() - file.position();
+        int capacity = (int) Math.min((long) size, Math.max(0L, remaining));
+        if (capacity == 0) {
             return null;
         }
+
+        ByteBuffer buffer = allocateBuffer(capacity);
+        int read = readUpTo(buffer);
         buffer.flip();
+        if (read == 0) {
+            return null;
+        }
 
         return new ResourceChunkReader(buffer);
     }
@@ -66,6 +78,9 @@ public final class FileResourceReader implements ISeekableResourceReader {
         long remainingBytes = file.size() - file.position();
         if (remainingBytes > Integer.MAX_VALUE) {
             throw new IOException("File is too big to be read!");
+        }
+        if (remainingBytes <= 0) {
+            return readChunk(0);
         }
 
         return readChunk((int) remainingBytes);
@@ -85,15 +100,27 @@ public final class FileResourceReader implements ISeekableResourceReader {
 
     @Override
     public byte[] read(int length) throws IOException {
+        ResourceReaderSupport.checkLength(length);
         ByteBuffer buffer = ByteBuffer.allocate(length);
-
-        int result = file.read(buffer);
-        if (result != length) {
-            String message = "Error reading byte array. Expect %s bytes and %s given";
-            throw new IOException(String.format(message, length, result));
+        int read = readUpTo(buffer);
+        if (read != length) {
+            throw new EOFException("Expected " + length + " bytes, read " + read);
         }
-
         return buffer.array();
+    }
+
+    private int readUpTo(ByteBuffer buffer) throws IOException {
+        int initialPosition = buffer.position();
+        while (buffer.hasRemaining()) {
+            int read = file.read(buffer);
+            if (read < 0) {
+                break;
+            }
+            if (read == 0) {
+                Thread.yield();
+            }
+        }
+        return buffer.position() - initialPosition;
     }
 
     @Override
@@ -133,6 +160,12 @@ public final class FileResourceReader implements ISeekableResourceReader {
 
     @Override
     public void skipBytes(int size) throws IOException {
-        file.position(file.position() + size);
+        ResourceReaderSupport.checkLength(size);
+        long position = file.position();
+        long fileSize = file.size();
+        if (size > 0 && (position > fileSize || size > fileSize - position)) {
+            throw new EOFException("Cannot skip " + size + " bytes from position " + position);
+        }
+        file.position(position + size);
     }
 }
