@@ -25,6 +25,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -34,6 +35,7 @@ import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.CasinoVariableFixtures;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.RoomFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
@@ -104,7 +106,9 @@ class RoomTaskSharingTest {
             gameSettings.put(type, CasinoVariableFixtures.miscVariable(type, 1));
         }
 
-        return new TaskManager(new DefaultEntityData(), gameWorldController, mapController, null, null, navigationService, List.of(), null, null, gameSettings);
+        return new TaskManager(new DefaultEntityData(), gameWorldController, mapController, null, null, navigationService, List.of(),
+                proxy(ILevelInfo.class, (proxy, method, args) -> proxy(IKwdFile.class, (kwdProxy, kwdMethod, kwdArgs)
+                        -> kwdMethod.getName().equals("getGameLevel") ? CreatureSleepFixtures.level(4) : null)), null, gameSettings);
     }
 
     /**

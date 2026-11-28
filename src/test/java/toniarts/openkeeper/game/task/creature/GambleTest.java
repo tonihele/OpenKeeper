@@ -63,7 +63,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Gambling in the Casino follows the rules of the original: once a second the
+ * Gambling in the Casino follows the rules of the original: once a second and
+ * a tick (DK II counts the ticks of a second down to 0, 0x47AD70) the
  * creature's mood and gold change by the pay out setting of the casino, every
  * four seconds the keeper pays or takes the casino's share, and the creature
  * may hit the jackpot and become the keeper's big winner
@@ -113,24 +114,35 @@ class GambleTest {
     }
 
     @Test
-    void creaturesWinGoldAndCheerUpOnceASecondWhenTheCasinoPaysInSmiles() {
+    void creaturesWinGoldAndCheerUpEveryFiveTicksWhenTheCasinoPaysInSmiles() {
         Gamble gamble = gamble(PayOut.SMILES, NO_JACKPOT);
 
-        gamble.executeTask(creature, 0.75f);
+        gamble.executeTask(creature, 1f);
         assertEquals(100, gold());
 
-        gamble.executeTask(creature, 1f);
+        gamble.executeTask(creature, 1.25f);
         assertEquals(101, gold());
         CreatureMood mood = entityData.getComponent(creatureId, CreatureMood.class);
         assertEquals(8000, mood.general);
         assertEquals(8000, mood.noWork);
         assertEquals(1000, mood.other);
 
-        gamble.executeTask(creature, 2.25f);
+        gamble.executeTask(creature, 2.5f);
         assertEquals(102, gold());
         mood = entityData.getComponent(creatureId, CreatureMood.class);
         assertEquals(6000, mood.general);
         assertEquals(0, mood.other);
+    }
+
+    @Test
+    void gamblingStepsEveryFiveTicksWhenExecutedEveryTick() {
+        Gamble gamble = gamble(PayOut.SMILES, NO_JACKPOT);
+
+        for (int tick = 1; tick <= 15; tick++) {
+            gamble.executeTask(creature, tick * 0.25f);
+        }
+
+        assertEquals(103, gold());
     }
 
     @Test
@@ -149,7 +161,7 @@ class GambleTest {
         entityData.setComponent(creatureId, new Gold(400, 400));
         Gamble gamble = gamble(PayOut.SMILES, NO_JACKPOT);
 
-        gamble.executeTask(creature, 1f);
+        gamble.executeTask(creature, 1.25f);
 
         assertEquals(400, gold());
     }
@@ -158,7 +170,7 @@ class GambleTest {
     void creaturesLoseGoldAndGetAngrierWhenTheCasinoPaysInMoney() {
         Gamble gamble = gamble(PayOut.MONEY, NO_JACKPOT);
 
-        gamble.executeTask(creature, 2f);
+        gamble.executeTask(creature, 2.5f);
 
         assertEquals(84, gold());
         CreatureMood mood = entityData.getComponent(creatureId, CreatureMood.class);
@@ -217,7 +229,7 @@ class GambleTest {
         EntityId enemyCreature = entityData.createEntity();
         entityData.setComponents(enemyCreature, new Owner((short) 4, (short) 4), creatureComponent(5000));
 
-        gamble(PayOut.SMILES, JACKPOT).executeTask(creature, 1f);
+        gamble(PayOut.SMILES, JACKPOT).executeTask(creature, 1.25f);
 
         assertEquals(1200, entityData.getComponent(creatureId, CasinoBigWinner.class).winnings);
     }
@@ -227,7 +239,7 @@ class GambleTest {
         EntityId otherCreature = entityData.createEntity();
         entityData.setComponents(otherCreature, new Owner(KEEPER, KEEPER), new CasinoBigWinner(10, 1000, 0));
 
-        gamble(PayOut.SMILES, JACKPOT).executeTask(creature, 1f);
+        gamble(PayOut.SMILES, JACKPOT).executeTask(creature, 1.25f);
 
         assertNull(entityData.getComponent(creatureId, CasinoBigWinner.class));
     }
@@ -357,7 +369,7 @@ class GambleTest {
             throw new UnsupportedOperationException(method.getName());
         });
         return new Gamble(null, null, entityPositionLookup, new Point(5, 5), KEEPER, room, null, entityData, gameWorldController,
-                objectsController, gameSettings, () -> payOut, fixedRandom(jackpotRoll));
+                objectsController, gameSettings, () -> payOut, fixedRandom(jackpotRoll), 4);
     }
 
     private ICreatureController creature() {

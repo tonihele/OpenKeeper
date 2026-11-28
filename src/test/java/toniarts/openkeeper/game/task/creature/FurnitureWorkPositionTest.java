@@ -192,7 +192,7 @@ class FurnitureWorkPositionTest {
             gameSettings.put(type, CasinoVariableFixtures.miscVariable(type, 1));
         }
         return new Gamble(null, null, null, new Point(x, y), (short) 3, room(), null, null, null, objectsController(),
-                gameSettings, () -> PayOut.SMILES, new Random(seed));
+                gameSettings, () -> PayOut.SMILES, new Random(seed), 4);
     }
 
     private void addFloor(int objectId, float width, int x, int y) {
