@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.task.objective;
 
-import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -243,8 +242,8 @@ class StealGoldTest {
      */
     private static INavigationService navigation(Set<Point> walledIn) {
         return stub(INavigationService.class, (name, args) -> {
-            if ("findPath".equals(name) && !walledIn.contains((Point) args[1])) {
-                return new DefaultGraphPath<>();
+            if ("isReachable".equals(name)) {
+                return !walledIn.contains((Point) args[1]);
             }
             return null;
         });

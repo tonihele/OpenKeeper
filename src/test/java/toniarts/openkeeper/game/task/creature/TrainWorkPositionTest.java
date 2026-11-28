@@ -85,6 +85,7 @@ class TrainWorkPositionTest {
                 INavigationService.class.getClassLoader(), new Class<?>[]{INavigationService.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "isAccessible" -> true;
                     case "findPath" -> new DefaultGraphPath<>();
+                    case "isReachable" -> true;
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
     }

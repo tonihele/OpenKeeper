@@ -218,7 +218,11 @@ class CreatureCorpseSpellTest {
             default -> null;
         });
         GraphPath<?> path = stub(GraphPath.class, (name, args) -> null);
-        INavigationService navigationService = stub(INavigationService.class, (name, args) -> "findPath".equals(name) ? path : null);
+        INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
+            case "findPath" -> path;
+            case "isReachable" -> true;
+            default -> null;
+        });
 
         return new CreatureController(us, entityData, vampire, navigationService, null, gameTimer, Map.of(), creaturesController, positionLookup, null,
                 levelInfo, null, null, stub(toniarts.openkeeper.game.event.GameEventService.class, (name, args) -> null));

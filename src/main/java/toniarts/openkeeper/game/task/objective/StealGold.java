@@ -133,7 +133,7 @@ public final class StealGold extends AbstractObjectiveTask {
         goldTiles.sort(Comparator.comparingDouble(tile -> tile.distance(thiefLocation)));
 
         for (Point tile : goldTiles) {
-            if (navigationService.findPath(thiefLocation, tile, thief.getParty() != null ? thief.getParty() : thief) != null) {
+            if (navigationService.isReachable(thiefLocation, tile, thief.getParty() != null ? thief.getParty() : thief)) {
                 return tile;
             }
         }
