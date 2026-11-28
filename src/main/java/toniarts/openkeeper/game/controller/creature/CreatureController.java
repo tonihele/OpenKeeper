@@ -825,9 +825,20 @@ public final class CreatureController extends EntityController implements ICreat
         }
     }
 
+    /**
+     * Whether a worker counts as full. As in DK II (0x464360), that is the
+     * level's margin short of the gold it can carry, so an Imp takes its gold
+     * home once it holds 1060 of its 1400, after the fourth swing at a seam
+     *
+     * @return true if a worker should take its gold home
+     */
     @Override
     public boolean isTooMuchGold() {
-        return getGold() >= getMaxGold() && isWorker();
+        return getGold() >= getFullGold() && isWorker();
+    }
+
+    private int getFullGold() {
+        return getMaxGold() - (int) gameSettings.get(Variable.MiscVariable.MiscType.WORKER_FULL_GOLD_MARGIN).getValue();
     }
 
     @Override
@@ -2442,6 +2453,10 @@ public final class CreatureController extends EntityController implements ICreat
                     || room.hasObjectControl(AbstractRoomController.ObjectType.GAMBLER))) {
                 return;
             }
+        } else if (gold.gold >= getFullGold()) {
+
+            // A keeper's worker that counts as full picks up no more (0x488930)
+            return;
         }
         EntityId pile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, tile);
         if (pile != null) {
