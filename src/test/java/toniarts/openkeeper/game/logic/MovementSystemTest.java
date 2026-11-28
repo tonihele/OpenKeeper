@@ -66,6 +66,26 @@ class MovementSystemTest {
     }
 
     /**
+     * DK II sets a walker's velocity from its steering every tick (DKII.EXE
+     * 0x4D4760), so the first tick of a walk covers a full tick's distance
+     */
+    @Test
+    void walksAtFullSpeedFromTheFirstTick() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new Position(0, new Vector3f(10, 0, 23)), new Mobile(false, true, true, 1),
+                new Navigation(new Point(20, 23), null, List.of(new Vector2(10, 23), new Vector2(20, 23))));
+        MovementSystem movementSystem = new MovementSystem(entityData, map(false, false));
+
+        // A tick at 4 ticks a second is 15 frames of the steering loop
+        for (int frame = 0; frame < 15; frame++) {
+            movementSystem.processTick(1 / 60f);
+        }
+
+        assertEquals(10.25f, entityData.getComponent(creature, Position.class).position.x, 0.02f);
+    }
+
+    /**
      * Walking through water halves the speed and lava speeds it up by half
      * (DKII.EXE 0x488930), flying is not slowed
      */

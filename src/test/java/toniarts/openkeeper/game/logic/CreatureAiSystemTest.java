@@ -31,6 +31,10 @@ import toniarts.openkeeper.game.task.ITaskManager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/**
+ * A worker that finishes its job looks for the next one on the tick after, as
+ * DK II's imps do in their idle state (0x463DF0).
+ */
 class CreatureAiSystemTest {
 
     private final EntityData entityData = new DefaultEntityData();
@@ -46,6 +50,41 @@ class CreatureAiSystemTest {
         system.processTick(0.25f);
 
         assertEquals(List.of(healthy, healthyToo), processed);
+    }
+
+    @Test
+    void workerThatWentIdleLooksForWorkOnTheNextTick() {
+        EntityData entityData = new DefaultEntityData();
+        entityData.setComponent(entityData.createEntity(), new CreatureAi(0, CreatureState.IDLE, (short) 1));
+        int[] tick = {0};
+        List<Integer> queued = new ArrayList<>();
+        List<Integer> lookedForWork = new ArrayList<>();
+        ITaskManager taskManager = (ITaskManager) Proxy.newProxyInstance(ITaskManager.class.getClassLoader(),
+                new Class<?>[]{ITaskManager.class}, (proxy, method, args) -> {
+                    if (method.getName().equals("processUnemployedWorkerQueue") && !queued.isEmpty()) {
+                        queued.clear();
+                        lookedForWork.add(tick[0]);
+                    }
+                    return null;
+                });
+        ICreatureController worker = (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(),
+                new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> {
+
+                    // The worker finishes its job on the first tick
+                    if (method.getName().equals("processTick") && tick[0] == 1) {
+                        queued.add(tick[0]);
+                    }
+                    return null;
+                });
+        ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(),
+                new Class<?>[]{ICreaturesController.class}, (proxy, method, args) -> method.getName().equals("createController") ? worker : null);
+        CreatureAiSystem creatureAiSystem = new CreatureAiSystem(entityData, creaturesController, taskManager);
+
+        for (tick[0] = 1; tick[0] <= 3; tick[0]++) {
+            creatureAiSystem.processTick(0.25f);
+        }
+
+        assertEquals(List.of(2), lookedForWork);
     }
 
     private EntityId createCreature() {

@@ -228,6 +228,33 @@ class CreatureStateTest {
     }
 
     @Test
+    void diggerGoesIdleOnTheTickItsLastSwingEnds() {
+
+        // DK II's dig state (0x4655D0) sets the idle state on the tick the swing that brought the tile down ends
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.WORK);
+        StateMachine<ICreatureController, CreatureState> stateMachine = stateMachine(state);
+        AtomicBoolean dug = new AtomicBoolean();
+        Task task = (Task) Proxy.newProxyInstance(Task.class.getClassLoader(), new Class<?>[]{Task.class},
+                (proxy, method, args) -> method.getName().equals("getTaskType") ? TaskType.DIG_TILE : defaultValue(method.getReturnType()));
+        ICreatureController digger = (ICreatureController) Proxy.newProxyInstance(
+                ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getStateMachine" -> stateMachine;
+                    case "getAssignedTask" -> task;
+                    case "isAssignedTaskValid" -> !dug.get();
+                    case "isAtAssignedTaskTarget" -> true;
+                    case "executeAssignedTask" -> {
+                        dug.set(true);
+                        yield null;
+                    }
+                    default -> defaultValue(method.getReturnType());
+                });
+
+        CreatureState.WORK.update(digger);
+
+        assertEquals(CreatureState.IDLE, state.get());
+    }
+
+    @Test
     void fullWorkerUnloadsWhenItsTaskIsGone() {
         Worker worker = new Worker(CreatureState.WORK, true, false);
 
