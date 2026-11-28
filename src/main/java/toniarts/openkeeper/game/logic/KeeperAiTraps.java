@@ -179,14 +179,14 @@ final class KeeperAiTraps {
      * trap
      */
     private int placeTrapOrDoor(KeeperAi keeperAi, IPlayerController playerController, AI ai, Point tile, int actions) {
-        int gold = playerController.getKeeper().getGold();
+        int gold = playerController.getGoldControl().getGold();
         if (Utils.getRandom().nextInt(DOOR_ROLL) < ai.getDoorTrapPreference()) {
             Door door = chooseDoor(playerController, ai);
             if (door == null) {
                 return actions;
             }
             gameWorldController.placeDoor(door.getDoorId(), tile, keeperAi.playerId);
-            if (playerController.getKeeper().getGold() < gold) {
+            if (playerController.getGoldControl().getGold() < gold) {
                 decisionLog.log(keeperAi, "place door " + door.getDoorId(), tile, "a corridor on the edge of its dungeon");
                 return actions - 1;
             }
@@ -196,7 +196,7 @@ final class KeeperAiTraps {
                 return actions;
             }
             gameWorldController.placeTrap(trap.getTrapId(), tile, keeperAi.playerId);
-            if (playerController.getKeeper().getGold() < gold) {
+            if (playerController.getGoldControl().getGold() < gold) {
                 decisionLog.log(keeperAi, "place trap " + trap.getTrapId(), tile, "a corridor on the edge of its dungeon");
                 return actions - 1;
             }

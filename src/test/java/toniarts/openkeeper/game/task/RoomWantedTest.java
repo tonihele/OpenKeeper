@@ -56,7 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
  */
 class RoomWantedTest {
 
-    private final TaskManager taskManager = new TaskManager(new DefaultEntityData(), stub(IGameWorldController.class, Map.of()),
+    private final TaskManager taskManager = new TaskManager(new DefaultEntityData(), stub(IGameWorldController.class, java.util.Collections.singletonMap("getRoomAttackMessages", null)),
             stub(IMapController.class, Map.of("getMapData", stub(IMapDataInformation.class, Map.of("getWidth", 0, "getHeight", 0)),
                     "getRoomsByFunction", List.of())),
             stub(IObjectsController.class, Map.of()), stub(ICreaturesController.class, Map.of()), stub(INavigationService.class, Map.of()),

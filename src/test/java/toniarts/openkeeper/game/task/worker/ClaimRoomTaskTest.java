@@ -20,6 +20,8 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.task.hero.RoomTileWorld;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.Player;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -32,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ClaimRoomTaskTest {
 
     private final RoomTileWorld world = new RoomTileWorld();
-    private final ICreatureController imp = RoomTileWorld.creature(Player.KEEPER2_ID);
+    private final ICreatureController imp = imp();
     private final ClaimRoomTask task = new ClaimRoomTask(null, world.mapController, world.gameWorldController,
             RoomTileWorld.TILE, Player.KEEPER2_ID);
 
@@ -47,7 +49,7 @@ class ClaimRoomTaskTest {
 
     @Test
     void theImpsThatFollowDoNotRepeatIt() {
-        ICreatureController secondImp = RoomTileWorld.creature(Player.KEEPER2_ID);
+        ICreatureController secondImp = imp();
         task.assign(imp, false);
         task.assign(secondImp, false);
 
@@ -57,6 +59,18 @@ class ClaimRoomTaskTest {
         task.executeTask(secondImp, 0.25f);
 
         assertEquals(List.of(158), world.mentorMessages);
+    }
+
+    private static ICreatureController imp() {
+        Creature definition = CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20);
+        return RoomTileWorld.stub(ICreatureController.class, (proxy, method, args) -> switch (method.getName()) {
+            case "getOwnerId" ->
+                Player.KEEPER2_ID;
+            case "getCreature" ->
+                definition;
+            default ->
+                RoomTileWorld.defaultValue(proxy, method);
+        });
     }
 
 }

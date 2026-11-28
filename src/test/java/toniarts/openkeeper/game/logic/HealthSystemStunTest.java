@@ -77,7 +77,7 @@ class HealthSystemStunTest {
         ILevelInfo levelInfo = proxy(ILevelInfo.class, (method, args) -> method.equals("getLevelData") ? kwdFile : null);
         IGameTimer gameTimer = proxy(IGameTimer.class, (method, args) -> method.equals("getGameTime") ? gameTime : null);
         healthSystem = new HealthSystem(entityData, proxy(IEntityPositionLookup.class, (method, args) -> null),
-                gameSettings, proxy(ICreaturesController.class, (method, args) -> null), levelInfo, List.of(),
+                gameSettings, proxy(ICreaturesController.class, (method, args) -> null), null, levelInfo, List.of(),
                 proxy(IMapController.class, (method, args) -> null), gameTimer,
                 proxy(GameEventService.class, (method, args) -> null));
     }

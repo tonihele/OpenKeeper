@@ -111,7 +111,7 @@ class OwnLandRegenerationTest {
             default -> throw new UnsupportedOperationException(method);
         });
 
-        return new HealthSystem(entityData, lookup, settings, null, levelInfo, List.of(), null, () -> 0.0, events);
+        return new HealthSystem(entityData, lookup, settings, null, null, levelInfo, List.of(), null, () -> 0.0, events);
     }
 
     @SuppressWarnings("unchecked")

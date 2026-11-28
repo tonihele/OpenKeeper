@@ -161,6 +161,6 @@ class CreatureNoFoodAngerTest {
         return new CreatureMoodSystem(entityData, kwdFile, List.of(player), () -> 0.0,
                 Map.of(Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND,
                         CreatureSleepFixtures.variable(
-                                Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND, -550)));
+                                Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND, -550)), null);
     }
 }
