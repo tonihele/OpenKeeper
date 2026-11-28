@@ -49,19 +49,12 @@ public class SoundEngine {
     public static final int MAX_AUDIBLE_VOICES = 24;
 
     /**
-     * Positional voices further away than this many tiles are not realised.
-     * The distance is measured between tile coordinates, not world units.
-     */
-    public static final int MAX_ELIGIBLE_DISTANCE = 12;
-    /**
      * A one-shot that has not got a voice by then is dropped, it would only be late
      */
     private static final long MAX_PENDING_AGE_MS = 500;
     public static final int FADE_IN_MS = 250;
     public static final int FADE_OUT_MS = 250;
     public static final int CHANNEL_COUNT = 16;
-    // sounds are as loud as they get within this many tiles (on the ground) of the listener
-    private static final float REF_DISTANCE = 12.0f;
 
     private final AudioBackend.AudioBackendFactory factory;
     private final SoundThrottle throttle = new SoundThrottle();
@@ -123,12 +116,12 @@ public class SoundEngine {
         // a sound beyond the audible distance is not accepted at all, only the repeating beds wait for the listener
         boolean repeating = event.getBehaviour() == Behaviour.REPEAT
                 || event.getBehaviour() == Behaviour.REPEAT_LOOP_EACH;
-        if (position != null && (event.isDeferred() || !repeating) && !isEligible(position)) {
-            return NO_HANDLE;
-        }
-
         SoundVoice voice = createVoice(category, event, position, property);
         if (voice == null) {
+            return NO_HANDLE;
+        }
+        if ((event.isDeferred() || !repeating) && !isEligible(voice)) {
+            releaseSlot(voice.getSlot());
             return NO_HANDLE;
         }
         if (event.isDeferred()) {
@@ -480,7 +473,7 @@ public class SoundEngine {
             voice.setChainEnded(true);
             return;
         }
-        AudioBackend childBackend = createBackend(voice, sample, SoundRng.pitch(group) / 100.0f);
+        AudioBackend childBackend = createBackend(voice, sample, SoundRng.pitch(group) / 100.0f, group.getMaxDistance());
         if (childBackend != null) {
             int volume = SoundRng.volume(group);
             childBackend.setGain(effectiveGain(voice, volume));
@@ -570,14 +563,8 @@ public class SoundEngine {
      * Whether a positional voice is close enough to be heard at all.
      */
     private boolean isEligible(SoundVoice voice) {
-        return isEligible(voice.getPosition());
-    }
-
-    private boolean isEligible(@Nullable Point position) {
-        if (position == null) {
-            return true;
-        }
-        return listener.distance(position) <= MAX_ELIGIBLE_DISTANCE;
+        Point position = voice.getPosition();
+        return position == null || listener.distance(position) <= AudioSpec.qmixerMaximumInTiles(voice.getMaxDistance());
     }
 
     private int countAudible() {
@@ -614,11 +601,11 @@ public class SoundEngine {
 
     @Nullable
     private AudioBackend createBackend(SoundVoice voice) {
-        return createBackend(voice, voice.getSample(), voice.getPitch());
+        return createBackend(voice, voice.getSample(), voice.getPitch(), voice.getMaxDistance());
     }
 
     @Nullable
-    private AudioBackend createBackend(SoundVoice voice, SoundSample sample, float pitch) {
+    private AudioBackend createBackend(SoundVoice voice, SoundSample sample, float pitch, float maximum) {
         String path = sample.getAssetPath();
         if (path == null) {
             return null;
@@ -632,11 +619,7 @@ public class SoundEngine {
         if (voice.isPositional()) {
             Point position = voice.getPosition();
             assert position != null;
-            spec = spec.withPosition(position.x, 0.0f, position.y);
-        }
-        if (voice.getMaxDistance() > 0.0f) {
-            spec = new AudioSpec(spec.assetPath(), spec.positional(), spec.looping(), spec.streamed(), spec.gain(),
-                    spec.pitch(), spec.x(), spec.y(), spec.z(), REF_DISTANCE, voice.getMaxDistance());
+            spec = spec.withPosition(position.x, 0.0f, position.y).withQmixerDistance(maximum);
         }
         try {
             return factory.create(spec);

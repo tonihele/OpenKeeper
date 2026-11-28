@@ -209,4 +209,17 @@ public interface IMapInformation<T extends IMapTileInformation> {
      */
     public boolean isSolid(Point p);
 
+    /**
+     * Is an already-resolved tile solid. Implementations can use the supplied
+     * terrain to avoid looking up the tile and terrain a second time; the
+     * default keeps the existing point-based behavior for other map views.
+     *
+     * @param tile the tile, or {@code null}
+     * @param terrain its already-resolved terrain
+     * @return whether the tile is solid
+     */
+    default boolean isSolid(IMapTileInformation tile, Terrain terrain) {
+        return tile != null && isSolid(tile.getLocation());
+    }
+
 }

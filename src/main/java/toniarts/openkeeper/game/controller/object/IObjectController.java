@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.object;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 
 /**
  * Controls game object entities
@@ -26,6 +27,8 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public interface IObjectController extends IEntityController {
+
+    public GameObject getObject();
 
     public int getPickUpPriority();
 
