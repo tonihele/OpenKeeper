@@ -142,4 +142,10 @@ public final class FakeMapInformation implements IMapInformation<FakeMapTile> {
         return terrain != null && terrain.getFlags().contains(Terrain.TerrainFlag.SOLID);
     }
 
+    @Override
+    public boolean isSolid(IMapTileInformation tile, Terrain terrain) {
+        return tile != null && terrain != null
+                && terrain.getFlags().contains(Terrain.TerrainFlag.SOLID);
+    }
+
 }

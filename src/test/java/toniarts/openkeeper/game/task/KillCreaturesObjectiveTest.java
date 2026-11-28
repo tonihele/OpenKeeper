@@ -81,7 +81,11 @@ class KillCreaturesObjectiveTest {
         });
         IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (name, args) -> 0);
         IMapController map = stub(IMapController.class, (name, args) -> "getMapData".equals(name) ? mapData : null);
-        INavigationService navigation = stub(INavigationService.class, (name, args) -> "findPath".equals(name) ? new DefaultGraphPath<>() : null);
+        INavigationService navigation = stub(INavigationService.class, (name, args) -> switch (name) {
+            case "findPath" -> new DefaultGraphPath<>();
+            case "isReachable" -> true;
+            default -> null;
+        });
         IPlayerController player = stub(IPlayerController.class, (name, args) -> switch (name) {
             case "getKeeper" -> keeper;
             case "getCreatureControl" -> creatureControl;

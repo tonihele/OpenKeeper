@@ -24,16 +24,17 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import com.simsilica.es.EntityData;
-import com.simsilica.es.EntityId;
 import com.simsilica.event.EventBus;
 import com.simsilica.event.EventListener;
 import com.simsilica.event.EventType;
+import toniarts.openkeeper.game.event.ClientEvents;
+import toniarts.openkeeper.game.event.GameEvent;
+import toniarts.openkeeper.view.effect.RoomActionEffects;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
-import toniarts.openkeeper.game.event.ClientEvents;
-import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
@@ -70,7 +71,7 @@ import java.util.function.Consumer;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class PlayerMapViewState extends AbstractAppState implements MapListener, PlayerActionListener {
+public abstract class PlayerMapViewState extends AbstractAppState implements MapListener, PlayerActionListener, EventListener<GameEvent> {
 
     private static final int CASINO_JACKPOT_EFFECT = 91;
     private static final int CASINO_FIREWORKS_EFFECT = 320;
@@ -238,6 +239,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         // Sounds
         this.gameEventSoundPlayer.register();
+        EventBus.addListener(ClientEvents.GAME_EVENT, this);
         EventBus.addListener(ClientEvents.GAME_EVENT, casinoEffectsListener);
         this.stateManager.attach(discoViewState);
 
@@ -253,6 +255,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     @Override
     public void cleanup() {
+        EventBus.removeListener(ClientEvents.GAME_EVENT, this);
 
         // Lighting
         mapLoader.getLightRules().destroyCursorLight();
@@ -348,6 +351,27 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     protected abstract void updateProgress(final float progress);
 
     @Override
+    public void newEvent(EventType<GameEvent> type, GameEvent event) {
+        RoomActionEffects.Request request = RoomActionEffects.resolve(event, kwdFile);
+        if (request == null) {
+            return;
+        }
+        // Events can arrive on the network/logic thread. Scene changes belong to the renderer.
+        app.enqueue(() -> {
+            if (worldNode == null || !isMapLoaded() || !fogOfWarController.isVisible(event.position)) {
+                return;
+            }
+            var position = WorldUtils.pointToVector3f(event.position);
+            position.y = request.height();
+            if (request.goldValue() != null) {
+                effectManager.loadGoldValue(worldNode, position, request.goldValue(), app.getCamera());
+            } else {
+                effectManager.load(worldNode, position, request.effectId(), false);
+            }
+        });
+    }
+
+    @Override
     public void onTilesChange(List<Point> updatedTiles) {
         fogOfWarController.onTileOwnerChanged(updatedTiles);
     }
@@ -388,6 +412,13 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
             }
         }
         fogOfWarController.revealActionPointTiles(points, explore);
+    }
+
+    @Override
+    public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+
+        // Fog of war is only touched on the render thread
+        app.enqueue(() -> fogOfWarController.startSightOfEvil(centre, radius, durationTicks));
     }
 
     public IMapInformation getMapInformation() {
