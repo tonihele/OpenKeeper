@@ -21,6 +21,7 @@ import com.jme3.system.AppSettings;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.builder.ControlBuilder;
+import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.PanelBuilder;
 import de.lessvoid.nifty.controls.CheckBox;
 import de.lessvoid.nifty.controls.CheckBoxStateChangedEvent;
@@ -360,6 +361,9 @@ final class PauseMenuSettings {
             {
                 width(width);
                 valignCenter();
+                if ("audioOutputMode".equals(id)) {
+                    onClickEffect(optionClickSound());
+                }
             }
         }.build(row);
     }
@@ -369,6 +373,7 @@ final class PauseMenuSettings {
         new CheckboxBuilder(id) {
             {
                 valignCenter();
+                onClickEffect(optionClickSound());
             }
         }.build(row);
         new LabelBuilder("label-" + NiftyIdCreator.generate(), label) {
@@ -406,8 +411,19 @@ final class PauseMenuSettings {
                 {
                     valignCenter();
                     marginLeft("10px");
+                    onClickEffect(optionClickSound());
                 }
             }.build(row);
         }
+    }
+
+    private static EffectBuilder optionClickSound() {
+        return new EffectBuilder("engineSound") {
+            {
+                effectParameter("category", "OPTIONS");
+                effectParameter("event", "0x30A");
+                neverStopRendering(true);
+            }
+        };
     }
 }
