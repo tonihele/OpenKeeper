@@ -84,10 +84,13 @@ class SendToActionPointTest {
     private SendToActionPoint task(Thing.ActionPoint actionPoint) {
         INavigationService navigationService = (INavigationService) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{INavigationService.class},
                 (proxy, method, args) -> {
-                    if (!"findPath".equals(method.getName())) {
+                    if (!"findPath".equals(method.getName()) && !"isReachable".equals(method.getName())) {
                         return null;
                     }
                     pathSearches++;
+                    if ("isReachable".equals(method.getName())) {
+                        return reachable.test((Point) args[1]);
+                    }
                     return reachable.test((Point) args[1]) ? new DefaultGraphPath<>() : null;
                 });
         FakeMapData mapData = new FakeMapData(20, 20);

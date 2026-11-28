@@ -51,6 +51,7 @@ import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
@@ -105,6 +106,7 @@ import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.logic.CreatureMoodSystem;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -117,6 +119,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -345,7 +348,62 @@ public final class CreatureController extends EntityController implements ICreat
             return true;
         }
 
+        // With nobody to fight, a dead body is worth a spell
+        return castCorpseSpell();
+    }
+
+    /**
+     * Casts our spell for dead bodies, Raise Dead, on the nearest dead body we
+     * sense within the spell's range (0x45CB00)
+     *
+     * @return true if we cast the spell
+     */
+    private boolean castCorpseSpell() {
+        CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+        if (creatureSpells == null) {
+            return false;
+        }
+
+        for (EntityId creatureSpellEntity : creatureSpells.creatureSpells) {
+            CreatureSpell spell = entityData.getComponent(creatureSpellEntity, CreatureSpell.class);
+            toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId);
+            if (!isAttackRecharged(spell) || !creatureSpell.getFlags().contains(CreatureSpellFlag.IS_DEFENSIVE)) {
+                continue;
+            }
+
+            // The Imp's Teleport is defensive too, but it has no shot
+            Shot shot = levelInfo.getLevelData().getShotById(creatureSpell.getShotTypeId());
+            if (shot == null || shot.getCollideType() != Shot.CollideType.DEAD_BODIES) {
+                continue;
+            }
+
+            EntityId deadBody = getNearestDeadBody(spell.range);
+            if (deadBody != null) {
+                entityData.setComponent(creatureSpellEntity, new CreatureSpell(spell, gameTimer.getGameTime()));
+                stopCreature();
+                stateMachine.changeState(CreatureState.CAST_SPELL);
+                entityData.setComponent(entityId, new CastShot(spell.creatureSpellId, deadBody, spell.range,
+                        gameTimer.getGameTime() + getShotDelay(spell.creatureSpellId)));
+
+                return true;
+            }
+        }
+
         return false;
+    }
+
+    private EntityId getNearestDeadBody(float range) {
+        EntityId nearestDeadBody = null;
+        float nearestDistance = range;
+        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            if (entityData.getComponent(entity, Death.class) != null && entityData.getComponent(entity, CreatureComponent.class) != null
+                    && getDistanceToCreature(entity) <= nearestDistance) {
+                nearestDistance = getDistanceToCreature(entity);
+                nearestDeadBody = entity;
+            }
+        }
+
+        return nearestDeadBody;
     }
 
     /**
@@ -673,7 +731,9 @@ public final class CreatureController extends EntityController implements ICreat
     /**
      * Like in DK II, an angry creature takes a job from its angry list, and an
      * unhappy creature, or an angry one that got none, from its unhappy list.
-     * Once a list gave a job, it rests for a while
+     * Once a list gave a job, it rests for a while. The creature tick
+     * (DKII.EXE 0x476FC0) rolls no mood job when it holds back the need anger
+     * (0x478D00 has the same checks), so not under the Call to Arms either
      *
      * @return true if the creature got a job
      */
@@ -681,7 +741,7 @@ public final class CreatureController extends EntityController implements ICreat
         CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
         int state = mood == null ? 0 : mood.getState(
                 CreatureMood.toRuntimeThreshold(creature.getAttributes().getUnhappyThreshold()));
-        if (state == 0) {
+        if (state == 0 || CreatureMoodSystem.isNeedAngerHeld(entityData, entityId, creature)) {
             return false;
         }
         double gameTime = gameTimer.getGameTime();
@@ -771,9 +831,20 @@ public final class CreatureController extends EntityController implements ICreat
         }
     }
 
+    /**
+     * Whether a worker counts as full. As in DK II (0x464360), that is the
+     * level's margin short of the gold it can carry, so an Imp takes its gold
+     * home once it holds 1060 of its 1400, after the fourth swing at a seam
+     *
+     * @return true if a worker should take its gold home
+     */
     @Override
     public boolean isTooMuchGold() {
-        return getGold() >= getMaxGold() && isWorker();
+        return getGold() >= getFullGold() && isWorker();
+    }
+
+    private int getFullGold() {
+        return getMaxGold() - (int) gameSettings.get(Variable.MiscVariable.MiscType.WORKER_FULL_GOLD_MARGIN).getValue();
     }
 
     @Override
@@ -1322,7 +1393,7 @@ public final class CreatureController extends EntityController implements ICreat
     private Point getHeartAttackTile(EntityId heart) {
         Point ourPosition = getCreatureCoordinates();
         return DungeonHeartTarget.getAttackTile(ourPosition, getHeartTile(heart), getMeleeRange(),
-                tile -> tile.equals(ourPosition) || isWalkable(tile) && navigationService.findPath(ourPosition, tile, this) != null);
+                tile -> tile.equals(ourPosition) || isWalkable(tile) && navigationService.isReachable(ourPosition, tile, this));
     }
 
     /**
@@ -1401,7 +1472,7 @@ public final class CreatureController extends EntityController implements ICreat
         Point ourPos = WorldUtils.vectorToPoint(getPosition());
         Point theirPos = WorldUtils.vectorToPoint(getPosition(entityData, entity));
 
-        return ourPos.equals(theirPos) || navigationService.findPath(ourPos, theirPos, this) != null;
+        return navigationService.isReachable(ourPos, theirPos, this);
     }
 
     /**
@@ -2059,7 +2130,7 @@ public final class CreatureController extends EntityController implements ICreat
         if (bannerPosition == null) {
             return false;
         }
-        Point destination = WorldUtils.vectorToPoint(bannerPosition.position);
+        Point destination = getCallToArmsTile(WorldUtils.vectorToPoint(bannerPosition.position));
         GraphPath<IMapTileInformation> path = navigationService.findPath(getCreatureCoordinates(), destination, this);
         if (path == null) {
             return false;
@@ -2091,7 +2162,7 @@ public final class CreatureController extends EntityController implements ICreat
         Point banner = WorldUtils.vectorToPoint(bannerPosition.position);
         Point ourPosition = getCreatureCoordinates();
         if (Math.max(Math.abs(ourPosition.x - banner.x), Math.abs(ourPosition.y - banner.y)) > 2) {
-            if (createNavigation(ourPosition, banner, null)) {
+            if (createNavigation(ourPosition, getCallToArmsTile(banner), null)) {
                 gameEventService.emitToPlayer(GameEventType.CALL_TO_ARMS_UNREACHABLE, getOwnerId());
                 return false;
             }
@@ -2099,6 +2170,18 @@ public final class CreatureController extends EntityController implements ICreat
             navigateToRandomPointAroundTarget(followTarget.entityId, 2);
         }
         return true;
+    }
+
+    /**
+     * The tile to make for at a Call to Arms banner: its own, or the nearest
+     * tile of its room a creature can stand on. In DK II the middle of the
+     * Dungeon Heart, where the computer player puts its flag, can be walked
+     * on
+     */
+    private Point getCallToArmsTile(Point banner) {
+        IRoomController room = mapController.getRoomControllerByCoordinates(banner);
+        Point tile = room != null ? room.getAccessibleTile(banner) : null;
+        return tile != null ? tile : banner;
     }
 
     /**
@@ -2222,7 +2305,7 @@ public final class CreatureController extends EntityController implements ICreat
         Point ourLocation = getCreatureCoordinates();
         FleeDestinationFinder finder = new FleeDestinationFinder(mapController.getMapData().getWidth(),
                 mapController.getMapData().getHeight(),
-                (x, y) -> navigationService.findPath(ourLocation, new Point(x, y), this) != null,
+                (x, y) -> navigationService.isReachable(ourLocation, new Point(x, y), this),
                 (x, y) -> mapController.getMapData().getTile(x, y).getOwnerId() == getOwnerId() && !mapController.isSolid(new Point(x, y)),
                 ThreadLocalRandom.current());
         finder.findAwayFrom(ourLocation, threat, FLEE_DISTANCE)
@@ -2433,12 +2516,14 @@ public final class CreatureController extends EntityController implements ICreat
                     || room.hasObjectControl(AbstractRoomController.ObjectType.GAMBLER))) {
                 return;
             }
+        } else if (gold.gold >= getFullGold()) {
+
+            // A keeper's worker that counts as full picks up no more (0x488930)
+            return;
         }
-        synchronized (GameWorldController.GOLD_LOCK) {
-            EntityId pile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, tile);
-            if (pile != null) {
-                giveObject(objectsController.createController(pile));
-            }
+        EntityId pile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, tile);
+        if (pile != null) {
+            giveObject(objectsController.createController(pile));
         }
     }
 
@@ -2476,13 +2561,11 @@ public final class CreatureController extends EntityController implements ICreat
             Point coordinates = getCreatureCoordinates();
 
             // Like in DKII (0x4510C0), the gold goes to the pile at our feet if there is one
-            synchronized (GameWorldController.GOLD_LOCK) {
-                EntityId goldPile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, coordinates);
-                if (goldPile != null) {
-                    Gold pile = entityData.getComponent(goldPile, Gold.class);
-                    entityData.setComponent(goldPile, new Gold(pile.gold + looseGold, pile.maxGold));
-                    return;
-                }
+            EntityId goldPile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, coordinates);
+            if (goldPile != null) {
+                Gold pile = entityData.getComponent(goldPile, Gold.class);
+                entityData.setComponent(goldPile, new Gold(pile.gold + looseGold, pile.maxGold));
+                return;
             }
             objectsController.addLooseGold(coordinates.x, coordinates.y, looseGold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
         }

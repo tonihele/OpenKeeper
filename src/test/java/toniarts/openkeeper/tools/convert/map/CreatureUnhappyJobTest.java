@@ -21,11 +21,13 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CallToArms;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureMoodJob;
@@ -71,6 +73,7 @@ class CreatureUnhappyJobTest {
         warlock.setUnhappyJobs(new Creature.JobPreference[]{job(Creature.JobType.SULK, 100), job(Creature.JobType.DRINK, 0)});
         warlock.setAngryJobs(new Creature.JobPreference[]{job(Creature.JobType.LEAVE, 100)});
         warlock.getAttributes().setUnhappyThreshold((short) 50);
+        warlock.setFlags(EnumSet.noneOf(Creature.CreatureFlag.class));
 
         ITaskManager taskManager = (ITaskManager) Proxy.newProxyInstance(ITaskManager.class.getClassLoader(),
                 new Class<?>[]{ITaskManager.class}, (proxy, method, args) -> switch (method.getName()) {
@@ -143,6 +146,22 @@ class CreatureUnhappyJobTest {
 
         assertEquals(List.of(Creature.JobType.LEAVE, Creature.JobType.SULK, Creature.JobType.RESEARCH,
                 Creature.JobType.LEAVE), assignedJobs);
+    }
+
+    @Test
+    void angryCreatureTakesNoMoodJobWhileItsKeepersCallToArmsIsUp() {
+        entityData.setComponent(entityId, new CreatureMood(0, 0, 0, 0, ANGRY, 0));
+        EntityId banner = entityData.createEntity();
+        entityData.setComponent(banner, new Owner(Player.KEEPER1_ID, Player.KEEPER1_ID));
+        entityData.setComponent(banner, new CallToArms());
+
+        controller.findWork(foundWork -> {
+        });
+        entityData.setComponent(banner, new CallToArms(0, 0, 0, 0, gameTime));
+        controller.findWork(foundWork -> {
+        });
+
+        assertEquals(List.of(Creature.JobType.RESEARCH, Creature.JobType.LEAVE), assignedJobs);
     }
 
     @Test
