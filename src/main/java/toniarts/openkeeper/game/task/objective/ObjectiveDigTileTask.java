@@ -36,7 +36,7 @@ public final class ObjectiveDigTileTask extends DigTileTask {
     }
 
     @Override
-    public boolean isValid(ICreatureController creature) {
+    protected boolean isTileToDig() {
         IMapTileInformation tile = mapController.getMapData().getTile(getTaskLocation());
         Terrain terrain = mapController.getTerrain(tile);
         return terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && (terrain.getFlags().contains(Terrain.TerrainFlag.DWARF_CAN_DIG_THROUGH) || terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE));

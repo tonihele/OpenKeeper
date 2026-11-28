@@ -17,7 +17,6 @@
 package toniarts.openkeeper.game.controller.player;
 
 import com.jme3.util.SafeArrayList;
-import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -97,11 +96,9 @@ public final class PlayerGoldControl implements RoomListener {
     @Override
     public void onCaptured(IRoomController room) {
         if (room.canStoreGold()) {
-            synchronized (GameWorldController.GOLD_LOCK) {
-                goldMax += room.getMaxCapacity(ObjectType.GOLD);
-                keeper.setGold(Math.min(keeper.getGold() + room.getUsedCapacity(ObjectType.GOLD), goldMax));
-                updateListeners();
-            }
+            goldMax += room.getMaxCapacity(ObjectType.GOLD);
+            keeper.setGold(Math.min(keeper.getGold() + room.getUsedCapacity(ObjectType.GOLD), goldMax));
+            updateListeners();
         }
     }
 
@@ -114,11 +111,9 @@ public final class PlayerGoldControl implements RoomListener {
     @Override
     public void onCapturedByEnemy(IRoomController room) {
         if (room.canStoreGold()) {
-            synchronized (GameWorldController.GOLD_LOCK) {
-                goldMax -= room.getMaxCapacity(ObjectType.GOLD);
-                keeper.setGold(Math.max(keeper.getGold() - room.getUsedCapacity(ObjectType.GOLD), 0));
-                updateListeners();
-            }
+            goldMax -= room.getMaxCapacity(ObjectType.GOLD);
+            keeper.setGold(Math.max(keeper.getGold() - room.getUsedCapacity(ObjectType.GOLD), 0));
+            updateListeners();
         }
     }
 

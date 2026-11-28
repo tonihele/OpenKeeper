@@ -60,6 +60,19 @@ public interface INavigationService {
     GraphPath<IMapTileInformation> findPath(Point start, Point end, INavigable navigable);
 
     /**
+     * Can the entity get from start to the target. Use this rather than
+     * {@link #findPath(Point, Point, INavigable)} to just test that there is a
+     * way: the area the entity can get to is flood filled once a tick and
+     * shared by every start in it
+     *
+     * @param start start point
+     * @param target the point to get to
+     * @param navigable the entity to test with
+     * @return true if there is a way from start to the target
+     */
+    boolean isReachable(Point start, Point target, INavigable navigable);
+
+    /**
      * Check if given tile is accessible by the given creature
      *
      * @param from from where
