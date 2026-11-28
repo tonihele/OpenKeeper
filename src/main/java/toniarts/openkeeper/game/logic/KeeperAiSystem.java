@@ -27,7 +27,6 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -284,7 +283,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * The news for the computer players since their last turn, the first
      * first. Each takes it into its inbox on its turn
      */
-    private final List<News> news = Collections.synchronizedList(new ArrayList<>());
+    private final List<News> news = new ArrayList<>();
     private final EventListener<RoomWanted> roomListener = (type, event) -> addNews(event.playerId(),
             type == ServerEvents.ROOM_WANTED ? KeeperAi.Message.ROOM_WANTED : KeeperAi.Message.ROOM_TOO_SMALL,
             ROOMS_WANTED.getOrDefault(event.objectType(), (short) 0), null);
