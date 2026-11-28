@@ -73,6 +73,8 @@ import org.lwjgl.opengl.*;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.sound.AudioOutput;
+import toniarts.openkeeper.game.sound.AudioOutputMode;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.SoundManager;
@@ -82,6 +84,7 @@ import toniarts.openkeeper.game.state.MainMenuState;
 import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.game.state.loading.TitleScreenState;
 import toniarts.openkeeper.game.state.session.LocalGameSession;
+import toniarts.openkeeper.gui.nifty.jme.HdImageNiftyJmeDisplay;
 import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
@@ -257,6 +260,16 @@ public final class Main extends SimpleApplication {
 
         // Init the user settings (which in JME are app settings)
         app.settings = Settings.getInstance().getAppSettings();
+    }
+
+    /**
+     * Was the game started straight into a level with the {@code -level}
+     * argument
+     *
+     * @return true if so
+     */
+    public static boolean isLevelArgumentGiven() {
+        return params != null && params.containsKey("level");
     }
 
     /**
@@ -441,6 +454,9 @@ public final class Main extends SimpleApplication {
                     // Sound
                     getAssetManager().registerLoader(MP2Loader.class, MP2Loader.FILE_EXTENSION);
                     SoundManager.init(Main.this);
+                    AudioOutput.apply(
+                            AudioOutputMode.fromSetting(
+                                    getUserSettings().getSetting(Settings.Setting.AUDIO_OUTPUT_MODE)));
                     applySoundSettings();
                     // Camera sweep files
                     getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.FILE_EXTENSION);
@@ -792,8 +808,8 @@ public final class Main extends SimpleApplication {
             config.disposeImagesBetweenScreens = false;
             config.useHighQualityTextures = true;
 
-            // Init Nifty
-            niftyDisplay = NiftyJmeDisplay.newNiftyJmeDisplay(assetManager,
+            // Init Nifty, the cuts of the HD interface images are in their original's pixels
+            niftyDisplay = new HdImageNiftyJmeDisplay(assetManager,
                     inputManager,
                     getAudioRenderer(),
                     getGuiViewPort(), config);

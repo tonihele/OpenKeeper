@@ -39,6 +39,8 @@ import java.util.List;
  */
 public final class GameEventSounds {
 
+    private static final short MAIDEN_OF_THE_NEST_ID = 45;
+
     private GameEventSounds() {
         // Static helper
     }
@@ -70,10 +72,14 @@ public final class GameEventSounds {
         switch (event.type) {
             case CREATURE_LEVEL_UP ->
                 add(sounds, subject, ThingSounds.CREATURE_LEVEL_UP, event.position);
+            case CREATURE_REBELLED ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MOODS004.getId(), null);
             case CREATURE_LAND ->
                 add(sounds, subject, ThingSounds.CREATURE_LAND, event.position);
             case GRAVEYARD_VAMPIRE_RISEN ->
                 add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.GRAVE001.getId(), null);
+            case CREATURE_LEFT ->
+                addCreatureLeftSpeech(sounds, kwdFile.getCreature((short) event.subjectId));
             case CREATURE_HURT ->
                 add(sounds, subject, ThingSounds.CREATURE_HIT, event.position);
             case CREATURE_DIE ->
@@ -84,8 +90,17 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.CREATURE_CLAIM, event.position);
             case CREATURE_REINFORCE_WALL ->
                 add(sounds, subject, ThingSounds.CREATURE_REINFORCE, event.position);
+            case CREATURE_SULK ->
+                add(sounds, subject, ThingSounds.CREATURE_SULK, event.position);
             case MELEE_HIT ->
                 addMeleeHit(sounds, event, kwdFile);
+            case SPECIAL_ACTIVATED -> {
+                int sound = event.subjectKind == ThingFlag.OBJECT
+                        ? ThingSounds.getSpecialActivationEvent(event.subjectId) : -1;
+                if (sound >= 0) {
+                    add(sounds, subject, sound, event.position);
+                }
+            }
             case PICKED_UP ->
                 add(sounds, subject, ThingSounds.PICK_UP, event.position);
             case DROPPED ->
@@ -110,6 +125,8 @@ public final class GameEventSounds {
                 add(sounds, ThingSounds.getCreateImpCategory(kwdFile), ThingSounds.SHOT_LAUNCH, event.position);
             case CALL_TO_ARMS_UNREACHABLE ->
                 add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MISC054.getId(), null);
+            case ALARM_RAISED ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MISC077.getId(), null);
             case TORTURE_ELECTROCUTED -> {
                 add(sounds, subject, ThingSounds.ELECTRIC_CHAIR_ZAP, event.position);
                 add(sounds, getCategory(kwdFile, event.targetKind, event.targetId), ThingSounds.CREATURE_ELECTROCUTED,
@@ -194,6 +211,17 @@ public final class GameEventSounds {
             add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MISC075.getId(), null);
         } else if (speechId >= 2 && speechId <= 46) {
             add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.TEMPL001.getId() + speechId - 2, null);
+        }
+    }
+
+    /**
+     * The mentor names the creature type that left, like DK II (message 0x14 in 0x4C4600). The Maiden of the
+     * Nest leaves without a word. In the creature data the speech is the third of the mood speeches, after the
+     * unhappy and the angry ones.
+     */
+    private static void addCreatureLeftSpeech(List<Sound> sounds, @Nullable Creature creature) {
+        if (creature != null && creature.getCreatureId() != MAIDEN_OF_THE_NEST_ID && creature.getAngerStringIdPay() != 0) {
+            add(sounds, SoundCategory.SPEECH_MENTOR, creature.getAngerStringIdPay() + 1, null);
         }
     }
 

@@ -215,7 +215,7 @@ final class ReaperAi implements SummonedReaperSystem.ReaperDecisions {
         Point from = WorldUtils.vectorToPoint(reaperPosition);
         for (EntityId enemy : enemies) {
             Point to = WorldUtils.vectorToPoint(entityData.getComponent(enemy, Position.class).position);
-            if (from.equals(to) || navigationService.findPath(from, to, reaperController) != null) {
+            if (navigationService.isReachable(from, to, reaperController)) {
                 return enemy;
             }
         }
