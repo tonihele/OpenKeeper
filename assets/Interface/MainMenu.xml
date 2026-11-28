@@ -71,7 +71,7 @@
     <screen id="start" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel height="20%" childLayout="center" valign="center" align="center">
-                <image filename="Textures/Logo.png" align="center" />
+                <image filename="Textures/Logo.png" width="327px" height="123px" align="center" />
             </panel>
 
             <panel childLayout="center" height="*" align="center" valign="center">
@@ -226,7 +226,7 @@
             <!--Main objectives-->
             <panel childLayout="horizontal" id="mainObjectivePanel" width="100%" align="center" valign="center">
                 <panel childLayout="center" width="25%" align="center" valign="center" >
-                    <image align="center" valign="top" id="mainObjectiveImage" filter="true" width="90%" />
+                    <image align="center" valign="top" id="mainObjectiveImage" filter="true" width="90%" height="100%" />
                 </panel>
                 <panel childLayout="vertical" width="*" align="left" valign="top" height="90%">
                     <panel childLayout="vertical" backgroundColor="#f508" width="100%" >
@@ -243,7 +243,7 @@
             <!--Subobjectives-->
             <panel childLayout="horizontal" id="subObjectivePanel" width="100%" align="center" valign="center">
                 <panel childLayout="center" width="25%" align="center" valign="center">
-                    <image align="center" valign="top" id="subObjectiveImage" filter="true" width="90%" />
+                    <image align="center" valign="top" id="subObjectiveImage" filter="true" width="90%" height="100%" />
                 </panel>
                 <panel childLayout="vertical" width="*" align="left" valign="top" height="90%">
                     <panel childLayout="vertical" width="100%" backgroundColor="#f508" >
@@ -284,7 +284,7 @@
             <!--Main objectives-->
             <panel id="main_objective" childLayout="horizontal" width="100%" align="center" valign="center">
                 <panel childLayout="center" width="25%" align="center" valign="center">
-                    <image align="center" valign="top" id="dMainObjectiveImage" width="90%" />
+                    <image align="center" valign="top" id="dMainObjectiveImage" width="90%" height="100%" />
                     <panel height="*" />
                 </panel>
                 <panel childLayout="vertical" width="*" align="left" valign="top" height="90%">
@@ -313,7 +313,7 @@
             <!--Subobjectives-->
             <panel id="sub_objective" childLayout="horizontal" width="100%" align="center" valign="center">
                 <panel childLayout="center" width="25%" align="center" valign="center">
-                    <image align="center" valign="top" id="dSubObjectiveImage" width="90%"/>
+                    <image align="center" valign="top" id="dSubObjectiveImage" width="90%" height="100%"/>
                     <panel height="*" />
                 </panel>
                 <panel childLayout="overlay" width="*" align="left" valign="top" backgroundColor="#f508" height="100%">
@@ -447,6 +447,10 @@
                         <control name="checkbox" id="gammaCorrection" />
                         <text style="menuTextSmall" text=" Gamma correction" />
                     </panel>
+                    <panel childLayout="horizontal" padding="10px">
+                        <control name="checkbox" id="hdTextures" />
+                        <text style="menuTextSmall" text=" Make HD textures at the next start (needs a Vulkan GPU, about 6 minutes)" />
+                    </panel>
                 </panel>
                 <!--Right side options panel-->
                 <panel childLayout="vertical" align="right" valign="top" padding="10px">
@@ -516,7 +520,13 @@
                         <control name="checkbox" id="sfxEnabled" />
                     </panel>
                 </panel>
-                <!-- <panel width="100%" height="15%" childLayout="center" backgroundColor="#f508" /> -->
+                <panel width="100%" height="*" childLayout="horizontal" align="center" valign="center">
+                    <text style="menuTextSmall" text="Spatial audio" width="33%" valign="center" />
+                    <control name="dropDown" id="audioOutputMode" width="40%" valign="center" />
+                </panel>
+                <panel width="100%" height="*" childLayout="center">
+                    <text id="audioOutputStatus" style="menuTextSmall" text="" width="95%" wrap="true" />
+                </panel>
             </panel>
 
             <panel childLayout="horizontal" align="center" valign="bottom">
@@ -535,9 +545,9 @@
                 <text style="menuTitleText" text="${menu.98}" align="center" />
             </panel>
 
-            <panel width="90%" childLayout="vertical" align="center">
+            <panel width="90%" height="*" childLayout="vertical" align="center">
 
-                <panel width="100%" height="100%" childLayout="vertical" align="center" valign="center">
+                <panel width="100%" height="200px" childLayout="vertical" align="center" valign="center">
                     <control id="keyboardSetup" name="table" vertical="on" displayItems="5" selection="Single"
                              colCount="2"
                              col0="${menu.2845};55;java.lang.String;#32050c30"
@@ -569,6 +579,7 @@
                                  initial="1.0" stepSize="0.25" buttonStepSize="0.25"/>
                     </panel>
                 </panel>
+                <panel height="*" />
             </panel>
 
             <panel childLayout="horizontal" align="center" valign="bottom">

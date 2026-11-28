@@ -84,6 +84,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private EffectGeneratorsController effectGenerators;
     private TriggerControl triggerControl = null;
     private final List<TriggerControl> triggerControls = new ArrayList<>();
+    private PlayerTriggerLogicController playerTriggers;
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
 
     private GameWorldController gameWorldController;
@@ -140,6 +141,20 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
             }
         }
         createNewGame(saveGame);
+    }
+
+    @Override
+    public void onEnemyBreached(short playerId) {
+        if (playerTriggers != null) {
+            playerTriggers.onEnemyBreached(playerId);
+        }
+    }
+
+    @Override
+    public void onDungeonBreached(short playerId) {
+        if (playerTriggers != null) {
+            playerTriggers.onDungeonBreached(playerId);
+        }
     }
 
     public void createNewGame() {
@@ -199,7 +214,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         ActionPointTriggerLogicController actionPointTriggers = new ActionPointTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
                 positionSystem);
-        PlayerTriggerLogicController playerTriggers = new PlayerTriggerLogicController(this, levelInfo, gameTimer,
+        playerTriggers = new PlayerTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
                 playerService);
         controllers.add(partyTriggers);
@@ -213,6 +228,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                 gameWorldController.getMapController(), gameTimer, gameEventService);
         controllers.add(effectGenerators);
         controllers.add(positionSystem);
+        controllers.add((IGameLogicUpdatable) navigationService);
 
         int triggerId = levelInfo.kwdFile.getGameLevel().getTriggerId();
         if (triggerId != 0) {
@@ -247,7 +263,8 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
             if (handControl != null) {
                 entityData.findEntities(new FieldFilter(InHand.class, "playerId", playerController.getKeeper().getId()), InHand.class).stream()
                         .sorted(Comparator.comparingInt((EntityId entityId) -> entityData.getComponent(entityId, InHand.class).index).reversed())
-                        .forEach(handControl::push);
+                        .forEach(entityId -> handControl.push(entityId,
+                                entityData.getComponent(entityId, InHand.class).startTime));
             }
         }
     }
@@ -364,6 +381,8 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
     @Override
     public void processTick(float tpf) {
+
+        gameWorldController.processRoomActions();
 
         // Update time for AI
         GdxAI.getTimepiece().update(tpf);
@@ -527,6 +546,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
     @Override
     public void stop() {
+        gameWorldController.clearRoomActions();
         controllers.stream().forEach(IGameLogicUpdatable::stop);
         controllers.clear();
     }

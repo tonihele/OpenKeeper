@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.fogofwar.FogOfWarRules;
 import toniarts.openkeeper.game.fogofwar.FogState;
 import toniarts.openkeeper.game.fogofwar.LineOfSightTable;
+import toniarts.openkeeper.game.fogofwar.SightOfEvilReveal;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -49,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
@@ -85,10 +87,18 @@ public final class FogOfWarController implements IFogOfWarInformation {
     private final Set<EntityId> seenEnemies = new HashSet<>();
     private final Set<Point> pendingTaggedTiles = new HashSet<>();
 
+    // Scripts may run on the game thread; visibility is read by the renderer.
+    // Keep their temporary reveals separate from permanent exploration.
+    private final Set<Point> scriptRevealedTiles = ConcurrentHashMap.newKeySet();
+
     private final List<Consumer<Point[]>> additionalTilesDirtyListeners = new ArrayList<>();
 
     private EntityId possessedCreature;
     private float visionUpdateAccumulator;
+
+    private SightOfEvilReveal sightOfEvil;
+    private double sightOfEvilElapsedTicks;
+    private volatile Set<Point> sightOfEvilTiles = Set.of();
 
     public FogOfWarController(EntityData entityData, IKwdFile kwdFile,
             IMapDataInformation<? extends IMapTileInformation> mapData, short viewerId,
@@ -154,6 +164,11 @@ public final class FogOfWarController implements IFogOfWarInformation {
         }
 
         Set<Point> dirty = state.drainDirtyTiles();
+        Set<Point> sightOfEvilChanges = updateSightOfEvil(tpf);
+        if (!sightOfEvilChanges.isEmpty()) {
+            dirty = new HashSet<>(dirty);
+            dirty.addAll(sightOfEvilChanges);
+        }
         if (!dirty.isEmpty()) {
             if (!pendingTaggedTiles.isEmpty()) {
                 // A tile that just became visible is no longer "pending" -
@@ -322,12 +337,15 @@ public final class FogOfWarController implements IFogOfWarInformation {
      */
     public void seedLevelStart() {
         state.clearAll();
+        Set<Point> previouslyRevealed = new HashSet<>(scriptRevealedTiles);
+        scriptRevealedTiles.clear();
         pendingTaggedTiles.clear();
         seedOwnedAndAlwaysExploredTiles();
         clearBorder();
         seedActionPoints();
 
-        Set<Point> dirty = state.drainDirtyTiles();
+        Set<Point> dirty = new HashSet<>(state.drainDirtyTiles());
+        dirty.addAll(previouslyRevealed);
         if (!dirty.isEmpty()) {
             fireTilesDirty(dirty.toArray(new Point[0]));
         }
@@ -501,14 +519,72 @@ public final class FogOfWarController implements IFogOfWarInformation {
     }
 
     /**
-     * §6.5: scripted reveal/conceal of an action point's tiles.
+     * Scripted reveal/conceal of an action point's tiles. Ending a cinematic
+     * reveal removes only its temporary visibility, preserving tiles already
+     * explored or discovered by creatures/ownership during the reveal.
      */
-    public void revealActionPointTiles(List<Point> points, boolean explore) {
-        if (explore) {
-            FogOfWarRules.exploreTiles(state, points);
-        } else {
-            FogOfWarRules.unexploreTiles(state, points);
+    public void revealActionPointTiles(List<Point> points, boolean reveal) {
+        List<Point> dirty = new ArrayList<>();
+        for (Point point : points) {
+            if (mapData.getTile(point) == null) {
+                continue;
+            }
+            boolean changed = reveal ? scriptRevealedTiles.add(point) : scriptRevealedTiles.remove(point);
+            if (changed) {
+                dirty.add(point);
+            }
         }
+        if (!dirty.isEmpty()) {
+            fireTilesDirty(dirty.toArray(new Point[0]));
+        }
+    }
+
+    /**
+     * The Sight of Evil keeper spell: reveal an area through the fog for a
+     * while, without exploring it. Only one is active at a time, a new cast
+     * replaces the previous one.
+     *
+     * @param centre the cast tile
+     * @param radius the radius of the revealed area, in tiles
+     * @param durationTicks how long the area stays revealed, in game ticks
+     */
+    public void startSightOfEvil(Point centre, int radius, int durationTicks) {
+        sightOfEvil = new SightOfEvilReveal(centre.x, centre.y, radius, durationTicks, mapData.getWidth(), mapData.getHeight());
+        sightOfEvilElapsedTicks = 0;
+    }
+
+    /**
+     * Advances the Sight of Evil reveal
+     *
+     * @param tpf time since the last update, in seconds
+     * @return the tiles that were revealed or hidden again
+     */
+    private Set<Point> updateSightOfEvil(float tpf) {
+        Set<Point> revealed = new HashSet<>();
+        if (sightOfEvil != null) {
+            sightOfEvilElapsedTicks += tpf * kwdFile.getGameLevel().getTicksPerSec();
+            if (sightOfEvil.isOver(sightOfEvilElapsedTicks)) {
+                sightOfEvil = null;
+            } else {
+                for (int x = sightOfEvil.getMinX(); x < sightOfEvil.getMaxX(); x++) {
+                    for (int y = sightOfEvil.getMinY(); y < sightOfEvil.getMaxY(); y++) {
+                        if (sightOfEvil.isRevealed(x, y, sightOfEvilElapsedTicks)) {
+                            revealed.add(new Point(x, y));
+                        }
+                    }
+                }
+            }
+        }
+
+        Set<Point> previous = sightOfEvilTiles;
+        if (revealed.equals(previous)) {
+            return Set.of();
+        }
+        Set<Point> changed = new HashSet<>(revealed);
+        changed.addAll(previous);
+        changed.removeIf(p -> revealed.contains(p) && previous.contains(p));
+        sightOfEvilTiles = Set.copyOf(revealed);
+        return changed;
     }
 
     /**
@@ -540,7 +616,10 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
     @Override
     public boolean isVisible(Point p) {
-        if (possessedCreature != null) {
+        if (possessedCreature != null || scriptRevealedTiles.contains(p)) {
+            return true;
+        }
+        if (sightOfEvilTiles.contains(p)) {
             return true;
         }
         return FogOfWarRules.isVisible(state, p.x, p.y, revealsThroughFog(p.x, p.y));
@@ -548,7 +627,7 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
     @Override
     public boolean isExplored(Point p) {
-        return state.isExplored(p.x, p.y);
+        return state.isExplored(p.x, p.y) || scriptRevealedTiles.contains(p);
     }
 
     @Override

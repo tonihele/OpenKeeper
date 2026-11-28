@@ -60,6 +60,24 @@ public final class PlayerTriggerLogicController implements IGameLogicUpdatable {
         return playerTriggerControls;
     }
 
+    /** Routes the event to the player whose tile work broke the wall. */
+    public void onEnemyBreached(short playerId) {
+        for (PlayerTriggerControl control : playerTriggerControls.getArray()) {
+            if (control.getPlayerId() == playerId) {
+                control.onEnemyBreached();
+            }
+        }
+    }
+
+    /** Routes the event to the player whose wall was breached. */
+    public void onDungeonBreached(short playerId) {
+        for (PlayerTriggerControl control : playerTriggerControls.getArray()) {
+            if (control.getPlayerId() == playerId) {
+                control.onDungeonBreached();
+            }
+        }
+    }
+
     @Override
     public void start() {
 

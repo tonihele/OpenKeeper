@@ -69,4 +69,10 @@ public final class TriggerFixtures {
         return action;
     }
 
+    public static TriggerGeneric generic(int id, TriggerGeneric.TargetType type) {
+        TriggerGeneric trigger = new TriggerGeneric(null);
+        trigger.setId(id);
+        trigger.setType(type);
+        return trigger;
+    }
 }

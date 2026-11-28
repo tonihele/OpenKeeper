@@ -201,6 +201,17 @@ class RoomTortureeControlTest {
     }
 
     @Test
+    void troughUnderAWheelOnTheWallHoldsNoVictim() {
+
+        // The trough is closer, but only the wheel above it takes a victim
+        EntityId trough = device(new Point(6, 3));
+        entityData.setComponent(trough, new ObjectComponent((short) 62, ObjectType.TORTUREE));
+        devices.remove(chair);
+
+        assertEquals(wheel, control.addItem(entityData.createEntity(), new Point(6, 3)));
+    }
+
+    @Test
     void victimSkipsTheDeviceACreatureTorturesItselfOn() {
         EntityId mistress = entityData.createEntity();
         entityData.setComponent(mistress, new TaskComponent(1, wheel, new Point(3, 3), TaskType.TORTURE, 0, true));

@@ -38,6 +38,9 @@ import org.bushe.swing.event.EventTopicSubscriber;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.session.AutoSave;
+import toniarts.openkeeper.game.sound.AudioOutput;
+import toniarts.openkeeper.game.sound.AudioOutputMode;
+import de.lessvoid.nifty.controls.Label;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.utils.DisplayMode;
 import toniarts.openkeeper.utils.DisplayModeUtils;
@@ -45,6 +48,7 @@ import toniarts.openkeeper.utils.DisplayModeUtils;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -63,6 +67,7 @@ final class PauseMenuSettings {
     private final Nifty nifty;
     private final Main app;
     private final Screen screen;
+    private final List<Element> rows = new ArrayList<>();
 
     private final EventTopicSubscriber<DropDownSelectionChangedEvent> resolutionSubscriber = this::onResolutionChanged;
     private final EventTopicSubscriber<CheckBoxStateChangedEvent> fullscreenSubscriber = this::onFullscreenChanged;
@@ -114,14 +119,18 @@ final class PauseMenuSettings {
 
         DropDown refresh = find("refreshRate", DropDown.class);
         DropDown bitDepths = find("bitDepth", DropDown.class);
-        if (resolutionSelectedIndex >= 0) {
-            refresh.addAllItems(resolutions.get(resolutionSelectedIndex).getRefreshRates());
-            refresh.selectItem(settings.getFrequency());
-            bitDepths.addAllItems(resolutions.get(resolutionSelectedIndex).getBitDepths());
-            bitDepths.selectItem(settings.getDepthBits());
-        } else {
-            refresh.addAllItems(mdm.getRefreshRates());
-            bitDepths.addAllItems(mdm.getBitDepths());
+        DisplayMode mode = resolutionSelectedIndex >= 0 ? resolutions.get(resolutionSelectedIndex) : mdm;
+        refresh.addAllItems(mode.getRefreshRates());
+        refresh.selectItem(settings.getFrequency());
+        bitDepths.addAllItems(mode.getBitDepths());
+        bitDepths.selectItem(settings.getDepthBits());
+
+        // The stored values aren't always listed, OK needs a selection
+        if (refresh.getSelection() == null) {
+            refresh.selectItemByIndex(refresh.itemCount() - 1);
+        }
+        if (bitDepths.getSelection() == null) {
+            bitDepths.selectItemByIndex(bitDepths.itemCount() - 1);
         }
         if (!settings.isFullscreen()) {
             refresh.disable();
@@ -208,6 +217,14 @@ final class PauseMenuSettings {
         addSlider(parent, "${menu.1459}", "musicVolume", "musicEnabled", 0f, 1f, 0.01f);
         addSlider(parent, "${menu.1458}", "sfxVolume", "sfxEnabled", 0f, 1f, 0.01f);
 
+        addDropDown(parent, "Spatial audio", "audioOutputMode", "220px");
+        DropDown<AudioOutputMode> output = find("audioOutputMode", DropDown.class);
+        output.addAllItems(java.util.Arrays.asList(AudioOutputMode.values()));
+        output.selectItem(AudioOutputMode.fromSetting(Main.getUserSettings().getSetting(Settings.Setting.AUDIO_OUTPUT_MODE)));
+        new LabelBuilder("audioOutputStatus", AudioOutput.getStatus().applied() ? "" : AudioOutput.getStatus().message()) {{
+            style(LABEL_STYLE); width("100%"); wrap(true);
+        }}.build(parent);
+
         Settings settings = Main.getUserSettings();
         find("masterVolume", Slider.class).setValue(settings.getFloat(Settings.Setting.MASTER_VOLUME));
         find("voiceVolume", Slider.class).setValue(settings.getFloat(Settings.Setting.VOICE_VOLUME));
@@ -231,6 +248,12 @@ final class PauseMenuSettings {
         settings.setSetting(Settings.Setting.MUSIC_ENABLED, find("musicEnabled", CheckBox.class).isChecked());
         settings.setSetting(Settings.Setting.SFX_ENABLED, find("sfxEnabled", CheckBox.class).isChecked());
 
+        DropDown<AudioOutputMode> output = find("audioOutputMode", DropDown.class);
+        AudioOutputMode mode = output.getSelection();
+        if (mode == null) mode = AudioOutputMode.AUTO;
+        settings.setSetting(Settings.Setting.AUDIO_OUTPUT_MODE, mode.name());
+        AudioOutput.Result result = AudioOutput.apply(mode);
+        find("audioOutputStatus", Label.class).setText(result.applied() ? "" : result.message());
         Main.setupNiftySound(nifty);
         save();
     }
@@ -311,20 +334,31 @@ final class PauseMenuSettings {
     }
 
     private <T extends de.lessvoid.nifty.controls.NiftyControl> T find(String id, Class<T> type) {
+
+        // The previous page is only marked for removal, until the end of the frame
+        // the screen still has its controls with the same ids
+        for (Element row : rows) {
+            T control = row.findNiftyControl(id, type);
+            if (control != null) {
+                return control;
+            }
+        }
         return screen.findNiftyControl(id, type);
     }
 
-    private static Element addRow(Element parent) {
-        return new PanelBuilder("row-" + NiftyIdCreator.generate()) {
+    private Element addRow(Element parent) {
+        Element row = new PanelBuilder("row-" + NiftyIdCreator.generate()) {
             {
                 childLayoutHorizontal();
                 width("100%");
                 paddingBottom("4px");
             }
         }.build(parent);
+        rows.add(row);
+        return row;
     }
 
-    private static void addLabel(Element parent, String text) {
+    private void addLabel(Element parent, String text) {
         new LabelBuilder("label-" + NiftyIdCreator.generate(), text) {
             {
                 style(LABEL_STYLE);
@@ -336,7 +370,7 @@ final class PauseMenuSettings {
         }.build(parent);
     }
 
-    private static void addDropDown(Element parent, String label, String id, String width) {
+    private void addDropDown(Element parent, String label, String id, String width) {
         Element row = addRow(parent);
         new LabelBuilder("label-" + NiftyIdCreator.generate(), label) {
             {
@@ -354,7 +388,7 @@ final class PauseMenuSettings {
         }.build(row);
     }
 
-    private static void addCheckBox(Element parent, String label, String id) {
+    private void addCheckBox(Element parent, String label, String id) {
         Element row = addRow(parent);
         new CheckboxBuilder(id) {
             {
@@ -370,7 +404,7 @@ final class PauseMenuSettings {
         }.build(row);
     }
 
-    private static void addSlider(Element parent, String label, String id, String checkBoxId, float min, float max, float step) {
+    private void addSlider(Element parent, String label, String id, String checkBoxId, float min, float max, float step) {
         Element row = addRow(parent);
         new LabelBuilder("label-" + NiftyIdCreator.generate(), label) {
             {

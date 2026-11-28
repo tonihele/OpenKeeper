@@ -51,6 +51,12 @@ public interface IGameController {
      */
     void createAlliance(short playerOneId, short playerTwoId);
 
+    /** Delivers a tile-work breach on the simulation thread, before terrain replacement. */
+    void onEnemyBreached(short playerId);
+
+    /** Delivers the breached wall owner event on the simulation thread. */
+    void onDungeonBreached(short playerId);
+
     GameResult getGameResult();
 
     IPlayerController getPlayerController(short playerId);

@@ -114,7 +114,7 @@
                 </control>
             </image>
             <panel childLayout="center" width="32px" height="128px">
-                <image id="#t-creature_panel" filename="Textures/GUI/Tabs/t-creature_panel.png"
+                <image id="#t-creature_panel" filename="Textures/GUI/Tabs/t-creature_panel.png" width="32px" height="128px"
                        valign="center" marginLeft="3px" childLayout="vertical" padding="6px">
                     <!-- need button with custom style -->
                     <panel id="#total" width="100%">
@@ -168,13 +168,13 @@
     <!--The tab contents scroll-->
     <controlDefinition style="nifty-panel-style" name="tabScroll" controller="toniarts.openkeeper.gui.nifty.CreaturePortraitScrollControl">
         <panel marginLeft="3px" childLayout="vertical" valign="center" id="tab-scroll">
-            <image id="#forward" filename="Textures/GUI/Pages/page_forward.png" >
+            <image id="#forward" filename="Textures/GUI/Pages/page_forward.png" width="32px" height="64px">
                 <interact onClick="forward()" />
                 <effect>
                     <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Hilight.png" post="true" neverStopRendering="true" />
                 </effect>
             </image>
-            <image id="#back" filename="Textures/GUI/Pages/page_back.png">
+            <image id="#back" filename="Textures/GUI/Pages/page_back.png" width="32px" height="64px">
                 <interact onClick="back()" />
                 <effect>
                     <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Back-Hilight.png" post="true" neverStopRendering="true" />
@@ -187,7 +187,7 @@
     <controlDefinition style="nifty-panel-style" name="workerEqual"
                        controller="toniarts.openkeeper.gui.nifty.WorkerEqualControl">
         <panel childLayout="center" marginLeft="3px" valign="center">
-            <image filename="Textures/GUI/Tabs/t-cp-total.png" valign="center" id="#equal" />
+            <image filename="Textures/GUI/Tabs/t-cp-total.png" width="32px" height="128px" valign="center" id="#equal" />
             <!--
             <image filename="Textures/GUI/Tabs/t-cp-total.png" valign="center" id="#total" visible="false" />
             <image filename="Textures/GUI/Tabs/t-cp-jobs.png" valign="center" id="#jobs" visible="false" />
@@ -201,7 +201,7 @@
     <controlDefinition style="nifty-panel-style" name="creature"
                        controller="toniarts.openkeeper.gui.nifty.CreatureCardControl">
         <panel marginLeft="3px" valign="center" childLayout="center" width="64px" height="128px">
-            <image filename="$filename" valign="center">
+            <image filename="$filename" width="64px" height="128px" valign="center">
                 <effect>
                     <onHover name="hint" hintText="$creatureName" hintDelay="200" />
                     <onHover name="simpleHintEx" hintText="$creatureName" targetElement="tooltip" />
@@ -267,7 +267,7 @@
                             <onHover name="simpleHintEx" hintText="$creatureName" targetElement="tooltip" />
                             <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                         </effect>
-                        <interact onSecondaryClick="zoomTo(busy)" onPrimaryClick="pickUpCreature(busy)" />
+                        <interact onSecondaryClick="zoomTo(busy)" onPrimaryClick="pickUp(busy)" />
                     </control>
                 </panel>
                 <panel childLayout="vertical" id="#tab-fights" visible="false"
@@ -348,12 +348,12 @@
 
     <!-- Reaper -->
     <controlDefinition style="nifty-panel-style" name="reaperTalisman" controller="de.lessvoid.nifty.controls.DefaultController">
-        <image align="center" valign="center" filename="Textures/GUI/Spells/reaper_talisman-00.png"/>
+        <image align="center" valign="center" filename="Textures/GUI/Spells/reaper_talisman-00.png" width="64px" height="64px"/>
     </controlDefinition>
 
     <!-- Fight Icon -->
     <controlDefinition style="nifty-panel-style" name="fight" controller="de.lessvoid.nifty.controls.DefaultController">
-        <image filename="Textures/GUI/Icons/a-fight-00.png" valign="center">
+        <image filename="Textures/GUI/Icons/a-fight-00.png" width="64px" height="64px" valign="center">
             <interact onSecondaryClick="zoomToBattle()" />
             <effect>
                 <onHover name="hint" hintText="${menu.2165}" hintDelay="200" />
@@ -376,7 +376,7 @@
                        name="movieButton"
                        controller="de.lessvoid.nifty.controls.DefaultController">
         <panel childLayout="horizontal" valign="center" marginBottom="10px">
-            <image filename="$image" width="72px" heigth="56px" visibleToMouse="false">
+            <image filename="$image" width="72px" height="56px" visibleToMouse="false">
                 <effect>
                     <onHover name="imageOverlay" filename="Textures/Mov_Shots/M-Hilight.png" post="true" />
                 </effect>
@@ -403,7 +403,7 @@
                        name="iconText"
                        controller="toniarts.openkeeper.gui.nifty.icontext.IconTextControl">
         <panel align="left" valign="center" childLayout="horizontal" margin="6px" visibleToMouse="true">
-            <image id="#image" marginRight="29px" align="right" valign="center" filename="$icon">
+            <image id="#image" marginRight="29px" align="right" valign="center" filename="$icon" width="64px" height="64px">
                 <effect>
                     <onCustom customKey="hover" name="imageOverlay" filename="Textures/GUI/Icons/hilight.png" post="true" neverStopRendering="true" />
                 </effect>
@@ -479,7 +479,7 @@
     </controlDefinition>
 
     <controlDefinition style="nifty-image-style" name="messageButton">
-        <image filename="$image" visibleToMouse="true" marginLeft="30px">
+        <image filename="$image" width="32px" height="32px" visibleToMouse="true" marginLeft="30px">
             <effect>
                 <onHover name="imageOverlay" filename="$hoverImage" post="true" />
                 <onClick name="imageOverlay" filename="$activeImage" post="true" />
@@ -489,7 +489,7 @@
     </controlDefinition>
 
     <controlDefinition name="systemMessage" controller="toniarts.openkeeper.gui.nifty.message.SystemMessageControl" visible="false">
-        <image filename="$image" visibleToMouse="true">
+        <image filename="$image" width="32px" height="64px" visibleToMouse="true">
             <effect>
                 <onHover name="imageOverlay" filename="$hoverImage" post="true"/>
                 <onHover name="simpleHintEx" hintText="$text" targetElement="tooltip" />
@@ -503,16 +503,16 @@
 
     <controlDefinition name="nifty-default-hint" style="openkeeper-hint">
         <panel childLayout="horizontal">
-            <image filename="Textures/GUI/Windows/text_box-00.png" imageMode="resize:6,2,2,10,6,2,2,5,6,2,2,10" />
+            <image filename="Textures/GUI/Windows/text_box-00.png" width="16px" height="32px" imageMode="resize:6,2,2,10,6,2,2,5,6,2,2,10" />
             <panel style="#panel">
                 <text id="#hint-text" style="#hint-text" text="$hintText"/>
             </panel>
-            <image filename="Textures/GUI/Windows/text_box-02.png" imageMode="resize:6,6,4,10,6,6,4,5,6,6,4,10" />
+            <image filename="Textures/GUI/Windows/text_box-02.png" width="16px" height="32px" imageMode="resize:6,6,4,10,6,6,4,5,6,6,4,10" />
         </panel>
     </controlDefinition>
 
     <controlDefinition name="guiIcon" controller="toniarts.openkeeper.gui.nifty.guiicon.GuiIconControl">
-        <image id="$id" filename="$image" valign="center">
+        <image id="$id" filename="$image" width="64px" height="64px" valign="center">
             <effect>
                 <onHover name="imageOverlay" filename="$hoverImage" post="true"/>
                 <onHover name="hint" hintText="$hint" hintDelay="200" />
@@ -520,6 +520,8 @@
                 <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                 <onCustom name="imageOverlay" filename="$activeImage" customKey="select" post="true" neverStopRendering="true" />
                 <onCustom name="colorBar" color="#000000AA" customKey="unaffordable" post="true" neverStopRendering="true" />
+                <onCustom customKey="flash" name="imageOverlayPulsate" pulsateType="rectangle" period="500" filename="$hoverImage" post="true" neverStopRendering="true" timeType="infinite" />
+                <onCustom name="colorBar" color="#00000080" customKey="workshopless" post="true" neverStopRendering="true" />
             </effect>
             <interact onClick="$click" />
         </image>

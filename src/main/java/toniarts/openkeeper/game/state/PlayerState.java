@@ -37,6 +37,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.console.ConsoleState;
+import toniarts.openkeeper.game.controller.TrapPlacementValidator;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
@@ -62,6 +63,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.PlayerCamera;
+import toniarts.openkeeper.view.WorkshopCameraCycler;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerInteractionState;
@@ -102,6 +104,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     private final ClientSave savedGame;
 
     private EntitySet heartEntities;
+    private WorkshopCameraCycler workshopCameraCycler;
     private boolean paused = false;
     private boolean levelWon = false;
 
@@ -168,6 +171,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     @Override
     public void cleanup() {
         unregisterPauseKey();
+        releaseWorkshopCameraCycler();
         heartEntities.release();
         heartEntities = null;
 
@@ -210,6 +214,10 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         }
 
         if (enabled) {
+
+            if (workshopCameraCycler == null) {
+                workshopCameraCycler = new WorkshopCameraCycler(entityData, playerId);
+            }
 
             // Get the game state
             final GameClientState gameState = stateManager.getState(GameClientState.class);
@@ -292,6 +300,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             registerPauseKey();
         } else {
             unregisterPauseKey();
+            releaseWorkshopCameraCycler();
 
             // Detach states
             for (AbstractAppState state : appStates) {
@@ -310,6 +319,9 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         if (pendingPossession != null && cameraState.isInitialized()) {
             startPossession(pendingPossession);
             pendingPossession = null;
+        }
+        if (workshopCameraCycler != null) {
+            workshopCameraCycler.update();
         }
         screen.update(tpf);
         autoSave();
@@ -332,6 +344,13 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
                         logger.log(System.Logger.Level.ERROR, "Failed to auto-save to " + file + "!", ex);
                     }
                 }));
+    }
+
+    private void releaseWorkshopCameraCycler() {
+        if (workshopCameraCycler != null) {
+            workshopCameraCycler.close();
+            workshopCameraCycler = null;
+        }
     }
 
     /**
@@ -400,6 +419,16 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             return gs.getPlayer(playerId);
         }
         return null;
+    }
+
+    /**
+     * Does this player have a Workshop, needed for placing traps and doors
+     *
+     * @return true if the player has at least one Workshop
+     */
+    public boolean hasWorkshop() {
+        GameClientState gs = stateManager.getState(GameClientState.class);
+        return gs == null || gs.getRoomsInformation().getRoomCount(playerId, TrapPlacementValidator.WORKSHOP_ROOM_ID) > 0;
     }
 
     public PlayerStatsControl getStatsControl() {
@@ -471,7 +500,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     }
 
     public void flashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time) {
-        // TODO make flash button
+        screen.flashButton(buttonType, targetId, targetButtonType, enabled, time);
     }
 
     protected List<ResearchableEntity> getAvailableRoomsToBuild() {
@@ -597,6 +626,24 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         app.stop();
     }
 
+    public void cycleDoor(short doorId) {
+        if (workshopCameraCycler != null && cameraState != null) {
+            Vector3f position = workshopCameraCycler.nextDoor(doorId);
+            if (position != null) {
+                zoomToPosition(position, true);
+            }
+        }
+    }
+
+    public void cycleTrap(short trapId) {
+        if (workshopCameraCycler != null && cameraState != null) {
+            Vector3f position = workshopCameraCycler.nextTrap(trapId);
+            if (position != null) {
+                zoomToPosition(position, true);
+            }
+        }
+    }
+
     public void zoomToDungeon() {
         cameraState.setCameraLookAt(stateManager.getState(GameClientState.class).getPlayer(playerId).getDungeonHeartLocation());
     }
@@ -706,6 +753,12 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             }
         }
 
+        // Started straight into a level for testing, no need for the outro and debriefing
+        if (win && Main.isLevelArgumentGiven()) {
+            quitToOS();
+            return;
+        }
+
         // Disable us to get rid of all interaction
         setEnabled(false);
         stateManager.attach(new EndGameState(this));
@@ -713,7 +766,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
     String getTooltipText(String text) {
         int dungeonHealth = getDungeonHeartHealth();
-        int paydayCost = 0;
+        int paydayCost = screen.getPayDayCost();
 
         return text.replaceAll("%19%", String.valueOf(dungeonHealth))
                 .replaceAll("%20", String.valueOf(paydayCost));
