@@ -57,7 +57,7 @@ public final class ArtResource {
         DOESNT_LOOP(0x0080), // if ANIMATING_TEXTURE but in all ArtResourceType
         FLAT(0x0100),
         DOESNT_USE_PROGRESSIVE_MESH(0x0200),
-        UNKNOWN_1(0x0400), // FIXME unknown flag. In creature Imp (animIdle1)
+        RANDOM_SWIPE(0x0400), // Half the time the creature's swipe (second melee) animation plays instead (0x4B37D0)
         UNKNOWN_2(0x8000), // FIXME unknown flag. In creature Imp (animMelee1)
         USE_ANIMATING_TEXTURE_FOR_SELECTION(0x10000),
         PRELOAD(0x20000),

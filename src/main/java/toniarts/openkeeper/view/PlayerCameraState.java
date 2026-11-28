@@ -193,10 +193,10 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
         GameClientState gs = this.stateManager.getState(GameClientState.class);
         Thing.Camera result = null;
 
+        // Like in DK II (0x449A30), a later record of the same mode replaces the earlier one
         for (Thing.Camera thing : gs.getLevelData().getThings(Thing.Camera.class)) {
             if (thing.getId() == id) {
                 result = thing;
-                break;
             }
         }
 

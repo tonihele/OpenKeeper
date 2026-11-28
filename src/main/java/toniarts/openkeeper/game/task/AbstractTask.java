@@ -67,10 +67,10 @@ public abstract class AbstractTask implements Task {
      * Get the non-stop execution duration of a creature
      *
      * @param creature the executing creature
-     * @return the execution duration
+     * @return the execution duration, 0 if the creature isn't assigned
      */
     protected float getExecutionDuration(ICreatureController creature) {
-        return assignees.get(creature);
+        return assignees.getOrDefault(creature, 0f);
     }
 
     /**
@@ -184,7 +184,18 @@ public abstract class AbstractTask implements Task {
         }
 
         // Path find
-        return (navigationService.findPath(WorldUtils.vectorToPoint(creature.getPosition()), targetTile, creature) != null);
+        return navigationService.isReachable(WorldUtils.vectorToPoint(creature.getPosition()), targetTile, creature);
+    }
+
+    /**
+     * Whether the task can be done from the given tile next to it. Any tile
+     * the creature can stand on will do, unless the task says otherwise
+     *
+     * @param p the tile next to the task location
+     * @return true if the task can be done from there
+     */
+    protected boolean isWorkSpot(Point p) {
+        return true;
     }
 
     /**
@@ -203,7 +214,8 @@ public abstract class AbstractTask implements Task {
                     continue;
                 }
 
-                if (!navigationService.isAccessible(mapController.getMapData().getTile(p), mapController.getMapData().getTile(taskPerformLocation), creature)) {
+                if (!navigationService.isAccessible(mapController.getMapData().getTile(p), mapController.getMapData().getTile(taskPerformLocation), creature)
+                        || !isWorkSpot(p)) {
                     continue;
                 }
 
