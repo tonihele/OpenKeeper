@@ -403,7 +403,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         boolean toggled = element.getUserData("toggle");
         if (toggled) {
             element.setMarginTop(new SizeValue(0, SizeValueType.Pixel));
-            playSound(GlobalCategory.GUI_BUTTON_TAB_ROOMS, String.valueOf(GlobalType.GUI_BUTTON_REVEAL.getId()));
+            playSound(GlobalCategory.GUI_BUTTON_SIZE, String.valueOf(GlobalType.GUI_BUTTON_SIZE_NORMIN.getId()));
         } else {
             element.setMarginTop(new SizeValue(156, SizeValueType.Pixel));
             playSound(GlobalCategory.GUI_BUTTON_SIZE, String.valueOf(GlobalType.GUI_BUTTON_SIZE_HIDE.getId()));

@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.task;
 
-import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationHandler;
@@ -127,7 +126,7 @@ class TaskManagerCollectPayTest {
             default -> null;
         });
         INavigationService navigation = stub(INavigationService.class, (proxy, method, args)
-                -> "findPath".equals(method.getName()) && !walledIn.contains((Point) args[1]) ? new DefaultGraphPath<>() : null);
+                -> "isReachable".equals(method.getName()) ? !walledIn.contains((Point) args[1]) : null);
         return new TaskManager(new DefaultEntityData(), stub(IGameWorldController.class, (proxy, method, args) -> null),
                 mapController, stub(IObjectsController.class, (proxy, method, args) -> null), stub(ICreaturesController.class, (proxy, method, args) -> null),
                 navigation, List.of(player), stub(ILevelInfo.class, (proxy, method, args) -> null),
