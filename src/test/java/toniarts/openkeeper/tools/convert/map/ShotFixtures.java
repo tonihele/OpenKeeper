@@ -68,6 +68,17 @@ public final class ShotFixtures {
      */
     public static final short GRENADE_EXPLOSION_ID = 19;
 
+    /**
+     * Shot 37 as it ships in the original data, the Mistress's and the Dark
+     * Angel's Hail Storm
+     */
+    public static final short HAIL_STORM_ID = 37;
+
+    /**
+     * Shot 17 as it ships in the original data, the storm Hail Storm leaves
+     */
+    public static final short HAIL_STORM_CLOUD_ID = 17;
+
     private ShotFixtures() {
     }
 
@@ -143,6 +154,18 @@ public final class ShotFixtures {
         shot.setDeathShotId(GRENADE_EXPLOSION_ID);
         shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_OVER_TIME, Shot.ShotFlag.BOUNCE, Shot.ShotFlag.THROWN_PROJECTILE,
                 Shot.ShotFlag.MOVE_TOWARDS_TARGET, Shot.ShotFlag.RECOIL));
+        return shot;
+    }
+
+    /**
+     * Hail Storm, with the values of the original data
+     */
+    public static Shot hailStorm() {
+        Shot shot = shot(HAIL_STORM_ID, Shot.ProcessType.INSTANTANEOUS_HIT, 1, EnumSet.of(Shot.ShotProcessFlag.CONSTANT));
+        shot.setCollideType(Shot.CollideType.ENEMY_CREATURES);
+        shot.setDamageType(Shot.DamageType.NONE);
+        shot.setDeathShotId(HAIL_STORM_CLOUD_ID);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_THING));
         return shot;
     }
 

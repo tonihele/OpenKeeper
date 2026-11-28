@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.KeeperSpellCast;
 import toniarts.openkeeper.game.component.LevelIndicator;
 import toniarts.openkeeper.game.component.Mana;
+import toniarts.openkeeper.game.component.MeleeHit;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
@@ -67,6 +68,7 @@ import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.controller.room.TempleController;
+import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomLairControl;
@@ -171,7 +173,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController, levelInfo);
 
         // Load the map
-        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo, gameEventService);
+        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo, gameEventService, gameController::onEnemyBreached, gameController::onDungeonBreached);
 
         // Load creatures
         creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo);
@@ -226,8 +228,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 playerController.getRoomControl().init(rooms);
             }
 
-            // Add the listener
+            // Add the listeners, the gold follows the gold rooms when they are captured
             mapController.addListener(player.getId(), playerController.getRoomControl());
+            mapController.addListener(player.getId(), playerController.getGoldControl());
         }
     }
 
@@ -274,7 +277,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 for (IRoomController roomController : mapController.getRoomControllers()) {
                     if (roomController.getRoomInstance().getOwnerId() == playerId && roomController.canStoreGold()) {
                         RoomGoldControl control = roomController.getObjectControl(ObjectType.GOLD);
-                        moneyLeft = control.addItem(sum, p);
+                        moneyLeft = control.addItem(moneyLeft, p);
                         if (moneyLeft == 0) {
                             break;
                         }
@@ -881,6 +884,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private void notifyDestroyedTiles(Map<Short, List<Point>> destroyedTilesByOwner) {
         for (Map.Entry<Short, List<Point>> entry : destroyedTilesByOwner.entrySet()) {
             notifyOnSold(entry.getKey(), entry.getValue());
+            notifyOnRoomSelectionComplete(entry.getKey(), entry.getValue());
         }
     }
 
@@ -1073,6 +1077,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
+        gameEventService.emit(GameEventType.SPECIAL_ACTIVATED, entity, position.position);
+
         // Also frees the room storage slot, if the special was stored in a room
         objectsController.createController(entity).remove();
         return true;
@@ -1246,7 +1252,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     private void putToKeeperHand(PlayerHandControl playerHandControl, EntityId entity, short playerId) {
-        playerHandControl.push(entity);
+        playerHandControl.push(entity, gameTimer.getGameTime());
 
         /**
          * TODO: Basically here we can have a concurrency problem, especially visible with things that have
@@ -1260,11 +1266,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         entityData.removeComponent(entity, Navigation.class);
         entityData.removeComponent(entity, Position.class);
         entityData.removeComponent(entity, CreatureAi.class);
-        entityData.removeComponent(entity, TaskComponent.class);
+
+        // The task component stays, the AI system gives the task up when it sees the AI go. Without that the
+        // task (a lair or guard post, a bench) stays reserved for a creature that is no longer there
         entityData.removeComponent(entity, CreatureRecuperating.class);
         entityData.removeComponent(entity, CreatureTortured.class);
         entityData.removeComponent(entity, CreatureImprisoned.class);
         entityData.removeComponent(entity, AttackTarget.class);
+        entityData.removeComponent(entity, MeleeHit.class);
         entityData.removeComponent(entity, CombatPitFighter.class);
         entityData.removeComponent(entity, FollowTarget.class);
         entityData.removeComponent(entity, HauledBy.class);
@@ -1273,8 +1282,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // TODO: Should we some sort of room component and notify the room handlers instead?
         // Handle stored stuff
         Stored roomStorage = entityData.getComponent(entity, Stored.class);
-        IRoomController roomController = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
-        if (roomController != null && roomStorage != null) {
+        IRoomController roomController = roomStorage != null ? mapController.getRoomController(roomStorage.room) : null;
+        if (roomController != null) {
             IRoomObjectControl roomObjectControl = roomController.getObjectControl(roomStorage.objectType);
             roomObjectControl.removeItem(entity);
 
@@ -1415,6 +1424,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Position devicePosition = null;
 
         CreatureState targetState = null;
+        boolean leavingDungeon = false;
 
         // Creatures dropped into a temple's pool are sacrificed
         if (roomController instanceof TempleController temple && temple.isSacrificePool(tile)) {
@@ -1423,7 +1433,13 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
-        // TODO: Evict
+        // A creature dropped on the middle of its keeper's portal falls through the floor and leaves the dungeon
+        if (roomController instanceof ThreeByThreeController portal) {
+            Entity creature = entityData.getEntity(entity, Owner.class, CreatureComponent.class);
+            boolean imp = creature.get(CreatureComponent.class).creatureId == kwdFile.getImp().getCreatureId();
+            leavingDungeon = portal.isLeavingDungeon(tile, creature.get(Owner.class).ownerId, imp);
+        }
+
         // TODO: Duplicated code with CreaturesController
         // TODO: capacities
         if (roomController != null) {
@@ -1463,10 +1479,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             targetState = getLairRestTarget(roomController, entity, owner.ownerId, tortureOrImprisonment);
         }
 
-        // Show the fall animation right away, before the position brings the model back to the map
+        // Show the fall animation right away, before the position brings the model back to the map. A creature
+        // falling into the portal doesn't fall over, it struggles and cries for help like in the hand
         if (!tortureOrImprisonment) {
             CreatureViewState viewState = entityData.getComponent(entity, CreatureViewState.class);
-            entityData.setComponent(entity, new CreatureViewState(viewState.creatureId, gameTimer.getGameTime(), Creature.AnimationType.FALLBACK));
+            entityData.setComponent(entity, new CreatureViewState(viewState.creatureId, gameTimer.getGameTime(),
+                    leavingDungeon ? Creature.AnimationType.IN_HAND : Creature.AnimationType.FALLBACK));
         }
 
         // Add position
@@ -1485,7 +1503,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // Add the dropping component to the creature
         if (!tortureOrImprisonment) {
-            entityData.setComponent(entity, new CreatureFall());
+            entityData.setComponent(entity, new CreatureFall(leavingDungeon ? CreatureFall.FallType.PORTAL_DROP : CreatureFall.FallType.DROPPED));
         } else {
 
             // No fall, so no touchdown for the fall system to announce

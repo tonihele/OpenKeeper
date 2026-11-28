@@ -23,6 +23,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
  * Claim a wall task
@@ -57,12 +58,18 @@ public final class ClaimWallTileTask extends DigTileTask {
         return "Claim wall at " + getTaskLocation();
     }
 
+    /**
+     * Reinforces the wall in blows of a tick's worth of the reinforce rate, as
+     * DK II's reinforce action does it (0x466390, 0x497960). The work
+     * animation is the worker's sleeping one, the imp's is called
+     * Imp_Claim1(Land).
+     *
+     * @param creature the worker
+     * @param executionDuration the time the worker has spent on the task
+     */
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-
-        // TODO: is this a general case or even smart to do this like this...?
-        if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
-            setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
+        if (isBlowDue(creature, executionDuration, Creature.AnimationType.SLEEPING)) {
 
             mapController.applyClaimTile(getTaskLocation(), playerId, creature);
 
