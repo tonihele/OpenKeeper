@@ -7,6 +7,7 @@
     <style id="nifty-textfield#panel">
         <attributes childLayout="overlay" height="40px"/>
          <effect>
+            <onClick name="engineSound" category="FRONT_END" event="0x30A" neverStopRendering="true"/>
             <onHover name="changeMouseCursor" id="textFieldCursor"/>
             <!-- <onHover name="border" color="#822f" post="true"/>-->
         </effect> 
