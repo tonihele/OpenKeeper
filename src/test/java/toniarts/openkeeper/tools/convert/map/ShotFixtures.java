@@ -256,6 +256,17 @@ public final class ShotFixtures {
     }
 
     /**
+     * Shot 54, Skeleton Army Shot, as it ships in the original data: it is cast
+     * on an enemy and dies into the given shot
+     */
+    public static Shot skeletonArmyShot(short shotId, short deathShotId) {
+        Shot shot = healInstantShot(shotId, deathShotId);
+        shot.setCollideType(Shot.CollideType.ENEMY_CREATURES);
+        shot.setAttackCategory(Shot.AttackCategory.GENERATION);
+        return shot;
+    }
+
+    /**
      * A shot that flies to one of our own creatures, as the shots of Armour,
      * Invulnerability, Invisibility and Haste do in the original data
      */

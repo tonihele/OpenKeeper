@@ -210,7 +210,9 @@ public final class ShotsController implements IShotsController {
         // The shot is at its target at once and dies there, its death shot goes on with the same values
         result.put(INSTANTANEOUS_HIT, request -> {
             if (request.shot().getDeathShotId() != 0) {
-                createShot(request.shot().getDeathShotId(), request.shotData1(), request.shotData2(), request.playerId(), request.position(), request.target(), null);
+                Vector3f targetPosition = request.target() != null ? EntityController.getPosition(entityData, request.target()) : null;
+                createShot(request.shot().getDeathShotId(), request.shotData1(), request.shotData2(), request.playerId(),
+                        targetPosition != null ? targetPosition : request.position(), request.target(), null);
             }
         });
         // Drain: the first value is how much of the shooter's full health it takes off the target, as a percentage,
@@ -265,9 +267,10 @@ public final class ShotsController implements IShotsController {
 
         // Creature attacks still apply their damage themselves, see CreatureController#executeAttack. Processing
         // their shots here too would hit twice (Mistress and Fairy lightning share the keeper's process type).
-        // What a creature casts on its own side is no attack and is processed here
+        // What a creature casts on its own side is no attack and is processed here, and so is a shot that only
+        // hands its values on to its death shot
         Shot shot = kwdFile.getShotById(shotTypeId);
-        if (shooter != null && shot.getCollideType() != Shot.CollideType.OWN_CREATURES) {
+        if (shooter != null && shot.getCollideType() != Shot.CollideType.OWN_CREATURES && shot.getProcessType() != INSTANTANEOUS_HIT) {
             return;
         }
 
@@ -557,10 +560,19 @@ public final class ShotsController implements IShotsController {
     @Override
     public void createChildShot(EntityId shotEntity, short shotTypeId, Vector3f position) {
         ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
+        Shot childShot = kwdFile.getShotById(shotTypeId);
+
+        // A shot that only does its process at its end, like the Create Creature the Skeleton Army leaves, has it
+        // where it is left. Nothing processes a flying shot's end yet
+        if (childShot.getShotProcessFlags().contains(Shot.ShotProcessFlag.AT_END)) {
+            process(new ShotRequest(childShot, flight.shotData1, flight.shotData2, flight.ownerId, new Vector3f(position),
+                    flight.target));
+            return;
+        }
 
         // The new shot keeps the old one's values and target, not its own (0x4AB180)
         addShot(new ShotFlight(shotTypeId, flight.ownerId, flight.shooter, flight.target, flight.shotData1, flight.shotData2,
-                new Vector3f(), new Vector3f(position), 0, kwdFile.getShotById(shotTypeId).getHealth()));
+                new Vector3f(), new Vector3f(position), 0, childShot.getHealth()));
     }
 
     @Override

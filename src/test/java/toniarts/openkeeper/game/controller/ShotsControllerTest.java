@@ -84,6 +84,7 @@ class ShotsControllerTest {
     private static final short INVISIBLE_ID = 22;
     private static final short CREATE_OBJECT_ID = 2;
     private static final short CREATE_CREATURE_ID = 10;
+    private static final short SKELETON_ARMY_ID = 54;
     private static final short IMP_ID = 1;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short CHICKEN_OBJECT_ID = 9;
@@ -136,6 +137,7 @@ class ShotsControllerTest {
         addShot(INVISIBLE_ID, Shot.ProcessType.INVISIBLE);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(CREATE_CREATURE_ID, Shot.ProcessType.CREATE_CREATURE);
+        shotsById.put(SKELETON_ARMY_ID, ShotFixtures.skeletonArmyShot(SKELETON_ARMY_ID, CREATE_CREATURE_ID));
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
         // Drain does its process when it hits, as in the original data
         shotsById.put(DRAIN_ID, ShotFixtures.shot(DRAIN_ID, Shot.ProcessType.DRAIN, 0, EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING)));
@@ -255,6 +257,41 @@ class ShotsControllerTest {
         shotsController.createShot(HEAL_INSTANT_ID, 3000, 0, PLAYER_ID, new Vector3f(), creature, warlock);
 
         assertEquals(-3000, entityData.getComponent(creature, Damage.class).damage);
+    }
+
+    @Test
+    void creatureSkeletonArmyRisesAtItsTarget() {
+        EntityId enemy = createCreature();
+        EntityId darkAngel = createCreature();
+
+        // Skeleton Army: creature 9 (Skeleton), three of them, through the death shot of an instant shot
+        shotsController.createShot(SKELETON_ARMY_ID, SKELETON_ID, 3, PLAYER_ID, new Vector3f(5.5f, 1f, 5.5f), enemy, darkAngel);
+
+        assertEquals(3, spawnedCreatures.size());
+        for (Object[] args : spawnedCreatures) {
+            assertArrayEquals(new Object[]{SKELETON_ID, PLAYER_ID, 1, new Vector2f(1.5f, 1.5f), ICreaturesController.SpawnType.CONJURE}, args);
+        }
+        assertNull(entityData.getComponent(enemy, Damage.class));
+    }
+
+    @Test
+    void skeletonArmyLeavesItsSkeletonsWhereItDies() {
+        EntityId enemy = createCreature();
+        EntityId darkAngel = createCreature();
+        EntityId shot = entityData.createEntity();
+        entityData.setComponent(shot, new ShotFlight(SKELETON_ARMY_ID, PLAYER_ID, darkAngel, enemy, SKELETON_ID, 3, new Vector3f(),
+                new Vector3f(), 0, 1));
+
+        // Create Creature does its process at its end, as in the original data
+        shotsById.put(CREATE_CREATURE_ID, ShotFixtures.shot(CREATE_CREATURE_ID, Shot.ProcessType.CREATE_CREATURE, 1,
+                EnumSet.of(Shot.ShotProcessFlag.AT_END)));
+        shotsController.createChildShot(shot, CREATE_CREATURE_ID, new Vector3f(2.5f, 1f, 3.5f));
+
+        assertEquals(3, spawnedCreatures.size());
+        for (Object[] args : spawnedCreatures) {
+            assertArrayEquals(new Object[]{SKELETON_ID, PLAYER_ID, 1, new Vector2f(2.5f, 3.5f), ICreaturesController.SpawnType.CONJURE}, args);
+        }
+        assertEquals(0, countShotEntities());
     }
 
     @Test

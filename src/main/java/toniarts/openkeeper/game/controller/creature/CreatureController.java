@@ -1747,8 +1747,10 @@ public final class CreatureController extends EntityController implements ICreat
             shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), castShot.target, entityId);
 
             // TODO: Of course not like that, the shot is created and it does what it does
-            // Set the damage, a spell for our own creatures does them none
-            if (!creatureSpell.getFlags().contains(CreatureSpellFlag.CREATURE)) {
+            // Set the damage, a spell for our own creatures does them none, a shot that makes things has the thing in
+            // its value
+            if (!creatureSpell.getFlags().contains(CreatureSpellFlag.CREATURE)
+                    && levelInfo.getLevelData().getShotById(creatureSpell.getShotTypeId()).getAttackCategory() != Shot.AttackCategory.GENERATION) {
                 setDamage(castShot.target, creatureSpell.getShotData1());
             }
         }
