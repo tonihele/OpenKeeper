@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.trigger.door.DoorTriggerLogicController;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerLogicController;
 import toniarts.openkeeper.game.trigger.party.PartyTriggerLogicController;
 import toniarts.openkeeper.game.trigger.player.PlayerTriggerLogicController;
+import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -68,6 +69,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private static final Logger logger = System.getLogger(GameController.class.getName());
 
     private final LevelInfo levelInfo;
+    private final boolean campaign;
 
     private final Map<Short, IPlayerController> playerControllers = HashMap.newHashMap(6);
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -93,15 +95,17 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
      *
      * @param level the level to load
      * @param players player participating in this game, can be {@code null}
+     * @param campaign whether this is a campaign level
      * @param entityData
      * @param gameSettings
      * @param playerService
      */
-    public GameController(IKwdFile level, List<Keeper> players, EntityData entityData,
+    public GameController(IKwdFile level, List<Keeper> players, boolean campaign, EntityData entityData,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             PlayerService playerService) {
 
         levelInfo = new LevelInfo(level);
+        this.campaign = campaign;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.playerService = playerService;
@@ -234,6 +238,12 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                     setAvailability(player, availability);
                 }
             }
+        }
+
+        // The Reaper Talisman gives the campaign player one free Reaper on the levels that say so
+        IPlayerController campaignPlayer = playerControllers.get(Player.KEEPER1_ID);
+        if (campaign && campaignPlayer != null && levelInfo.kwdFile.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.ONE_SHOT_HORNY)) {
+            campaignPlayer.getSpellControl().setTypeAvailable(levelInfo.kwdFile.getKeeperSpellById(ReaperSummoner.ONE_SHOT_REAPER_SPELL_ID), true);
         }
 
         // Initialize the player research
