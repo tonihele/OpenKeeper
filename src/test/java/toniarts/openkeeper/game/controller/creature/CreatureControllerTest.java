@@ -210,12 +210,18 @@ class CreatureControllerTest {
         try (Fixture f = new Fixture(9)) {
             f.data.setComponent(f.entity, workerComponent());
             f.startWork(TaskType.TRAIN);
-            EntityId pile = f.goldPile(150);
+            f.data.setComponent(f.entity, new Gold(1060, 1400));
+            EntityId pile = f.goldPile(450);
 
-            // Up to what it carries, the rest stays in the pile
+            // A worker that counts as full (the level's margin short of what it carries) leaves it
             f.tick();
-            assertEquals(100, f.data.getComponent(f.entity, Gold.class).gold);
-            assertEquals(50, f.data.getComponent(pile, Gold.class).gold);
+            assertEquals(450, f.data.getComponent(pile, Gold.class).gold);
+
+            // Short of that, up to what it carries, the rest stays in the pile
+            f.data.setComponent(f.entity, new Gold(1059, 1400));
+            f.tick();
+            assertEquals(1400, f.data.getComponent(f.entity, Gold.class).gold);
+            assertEquals(109, f.data.getComponent(pile, Gold.class).gold);
         }
     }
 
@@ -1335,6 +1341,7 @@ class CreatureControllerTest {
                     CreatureSleepFixtures.variable(MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND, -550));
             settings.put(MiscType.CANNOT_SLEEP_MODIFY_CREATURE_HEALTH_PER_SECOND,
                     CreatureSleepFixtures.variable(MiscType.CANNOT_SLEEP_MODIFY_CREATURE_HEALTH_PER_SECOND, 0));
+            settings.put(MiscType.WORKER_FULL_GOLD_MARGIN, CreatureSleepFixtures.variable(MiscType.WORKER_FULL_GOLD_MARGIN, 340));
             IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, (method, args) -> switch (method) {
                 case "getSensedEntities" -> sensed;
                 case "getEntityLocation" -> null; // Not on a Hero Lair
@@ -1367,6 +1374,7 @@ class CreatureControllerTest {
             });
             INavigationService navigation = proxy(INavigationService.class, (method, args) -> switch (method) {
                 case "findPath" -> walkable.test((Point) args[1]) ? new DefaultGraphPath<>() : null;
+                case "isReachable" -> walkable.test((Point) args[1]);
                 case "findRandomAccessibleTile" -> null;
                 default -> throw new UnsupportedOperationException(method);
             });

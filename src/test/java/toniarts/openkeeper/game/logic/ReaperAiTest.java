@@ -309,6 +309,7 @@ class ReaperAiTest {
                         path.add(tile(end));
                         yield path;
                     }
+                    case "isReachable" -> !unreachableTiles.contains((Point) args[1]);
                     case "findRandomAccessibleTile" -> null;
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
