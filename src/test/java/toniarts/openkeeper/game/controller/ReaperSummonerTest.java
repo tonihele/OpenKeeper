@@ -24,7 +24,9 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.SummonedReaper;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -65,6 +67,9 @@ class ReaperSummonerTest {
         assertEquals(position, spawn[3]);
         assertEquals(ICreaturesController.SpawnType.CONJURE, spawn[4]);
         assertNotNull(entityData.getComponent(reaper, SummonedReaper.class));
+
+        // Once it has landed and is on its feet, it stands and roars before it hunts
+        assertEquals(CreatureState.REAPER_ARRIVE, entityData.getComponent(reaper, CreatureAi.class).getTargetState());
     }
 
     @Test
