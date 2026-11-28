@@ -136,7 +136,7 @@ class CreatureViewSystemTest {
                 new Position(0, new Vector3f()),
                 new CreatureAi(0, CreatureState.WORK, (short) 4),
                 new TaskComponent(1, null, null, TaskType.SULK, 0, true));
-        CreatureViewSystem system = new CreatureViewSystem(entityData, kwdFile);
+        CreatureViewSystem system = new CreatureViewSystem(entityData, kwdFile, null);
 
         system.processTick(0.25f);
         assertEquals(Creature.AnimationType.STAND_STILL, entityData.getComponent(sulker, CreatureViewState.class).state);
