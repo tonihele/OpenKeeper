@@ -52,6 +52,8 @@ import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.DoorTarget;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
@@ -64,6 +66,7 @@ import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.MeleeHit;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
@@ -115,6 +118,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
+import toniarts.openkeeper.tools.convert.map.Material;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -163,6 +167,11 @@ public final class CreatureController extends EntityController implements ICreat
      * The least distance, in tiles, a creature backs off from its target
      */
     private static final float BACK_OFF_RANGE = 2f;
+    /**
+     * Within this many tiles of our own Dungeon Heart, a badly hurt creature
+     * still fights (DK II 0x45EDA0)
+     */
+    private static final int BADLY_HURT_HEART_DISTANCE = 5;
 
     private static final Logger logger = System.getLogger(CreatureController.class.getName());
 
@@ -177,6 +186,8 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private static final int OWN_LAND_WANDER_DISTANCE = 10;
 
+    private static final float FACING_TOLERANCE = 0.2f; // Radians
+    private static final int FACE_DISTANCE = 32; // Tiles
     /**
      * Possessed movement speed relative to walking forward
      */
@@ -235,6 +246,20 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private static final Set<CreatureState> EAT_INTERRUPTIBLE_STATES = EnumSet.of(CreatureState.IDLE,
             CreatureState.WANDER, CreatureState.WORK, CreatureState.DANCING);
+
+    /**
+     * The effects a melee hit plays on its target, "Physical Hit Effect" and
+     * "Spark shower effect"
+     */
+    private static final int PHYSICAL_HIT_EFFECT_ID = 237;
+    private static final int SPARK_SHOWER_EFFECT_ID = 313;
+    /**
+     * Of the attack spells, the one that was ready first: the smallest last
+     * cast plus recharge, and the earlier slot on a tie (DK II 0x45CB00,
+     * 0x48C800). A spell never cast counts as cast at 0.
+     */
+    private static final Comparator<CreatureSpell> READY_FIRST = Comparator.comparingDouble(
+            creatureSpell -> (creatureSpell.attactStartTime != null ? creatureSpell.attactStartTime : 0) + creatureSpell.rechargeTime);
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -301,8 +326,20 @@ public final class CreatureController extends EntityController implements ICreat
     public boolean shouldFleeOrAttack() {
         checkSurroundings();
 
-        // Check fleeing, TODO: Always flee?
+        // A fighter that finds an enemy goes into the fight with it, and only there weighs the threat against
+        // its fear and backs off when scared. Only a badly hurt one withdraws instead (DK II 0x45CB00, 0x45EDA0)
         boolean fighter = creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER;
+        IEntityController attackTarget = fighter && (stateMachine.isInState(CreatureState.FIGHT) || isNearCallToArms())
+                ? getAttackTarget() : null;
+        if (attackTarget != null) {
+            CreatureState state = isBadlyHurt() ? CreatureState.FLEE : CreatureState.FIGHT;
+            if (!stateMachine.isInState(state)) {
+                stateMachine.changeState(state);
+            }
+            return true;
+        }
+
+        // Check fleeing, TODO: Always flee?
         boolean inDHeart = false;
         if (entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter() && isThreatTooHigh()) {
 
@@ -321,10 +358,10 @@ public final class CreatureController extends EntityController implements ICreat
             }
         }
 
-        // Should we attack, try to avoid i.e. imps engaging in a fight. Near their own heart they
-        // only hit back at an enemy in reach, which DK II makes one tile, and otherwise keep working
-        IEntityController attackTarget = fighter || inDHeart ? getAttackTarget() : null;
-        if (attackTarget != null && (fighter || isInRange(WorldUtils.TILE_WIDTH, attackTarget.getEntityId()))
+        // Try to avoid i.e. imps engaging in a fight. Near their own heart they only hit back
+        // at an enemy in reach, which DK II makes one tile, and otherwise keep working
+        attackTarget = inDHeart && !fighter ? getAttackTarget() : null;
+        if (attackTarget != null && isInRange(WorldUtils.TILE_WIDTH, attackTarget.getEntityId())
                 && (stateMachine.isInState(CreatureState.FIGHT) || isNearCallToArms())) {
             if (!stateMachine.isInState(CreatureState.FIGHT)) {
                 stateMachine.changeState(CreatureState.FIGHT);
@@ -888,14 +925,24 @@ public final class CreatureController extends EntityController implements ICreat
         List<Point> tiles = new ArrayList<>(path.getCount());
         path.forEach(tile -> tiles.add(tile.getLocation()));
         int doorIndex = DoorAttackTarget.getDoorIndex(tiles, this::isDoorToBreak);
-        if (doorIndex == DoorAttackTarget.ADJACENT_DOOR_INDEX) {
-            attackDoor(getBlockingDoor(tiles.get(doorIndex)));
+        EntityId door = doorIndex >= DoorAttackTarget.ADJACENT_DOOR_INDEX ? getBlockingDoor(tiles.get(doorIndex)) : null;
+        if (doorIndex == DoorAttackTarget.ADJACENT_DOOR_INDEX
+                || door != null && isDoorInReach(door, WorldUtils.vector3fToVector2f(getPosition()))) {
+            breakDoor(door);
             return false;
-        } else if (doorIndex > DoorAttackTarget.ADJACENT_DOOR_INDEX) {
-            path = DoorAttackTarget.stopBefore(path, doorIndex);
-            destination = tiles.get(doorIndex - 1);
+        } else if (door != null) {
+
+            // The walk ends on the first tile from where the door is in reach, at the latest on the one next to it
+            int stop = DoorAttackTarget.ADJACENT_DOOR_INDEX;
+            while (stop < doorIndex - 1 && !isDoorInReach(door, WorldUtils.pointToVector2f(tiles.get(stop)))) {
+                stop++;
+            }
+            path = DoorAttackTarget.stopBefore(path, stop + 1);
+            destination = tiles.get(stop);
             faceTarget = tiles.get(doorIndex);
             workPosition = null;
+        } else {
+            entityData.removeComponent(entityId, DoorTarget.class);
         }
 
         List<Vector2> navigationPath = SteeringUtils.pathToList(path);
@@ -953,11 +1000,17 @@ public final class CreatureController extends EntityController implements ICreat
         }
         Position position = entityData.getComponent(entityId, Position.class);
         Point tile = position != null ? WorldUtils.vectorToPoint(position.position) : null;
-        EntityId door = DoorAttackTarget.findAdjacent(tile, this::getBlockingDoor, this::canBreakDoor);
+
+        // The door we break stays our target while it is in our reach, also after we backed off from it (0x45F030)
+        DoorTarget doorTarget = entityData.getComponent(entityId, DoorTarget.class);
+        EntityId door = doorTarget != null && tile != null && canBreakDoor(doorTarget.door)
+                && isDoorInReach(doorTarget.door, WorldUtils.vector3fToVector2f(position.position))
+                ? doorTarget.door : DoorAttackTarget.findAdjacent(tile, this::getBlockingDoor, this::canBreakDoor);
         if (door == null) {
+            entityData.removeComponent(entityId, DoorTarget.class);
             return false;
         }
-        attackDoor(door);
+        breakDoor(door);
         return true;
     }
 
@@ -982,17 +1035,143 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     /**
-     * Hits a door that is next to us with the melee attack, as often as the
-     * attack recharges
+     * Breaks a door in our way: attacks it when it is in reach, and otherwise
+     * steps up to it first, the door then being next to us. The door is a
+     * target of the original's fight state like any other (0x481400), and we
+     * keep it with the attack we go for it with.
+     *
+     * @param door the door
+     */
+    private void breakDoor(EntityId door) {
+        DoorTarget doorTarget = entityData.getComponent(entityId, DoorTarget.class);
+        boolean melee = getDoorAttackSpell(door).isEmpty();
+        if (doorTarget == null || !door.equals(doorTarget.door) || doorTarget.melee != melee) {
+            entityData.setComponent(entityId, new DoorTarget(door, melee));
+        }
+
+        Vector3f position = getPosition();
+        if (isDoorInReach(door, WorldUtils.vector3fToVector2f(position))) {
+            attackDoor(door);
+            return;
+        }
+
+        Point tile = getCreatureCoordinates();
+        Point doorTile = getCreatureCoordinates(entityData, door);
+        Vector2f spot = DoorAttackTarget.getApproachPoint(doorTile, tile, getDoorReach(door));
+        entityData.setComponent(entityId, new Navigation(tile, doorTile, new ArrayList<>(List.of(
+                new Vector2(position.x, position.z), new Vector2(spot.x, spot.y)))));
+    }
+
+    /**
+     * Is a door in reach from a spot. Like DK II (0x45E8F0), the door also
+     * needs to be in sight.
+     *
+     * @param door the door
+     * @param from the spot
+     * @return true if we can attack the door from the spot
+     */
+    private boolean isDoorInReach(EntityId door, Vector2f from) {
+        Vector3f doorPosition = getPosition(entityData, door);
+        return WorldUtils.vector3fToVector2f(doorPosition).distance(from) < getDoorReach(door)
+                && entityPositionLookup.hasLineOfSight(new Vector3f(from.x, doorPosition.y, from.y), doorPosition);
+    }
+
+    /**
+     * How far from a door's centre we attack it: the range of the attack spell
+     * we cast at it, or else our melee reach for a door (0x45CB00)
+     *
+     * @param door the door
+     * @return the reach
+     */
+    private float getDoorReach(EntityId door) {
+        Optional<CreatureSpell> spell = getDoorAttackSpell(door);
+        return spell.isPresent() ? spell.get().range : DoorAttackTarget.getMeleeReach(levelInfo.getLevelData().getDoorById(
+                entityData.getComponent(door, DoorComponent.class).doorId), getMeleeRange());
+    }
+
+    /**
+     * The attack spell we cast at a door. DK II picks it as against other
+     * targets, the one that was ready first, but leaves out the spells that
+     * only work on creatures, and a support creature also takes one that
+     * still recharges and waits for it (0x45CB00, 0x45F030). A door is a
+     * target given to the creature, so DK II doesn't look at its distance
+     * here: the spell is cast even from right next to the door. Once the
+     * creature goes for the door in melee it doesn't pick again (0x45F030).
+     *
+     * @param door the door
+     * @return the spell, empty to hit the door in melee
+     */
+    private Optional<CreatureSpell> getDoorAttackSpell(EntityId door) {
+        DoorTarget doorTarget = entityData.getComponent(entityId, DoorTarget.class);
+        if (doorTarget != null && doorTarget.melee && door.equals(doorTarget.door)) {
+            return Optional.empty();
+        }
+
+        boolean support = creature.getFightStyle() == Creature.FightStyle.SUPPORT;
+        return getCreatureSpells()
+                .stream()
+                .filter(creatureSpell -> {
+                    EnumSet<CreatureSpellFlag> flags = levelInfo.getLevelData().getCreatureSpellById(creatureSpell.creatureSpellId).getFlags();
+                    return (support || isAttackRecharged(creatureSpell)) && flags.contains(CreatureSpellFlag.IS_ATTACKING)
+                            && !flags.contains(CreatureSpellFlag.CAST_ONLY_ON_CREATURES);
+                })
+                .min(READY_FIRST);
+    }
+
+    /**
+     * Attacks a door in reach as often as the attack recharges, with the
+     * attack spell or else in melee. The creature turns to it before every
+     * attack, and the hit is a normal melee hit (0x45F030, 0x498E30).
      *
      * @param door the door
      */
     private void attackDoor(EntityId door) {
+        Optional<CreatureSpell> spell = getDoorAttackSpell(door);
+        boolean waitingForSpell = spell.isPresent() && !isAttackRecharged(spell.get());
+        if (waitingForSpell && !isStopped() || !faceAttackTarget(door)) {
+            return; // Waiting for its spell, a support creature first finishes its step back
+        }
+
         CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
-        if (creatureMeleeAttack != null && isAttackRecharged(creatureMeleeAttack)) {
-            entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
+        if (spell.isPresent()) {
+            if (waitingForSpell) {
+                backOffFromDoor(door, spell.get().range);
+            } else {
+                castAttackSpell(spell.get(), door);
+            }
+        } else if (creatureMeleeAttack != null && isAttackRecharged(creatureMeleeAttack)) {
             stateMachine.changeState(CreatureState.MELEE_ATTACK);
-            setDamage(door, creatureMeleeAttack.damage);
+            hitWithMelee(door, creatureMeleeAttack, creatureMeleeAttack.damage);
+        }
+    }
+
+    /**
+     * A support creature that waits for its spell nearer to the door than half
+     * the spell's range and half the distance it can see backs away from it,
+     * facing it. DK II shuffles it straight back, or else along the wall
+     * behind it (0x45F030, 0x460DA0). Here it steps back a tile.
+     *
+     * @param door the door
+     * @param range the range of the spell
+     */
+    private void backOffFromDoor(EntityId door, float range) {
+        Vector3f position = getPosition();
+        Vector2f away = WorldUtils.vector3fToVector2f(position).subtractLocal(WorldUtils.vector3fToVector2f(getPosition(entityData, door)));
+        float distance = away.length();
+        if (distance >= range / 2 || distance >= creature.getAttributes().getDistanceCanSee() / 2 || distance == 0) {
+            return;
+        }
+
+        Point tile = getCreatureCoordinates();
+        away.divideLocal(distance);
+        int x = Math.round(away.x);
+        int y = Math.round(away.y);
+        for (Point step : List.of(new Point(tile.x + x, tile.y + y), new Point(tile.x, tile.y + y), new Point(tile.x + x, tile.y))) {
+            if (!step.equals(tile) && navigationService.findPath(tile, step, this) != null) {
+                entityData.setComponent(entityId, new Navigation(step, getCreatureCoordinates(entityData, door), new ArrayList<>(List.of(
+                        new Vector2(position.x, position.z), WorldUtils.pointToVector2(step)))));
+                return;
+            }
         }
     }
 
@@ -1556,6 +1735,11 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void executeAttack(EntityId attackTarget) {
 
+        // Like the original, turn to the target first and attack only when there is no turn left (0x45F030)
+        if (!faceAttackTarget(attackTarget)) {
+            return;
+        }
+
         // TODO: how to apply the damage? Create a component for THIS creature that adds the damage to enemy after the countdown is finished?
         // Always prefer melee if in range
         CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
@@ -1578,23 +1762,30 @@ public final class CreatureController extends EntityController implements ICreat
                 releaseMeleeHit();
             }
         } else {
-            Optional<CreatureSpell> attack = getPreferredAttackSpell(attackTarget);
-            if (attack.isPresent()) {
-                CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
-                for (EntityId creatureSpellEntity : creatureSpells.creatureSpells) {
-                    CreatureSpell spell = entityData.getComponent(creatureSpellEntity, CreatureSpell.class);
-                    if (spell.creatureSpellId == attack.get().creatureSpellId) {
-                        entityData.setComponent(creatureSpellEntity, new CreatureSpell(attack.get(), gameTimer.getGameTime()));
-                        break;
-                    }
-                }
-                stateMachine.changeState(CreatureState.CAST_SPELL);
+            getPreferredAttackSpell(attackTarget).ifPresent(attack -> castAttackSpell(attack, attackTarget));
+        }
+    }
 
-                // The shot leaves during the cast, after the spell's shot delay (0x4984D0)
-                entityData.setComponent(entityId, new CastShot(attack.get().creatureSpellId, attackTarget, attack.get().range,
-                        gameTimer.getGameTime() + getShotDelay(attack.get().creatureSpellId)));
+    /**
+     * Casts an attack spell at the target, the spell then needs to recharge
+     *
+     * @param attack the spell
+     * @param attackTarget the target
+     */
+    private void castAttackSpell(CreatureSpell attack, EntityId attackTarget) {
+        CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+        for (EntityId creatureSpellEntity : creatureSpells.creatureSpells) {
+            CreatureSpell spell = entityData.getComponent(creatureSpellEntity, CreatureSpell.class);
+            if (spell.creatureSpellId == attack.creatureSpellId) {
+                entityData.setComponent(creatureSpellEntity, new CreatureSpell(attack, gameTimer.getGameTime()));
+                break;
             }
         }
+        stateMachine.changeState(CreatureState.CAST_SPELL);
+
+        // The shot leaves during the cast, after the spell's shot delay (0x4984D0)
+        entityData.setComponent(entityId, new CastShot(attack.creatureSpellId, attackTarget, attack.range,
+                gameTimer.getGameTime() + getShotDelay(attack.creatureSpellId)));
     }
 
     @Override
@@ -1834,6 +2025,46 @@ public final class CreatureController extends EntityController implements ICreat
             setDamage(attackTarget, damage);
         }
         gameEventService.emitAt(GameEventType.MELEE_HIT, ThingFlag.CREATURE, creature.getCreatureId(), attackTarget, getPosition());
+        showMeleeHit(attackTarget, entityData.getComponent(entityId, CreatureMeleeAttack.class).getAttackType());
+    }
+
+    /**
+     * Plays the hit effects of a melee hit on the target (0x4998A0). Every
+     * blade, blunt, body and scythe hit makes the physical hit effect, a blade
+     * or scythe hitting metal also makes a spark shower
+     *
+     * @param attackTarget the target we hit
+     * @param attackType our melee attack type
+     */
+    private void showMeleeHit(EntityId attackTarget, Creature.AttackType attackType) {
+        Vector3f position = getPosition(entityData, attackTarget);
+        if (position == null || attackType != Creature.AttackType.MELEE_BLADE && attackType != Creature.AttackType.MELEE_BLUNT
+                && attackType != Creature.AttackType.MELEE_BODY && attackType != Creature.AttackType.MELEE_SCYTHE) {
+            return;
+        }
+
+        gameEventService.emitEffect(PHYSICAL_HIT_EFFECT_ID, position, 0);
+        Material material = getMaterial(attackTarget);
+        if ((attackType == Creature.AttackType.MELEE_BLADE || attackType == Creature.AttackType.MELEE_SCYTHE)
+                && (material == Material.METAL1 || material == Material.METAL2)) {
+            gameEventService.emitEffect(SPARK_SHOWER_EFFECT_ID, position, 0);
+        }
+    }
+
+    private Material getMaterial(EntityId entity) {
+        CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
+        if (creatureComponent != null) {
+            return levelInfo.getLevelData().getCreature(creatureComponent.creatureId).getMaterial();
+        }
+        DoorComponent doorComponent = entityData.getComponent(entity, DoorComponent.class);
+        if (doorComponent != null) {
+            return levelInfo.getLevelData().getDoorById(doorComponent.doorId).getMaterial();
+        }
+        ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
+        if (objectComponent != null) {
+            return levelInfo.getLevelData().getObject(objectComponent.objectId).getMaterial();
+        }
+        return Material.NONE;
     }
 
     private float getFirstPersonRechargeModifyPercentage() {
@@ -1894,12 +2125,11 @@ public final class CreatureController extends EntityController implements ICreat
             return Optional.empty();
         }
 
-        // Sort in order of preference
+        // Of the attack spells that are ready, the one that was ready first
         return creatureSpells
                 .stream()
                 .filter(creatureSpell -> isAttackRecharged(creatureSpell) && isInRange(creatureSpell.range, attackTarget) && levelInfo.getLevelData().getCreatureSpellById(creatureSpell.creatureSpellId).getFlags().contains(CreatureSpellFlag.IS_ATTACKING))
-                .sorted(Comparator.<CreatureSpell>comparingInt(creatureSpell -> levelInfo.getLevelData().getCreatureSpellById(creatureSpell.creatureSpellId).getCombatPoints()).reversed())
-                .findFirst();
+                .min(READY_FIRST);
     }
 
     /**
@@ -1971,8 +2201,53 @@ public final class CreatureController extends EntityController implements ICreat
             Point ourPosition = getCreatureCoordinates();
             if (destination != null && !destination.equals(ourPosition)) {
                 createNavigation(ourPosition, destination, null);
+
+                // The call is made when setting off, not on every change of the target's tile
+                if (currentNavigation == null) {
+                    gameEventService.emit(GameEventType.CREATURE_BATTLE_CALL, ThingFlag.CREATURE, creature.getCreatureId(),
+                            getPosition());
+                }
             }
         }
+    }
+
+    /**
+     * Turns the creature on the spot to face the target it attacks, for a heart
+     * the pillar it hits, the nearest one, as the original does (0x45CB00,
+     * 0x4B2AE0). Like the original, it faces from where it stands to where the
+     * target stands. Facing is steered through a navigation that only has the
+     * tile to face from, and it is only made when the creature isn't already
+     * facing the target.
+     *
+     * @param attackTarget the target being attacked
+     * @return true if the creature already faces the target
+     */
+    private boolean faceAttackTarget(EntityId attackTarget) {
+        Position position = entityData.getComponent(entityId, Position.class);
+        Vector3f targetPosition = getPosition(entityData, attackTarget);
+        if (targetPosition == null) {
+            return true;
+        }
+        Vector2f standing = WorldUtils.vector3fToVector2f(position.position);
+        Vector2f toTarget = (DungeonHeartTarget.isDungeonHeart(entityData, attackTarget)
+                ? DungeonHeartTarget.getNearestPillar(standing, getHeartTile(attackTarget))
+                : WorldUtils.vector3fToVector2f(targetPosition)).subtractLocal(standing);
+        if (toTarget.lengthSquared() < FastMath.ZERO_TOLERANCE) {
+            return true; // Right on top of it, there is no way to turn to
+        }
+        double turn = Math.IEEEremainder(-position.rotation - SteeringUtils.calculateVectorToAngle(
+                new Vector2(toTarget.x, toTarget.y)), 2 * Math.PI);
+        if (Math.abs(turn) <= FACING_TOLERANCE) {
+            return true;
+        }
+
+        // The steering faces from the centre of a tile to the centre of another, the creature is often on the
+        // target's own tile. A tile far along the way to the target gives that way to within a degree or so.
+        Point tile = getCreatureCoordinates();
+        toTarget.normalizeLocal().multLocal(FACE_DISTANCE);
+        entityData.setComponent(entityId, new Navigation(tile,
+                new Point(tile.x + Math.round(toTarget.x), tile.y + Math.round(toTarget.y)), new ArrayList<>()));
+        return false;
     }
 
     private void navigateToHeart(EntityId heart) {
@@ -2022,6 +2297,27 @@ public final class CreatureController extends EntityController implements ICreat
         stateMachine.changeState(CreatureState.CALL_TO_ARMS);
         setFollowTarget(banner);
         entityData.setComponent(entityId, new Navigation(destination, null, SteeringUtils.pathToList(path)));
+        return true;
+    }
+
+    @Override
+    public boolean answerHeartCall(Point enemyTile) {
+        Health health = entityData.getComponent(entityId, Health.class);
+        if (entityData.getComponent(entityId, CreatureAi.class) == null
+                || !(stateMachine.isInState(CreatureState.IDLE) || stateMachine.isInState(CreatureState.WORK))
+                || isIncapacitated()
+                || creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)
+                || entityData.getComponent(entityId, Peaceful.class) != null
+                || health.health <= health.maxHealth / 4) {
+            return false;
+        }
+        GraphPath<IMapTileInformation> path = navigationService.findPath(getCreatureCoordinates(), enemyTile, this);
+        if (path == null) {
+            return false;
+        }
+
+        stateMachine.changeState(CreatureState.HEART_CALL);
+        entityData.setComponent(entityId, new Navigation(enemyTile, null, SteeringUtils.pathToList(path)));
         return true;
     }
 
@@ -2932,6 +3228,22 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         return false;
+    }
+
+    @Override
+    public boolean isBadlyHurt() {
+
+        // Below a sixth of its health, unless it is fearless, and more than 5 tiles from its own heart. Heroes go
+        // to the hero lair instead (DK II 0x45EDA0)
+        Health health = entityData.getComponent(entityId, Health.class);
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+        Point heart = keeper != null ? keeper.getDungeonHeartLocation() : null;
+        if (getOwnerId() == Player.GOOD_PLAYER_ID || heart == null || entityData.getComponent(entityId, Fearless.class) != null
+                || isCombatPitFighter() || health == null || health.health >= health.maxHealth / 6) {
+            return false;
+        }
+        Point tile = getCreatureCoordinates();
+        return Math.max(Math.abs(tile.x - heart.x), Math.abs(tile.y - heart.y)) > BADLY_HURT_HEART_DISTANCE;
     }
 
     @Override

@@ -227,12 +227,30 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean backOff();
 
     /**
+     * Our Dungeon Heart calls us to an enemy near it. We go when we are idle
+     * or working, will fight, have more than a quarter of our health and can
+     * walk there. The Horned Reaper never answers (DK II 0x4D9690)
+     *
+     * @param enemyTile where the enemy is
+     * @return true if we set off
+     */
+    public boolean answerHeartCall(Point enemyTile);
+
+    /**
      * A hero set to return to the hero lair withdraws there from a fight when
      * it is badly hurt. Starts the walk to the hero lair if so
      *
      * @return true if we withdraw to the hero lair
      */
     public boolean withdrawToHeroLair();
+
+    /**
+     * Tells whether we are hurt too badly to fight on, away from our own
+     * Dungeon Heart. Such a creature withdraws rather than fights
+     *
+     * @return true if we should withdraw from a fight
+     */
+    public boolean isBadlyHurt();
 
     /**
      * Walks to a tile of our own land some way off, as a recuperating hero

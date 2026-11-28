@@ -64,6 +64,7 @@ class CreatureBackOffTest {
     private final Set<EntityId> creatures = new HashSet<>();
     private final Keeper keeper = new Keeper(false, Player.KEEPER1_ID);
     private final Map<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
+    private final AtomicReference<Boolean> badlyHurt = new AtomicReference<>(false);
     private double time;
 
     CreatureBackOffTest() {
@@ -237,6 +238,39 @@ class CreatureBackOffTest {
         assertEquals(CreatureState.FIGHT, state.get());
     }
 
+    @Test
+    void badlyHurtFighterWithdrawsBeforeItWeighsItsFear() {
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.FIGHT);
+        ICreatureController creature = creature(state, new AtomicReference<>(true), new AtomicReference<>(false),
+                new AtomicReference<>(true));
+        badlyHurt.set(true);
+
+        CreatureState.FIGHT.update(creature);
+
+        assertEquals(CreatureState.FLEE, state.get());
+    }
+
+    @Test
+    void badlyHurtBelowASixthOfItsHealthAwayFromItsHeart() {
+        EntityId goblin = creature(Player.KEEPER1_ID, 10, GOBLIN_FEAR, 37, 1.26f);
+        CreatureController controller = controller(goblin);
+        keeper.setDungeonHeartLocation(new Point(4, 10));
+
+        data.setComponent(goblin, new Health(165, 1000));
+        assertTrue(controller.isBadlyHurt());
+        data.setComponent(goblin, new Health(166, 1000));
+        assertFalse(controller.isBadlyHurt());
+
+        // Within 5 tiles of its heart, it fights on
+        data.setComponent(goblin, new Health(165, 1000));
+        keeper.setDungeonHeartLocation(new Point(5, 15));
+        assertFalse(controller.isBadlyHurt());
+
+        keeper.setDungeonHeartLocation(new Point(4, 10));
+        data.setComponent(goblin, new Fearless());
+        assertFalse(controller.isBadlyHurt());
+    }
+
     private EntityId creature(short ownerId, float x, int fear, int threat, float runSpeed) {
         EntityId entity = data.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();
@@ -275,7 +309,7 @@ class CreatureBackOffTest {
                 settings, null, lookup, null, levelInfo, null, null, null);
     }
 
-    private static ICreatureController creature(AtomicReference<CreatureState> state, AtomicReference<Boolean> scared,
+    private ICreatureController creature(AtomicReference<CreatureState> state, AtomicReference<Boolean> scared,
             AtomicReference<Boolean> over, AtomicReference<Boolean> canBackOff) {
         StateMachine<?, ?> stateMachine = proxy(StateMachine.class, (method, args) -> switch (method) {
             case "changeState" -> {
@@ -293,6 +327,7 @@ class CreatureBackOffTest {
             case "isBackOffOver" -> over.get();
             case "backOff" -> canBackOff.get();
             case "withdrawToHeroLair" -> false;
+            case "isBadlyHurt" -> badlyHurt.get();
             default -> throw new UnsupportedOperationException(method);
         }));
         return self.get();

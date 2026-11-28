@@ -384,6 +384,12 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // A badly hurt keeper's creature withdraws, also before fear is weighed (DK II 0x45F030, 0x45EDA0)
+            if (entity.isBadlyHurt()) {
+                entity.getStateMachine().changeState(FLEE);
+                return;
+            }
+
             // A scared creature backs off from its target for a while (DK II 0x45F030)
             if (entity.isScared()) {
                 entity.getStateMachine().changeState(BACK_OFF);
@@ -1017,6 +1023,35 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void exit(ICreatureController entity) {
             entity.resetFollowTarget();
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, HEART_CALL {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.unassingCurrentTask();
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Called by its Dungeon Heart it walks to where the enemy was seen, and fights what it
+            // meets on the way (DK II 0x4D9690)
+            if (entity.shouldFleeOrAttack()) {
+                return;
+            }
+            if (entity.isStopped()) {
+                entity.getStateMachine().changeState(IDLE);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
         }
 
         @Override

@@ -528,14 +528,9 @@ public final class ShotsController implements IShotsController {
         ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
         Shot shot = kwdFile.getShotById(flight.shotId);
 
-        // The shot's data 1 is its damage. An invulnerable creature takes none
-        // and isn't set alight either (0x4AC420)
-        if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0
-                && entityData.getComponent(thing, Invulnerable.class) == null) {
-            if (shot.getAttackCategory() == Shot.AttackCategory.FIRE) {
-                setAlight(thing);
-            }
-            EntityController.setDamage(entityData, thing, flight.shotData1);
+        // A shot that hits things does its damage to the thing it hits (0x4ABD60)
+        if (shot.getDamageType() == Shot.DamageType.HIT_THING) {
+            dealDamage(shotEntity, thing);
         }
 
         // Only a shot made to does its process on a hit. An instant shot's process is its move onto its target, on
@@ -569,6 +564,27 @@ public final class ShotsController implements IShotsController {
 
         process(new ShotRequest(kwdFile.getShotById(flight.shotId), flight.shotData1, flight.shotData2, flight.ownerId,
                 EntityController.getPosition(entityData, shotEntity), null, flight.shooter));
+    }
+
+    @Override
+    public void dealDamage(EntityId shotEntity, EntityId thing) {
+        ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
+        Shot shot = kwdFile.getShotById(flight.shotId);
+
+        // The shot's data 1 is its damage (0x4AC420), which a door of the shot's own side doesn't take. An
+        // invulnerable creature takes none and isn't set alight either
+        if (flight.shotData1 > 0 && !isOwnDoor(thing, flight.ownerId)
+                && entityData.getComponent(thing, Invulnerable.class) == null) {
+            if (shot.getAttackCategory() == Shot.AttackCategory.FIRE) {
+                setAlight(thing);
+            }
+            EntityController.setDamage(entityData, thing, flight.shotData1);
+        }
+    }
+
+    private boolean isOwnDoor(EntityId thing, short ownerId) {
+        Owner owner = entityData.getComponent(thing, Owner.class);
+        return owner != null && owner.ownerId == ownerId && entityData.getComponent(thing, DoorComponent.class) != null;
     }
 
     /**

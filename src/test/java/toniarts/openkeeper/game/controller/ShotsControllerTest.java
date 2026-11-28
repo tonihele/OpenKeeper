@@ -401,6 +401,18 @@ class ShotsControllerTest {
     }
 
     @Test
+    void shotDoesNotDamageADoorOfItsOwnSide() {
+        EntityId ownDoor = createThing(PLAYER_ID, new DoorComponent(DOOR_ID, false, false));
+        EntityId enemyDoor = createThing(ENEMY_ID, new DoorComponent(DOOR_ID, false, false));
+
+        hitWithFireball(ownDoor);
+        hitWithFireball(enemyDoor);
+
+        assertNull(entityData.getComponent(ownDoor, Damage.class));
+        assertEquals(50, entityData.getComponent(enemyDoor, Damage.class).damage);
+    }
+
+    @Test
     void fireballHitDoesAnInvulnerableCreatureNoHarm() {
         EntityId target = createCreature();
         entityData.setComponent(target, new Invulnerable(30));
