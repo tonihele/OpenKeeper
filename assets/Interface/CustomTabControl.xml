@@ -2,11 +2,11 @@
 <nifty-controls xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
     <controlDefinition controller="toniarts.openkeeper.gui.nifty.CustomTabGroupControl" name="customTabGroup"
                        childRootId="#tab-content-panel" style="nifty-tabs">
-        <panel id="#tabs-panel" childLayout="vertical">
-            <panel valign="center" childLayout="horizontal" id="#tab-button-panel">
+        <panel id="#tabs-panel" childLayout="vertical" width="100%" height="100%">
+            <panel valign="center" childLayout="horizontal" id="#tab-button-panel" height="64px">
                 <control id="#button-template" name="buttonImage" style="nifty-tab-button-active" />
             </panel>
-            <panel valign="center" childLayout="center" id="#tab-content-panel" />
+            <panel childLayout="absolute-inside" id="#tab-content-panel" width="100%" height="*" />
         </panel>
     </controlDefinition>
 
@@ -17,14 +17,17 @@
 
     <controlDefinition style="nifty-button" name="buttonImage" controller="de.lessvoid.nifty.controls.button.ButtonControl"
                        inputMapping="de.lessvoid.nifty.input.mapping.MenuInputMapping">
-        <image valign="center" filename="$image">
-            <image id="#selector" valign="center" filename="$active" />
+        <image valign="center" filename="$image" width="64px" height="64px">
+            <image id="#selector" valign="center" filename="$active" width="64px" height="64px" />
+            <image id="#pin" valign="center" filename="Textures/GUI/Icons/tab-lock.png"
+                   width="64px" height="64px" visible="false" visibleToMouse="false" />
             <interact onClick="onClick()" />
             <text id="#text" style="#text" text="" />
             <effect>
                 <onHover name="hint" hintText="$hintText" hintDelay="200" />
-                <onHover name="simpleHint" hintText="$tooltip" targetElement="tooltip" />
-                <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                <onHover name="simpleHintEx" hintText="$tooltip" targetElement="tooltip" />
+                <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
+                <onCustom customKey="flash" name="imageOverlayPulsate" pulsateType="rectangle" period="500" filename="Textures/GUI/Icons/hilight.png" post="true" neverStopRendering="true" timeType="infinite" />
             </effect>
         </image>
     </controlDefinition>

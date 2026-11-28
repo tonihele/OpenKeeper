@@ -124,6 +124,15 @@ public interface Task {
     boolean isFaceTarget();
 
     /**
+     * The tile the creature turns to when it faces the task
+     *
+     * @return the tile, by default the task location
+     */
+    default Point getFaceLocation() {
+        return getTaskLocation();
+    }
+
+    /**
      * Where exactly the creature stands to do the task. If it differs from the
      * target, the navigation ends here instead of in the middle of the target
      * tile.
@@ -133,6 +142,18 @@ public interface Task {
      */
     default Vector2f getWorkPosition(ICreatureController creature) {
         return getTarget(creature);
+    }
+
+    /**
+     * Sends the creature on to another spot once it has worked here long
+     * enough, like DK II does in some rooms
+     *
+     * @param creature the working creature
+     * @param executionDuration how long the creature has worked here
+     * @return true if the creature was given another task
+     */
+    default boolean moveToOtherSpot(ICreatureController creature, float executionDuration) {
+        return false;
     }
 
     /**

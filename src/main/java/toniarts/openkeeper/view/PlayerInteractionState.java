@@ -70,6 +70,7 @@ import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerScreenController;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.gui.nifty.MapHoverHint;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -159,6 +160,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private final Set<Integer> keys = new HashSet<>();
     private IEntityViewControl interactiveControl;
     private Label tooltip;
+    private MapHoverHint fogHint;
     private KeeperHandState keeperHandState;
     private PlayerEntityViewState playerEntityViewState;
 
@@ -192,6 +194,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         PlayerScreenController psc = this.stateManager.getState(PlayerState.class).getScreen();
         this.view = psc.getGuiConstraint();
         this.tooltip = psc.getTooltip();
+        fogHint = new MapHoverHint(view, Utils.getMainTextResourceBundle().getString("348"));
 
         // Init the keeper hand
         keeperHandState = new InteractionKeeperHandState();
@@ -214,6 +217,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     @Override
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
+        if (!enabled && fogHint != null) {
+            fogHint.clear();
+        }
 
         if (enabled && !inputListenerAdded) {
             app.getInputManager().addRawInputListener(inputListener);
@@ -234,6 +240,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     @Override
     public void cleanup() {
+        fogHint.clear();
         playerEntityViewState = null;
         this.stateManager.detach(keeperHandState);
         keeperHandState = null;
@@ -273,7 +280,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         selectionHandler.update(mousePosition);
         cursorIcon.update(mousePosition, interactionState.getType(), isOnMap && !isOnGui,
                 selectionHandler.getSelectionColor() != SelectionHandler.ColorIndicator.RED, cursorPrice);
-        if (isOnMap && !isOnGui && !isTaggable) {
+        if (isOnMap && !isOnGui && !isTaggable && !isPointedTileUnexplored()) {
             updateInteractiveObjectOnCursor();
         }
         updateCursorLight();
@@ -296,6 +303,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             updateStateFlags();
             timeFromLastUpdate = 0;
         }
+        fogHint.update(isPointedTileUnexplored(), tpf);
     }
 
     @Override
@@ -389,7 +397,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     }
 
     private boolean isInteractable() {
-        if (isOnGui || !isOnMap || isTaggable) {
+        if (isOnGui || !isOnMap || isTaggable || isPointedTileUnexplored()) {
             setInteractiveControl(null);
         }
 
@@ -421,6 +429,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         return interactiveControl != null
                 && (interactiveControl.isPickable(player.getPlayerId())
                 || interactiveControl.isInteractable(player.getPlayerId()));
+    }
+
+    private boolean isPointedTileUnexplored() {
+        if (isOnGui || !isOnMap) {
+            return false;
+        }
+        IFogOfWarInformation fog = gameClientState.getFogOfWarInformation();
+        Point p = selectionHandler.getPointedTileIndex();
+        return fog != null && mapInformation.getMapData().getTile(p) != null && !fog.isExplored(p);
     }
 
     private String getTileTooltip(Point p) {
@@ -499,17 +516,29 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         // See the results so we see what is going on
         Node object;
+        IEntityViewControl hit = null;
         for (int i = 0; i < results.size(); i++) {
 
             // TODO: Now just creature control, but all interaction objects
             object = results.getCollision(i).getGeometry().getParent().getParent();
             IEntityViewControl control = object.getControl(IEntityViewControl.class);
             if (control != null) {
-                setInteractiveControl(control);
-                return;
+
+                // A victim hanging on a wheel is hard to hit, its torture device gives it to the hand too
+                IEntityViewControl victim = playerEntityViewState.getTortureVictimOn(object);
+                hit = victim != null ? victim : control;
+                break;
             }
         }
-        setInteractiveControl(null);
+
+        // And so does the tile of the device, the cursor anywhere on it picks the victim
+        if (!(hit instanceof CreatureViewControl)) {
+            IEntityViewControl victim = playerEntityViewState.getTortureVictimOn(selectionHandler.getPointedTileIndex());
+            if (victim != null) {
+                hit = victim;
+            }
+        }
+        setInteractiveControl(hit);
     }
 
     private void setInteractiveControl(IEntityViewControl interactiveControl) {
@@ -692,6 +721,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
             timeFromLastUpdate = 0;
             updateStateFlags();
+            fogHint.update(isPointedTileUnexplored(), 0f);
             //updateCursor();
         }
 
@@ -810,7 +840,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 IEntityViewControl entityViewControl = keeperHandState.getItem();
                 if (entityViewControl != null) {
                     IMapTileInformation mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
-                    if (!isDropBlocked(entityViewControl, p)
+                    if (mapTile != null && !isDropBlocked(entityViewControl, p)
                             && entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
                         gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
 
