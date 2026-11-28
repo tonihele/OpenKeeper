@@ -466,9 +466,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 case PLAN -> {
 
                     // An invasion first, else a room
-                    boolean allRoomsPlaced = getNextRoom(playerController, ai, true) == null;
                     String nothingPlanned = null;
-                    if (!invasions.planInvasion(keeperAi, playerControllers, ai, creatureLevel, allRoomsPlaced, ticksPerSecond)) {
+                    if (!invasions.planInvasion(keeperAi, playerControllers, ai, creatureLevel, ticksPerSecond)) {
                         nothingPlanned = planRoom(keeperAi, playerController, ai);
                     }
                     if (keeperAi.task == KeeperAi.Task.PLAN) {
@@ -478,7 +477,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                     // Why it does nothing, when it starts to and then once a minute
                     if (keeperAi.task == KeeperAi.Task.PLAN && nothingPlanned != null
                             && keeperAi.taskTicks % (NOTHING_TO_DO_LOG_SECONDS * ticksPerSecond) == 1) {
-                        log(keeperAi, "nothing to do", null, (allRoomsPlaced ? "no room left to build, " : "") + nothingPlanned
+                        log(keeperAi, "nothing to do", null, (keeperAi.allRoomsBuilt ? "no room left to build, " : "") + nothingPlanned
                                 + ", " + playerController.getKeeper().getGold() + " gold, "
                                 + (keeperAi.callToArms ? "its Call to Arms is up"
                                         : keeperAi.cannotAttackTicks > 0 ? keeperAi.cannotAttackTicks / ticksPerSecond + " s before it may attack again"
@@ -934,6 +933,9 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             keeperAi.wantedRoomId = wanted != null ? wanted.getRoomId()
                     : getNextRoom(playerController, ai, false) != null ? ROOM_NOT_RESEARCHED : ROOM_PORTAL;
             keeperAi.roomWanted = true;
+
+            // With no room left to build or research DK II sets its all rooms built bit for good (0x4F93B0)
+            keeperAi.allRoomsBuilt |= keeperAi.wantedRoomId == ROOM_PORTAL;
         }
         short roomId = keeperAi.wantedRoomId;
         boolean expand = keeperAi.wantedRoomExpand;
@@ -1444,7 +1446,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * on, with no bridge to cross with or no way round rock, has its target
      * left alone for a while. Given up or not, DK II (0x4FDC50) goes on to
      * the task the path was for, so the room site or the gold is still
-     * tagged: the imps may get there another way
+     * tagged: the imps may get there another way. The enemy of the last
+     * tunnel stays the invasion target
      *
      * @param reached whether the path got through, a rock follow that gave
      * up is still on when the stepper finds no way
@@ -1453,7 +1456,6 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         if (!reached) {
             leaveTargetAlone(keeperAi, reason);
         }
-        keeperAi.invasionTargetId = 0;
         keeperAi.wallFollowing = false;
         setTask(keeperAi, keeperAi.nextTask, reason);
         keeperAi.nextTask = KeeperAi.Task.FINISH;

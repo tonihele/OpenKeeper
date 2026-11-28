@@ -280,6 +280,18 @@ public final class AiFixtures {
     }
 
     /**
+     * Has the computer player invade only once it has no room left to build
+     * or research
+     *
+     * @param ai the computer player settings
+     * @return the same settings
+     */
+    public static AI withAllRoomsBeforeInvading(AI ai) {
+        ai.setRequireAllRoomTypesPlaced(true);
+        return ai;
+    }
+
+    /**
      * Sets when the computer player casts Call to Arms and lifts it again
      *
      * @param ai the computer player settings
