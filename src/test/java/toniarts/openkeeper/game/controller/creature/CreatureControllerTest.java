@@ -1066,6 +1066,7 @@ class CreatureControllerTest {
             });
             INavigationService navigation = proxy(INavigationService.class, (method, args) -> switch (method) {
                 case "findPath" -> new DefaultGraphPath<>();
+                case "isReachable" -> true;
                 default -> throw new UnsupportedOperationException(method);
             });
             IObjectsController objects = proxy(IObjectsController.class, (method, args) -> switch (method) {
