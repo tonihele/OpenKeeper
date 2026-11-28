@@ -25,6 +25,8 @@ public enum GameEventType {
     // Creatures, the subject is the creature type
     CREATURE_LEVEL_UP,
     CREATURE_LAND,
+    CREATURE_TELEPORT_OUT,
+    CREATURE_TELEPORT_IN,
     /**
      * A creature turned on its keeper, only that keeper gets this
      */

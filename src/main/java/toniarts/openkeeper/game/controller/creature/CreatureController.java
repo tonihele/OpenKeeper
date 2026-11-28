@@ -78,8 +78,11 @@ import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.ReturnToHeroLair;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.SpeedBlur;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.Teleport;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Turncoat;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -206,6 +209,19 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private static final int HERO_IDLE_TICKS = 12;
 
+    /**
+     * An Imp teleports to a job more than this many tiles away on either axis
+     */
+    private static final int IMP_TELEPORT_DISTANCE = 2;
+    private static final int IMP_TELEPORT_OUT_EFFECT = 321;
+    private static final int IMP_TELEPORT_IN_EFFECT = 322;
+    private static final int TELEPORT_OUT_TICKS = 4;
+    private static final int TELEPORT_IN_TICKS = 2;
+    /**
+     * The jobs that take something somewhere, an Imp walks these (0x4651A0)
+     */
+    private static final Set<TaskType> CARRY_TASKS = EnumSet.of(TaskType.CARRY_CREATURE_TO_LAIR, TaskType.CARRY_CREATURE_TO_JAIL,
+            TaskType.CARRY_OBJECT_TO_STORAGE, TaskType.CARRY_CORPSE_TO_GRAVEYARD, TaskType.DELIVER_TRAP_CRATE, TaskType.DELIVER_DOOR_CRATE);
     /**
      * Every creature's work modifier, which the attack recharges are divided
      * by. DK II starts it at 0.8 (0x4872A0) and the creature data of the
@@ -855,6 +871,8 @@ public final class CreatureController extends EntityController implements ICreat
         }
         Task assignedTask = getAssignedTask();
         if (assignedTask != null) {
+            castImpHaste();
+
             Vector2f loc = assignedTask.getTarget(this);
             Vector2f workPosition = assignedTask.getWorkPosition(this);
             if (workPosition != null && workPosition.equals(loc)) {
@@ -867,9 +885,106 @@ public final class CreatureController extends EntityController implements ICreat
                 //workNavigationRequired = false;
 
                 Point destination = WorldUtils.vectorToPoint(loc);
-                createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getFaceLocation() : null, workPosition);
+                if (!teleport(assignedTask.getTaskType(), destination, workPosition != null ? workPosition : loc)) {
+                    createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getFaceLocation() : null, workPosition);
+                }
             }
         }
+    }
+
+    /**
+     * An Imp setting off to a job speeds itself up with its own speed spell
+     * whenever the spell is recharged, without a cast (0x4651A0). The spell
+     * does what its shot does, so a speed change that is still running is left
+     * as it is, but the spell recharges all the same. A speed-up shows the
+     * speed blur for as many game ticks as the spell's first value, the
+     * percentage
+     */
+    private void castImpHaste() {
+        EntityId spellEntity = getRechargedSpell(CreatureSpellFlag.IMP_HASTE);
+        if (spellEntity != null) {
+            CreatureSpell spell = entityData.getComponent(spellEntity, CreatureSpell.class);
+            toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId);
+            entityData.setComponent(spellEntity, new CreatureSpell(spell, gameTimer.getGameTime()));
+            shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(),
+                    getPosition(), entityId, entityId);
+            if (creatureSpell.getShotData1() > 100) {
+                entityData.setComponent(entityId, new SpeedBlur(gameTimer.getGameTime()
+                        + creatureSpell.getShotData1() / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()));
+            }
+        }
+    }
+
+    /**
+     * An Imp with its teleport spell recharged jumps to a job more than 2 tiles
+     * away on either axis instead of walking there, if it can walk there. Not
+     * when it takes something somewhere, but gold to the Treasury is no such
+     * trip (0x4651A0). The spell has no shot and costs no mana
+     *
+     * @param taskType the job
+     * @param destination the tile the Imp would walk to
+     * @param target the spot it lands on, the one it would walk to
+     * @return true if the Imp teleports
+     */
+    private boolean teleport(TaskType taskType, Point destination, Vector2f target) {
+        Point location = getCreatureCoordinates();
+        if (CARRY_TASKS.contains(taskType)
+                || (Math.abs(destination.x - location.x) <= IMP_TELEPORT_DISTANCE && Math.abs(destination.y - location.y) <= IMP_TELEPORT_DISTANCE)) {
+            return false;
+        }
+        EntityId spellEntity = getRechargedSpell(CreatureSpellFlag.IMP_TELEPORT);
+        if (spellEntity == null || navigationService.findPath(location, destination, this) == null) {
+            return false;
+        }
+
+        double now = gameTimer.getGameTime();
+        Position position = entityData.getComponent(entityId, Position.class);
+        entityData.setComponent(spellEntity, new CreatureSpell(entityData.getComponent(spellEntity, CreatureSpell.class), now));
+        entityData.removeComponent(entityId, Navigation.class);
+        entityData.setComponent(entityId, new Teleport(now, new Vector3f(target.x, position.position.y, target.y)));
+        gameEventService.emitEffect(IMP_TELEPORT_OUT_EFFECT, position.position, position.rotation);
+        gameEventService.emit(GameEventType.CREATURE_TELEPORT_OUT, ThingFlag.CREATURE, creature.getCreatureId(), position.position);
+        return true;
+    }
+
+    /**
+     * The Imp jumps out, then lands on the job and jumps in. Each half lasts as
+     * long as the jump animation, but at least 4 ticks out and 2 ticks in
+     * (0x499B80 and 0x499BE0)
+     */
+    private void continueTeleport(Teleport teleport) {
+        double now = gameTimer.getGameTime();
+        int ticks = teleport.destination != null ? TELEPORT_OUT_TICKS : TELEPORT_IN_TICKS;
+        if (now - teleport.startTime < Math.max(ticks / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec(),
+                getAnimationTime(creature, Creature.AnimationType.SPECIAL_1))) {
+            return;
+        }
+        if (teleport.destination == null) {
+            entityData.removeComponent(entityId, Teleport.class);
+            return;
+        }
+
+        Position position = entityData.getComponent(entityId, Position.class);
+        entityData.setComponents(entityId, new Position(position.rotation, teleport.destination), new Teleport(now, null));
+        gameEventService.emitEffect(IMP_TELEPORT_IN_EFFECT, teleport.destination, position.rotation);
+        gameEventService.emit(GameEventType.CREATURE_TELEPORT_IN, ThingFlag.CREATURE, creature.getCreatureId(), teleport.destination);
+    }
+
+    /**
+     * @param flag the flag of the spell
+     * @return our spell with the flag if it is recharged, null if there is none
+     */
+    private EntityId getRechargedSpell(CreatureSpellFlag flag) {
+        CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+        if (creatureSpells != null) {
+            for (EntityId spellEntity : creatureSpells.creatureSpells) {
+                CreatureSpell spell = entityData.getComponent(spellEntity, CreatureSpell.class);
+                if (levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId).getFlags().contains(flag) && isAttackRecharged(spell)) {
+                    return spellEntity;
+                }
+            }
+        }
+        return null;
     }
 
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
@@ -1705,8 +1820,10 @@ public final class CreatureController extends EntityController implements ICreat
                 isFighting(entity) && entityData.getComponent(entity, Invulnerable.class) == null;
             case INVISIBLE ->
                 isFighting(entity) && !isInvisible(entity);
+            case HASTE ->
+                entityData.getComponent(entity, SpeedChange.class) == null;
             default ->
-                false; // TODO: haste has no effect yet
+                false;
         };
     }
 
@@ -2308,10 +2425,21 @@ public final class CreatureController extends EntityController implements ICreat
         if (invisible != null && invisible.endTime <= gameTimer.getGameTime()) {
             entityData.removeComponent(entityId, Invisible.class);
         }
+        SpeedBlur speedBlur = entityData.getComponent(entityId, SpeedBlur.class);
+        if (speedBlur != null && speedBlur.endTime <= gameTimer.getGameTime()) {
+            entityData.removeComponent(entityId, SpeedBlur.class);
+        }
 
         // A manual drop can already carry its target in AI, but no state may
         // enter or advance until the fall system has finished landing.
         if (entityData.getComponent(entityId, CreatureFall.class) != null) {
+            return;
+        }
+
+        // A teleporting Imp does nothing else until it has landed (states 51 and 52)
+        Teleport teleport = entityData.getComponent(entityId, Teleport.class);
+        if (teleport != null) {
+            continueTeleport(teleport);
             return;
         }
 
