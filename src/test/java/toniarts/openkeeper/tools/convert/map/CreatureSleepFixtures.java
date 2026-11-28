@@ -62,15 +62,6 @@ public final class CreatureSleepFixtures {
         creature.setAnimation(animation, swing);
     }
 
-    public static Creature worker() {
-        Creature creature = sleeper(0);
-        creature.setCreatureId((short) 1);
-        creature.setName("Imp");
-        creature.setFightStyle(Creature.FightStyle.NON_FIGHTER);
-        creature.setFlags(EnumSet.of(Creature.CreatureFlag.IS_WORKER, Creature.CreatureFlag.ALWAYS_FLEE));
-        return creature;
-    }
-
     /**
      * A worker whose animation for its work, eating for claiming and sleeping
      * for reinforcing in DK II, has the given frames
@@ -83,6 +74,15 @@ public final class CreatureSleepFixtures {
         Creature creature = new Creature();
         creature.setName("Imp");
         creature.setAnimation(animation, work);
+        return creature;
+    }
+
+    public static Creature worker() {
+        Creature creature = sleeper(0);
+        creature.setCreatureId((short) 1);
+        creature.setName("Imp");
+        creature.setFightStyle(Creature.FightStyle.NON_FIGHTER);
+        creature.setFlags(EnumSet.of(Creature.CreatureFlag.IS_WORKER, Creature.CreatureFlag.ALWAYS_FLEE));
         return creature;
     }
 
