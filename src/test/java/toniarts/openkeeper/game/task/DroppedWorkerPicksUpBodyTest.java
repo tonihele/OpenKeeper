@@ -189,7 +189,7 @@ class DroppedWorkerPicksUpBodyTest {
             default -> NO_ANSWER;
         });
         INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
-            case "isAccessible" -> true;
+            case "isAccessible", "isReachable" -> true;
             case "findPath" -> new DefaultGraphPath<>();
             default -> NO_ANSWER;
         });
