@@ -89,7 +89,8 @@ class RoomTaskSharingTest {
             default ->
                 null;
         });
-        INavigationService navigationService = proxy(INavigationService.class, (proxy, method, args) -> new DefaultGraphPath<>());
+        INavigationService navigationService = proxy(INavigationService.class,
+                (proxy, method, args) -> "isReachable".equals(method.getName()) ? true : new DefaultGraphPath<>());
 
         IGameWorldController gameWorldController = proxy(IGameWorldController.class, (proxy, method, args) -> null);
 

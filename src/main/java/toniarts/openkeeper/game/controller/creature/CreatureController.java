@@ -815,9 +815,20 @@ public final class CreatureController extends EntityController implements ICreat
         }
     }
 
+    /**
+     * Whether a worker counts as full. As in DK II (0x464360), that is the
+     * level's margin short of the gold it can carry, so an Imp takes its gold
+     * home once it holds 1060 of its 1400, after the fourth swing at a seam
+     *
+     * @return true if a worker should take its gold home
+     */
     @Override
     public boolean isTooMuchGold() {
-        return getGold() >= getMaxGold() && isWorker();
+        return getGold() >= getFullGold() && isWorker();
+    }
+
+    private int getFullGold() {
+        return getMaxGold() - (int) gameSettings.get(Variable.MiscVariable.MiscType.WORKER_FULL_GOLD_MARGIN).getValue();
     }
 
     @Override
@@ -1267,7 +1278,7 @@ public final class CreatureController extends EntityController implements ICreat
     private Point getHeartAttackTile(EntityId heart) {
         Point ourPosition = getCreatureCoordinates();
         return DungeonHeartTarget.getAttackTile(ourPosition, getHeartTile(heart), getMeleeRange(),
-                tile -> tile.equals(ourPosition) || isWalkable(tile) && navigationService.findPath(ourPosition, tile, this) != null);
+                tile -> tile.equals(ourPosition) || isWalkable(tile) && navigationService.isReachable(ourPosition, tile, this));
     }
 
     /**
@@ -1346,7 +1357,7 @@ public final class CreatureController extends EntityController implements ICreat
         Point ourPos = WorldUtils.vectorToPoint(getPosition());
         Point theirPos = WorldUtils.vectorToPoint(getPosition(entityData, entity));
 
-        return ourPos.equals(theirPos) || navigationService.findPath(ourPos, theirPos, this) != null;
+        return navigationService.isReachable(ourPos, theirPos, this);
     }
 
     /**
@@ -2004,7 +2015,7 @@ public final class CreatureController extends EntityController implements ICreat
         if (bannerPosition == null) {
             return false;
         }
-        Point destination = WorldUtils.vectorToPoint(bannerPosition.position);
+        Point destination = getCallToArmsTile(WorldUtils.vectorToPoint(bannerPosition.position));
         GraphPath<IMapTileInformation> path = navigationService.findPath(getCreatureCoordinates(), destination, this);
         if (path == null) {
             return false;
@@ -2036,7 +2047,7 @@ public final class CreatureController extends EntityController implements ICreat
         Point banner = WorldUtils.vectorToPoint(bannerPosition.position);
         Point ourPosition = getCreatureCoordinates();
         if (Math.max(Math.abs(ourPosition.x - banner.x), Math.abs(ourPosition.y - banner.y)) > 2) {
-            if (createNavigation(ourPosition, banner, null)) {
+            if (createNavigation(ourPosition, getCallToArmsTile(banner), null)) {
                 gameEventService.emitToPlayer(GameEventType.CALL_TO_ARMS_UNREACHABLE, getOwnerId());
                 return false;
             }
@@ -2044,6 +2055,18 @@ public final class CreatureController extends EntityController implements ICreat
             navigateToRandomPointAroundTarget(followTarget.entityId, 2);
         }
         return true;
+    }
+
+    /**
+     * The tile to make for at a Call to Arms banner: its own, or the nearest
+     * tile of its room a creature can stand on. In DK II the middle of the
+     * Dungeon Heart, where the computer player puts its flag, can be walked
+     * on
+     */
+    private Point getCallToArmsTile(Point banner) {
+        IRoomController room = mapController.getRoomControllerByCoordinates(banner);
+        Point tile = room != null ? room.getAccessibleTile(banner) : null;
+        return tile != null ? tile : banner;
     }
 
     /**
@@ -2167,7 +2190,7 @@ public final class CreatureController extends EntityController implements ICreat
         Point ourLocation = getCreatureCoordinates();
         FleeDestinationFinder finder = new FleeDestinationFinder(mapController.getMapData().getWidth(),
                 mapController.getMapData().getHeight(),
-                (x, y) -> navigationService.findPath(ourLocation, new Point(x, y), this) != null,
+                (x, y) -> navigationService.isReachable(ourLocation, new Point(x, y), this),
                 (x, y) -> mapController.getMapData().getTile(x, y).getOwnerId() == getOwnerId() && !mapController.isSolid(new Point(x, y)),
                 ThreadLocalRandom.current());
         finder.findAwayFrom(ourLocation, threat, FLEE_DISTANCE)
@@ -2367,6 +2390,10 @@ public final class CreatureController extends EntityController implements ICreat
                     || room.hasObjectControl(AbstractRoomController.ObjectType.GAMBLER))) {
                 return;
             }
+        } else if (gold.gold >= getFullGold()) {
+
+            // A keeper's worker that counts as full picks up no more (0x488930)
+            return;
         }
         EntityId pile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, tile);
         if (pile != null) {

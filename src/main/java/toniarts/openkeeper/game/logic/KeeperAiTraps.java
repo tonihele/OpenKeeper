@@ -133,7 +133,7 @@ final class KeeperAiTraps {
         int maxY = 0;
         for (Set<IRoomController> rooms : playerController.getRoomControl().getRoomControllers().values()) {
             for (IRoomController room : rooms) {
-                Point centre = room.getRoomInstance().getCenter();
+                Point centre = room.getRoomInstance().getReferenceTile();
                 minX = Math.min(minX, centre.x);
                 minY = Math.min(minY, centre.y);
                 maxX = Math.max(maxX, centre.x);

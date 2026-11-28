@@ -71,7 +71,6 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
-import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -362,7 +361,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private void setTortureWheelSpin(Spatial object, boolean spinning, boolean victim) {
         TortureWheelSpinControl control = object.getControl(TortureWheelSpinControl.class);
         if (spinning && control == null) {
-            float ticksPerSecond = kwdFile.getVariables().get(Variable.MiscVariable.MiscType.GAME_TICKS).getValue();
+            float ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
             object.addControl(victim
                     ? new TortureWheelSpinControl(timer::getTimeInSeconds, ticksPerSecond,
                             () -> findObjectOnTile(object, o -> o.getCurrentState().state == GameObject.State.TORTURE_WHEEL_SPIN),
