@@ -31,7 +31,13 @@ import com.jme3.scene.control.AbstractControl;
  */
 public class EffectGeometry extends Geometry {
     private EffectMesh particleMesh;
-    private int frameIndex = 0;
+    // Sprite resources have no FPS field. Their normalized phase advances on
+    // the 20 Hz effect clock, using integer steps through one full cycle.
+    private static final int PHASE_SCALE = 1 << 12;
+    private static final int TICKS_PER_SECOND = 20;
+    private int phase;
+    private double tickRemainder;
+    private boolean looping = true;
     private ColorRGBA color;
     private int frames = 1;
 
@@ -40,12 +46,19 @@ public class EffectGeometry extends Geometry {
         @Override
         protected void controlUpdate(float tpf) {
 
-            particleMesh.update(frameIndex);
-
-            if (frames > 1) {
-                frameIndex++;
-                if (frameIndex >= frames) {
-                    frameIndex = 0;
+            if (frames > 1 && tpf > 0 && Float.isFinite(tpf)) {
+                tickRemainder += (double) tpf * TICKS_PER_SECOND;
+                // Absorb float tpf rounding at an exact effect-tick boundary.
+                double ticks = Math.floor(tickRemainder + 0.000001);
+                if (ticks > 0) {
+                    tickRemainder = Math.max(0, tickRemainder - ticks);
+                    int step = Math.max(1, PHASE_SCALE / frames);
+                    if (looping) {
+                        phase = (int) ((phase + (ticks % PHASE_SCALE) * step) % PHASE_SCALE);
+                    } else {
+                        phase = (int) Math.min(PHASE_SCALE, phase + ticks * step);
+                    }
+                    updateFrame();
                 }
             }
         }
@@ -85,7 +98,9 @@ public class EffectGeometry extends Geometry {
 
     public void setSelectRandomImage(boolean value) {
         if (value) {
-            frameIndex = FastMath.nextRandomInt(0, frames);
+            phase = FastMath.nextRandomInt(0, frames - 1) * Math.max(1, PHASE_SCALE / frames);
+            tickRemainder = 0;
+            updateFrame();
         }
     }
 
@@ -102,7 +117,6 @@ public class EffectGeometry extends Geometry {
      *
      * @return the number of images along the X axis (width).
      *
-     * @see PG#setFrames(int)
      */
     public int getFrames() {
         return frames;
@@ -117,8 +131,21 @@ public class EffectGeometry extends Geometry {
      * @param frames the number of images along the X axis (width).
      */
     public void setFrames(int frames) {
-        this.frames = frames;
+        this.frames = Math.max(1, frames);
+        phase = 0;
+        tickRemainder = 0;
         particleMesh.setFrames(this.frames);
+        updateFrame();
+    }
+
+    /** Keep a one-shot sprite on its final frame until its effect expires. */
+    public void setLooping(boolean looping) {
+        this.looping = looping;
+    }
+
+    private void updateFrame() {
+        int frame = Math.min(frames - 1, (int) ((long) phase * frames / PHASE_SCALE));
+        particleMesh.update(frame);
     }
 
     @Override

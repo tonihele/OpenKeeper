@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.sound.FootstepSounds;
 import toniarts.openkeeper.game.sound.ThingSounds;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
@@ -343,6 +344,7 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
         // Update audio listener position
         app.getListener().setLocation(app.getCamera().getLocation());
         app.getListener().setRotation(app.getCamera().getRotation());
+        SoundManager.setListener(WorldUtils.vectorToPoint(app.getCamera().getLocation()));
     }
 
     /**

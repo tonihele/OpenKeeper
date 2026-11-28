@@ -140,8 +140,7 @@ public final class CustomTabControl extends AbstractController implements Tab, T
     @Override
     public boolean isVisible() {
         if (parentGroup != null) {
-            Tab selectedTab = parentGroup.getSelectedTab();
-            return selectedTab != null && selectedTab.equals(this);
+            return parentGroup.isTabVisible(this);
         }
         return false;
     }
