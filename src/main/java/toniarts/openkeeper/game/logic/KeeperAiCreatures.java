@@ -36,9 +36,11 @@ import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.KeeperAi;
 import toniarts.openkeeper.game.component.KeeperAiMood;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -528,7 +530,9 @@ final class KeeperAiCreatures {
     /**
      * Slaps its idle creatures, each one with more than half its health and
      * not still quick from a slap has one chance in a hundred. Each slap
-     * takes an action.
+     * takes an action. Quick means its speed is still changed, for the 100
+     * seconds of DK II's speed timer (creature +0x459, 0x48B8A0), not only
+     * the minute of the faster work.
      *
      * @param keeperAi the computer player
      * @param actions the actions it has left
@@ -541,7 +545,8 @@ final class KeeperAiCreatures {
             }
             Health health = creature.get(Health.class);
             if (isIdle(creature) && health.health > health.maxHealth * SLAP_HEALTH_PERCENTAGE / 100
-                    && entityData.getComponent(creature.getId(), Slapped.class) == null && Utils.getRandom().nextInt(SLAP_CHANCE) == 0) {
+                    && entityData.getComponent(creature.getId(), Slapped.class) == null
+                    && entityData.getComponent(creature.getId(), SpeedChange.class) == null && Utils.getRandom().nextInt(SLAP_CHANCE) == 0) {
                 decisionLog.log(keeperAi, "slap creature " + creature.getId().getId(), null, "idle");
                 gameWorldController.interact(creature.getId(), keeperAi.playerId);
                 actions--;
@@ -670,12 +675,24 @@ final class KeeperAiCreatures {
     /**
      * A creature with nothing to do, status 5 of DK II (0x478A20). An
      * unhappy or angry creature has a status of its own there, so it is
-     * never idle. DK II also counts in some states OpenKeeper doesn't have,
-     * such as sulking, being hypnotised or reporting danger
+     * never idle. A creature that isn't a worker gets its status from the
+     * class of its state: standing idle (state 1) is status 5, walking about
+     * (states 86 and 87) is not, so it is idle only while it stands still. DK
+     * II also counts in some states OpenKeeper doesn't have, such as sulking,
+     * being hypnotised or reporting danger. A worker is idle while it wanders
+     * with nothing to do (imp state 12) and also while its job is to
+     * reinforce a wall (imp task 6)
      */
     private boolean isIdle(Entity creature) {
-        return creature.get(CreatureAi.class).getCreatureState() == CreatureState.IDLE
-                && getMoodState(creature, entityData.getComponent(creature.getId(), CreatureMood.class)) == 0;
+        Creature type = kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId);
+        boolean idle = creature.get(CreatureAi.class).getCreatureState() == CreatureState.IDLE;
+        if (type.getFlags().contains(Creature.CreatureFlag.IS_WORKER)) {
+            TaskComponent task = entityData.getComponent(creature.getId(), TaskComponent.class);
+            idle |= task != null && task.taskType == TaskType.CLAIM_WALL;
+        } else {
+            idle &= entityData.getComponent(creature.getId(), Navigation.class) == null;
+        }
+        return idle && getMoodState(creature, entityData.getComponent(creature.getId(), CreatureMood.class)) == 0;
     }
 
     /**

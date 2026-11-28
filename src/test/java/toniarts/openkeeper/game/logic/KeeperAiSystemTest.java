@@ -63,11 +63,13 @@ import toniarts.openkeeper.game.component.KeeperAiDropped;
 import toniarts.openkeeper.game.component.KeeperAiEnemy;
 import toniarts.openkeeper.game.component.KeeperAiMood;
 import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Threat;
@@ -113,6 +115,7 @@ import static toniarts.openkeeper.tools.convert.map.AiFixtures.withCallToArms;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withInvasion;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withMoodCare;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withNeutralRoomRange;
+import static toniarts.openkeeper.tools.convert.map.AiFixtures.withNoSlaps;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withPrisonerFate;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withSightOfEvil;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withMoreSpace;
@@ -176,6 +179,7 @@ class KeeperAiSystemTest {
     private static final short HERO_PORTAL = CreatureSpawnSystem.HERO_PORTAL_ROOM_ID;
     private static final short HORNY = 9;
     private static final short EATER = 8;
+    private static final short WORKER = 7;
     private static final short THUNDERBOLT = 6;
     private static final short HEAL = 10;
     private static final int ROOM_COST = 10;
@@ -1544,6 +1548,73 @@ class KeeperAiSystemTest {
             system.processTick(0.25f);
         }
         assertEquals(List.of(unhappy), slapped);
+    }
+
+    @Test
+    void slapsAnIdleCreatureOnlyWhileItStandsStill() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+        EntityId walking = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        entityData.setComponent(walking, new Navigation(new Point(8, 6), null, List.of()));
+        for (int tick = 0; tick < 2000; tick++) {
+            system.processTick(0.25f);
+        }
+        assertTrue(slapped.isEmpty());
+
+        // DK II's idle walk (states 86 and 87) isn't status 5, standing idle (state 1) is
+        entityData.removeComponent(walking, Navigation.class);
+        for (int tick = 0; tick < 2000 && slapped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+        assertEquals(List.of(walking), slapped);
+    }
+
+    @Test
+    void slapsAWorkerThatReinforcesAWallAsIdle() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+        EntityId digger = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.WORK);
+        EntityId reinforcer = createCreature(PLAYER_ID, new Point(8, 4), 100, 100, CreatureState.WORK);
+        CreatureComponent imp = new CreatureComponent();
+        imp.creatureId = WORKER;
+        imp.worker = true;
+        entityData.setComponent(digger, imp);
+        entityData.setComponent(reinforcer, new CreatureComponent(imp));
+        entityData.setComponent(digger, new TaskComponent(1, null, new Point(8, 2), TaskType.DIG_TILE, 0, true));
+        entityData.setComponent(reinforcer, new TaskComponent(2, null, new Point(9, 4), TaskType.CLAIM_WALL, 0, true));
+        for (int tick = 0; tick < 2000 && slapped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+
+        assertEquals(List.of(reinforcer), slapped);
+    }
+
+    @Test
+    void slapsNoCreatureWhileItsSpeedIsChanged() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+
+        // The faster work of a slap is over, the speed of it not yet
+        EntityId quick = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        entityData.setComponent(quick, new SpeedChange(100));
+        for (int tick = 0; tick < 2000; tick++) {
+            system.processTick(0.25f);
+        }
+        assertTrue(slapped.isEmpty());
+
+        entityData.removeComponent(quick, SpeedChange.class);
+        for (int tick = 0; tick < 2000 && slapped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+        assertEquals(List.of(quick), slapped);
+    }
+
+    @Test
+    void slapsNoCreatureWhenItsSettingsSaySo() {
+        KeeperAiSystem system = createSystem(withNoSlaps(ai(0, 0, 9, 1, 50, 0, List.of())), 1000);
+        createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        for (int tick = 0; tick < 2000; tick++) {
+            system.processTick(0.25f);
+        }
+
+        assertTrue(slapped.isEmpty());
     }
 
     @Test
@@ -2952,7 +3023,9 @@ class KeeperAiSystemTest {
             case "getKeeperSpells" -> List.of(createImp, heal, thunderbolt);
             case "getCreature" -> ((Number) args[0]).shortValue() == EATER ? creatureWithJobs(EATER, Creature.JobType.RESEARCH, Creature.JobType.EAT)
                     : ((Number) args[0]).shortValue() == HORNY
-                    ? CombatExperienceFixtures.creature(HORNY, Creature.CreatureFlag.IS_HORNY) : CombatExperienceFixtures.creature((short) 0);
+                    ? CombatExperienceFixtures.creature(HORNY, Creature.CreatureFlag.IS_HORNY)
+                    : ((Number) args[0]).shortValue() == WORKER
+                    ? CombatExperienceFixtures.creature(WORKER, Creature.CreatureFlag.IS_WORKER) : CombatExperienceFixtures.creature((short) 0);
             case "getRooms" -> new ArrayList<>(rooms.values());
             case "getTraps" -> List.of(sentry);
             case "getObject" -> ((Number) args[0]).shortValue() == 1 ? GameObjectFixtures.gameObject("Gold")
