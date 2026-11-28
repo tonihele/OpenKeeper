@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.EnumSet;
+
 /**
  * Builds {@link Creature} fixtures for tests. Lives in {@code Creature}'s own
  * package because its setters are {@code protected} (parser-only).
@@ -30,6 +32,7 @@ public final class CreatureMoodFixtures {
         Creature creature = new Creature();
         creature.setCreatureId(creatureId);
         creature.setName(name);
+        creature.setFlags(EnumSet.noneOf(Creature.CreatureFlag.class));
         creature.setLairObjectId(lairObjectId);
         creature.getAttributes().setAngerNoLair(angerNoLair);
         creature.getAttributes().setUnhappyThreshold(unhappyThreshold);

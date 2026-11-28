@@ -24,12 +24,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.RoomAttackMessages;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.session.PlayerService;
@@ -95,6 +97,16 @@ public class CreatureMoodSystemTest {
     @Test
     public void neutralCreatureWithoutLairGetsNoAnger() {
         EntityId creature = creature(Player.NEUTRAL_PLAYER_ID);
+
+        tick();
+
+        assertEquals(0, entityData.getComponent(creature, CreatureMood.class).noLair);
+    }
+
+    @Test
+    public void creatureAnsweringTheCallToArmsGetsNoLairAnger() {
+        EntityId creature = creature(KEEPER_ID);
+        entityData.setComponent(creature, new CreatureAi(0, CreatureState.CALL_TO_ARMS, CREATURE_ID));
 
         tick();
 

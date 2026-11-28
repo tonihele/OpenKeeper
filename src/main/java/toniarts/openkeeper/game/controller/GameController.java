@@ -80,6 +80,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
     private EffectGeneratorsController effectGenerators;
     private TriggerControl triggerControl = null;
+    private PlayerTriggerLogicController playerTriggers;
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
 
     private GameWorldController gameWorldController;
@@ -114,6 +115,20 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
             }
         }
         createNewGame();
+    }
+
+    @Override
+    public void onEnemyBreached(short playerId) {
+        if (playerTriggers != null) {
+            playerTriggers.onEnemyBreached(playerId);
+        }
+    }
+
+    @Override
+    public void onDungeonBreached(short playerId) {
+        if (playerTriggers != null) {
+            playerTriggers.onDungeonBreached(playerId);
+        }
     }
 
     public void createNewGame() {
@@ -156,14 +171,16 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         controllers.add(new ActionPointTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
                 positionSystem));
-        controllers.add(new PlayerTriggerLogicController(this, levelInfo, gameTimer,
+        playerTriggers = new PlayerTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService));
+                playerService);
+        controllers.add(playerTriggers);
         controllers.add(gameTimer);
         effectGenerators = new EffectGeneratorsController(levelInfo.kwdFile.getThings(Thing.EffectGenerator.class),
                 gameWorldController.getMapController(), gameTimer, gameEventService);
         controllers.add(effectGenerators);
         controllers.add(positionSystem);
+        controllers.add((IGameLogicUpdatable) navigationService);
 
         int triggerId = levelInfo.kwdFile.getGameLevel().getTriggerId();
         if (triggerId != 0) {

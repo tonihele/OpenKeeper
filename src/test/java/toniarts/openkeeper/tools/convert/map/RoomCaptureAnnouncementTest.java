@@ -20,6 +20,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
@@ -54,6 +55,8 @@ class RoomCaptureAnnouncementTest {
                 var data = proxy(IKwdFile.class, (name, args) -> switch (name) {
                     case "getMap" -> map;
                     case "getTerrain" -> (short) args[0] == 1 ? floor : roomTerrain;
+                    case "getGameLevel" -> CreatureSleepFixtures.level(1);
+                    case "getThings" -> List.of();
                     default -> null;
                 });
                 var keepers = Map.of(Player.NEUTRAL_PLAYER_ID, new Keeper(false, Player.NEUTRAL_PLAYER_ID));
@@ -70,10 +73,10 @@ class RoomCaptureAnnouncementTest {
                     default -> null;
                 });
                 var convert = Variable.MiscVariable.MiscType.CONVERT_ROOM_HEALTH;
-                var attack = Variable.MiscVariable.MiscType.ATTACK_ROOM_HEALTH;
+                var convertNeutral = Variable.MiscVariable.MiscType.CONVERT_NEUTRAL_ROOM_HEALTH;
                 var controller = new MapController(data, null,
                         Map.of(convert, CreatureSleepFixtures.variable(convert, 450),
-                                attack, CreatureSleepFixtures.variable(attack, 450)), null, entities, level, events);
+                                convertNeutral, CreatureSleepFixtures.variable(convertNeutral, 450)), null, entities, level, events);
                 var roomEntity = entities.createEntity();
                 var registry = MapController.class.getDeclaredField("roomControllers");
                 registry.setAccessible(true);

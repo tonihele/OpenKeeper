@@ -38,6 +38,8 @@ public interface PlayerActionListener {
      * wave order. Rejected, cancelled and unchanged selections do not notify.
      * Per-wave onBuild/onSold callbacks remain available for incremental work.
      * Server listeners can use this hook for selection-wide job reassessment.
+     * Room destruction outside the selection queue also notifies once per
+     * affected keeper after the destruction batch is applied.
      */
     @Asynchronous
     default void onRoomSelectionComplete(short keeperId, List<Point> tiles) {

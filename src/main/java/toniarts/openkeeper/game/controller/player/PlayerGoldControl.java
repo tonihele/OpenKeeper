@@ -21,14 +21,17 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.KeeperComponent;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.listener.RoomListener;
 
 /**
  * The player's gold, kept in the {@link Gold} component on the player's entity
  *
  * @author ArchDemon
  */
-public final class PlayerGoldControl {
+public final class PlayerGoldControl implements RoomListener {
 
     private final Keeper keeper;
     private final EntityData entityData;
@@ -89,5 +92,42 @@ public final class PlayerGoldControl {
 
     private EntityId getEntityId() {
         return entityData.findEntity(new FieldFilter(KeeperComponent.class, "playerId", keeper.getId()), KeeperComponent.class);
+    }
+
+    @Override
+    public void onBuild(IRoomController room) {
+        // GameWorldController adds the capacity of the rooms we build
+    }
+
+    /**
+     * A gold room we capture brings its capacity and the gold stored in it to
+     * us. The gold is not mined, so it doesn't count as such.
+     *
+     * @param room the captured room
+     */
+    @Override
+    public void onCaptured(IRoomController room) {
+        if (room.canStoreGold()) {
+            int goldMax = getGoldMax() + room.getMaxCapacity(ObjectType.GOLD);
+            setGold(Math.min(getGold() + room.getUsedCapacity(ObjectType.GOLD), goldMax), goldMax);
+        }
+    }
+
+    /**
+     * A gold room the enemy captures takes its capacity and the gold stored
+     * in it away from us
+     *
+     * @param room the lost room
+     */
+    @Override
+    public void onCapturedByEnemy(IRoomController room) {
+        if (room.canStoreGold()) {
+            setGold(Math.max(getGold() - room.getUsedCapacity(ObjectType.GOLD), 0), getGoldMax() - room.getMaxCapacity(ObjectType.GOLD));
+        }
+    }
+
+    @Override
+    public void onSold(IRoomController room) {
+        // GameWorldController takes away the capacity and gold of the rooms we sell
     }
 }

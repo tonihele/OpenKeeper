@@ -50,6 +50,7 @@ import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.CombatCreatureFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 
@@ -284,6 +285,7 @@ class CreatureCombatTest {
         Map<Short, Keeper> keepers = Map.of(KEEPER, new Keeper(false, KEEPER), HERO, new Keeper(false, HERO));
         IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
             case "getCreature" -> creatures.get((Short) args[0]);
+            case "getGameLevel" -> CreatureSleepFixtures.level(4);
             case "getCreatureSpellById" -> CombatCreatureFixtures.attackSpell();
             default -> null;
         });
@@ -305,7 +307,11 @@ class CreatureCombatTest {
             default -> null;
         });
         GraphPath<?> path = stub(GraphPath.class, (name, args) -> null);
-        INavigationService navigationService = stub(INavigationService.class, (name, args) -> "findPath".equals(name) ? path : null);
+        INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
+            case "findPath" -> path;
+            case "isReachable" -> true;
+            default -> null;
+        });
         CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
 
         return new CreatureController(entity, entityData, creatures.get(creatureComponent.creatureId), navigationService,
