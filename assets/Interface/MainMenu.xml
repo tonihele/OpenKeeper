@@ -393,7 +393,11 @@
                         <control width="250px" name="dropDown" id="resolution" />
                     </panel>
                     <panel childLayout="horizontal" padding="10px">
-                        <control name="checkbox" id="fullscreen" />
+                        <control name="checkbox" id="fullscreen">
+                            <effect>
+                                <onClick name="engineSound" category="OBJECT_FE_PARCHMENT" event="0x30C" neverStopRendering="true"/>
+                            </effect>
+                        </control>
                         <text style="menuTextSmall" text=" Fullscreen" />
                     </panel>
                     <panel childLayout="vertical" padding="10px">
@@ -405,15 +409,27 @@
                         <control width="250px" name="dropDown" id="openGl" />
                     </panel>
                     <panel childLayout="horizontal" padding="10px">
-                        <control name="checkbox" id="ssao" />
+                        <control name="checkbox" id="ssao">
+                            <effect>
+                                <onClick name="engineSound" category="OBJECT_FE_PARCHMENT" event="0x30C" neverStopRendering="true"/>
+                            </effect>
+                        </control>
                         <text style="menuTextSmall" text=" SSAO" />
                     </panel>
                     <panel childLayout="horizontal" padding="10px">
-                        <control name="checkbox" id="gammaCorrection" />
+                        <control name="checkbox" id="gammaCorrection">
+                            <effect>
+                                <onClick name="engineSound" category="OBJECT_FE_PARCHMENT" event="0x30C" neverStopRendering="true"/>
+                            </effect>
+                        </control>
                         <text style="menuTextSmall" text=" Gamma correction" />
                     </panel>
                     <panel childLayout="horizontal" padding="10px">
-                        <control name="checkbox" id="hdTextures" />
+                        <control name="checkbox" id="hdTextures">
+                            <effect>
+                                <onClick name="engineSound" category="OBJECT_FE_PARCHMENT" event="0x30C" neverStopRendering="true"/>
+                            </effect>
+                        </control>
                         <text style="menuTextSmall" text=" Make HD textures at the next start (needs a Vulkan GPU, about 6 minutes)" />
                     </panel>
                 </panel>
@@ -428,7 +444,11 @@
                         <control width="100px" name="dropDown" id="refreshRate" />
                     </panel>
                     <panel childLayout="horizontal" padding="10px">
-                        <control name="checkbox" id="verticalSync" />
+                        <control name="checkbox" id="verticalSync">
+                            <effect>
+                                <onClick name="engineSound" category="OBJECT_FE_PARCHMENT" event="0x30C" neverStopRendering="true"/>
+                            </effect>
+                        </control>
                         <text style="menuTextSmall" text=" Vertical sync" />
                     </panel>
                     <panel childLayout="vertical" padding="10px">
@@ -466,7 +486,11 @@
                     <control name="horizontalSlider" id="voiceVolume" min="0" max="1.0"
                              initial="1.0" stepSize="0.01" buttonStepSize="0.01" width="33%" valign="center" />
                     <panel width="*" height="*" childLayout="center">
-                        <control name="checkbox" id="voiceEnabled" />
+                        <control name="checkbox" id="voiceEnabled">
+                            <effect>
+                                <onClick name="engineSound" category="OBJECT_FE_PARCHMENT" event="0x30C" neverStopRendering="true"/>
+                            </effect>
+                        </control>
                     </panel>
                 </panel>
                 <panel width="100%" height="*" childLayout="horizontal">
@@ -474,7 +498,11 @@
                     <control name="horizontalSlider" id="musicVolume" min="0.0" max="1.0"
                              initial="0.5" stepSize="0.01" buttonStepSize="0.01" width="33%" valign="center" />
                     <panel width="*" height="*" childLayout="center">
-                        <control name="checkbox" id="musicEnabled" />
+                        <control name="checkbox" id="musicEnabled">
+                            <effect>
+                                <onClick name="engineSound" category="OBJECT_FE_PARCHMENT" event="0x30C" neverStopRendering="true"/>
+                            </effect>
+                        </control>
                     </panel>
                 </panel>
                 <panel width="100%" height="*" childLayout="horizontal" align="center" valign="center">
@@ -482,12 +510,20 @@
                     <control name="horizontalSlider" id="sfxVolume" min="0.0" max="1.0"
                              initial="0.5" stepSize="0.01" buttonStepSize="0.01" width="33%" valign="center" />
                     <panel width="*" height="*" childLayout="center">
-                        <control name="checkbox" id="sfxEnabled" />
+                        <control name="checkbox" id="sfxEnabled">
+                            <effect>
+                                <onClick name="engineSound" category="OBJECT_FE_PARCHMENT" event="0x30C" neverStopRendering="true"/>
+                            </effect>
+                        </control>
                     </panel>
                 </panel>
                 <panel width="100%" height="*" childLayout="horizontal" align="center" valign="center">
                     <text style="menuTextSmall" text="Spatial audio" width="33%" valign="center" />
-                    <control name="dropDown" id="audioOutputMode" width="40%" valign="center" />
+                    <control name="dropDown" id="audioOutputMode" width="40%" valign="center">
+                        <effect>
+                            <onClick name="engineSound" category="OBJECT_FE_PARCHMENT" event="0x30C" neverStopRendering="true"/>
+                        </effect>
+                    </control>
                 </panel>
                 <panel width="100%" height="*" childLayout="center">
                     <text id="audioOutputStatus" style="menuTextSmall" text="" width="95%" wrap="true" />
@@ -535,7 +571,11 @@
 
                 <panel align="center" valign="center" childLayout="horizontal" padding="10px,10px">
                     <panel childLayout="horizontal" align="center" valign="bottom" width="50%" padding="0px,20px">
-                        <control name="checkbox" id="invertMouse" />
+                        <control name="checkbox" id="invertMouse">
+                            <effect>
+                                <onClick name="engineSound" category="OBJECT_FE_PARCHMENT" event="0x30C" neverStopRendering="true"/>
+                            </effect>
+                        </control>
                         <text style="menuTextSmall" text=" ${menu.2840}" />
                     </panel>
                     <panel childLayout="vertical" align="center" width="50%" padding="0px,20px">

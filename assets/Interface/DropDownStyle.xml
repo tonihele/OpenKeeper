@@ -35,7 +35,6 @@
     <style id="nifty-drop-down#icon">
         <attributes filename="Textures/0-V-Down_Arrow.png" valign="center" width="32px" height="16px"/>
         <effect>
-            <onClick name="focus" targetElement="#parent"/>
             <!--<onClick name="imageOverlay" filename="scrollbar/scrollbar.png" imageMode="sprite:23,23,2" post="true"/>-->
             <!--<onFocus name="imageOverlay" filename="scrollbar/scrollbar.png" imageMode="sprite:23,23,1" post="true"/>-->
             <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150"/>
