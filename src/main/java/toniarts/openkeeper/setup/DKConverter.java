@@ -65,7 +65,7 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
     }
 
     private void initConversion() {
-        List<AssetsConverter.ConvertProcess> processes = AssetsConverter.getConversionNeeded(Main.getSettings());
+        List<AssetsConverter.ConvertProcess> processes = AssetsConverter.getConversionNeeded(Main.getApplicationSettings());
         totalProcesses = processes.size();
         totalProgressBar.setMaximum(totalProcesses);
         totalProgressLabel.setText(createTotalProgressStatusText());

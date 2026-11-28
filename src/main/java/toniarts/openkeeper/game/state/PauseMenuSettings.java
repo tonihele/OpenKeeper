@@ -43,6 +43,7 @@ import de.lessvoid.nifty.controls.Label;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.utils.DisplayMode;
 import toniarts.openkeeper.utils.DisplayModeUtils;
+import toniarts.openkeeper.utils.GraphicsBackend;
 
 import java.io.IOException;
 import java.lang.System.Logger;
@@ -82,7 +83,7 @@ final class PauseMenuSettings {
         addDropDown(left, "${menu.134}", "resolution", "220px");
         addCheckBox(left, " Fullscreen", "fullscreen");
         addDropDown(left, "Antialiasing", "antialiasing", "100px");
-        addDropDown(left, "OpenGL", "openGl", "220px");
+        addDropDown(left, "Graphics renderer", "graphicsRenderer", "220px");
         addCheckBox(left, " SSAO", "ssao");
         addCheckBox(left, "Gamma correction", "gammaCorrection");
 
@@ -154,9 +155,9 @@ final class PauseMenuSettings {
         }
         af.selectItem(selectedAF);
 
-        DropDown ogl = find("openGl", DropDown.class);
-        ogl.addAllItems(Settings.OPENGL);
-        ogl.selectItem(settings.getRenderer());
+        DropDown renderer = find("graphicsRenderer", DropDown.class);
+        renderer.addAllItems(Settings.RENDERERS);
+        renderer.selectItem(GraphicsBackend.toOption(settings.getRenderer()));
 
         find("ssao", CheckBox.class).setChecked(Main.getUserSettings().getBoolean(Settings.Setting.SSAO));
         find("gammaCorrection", CheckBox.class).setChecked(settings.isGammaCorrection());
@@ -177,7 +178,8 @@ final class PauseMenuSettings {
         settings.getAppSettings().setFrequency((Integer) find("refreshRate", DropDown.class).getSelection());
         settings.getAppSettings().setFullscreen(find("fullscreen", CheckBox.class).isChecked());
         settings.getAppSettings().setVSync(find("verticalSync", CheckBox.class).isChecked());
-        settings.getAppSettings().setRenderer((String) find("openGl", DropDown.class).getSelection());
+        settings.getAppSettings().setRenderer(GraphicsBackend.toRenderer(
+                (String) find("graphicsRenderer", DropDown.class).getSelection()));
         settings.getAppSettings().setSamples((Integer) find("antialiasing", DropDown.class).getSelection());
         settings.setSetting(Settings.Setting.ANISOTROPY, find("anisotropicFiltering", DropDown.class).getSelection());
         settings.setSetting(Settings.Setting.SSAO, find("ssao", CheckBox.class).isChecked());

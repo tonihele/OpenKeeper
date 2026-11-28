@@ -117,6 +117,24 @@ public final class Cursor extends JmeCursor {
                 result = ((abgr & 255) << 24) | (abgr >>> 8);
                 break;
 
+            case RGBA8:
+                int red = data.get() & 0xFF;
+                int green = data.get() & 0xFF;
+                int blue = data.get() & 0xFF;
+                int alpha = data.get() & 0xFF;
+                result = (alpha << 24) | (red << 16) | (green << 8) | blue;
+                break;
+
+            case RGB8:
+                int red8 = data.get() & 0xFF;
+                int green8 = data.get() & 0xFF;
+                int blue8 = data.get() & 0xFF;
+                result = 0xFF000000 | (red8 << 16) | (green8 << 8) | blue8;
+                if (result == 0xFF00FF00) { // green only
+                    result = 0; // transparent
+                }
+                break;
+
             default:
                 throw new RuntimeException("Unsupported file format " + format.toString());
         }

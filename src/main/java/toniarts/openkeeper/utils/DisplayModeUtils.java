@@ -48,6 +48,13 @@ public final class DisplayModeUtils implements DisplayModeProvider {
 
     private DisplayModeProvider getDisplayModeProvider() {
 
+        // jME 3.10's LWJGL backend uses SDL3 instead of GLFW.
+        try {
+            Class.forName("org.lwjgl.sdl.SDL");
+            return new SdlDisplayModeProvider();
+        } catch (ClassNotFoundException exception) {
+        }
+
         // LWJGL 3
         try {
             Class.forName("com.jme3.system.lwjgl.LwjglWindow");
