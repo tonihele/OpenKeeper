@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumSet;
+import java.util.List;
 
 /**
  * Builds {@link Creature} fixtures for the combat tests. Lives in
@@ -38,6 +39,7 @@ public final class CombatCreatureFixtures {
         creature.setName("Fighter " + creatureId);
         creature.setFightStyle(fightStyle);
         creature.setFlags(set);
+        creature.setSpells(List.of());
         creature.getAttributes().setDistanceCanSee(4);
         return creature;
     }

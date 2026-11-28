@@ -23,12 +23,16 @@ import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CallToArms;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -80,6 +84,52 @@ class CreatureNoFoodAngerTest {
         system(false).processTick(0.25f);
 
         assertEquals(0, entityData.getComponent(entityId, CreatureMood.class).noFood);
+    }
+
+    @Test
+    void fightingCreatureGetsNoAnger() {
+        EntityId entityId = creature(2);
+        entityData.setComponent(entityId, new CreatureAi(0, CreatureState.FIGHT, (short) 6));
+
+        system(true).processTick(0.25f);
+
+        assertEquals(0, entityData.getComponent(entityId, CreatureMood.class).noFood);
+    }
+
+    @Test
+    void possessedCreatureGetsNoAnger() {
+        EntityId entityId = creature(2);
+        entityData.setComponent(entityId, new Possessed(0, 0));
+
+        system(true).processTick(0.25f);
+
+        assertEquals(0, entityData.getComponent(entityId, CreatureMood.class).noFood);
+    }
+
+    @Test
+    void hornedReaperGetsNoAnger() {
+        EntityId entityId = creature(2);
+        creature.getFlags().add(Creature.CreatureFlag.IS_HORNY);
+
+        system(true).processTick(0.25f);
+
+        assertEquals(0, entityData.getComponent(entityId, CreatureMood.class).noFood);
+    }
+
+    @Test
+    void creatureGetsNoAngerWhileItsKeepersCallToArmsIsUp() {
+        EntityId entityId = creature(2);
+        EntityId banner = entityData.createEntity();
+        entityData.setComponents(banner, new CallToArms(0, 0, 0, 0, CallToArms.UP), new Owner(KEEPER_ID, KEEPER_ID));
+        CreatureMoodSystem system = system(true);
+
+        system.processTick(0.25f);
+        assertEquals(0, entityData.getComponent(entityId, CreatureMood.class).noFood);
+
+        // The banner goes down
+        entityData.setComponent(banner, new CallToArms(0, 0, 0, 0, 1));
+        system.processTick(0.25f);
+        assertEquals(27, entityData.getComponent(entityId, CreatureMood.class).noFood);
     }
 
     private EntityId creature(int chickensNeeded) {

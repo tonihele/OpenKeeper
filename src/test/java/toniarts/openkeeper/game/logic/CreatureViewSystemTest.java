@@ -20,6 +20,7 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -32,8 +33,10 @@ import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.CasinoVariableFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -120,6 +123,32 @@ class CreatureViewSystemTest {
         CreatureViewSystem system = new CreatureViewSystem(entityData, null);
         system.processTick(1);
         return entityData.getComponent(mistress, CreatureViewState.class).state;
+    }
+
+    @Test
+    void sulkerIsAngryOnceWhenItSulksOutLoudAndOtherwiseStands() {
+        Creature creature = CasinoVariableFixtures.creatureWithAnimations((short) 4, Creature.AnimationType.ANGRY,
+                Creature.AnimationType.STAND_STILL);
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> "getCreature".equals(method.getName()) ? creature : null);
+        EntityId sulker = entityData.createEntity();
+        entityData.setComponents(sulker, new CreatureViewState((short) 4, 0, Creature.AnimationType.WALK),
+                new Position(0, new Vector3f()),
+                new CreatureAi(0, CreatureState.WORK, (short) 4),
+                new TaskComponent(1, null, null, TaskType.SULK, 0, true));
+        CreatureViewSystem system = new CreatureViewSystem(entityData, kwdFile);
+
+        system.processTick(0.25f);
+        assertEquals(Creature.AnimationType.STAND_STILL, entityData.getComponent(sulker, CreatureViewState.class).state);
+
+        // The creature sulks out loud, the angry animation plays once, a second here
+        entityData.setComponent(sulker, new CreatureViewState((short) 4, 0.25, Creature.AnimationType.ANGRY));
+        for (int tick = 0; tick < 3; tick++) {
+            system.processTick(0.25f);
+            assertEquals(Creature.AnimationType.ANGRY, entityData.getComponent(sulker, CreatureViewState.class).state);
+        }
+        system.processTick(0.25f);
+        assertEquals(Creature.AnimationType.STAND_STILL, entityData.getComponent(sulker, CreatureViewState.class).state);
     }
 
     @Test
