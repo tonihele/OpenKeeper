@@ -675,13 +675,20 @@ final class KeeperAiCreatures {
      * class of its state: standing idle (state 1) is status 5, walking about
      * (states 86 and 87) is not, so it is idle only while it stands still. DK
      * II also counts in some states OpenKeeper doesn't have, such as sulking,
-     * being hypnotised or reporting danger
+     * being hypnotised or reporting danger. A worker is idle while it wanders
+     * with nothing to do (imp state 12) and also while its job is to
+     * reinforce a wall (imp task 6)
      */
     private boolean isIdle(Entity creature) {
         Creature type = kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId);
-        return creature.get(CreatureAi.class).getCreatureState() == CreatureState.IDLE
-                && (type.getFlags().contains(Creature.CreatureFlag.IS_WORKER) || entityData.getComponent(creature.getId(), Navigation.class) == null)
-                && getMoodState(creature, entityData.getComponent(creature.getId(), CreatureMood.class)) == 0;
+        boolean idle = creature.get(CreatureAi.class).getCreatureState() == CreatureState.IDLE;
+        if (type.getFlags().contains(Creature.CreatureFlag.IS_WORKER)) {
+            TaskComponent task = entityData.getComponent(creature.getId(), TaskComponent.class);
+            idle |= task != null && task.taskType == TaskType.CLAIM_WALL;
+        } else {
+            idle &= entityData.getComponent(creature.getId(), Navigation.class) == null;
+        }
+        return idle && getMoodState(creature, entityData.getComponent(creature.getId(), CreatureMood.class)) == 0;
     }
 
     /**
