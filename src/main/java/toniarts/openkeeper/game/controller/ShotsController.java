@@ -475,9 +475,18 @@ public final class ShotsController implements IShotsController {
     @Override
     public boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target,
             EntityId shooter, float maxRange) {
-        Shot shot = kwdFile.getShotById(shotTypeId);
-        Vector3f targetPosition = getAimPoint(target);
+        return fireShot(shotTypeId, shotData1, shotData2, playerId, position, target, getAimPoint(target), shooter, maxRange);
+    }
 
+    @Override
+    public boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, Vector3f targetPosition,
+            EntityId shooter, float maxRange) {
+        return fireShot(shotTypeId, shotData1, shotData2, playerId, position, null, targetPosition, shooter, maxRange);
+    }
+
+    private boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target,
+            Vector3f targetPosition, EntityId shooter, float maxRange) {
+        Shot shot = kwdFile.getShotById(shotTypeId);
         // A trap's shot flies if it moves towards its target, a creature's whenever it has a speed, like the
         // Bile Demon's Gas Cloud (0x4984D0). A creature's instant shot, like Hail Storm, is a shot too, it stands
         // still and goes onto its target in its turn (0x498870, 0x4AFCB0)

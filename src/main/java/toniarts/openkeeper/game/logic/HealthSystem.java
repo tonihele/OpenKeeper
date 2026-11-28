@@ -41,6 +41,7 @@ import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.HealthGain;
+import toniarts.openkeeper.game.component.Hypnotised;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
@@ -50,6 +51,8 @@ import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Poisoned;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.component.PossessedAbility;
 import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -101,6 +104,8 @@ public final class HealthSystem extends GameTimeCounter {
     private final int timeToDeath;
     private final int healthRegeneratePerSecond;
     private final int healthRegeneratePerSecondImprisoned;
+    private final int healthWhilePrayingPerSecond;
+    private final int deathWhenPossessingManaReduction;
     private final int stunTimeIncreaseWhenHit;
     private final ILevelInfo levelInfo;
     private final Map<Short, IPlayerController> playerControllersById;
@@ -114,6 +119,7 @@ public final class HealthSystem extends GameTimeCounter {
     private final EntitySet regeneratedEntities;
     private final EntitySet healthGainEntities;
     private final EntitySet recuperatingEntities;
+    private final EntitySet prayingEntities;
     private final EntitySet poisonedEntities;
 
     public HealthSystem(EntityData entityData, IEntityPositionLookup entityPositionLookup,
@@ -139,6 +145,10 @@ public final class HealthSystem extends GameTimeCounter {
         timeToDeath = (int) gameSettings.get(Variable.MiscVariable.MiscType.CREATURE_DYING_STATE_DURATION_SECONDS).getValue();
         healthRegeneratePerSecondImprisoned = (int) gameSettings.get(Variable.MiscVariable.MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND).getValue();
         healthRegeneratePerSecond = (int) gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND).getValue();
+        Variable.MiscVariable healthWhilePraying = gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_CREATURE_HEALTH_WHILE_PRAYING_PER_SECOND);
+        healthWhilePrayingPerSecond = healthWhilePraying != null ? (int) healthWhilePraying.getValue() : 0;
+        Variable.MiscVariable manaReduction = gameSettings.get(Variable.MiscVariable.MiscType.DEATH_WHEN_POSSESSING_MANA_REDUCTION);
+        deathWhenPossessingManaReduction = manaReduction != null ? (int) manaReduction.getValue() : 0;
         Variable.MiscVariable stunTimeIncrease = gameSettings.get(Variable.MiscVariable.MiscType.STUN_TIME_PERCENTAGE_INCREASE_WHEN_HIT);
         stunTimeIncreaseWhenHit = stunTimeIncrease != null ? (int) stunTimeIncrease.getValue() : 0;
 
@@ -156,6 +166,7 @@ public final class HealthSystem extends GameTimeCounter {
         regeneratedEntities = entityData.getEntities(Health.class, Regeneration.class, Owner.class);
         healthGainEntities = entityData.getEntities(Health.class, HealthGain.class);
         recuperatingEntities = entityData.getEntities(CreatureRecuperating.class, Health.class, CreatureComponent.class);
+        prayingEntities = entityData.getEntities(PossessedAbility.class, Health.class);
         poisonedEntities = entityData.getEntities(Poisoned.class, Health.class);
     }
 
@@ -177,6 +188,7 @@ public final class HealthSystem extends GameTimeCounter {
         regeneratedEntities.applyChanges();
         healthGainEntities.applyChanges();
         recuperatingEntities.applyChanges();
+        prayingEntities.applyChanges();
 
         // Process special recuperating... event
         for (Entity entity : recuperatingEntities.getAddedEntities()) {
@@ -295,6 +307,13 @@ public final class HealthSystem extends GameTimeCounter {
 
     private void processHealthDepleted(EntityId entityId, Health health) {
 
+        // A possessed creature is never knocked out, it dies. The possession
+        // ends and its keeper loses mana for it
+        boolean possessed = entityData.getComponent(entityId, Possessed.class) != null;
+        if (possessed) {
+            endPossessionByDeath(entityId);
+        }
+
         // Death or destruction!!!!
         // No body, just vanish from the world
         if (!isLeaveDeadBody(entityId)) {
@@ -305,7 +324,7 @@ public final class HealthSystem extends GameTimeCounter {
         }
 
         // Some creatures die instantly, skipping the unconscious/dying wait and any skeleton rising, no matter where they are
-        if (isDiesInstantly(entityId)) {
+        if (possessed || isDiesInstantly(entityId)) {
             processDeath(entityId);
             return;
         }
@@ -421,6 +440,15 @@ public final class HealthSystem extends GameTimeCounter {
         }
 
         return 0;
+    }
+
+    private void endPossessionByDeath(EntityId entityId) {
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        IPlayerController player = owner != null ? playerControllersById.get(owner.ownerId) : null;
+        if (player != null && player.getManaControl() != null) {
+            player.getManaControl().addMana(-deathWhenPossessingManaReduction);
+        }
+        creaturesController.createController(entityId).setPossession(false);
     }
 
     private boolean isLeaveDeadBody(EntityId entityId) {
@@ -547,6 +575,18 @@ public final class HealthSystem extends GameTimeCounter {
             }
         }
 
+        // A possessed creature heals as it prays. DK II heals the health per second divided by the ticks per
+        // second on every tick, rounded down (0x499840), so 32 a second for the 33 of the levels at 4 ticks
+        entity = prayingEntities.getEntity(entityId);
+        if (entity != null) {
+            PossessedAbility praying = entity.get(PossessedAbility.class);
+            if (praying.ability == Creature.SpecialAbility.PRAY && gameTime - praying.checkTime >= 1) {
+                entityData.setComponent(entityId, new PossessedAbility(praying.ability, praying.checkTime + 1));
+                int ticksPerSecond = levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+                delta += healthWhilePrayingPerSecond / ticksPerSecond * ticksPerSecond;
+            }
+        }
+
         return delta;
     }
 
@@ -621,6 +661,7 @@ public final class HealthSystem extends GameTimeCounter {
         entityData.removeComponent(entityId, Interaction.class);
         entityData.removeComponent(entityId, Unconscious.class);
         entityData.removeComponent(entityId, Mana.class);
+        entityData.removeComponent(entityId, Hypnotised.class);
         entityData.removeComponent(entityId, CreatureImprisoned.class);
         entityData.removeComponent(entityId, CreatureTortured.class);
         entityData.removeComponent(entityId, CreatureMood.class);
@@ -680,6 +721,7 @@ public final class HealthSystem extends GameTimeCounter {
         regeneratedEntities.release();
         healthGainEntities.release();
         recuperatingEntities.release();
+        prayingEntities.release();
         poisonedEntities.release();
         entityIds.clear();
     }

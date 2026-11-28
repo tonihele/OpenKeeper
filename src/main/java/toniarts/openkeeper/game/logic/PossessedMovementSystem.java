@@ -20,7 +20,12 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Frozen;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
@@ -28,6 +33,7 @@ import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -66,13 +72,20 @@ public final class PossessedMovementSystem implements IGameLogicUpdatable {
         possessedEntities.applyChanges();
 
         for (Entity entity : possessedEntities) {
+
+            // Like DK II (0x40E910), a frozen possessed creature can neither move nor look around
+            if (entityData.getComponent(entity.getId(), Frozen.class) != null) {
+                continue;
+            }
+
             PossessedMovement movement = entity.get(PossessedMovement.class);
             Position position = entity.get(Position.class);
             Vector3f newPosition = position.position.clone();
             if (!movement.direction.equals(Vector2f.ZERO)) {
                 INavigable navigable = creaturesController.createController(entity.getId());
-                float x = newPosition.x + movement.direction.x * movement.speed * tpf;
-                float z = newPosition.z + movement.direction.y * movement.speed * tpf;
+                float speed = movement.speed * getSpeedFactor(entity.getId(), newPosition);
+                float x = newPosition.x + movement.direction.x * speed * tpf;
+                float z = newPosition.z + movement.direction.y * speed * tpf;
 
                 // Slide along walls by trying the axes separately, this way we
                 // only ever cross into an orthogonally adjacent tile
@@ -84,6 +97,37 @@ public final class PossessedMovementSystem implements IGameLogicUpdatable {
                 entityData.setComponent(entity.getId(), new Position(movement.rotation, newPosition));
             }
         }
+    }
+
+    /**
+     * Like DK II (0x48ABB0), a possessed creature that isn't a worker moves at
+     * a fifth of its speed below a fifth of its health. One that doesn't fly
+     * moves at half speed in water and half as fast again on lava.
+     *
+     * @param entityId the possessed creature
+     * @param position where it stands
+     * @return what its speed is multiplied by
+     */
+    private float getSpeedFactor(EntityId entityId, Vector3f position) {
+        float factor = 1f;
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        Health health = entityData.getComponent(entityId, Health.class);
+        if (creatureComponent != null && !creatureComponent.worker && health != null
+                && health.health < health.maxHealth * 20 / 100) {
+            factor = 0.2f;
+        }
+
+        Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+        IMapTileInformation tile = mapController.getMapData().getTile(WorldUtils.vectorToPoint(position));
+        if (tile != null && (mobile == null || !mobile.canFly)) {
+            Terrain terrain = mapController.getTerrain(tile);
+            if (terrain != null && terrain.getFlags().contains(Terrain.TerrainFlag.WATER)) {
+                factor *= 0.5f;
+            } else if (terrain != null && terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
+                factor *= 1.5f;
+            }
+        }
+        return factor;
     }
 
     /**

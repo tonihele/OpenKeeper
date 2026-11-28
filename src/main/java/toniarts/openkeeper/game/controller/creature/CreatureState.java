@@ -81,9 +81,19 @@ public enum CreatureState implements State<ICreatureController> {
 
         private static void findStuffToDo(ICreatureController entity, Consumer<Boolean> workResult) {
 
+            // A hypnotised creature follows the creature that hypnotised it (0x461980)
+            if (entity.getHypnotiser() != null) {
+                entity.setFollowTarget(entity.getHypnotiser());
+                entity.getStateMachine().changeState(CreatureState.FOLLOW);
+                workResult.accept(true);
+                return;
+            }
+
             // See if we should just follow
             if (entity.getParty() != null && !entity.getParty().isPartyLeader(entity)) {
                 entity.setFollowTarget(entity.getParty().getPartyLeader().getEntityId());
+            }
+            if (entity.getFollowTarget() != null) {
                 entity.getStateMachine().changeState(CreatureState.FOLLOW);
                 workResult.accept(true);
                 return;
@@ -428,6 +438,7 @@ public enum CreatureState implements State<ICreatureController> {
 
             // See if we should follow
             if (entity.getFollowTarget() == null || entity.getFollowTarget().isIncapacitated()) {
+                entity.resetFollowTarget();
                 entity.getStateMachine().changeState(IDLE);
                 return;
             }
@@ -451,7 +462,11 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void exit(ICreatureController entity) {
-            entity.resetFollowTarget();
+
+            // The group of a possessed creature gets back to following it after a fight
+            if (!entity.isInPossessedGroup()) {
+                entity.resetFollowTarget();
+            }
             entity.stopCreature();
         }
 
@@ -513,6 +528,9 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void enter(ICreatureController entity) {
+
+            // A creature that flees leaves the group it was in
+            entity.resetFollowTarget();
             entity.unassingCurrentTask();
             entity.flee();
         }
@@ -538,6 +556,11 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void enter(ICreatureController entity) {
+
+            // A scared creature leaves the possessed creature's group before it backs off (DK II 0x45F030)
+            if (entity.isInPossessedGroup()) {
+                entity.resetFollowTarget();
+            }
             entity.startBackOff();
         }
 
