@@ -132,6 +132,9 @@ class CreatureCallToArmsFightTest {
             if (method.getName().equals(answered)) {
                 return answer;
             }
+            if (method.getName().equals("isReachable")) {
+                return true;
+            }
             throw new UnsupportedOperationException(method.getName());
         });
     }
