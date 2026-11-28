@@ -9,6 +9,7 @@
     <useStyles filename="Interface/TextFieldStyle.xml" />
     <useStyles filename="Interface/ChatStyle.xml" />
     <useControls filename="nifty-default-controls.xml" />
+    <useControls filename="Interface/SliderControl.xml" />
     <useControls filename="Interface/MyControls.xml" />
     <useControls filename="Interface/CreditsControl.xml" />
 
@@ -457,13 +458,13 @@
             <panel width="100%" height="*" childLayout="vertical" align="center" valign="center">
                 <panel width="100%" height="*" childLayout="horizontal" align="center" valign="center">
                     <text style="menuTextSmall" text="${menu.1460}" width="33%" valign="center" />
-                    <control name="horizontalSlider" id="masterVolume" min="0.0" max="1.0"
+                    <control name="horizontalSlider" soundCategory="OBJECT_FE_PARCHMENT" id="masterVolume" min="0.0" max="1.0"
                              initial="1.0" stepSize="0.01" buttonStepSize="0.01" width="33%" valign="center" />
                     <panel width="*" height="*" childLayout="center" />
                 </panel>
                 <panel width="100%" height="*" childLayout="horizontal" align="center" valign="center">
                     <text style="menuTextSmall" text="${menu.1457}" width="33%" valign="center" />
-                    <control name="horizontalSlider" id="voiceVolume" min="0" max="1.0"
+                    <control name="horizontalSlider" soundCategory="OBJECT_FE_PARCHMENT" id="voiceVolume" min="0" max="1.0"
                              initial="1.0" stepSize="0.01" buttonStepSize="0.01" width="33%" valign="center" />
                     <panel width="*" height="*" childLayout="center">
                         <control name="checkbox" id="voiceEnabled" />
@@ -471,7 +472,7 @@
                 </panel>
                 <panel width="100%" height="*" childLayout="horizontal">
                     <text style="menuTextSmall" text="${menu.1459}" width="33%" valign="center" />
-                    <control name="horizontalSlider" id="musicVolume" min="0.0" max="1.0"
+                    <control name="horizontalSlider" soundCategory="OBJECT_FE_PARCHMENT" id="musicVolume" min="0.0" max="1.0"
                              initial="0.5" stepSize="0.01" buttonStepSize="0.01" width="33%" valign="center" />
                     <panel width="*" height="*" childLayout="center">
                         <control name="checkbox" id="musicEnabled" />
@@ -479,7 +480,7 @@
                 </panel>
                 <panel width="100%" height="*" childLayout="horizontal" align="center" valign="center">
                     <text style="menuTextSmall" text="${menu.1458}" width="33%" valign="center" />
-                    <control name="horizontalSlider" id="sfxVolume" min="0.0" max="1.0"
+                    <control name="horizontalSlider" soundCategory="OBJECT_FE_PARCHMENT" id="sfxVolume" min="0.0" max="1.0"
                              initial="0.5" stepSize="0.01" buttonStepSize="0.01" width="33%" valign="center" />
                     <panel width="*" height="*" childLayout="center">
                         <control name="checkbox" id="sfxEnabled" />
@@ -523,12 +524,12 @@
                 <panel align="center" valign="center" childLayout="horizontal" padding="10px,10px">
                     <panel childLayout="vertical" align="center" width="50%" padding="0px,20px">
                         <text style="menuTextSmall" text="${menu.1466}" width="100%" />
-                        <control id="mouseSensitivity" name="horizontalSlider" min="0.5" max="2"
+                        <control id="mouseSensitivity" name="horizontalSlider" soundCategory="OBJECT_FE_PARCHMENT" min="0.5" max="2"
                                  initial="0.7" stepSize="0.1" buttonStepSize="0.1"/>
                     </panel>
                     <panel childLayout="vertical" align="center" width="50%" padding="0px,20px">
                         <text style="menuTextSmall" text="${menu.1469}" width="100%" />
-                        <control id="gameSpeed" name="horizontalSlider" min="0.25" max="4"
+                        <control id="gameSpeed" name="horizontalSlider" soundCategory="OBJECT_FE_PARCHMENT" min="0.25" max="4"
                                  initial="1.0" stepSize="0.25" buttonStepSize="0.25"/>
                     </panel>
                 </panel>
@@ -540,7 +541,7 @@
                     </panel>
                     <panel childLayout="vertical" align="center" width="50%" padding="0px,20px">
                         <text style="menuTextSmall" text="${menu.1468}" width="100%" />
-                        <control id="scrollSpeed" name="horizontalSlider" min="0.25" max="4"
+                        <control id="scrollSpeed" name="horizontalSlider" soundCategory="OBJECT_FE_PARCHMENT" min="0.25" max="4"
                                  initial="1.0" stepSize="0.25" buttonStepSize="0.25"/>
                     </panel>
                 </panel>
