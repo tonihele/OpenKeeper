@@ -30,6 +30,17 @@ class SteeringUtilsTest {
     private static final Vector2 WORK_POSITION = new Vector2(4.5f, 5);
 
     @Test
+    void turnsAreBoundedAndUseTheShortArcAcrossZero() {
+        float degree = (float) Math.PI / 180;
+        assertEquals(10 * degree, SteeringUtils.calculateTurnDelta(0, 90 * degree, 10 * degree), 1e-6f);
+        assertEquals(-10 * degree, SteeringUtils.calculateTurnDelta(90 * degree, 0, 10 * degree), 1e-6f);
+        assertEquals(2 * degree, SteeringUtils.calculateTurnDelta(359 * degree, degree, 10 * degree), 1e-6f);
+        assertEquals(-2 * degree, SteeringUtils.calculateTurnDelta(degree, 359 * degree, 10 * degree), 1e-6f);
+        assertEquals(10 * degree, SteeringUtils.calculateTurnDelta(0, 180 * degree, 10 * degree), 1e-6f);
+        assertEquals(0, SteeringUtils.calculateTurnDelta(0, 90 * degree, 0), 1e-6f);
+    }
+
+    @Test
     void creatureOnTheWorkbenchStepsStraightToTheSpot() {
 
         // Dropped on the workbench, through the middle of the next tile and back would go round in circles
