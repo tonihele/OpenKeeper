@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
-import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -33,6 +32,8 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -84,16 +85,18 @@ class CreatureAttackTargetTest {
     private CreatureController createController(EntityId entity, boolean pathExists) {
         Creature creature = ShotFixtures.creature((short) 14, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.noneOf(Creature.CreatureFlag3.class));
         INavigationService navigationService = stub(INavigationService.class,
-                (name, args) -> "findPath".equals(name) && pathExists ? new DefaultGraphPath<>() : null);
+                (name, args) -> "isReachable".equals(name) ? pathExists : null);
         ICreaturesController creaturesController = stub(ICreaturesController.class, (name, args) -> switch (name) {
             case "isValidEntity" -> true;
             case "createController" -> stub(ICreatureController.class, (method, params) -> null);
             default -> null;
         });
+        ILevelInfo levelInfo = stub(ILevelInfo.class,
+                (name, args) -> "getPlayer".equals(name) ? new Keeper(false, (Short) args[0]) : null);
         return new CreatureController(entity, entityData, creature, navigationService, null, () -> 0, Map.of(),
                 creaturesController, stub(IEntityPositionLookup.class,
                         (name, args) -> "getSensedEntities".equals(name) ? Set.of() : null),
-                null, null, null, null, null);
+                null, levelInfo, null, null, null);
     }
 
     @FunctionalInterface
