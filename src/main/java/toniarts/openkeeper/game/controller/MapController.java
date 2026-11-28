@@ -41,6 +41,7 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapInformation;
 import toniarts.openkeeper.game.map.MapTileController;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -51,6 +52,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.game.map.WallSection;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -84,7 +86,8 @@ public final class MapController extends Container implements IMapController {
     private final Map<Short, SafeArrayList<RoomListener>> roomListeners = new HashMap<>();
 
     /**
-     * Load map data from a KWD file straight (new game)
+     * Load map data from a KWD file straight (new game), or from the entities
+     * of a loaded game
      *
      * @param kwdFile the KWD file
      * @param objectsController objects controller
@@ -92,31 +95,63 @@ public final class MapController extends Container implements IMapController {
      * @param gameTimer
      * @param entityData
      * @param levelInfo
+     * @param gameEventService
+     * @param saveGame the loaded game, {@code null} for a new game
      */
     public MapController(IKwdFile kwdFile, IObjectsController objectsController,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             IGameTimer gameTimer, EntityData entityData, ILevelInfo levelInfo,
-            GameEventService gameEventService) {
-        this(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo, gameEventService, playerId -> { });
-    }
-
-    public MapController(IKwdFile kwdFile, IObjectsController objectsController,
-            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            IGameTimer gameTimer, EntityData entityData, ILevelInfo levelInfo,
-            GameEventService gameEventService, Consumer<Short> enemyBreachListener) {
+            GameEventService gameEventService, @Nullable SaveGame saveGame) {
         this(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo,
-                gameEventService, enemyBreachListener, playerId -> { });
+                gameEventService, playerId -> { }, playerId -> { }, saveGame);
     }
 
+    /**
+     * Load map data from a KWD file straight (new game), with the breach listeners
+     *
+     * @param kwdFile the KWD file
+     * @param objectsController objects controller
+     * @param gameSettings the game settings
+     * @param gameTimer
+     * @param entityData
+     * @param levelInfo
+     * @param gameEventService
+     * @param enemyBreachListener told when an enemy breaks into a dungeon
+     * @param dungeonBreachListener told when a dungeon wall is breached
+     */
     public MapController(IKwdFile kwdFile, IObjectsController objectsController,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             IGameTimer gameTimer, EntityData entityData, ILevelInfo levelInfo,
             GameEventService gameEventService, Consumer<Short> enemyBreachListener,
             Consumer<Short> dungeonBreachListener) {
+        this(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo,
+                gameEventService, enemyBreachListener, dungeonBreachListener, null);
+    }
+
+    /**
+     * Load map data from a KWD file straight (new game), or from the entities
+     * of a loaded game, with the breach listeners
+     *
+     * @param kwdFile the KWD file
+     * @param objectsController objects controller
+     * @param gameSettings the game settings
+     * @param gameTimer
+     * @param entityData
+     * @param levelInfo
+     * @param gameEventService
+     * @param enemyBreachListener told when an enemy breaks into a dungeon
+     * @param dungeonBreachListener told when a dungeon wall is breached
+     * @param saveGame the loaded game, {@code null} for a new game
+     */
+    public MapController(IKwdFile kwdFile, IObjectsController objectsController,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            IGameTimer gameTimer, EntityData entityData, ILevelInfo levelInfo,
+            GameEventService gameEventService, Consumer<Short> enemyBreachListener,
+            Consumer<Short> dungeonBreachListener, @Nullable SaveGame saveGame) {
 
         this.kwdFile = kwdFile;
         this.objectsController = objectsController;
-        this.mapData = new MapData(kwdFile, entityData, levelInfo.getPlayers().values());
+        this.mapData = saveGame != null ? new MapData(kwdFile, entityData) : new MapData(kwdFile, entityData, levelInfo.getPlayers().values());
         this.gameSettings = gameSettings;
         this.gameTimer = gameTimer;
         this.entityData = entityData;
@@ -127,25 +162,25 @@ public final class MapController extends Container implements IMapController {
         this.dungeonBreachListener = dungeonBreachListener;
 
         // Load rooms
-        loadRooms();
+        loadRooms(saveGame);
     }
 
-    private void loadRooms() {
+    private void loadRooms(SaveGame saveGame) {
 
         // The rooms placed in the editor first, they have settings of their own
         for (Thing.Room thing : kwdFile.getThings(Thing.Room.class)) {
-            loadRoom(new Point(thing.getPosX(), thing.getPosY()), thing);
+            loadRoom(new Point(thing.getPosX(), thing.getPosY()), thing, saveGame);
         }
 
         // Go through the tiles and detect any rooms
         for (int y = 0; y < mapData.getHeight(); y++) {
             for (int x = 0; x < mapData.getWidth(); x++) {
-                loadRoom(new Point(x, y), null);
+                loadRoom(new Point(x, y), null, saveGame);
             }
         }
     }
 
-    private void loadRoom(Point p, Thing.Room thing) {
+    private void loadRoom(Point p, Thing.Room thing, SaveGame saveGame) {
         IMapTileController mapTile = mapData.getTile(p);
         if (!kwdFile.getTerrain(mapTile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.ROOM)) {
             return;
@@ -174,9 +209,14 @@ public final class MapController extends Container implements IMapController {
         roomInstance.setHealth(health);
         roomInstance.setMaxHealth(maxHealth);
 
-        // Create a controller for it
-        IRoomController roomController = RoomControllerFactory.constructRoom(entityData, kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
-        roomController.construct();
+        // Create a controller for it, a loaded game has the room already
+        EntityId entityId = saveGame != null && mapTile.getRoomId() != null ? mapTile.getRoomId() : entityData.createEntity();
+        IRoomController roomController = RoomControllerFactory.constructRoom(entityId, entityData, kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
+        if (saveGame != null) {
+            saveGame.restoreRoom(roomController);
+        } else {
+            roomController.construct();
+        }
         roomControllers.put(roomController.getEntityId(), roomController);
 
         // Set the room instance to the tiles
@@ -455,7 +495,7 @@ public final class MapController extends Container implements IMapController {
     @Override
     public void updateRooms(Point[] coordinates) {
         for (Point p : coordinates) {
-            loadRoom(p, null);
+            loadRoom(p, null, null);
         }
     }
 

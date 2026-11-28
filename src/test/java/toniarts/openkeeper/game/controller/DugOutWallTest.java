@@ -81,7 +81,7 @@ class DugOutWallTest {
         ILevelInfo levelInfo = proxy(ILevelInfo.class, (name, args) -> Map.of(KEEPER_ID, new Keeper(false, KEEPER_ID)));
         MapController mapController = new MapController(kwdFile, null,
                 Map.of(MiscType.DIG_ENEMY_WALL_HEALTH, CreatureSleepFixtures.variable(MiscType.DIG_ENEMY_WALL_HEALTH, 100)),
-                null, new DefaultEntityData(), levelInfo, proxy(GameEventService.class, (name, args) -> null));
+                null, new DefaultEntityData(), levelInfo, proxy(GameEventService.class, (name, args) -> null), null);
 
         mapController.damageTile(new Point(0, 0), HERO_ID, null);
 
@@ -117,7 +117,7 @@ class DugOutWallTest {
         MapController mapController = new MapController(kwdFile, null,
                 Map.of(MiscType.MINE_GOLD_HEALTH, CreatureSleepFixtures.variable(MiscType.MINE_GOLD_HEALTH, 75),
                         MiscType.GOLD_MINED_FROM_GEMS, CreatureSleepFixtures.variable(MiscType.GOLD_MINED_FROM_GEMS, 25)),
-                null, new DefaultEntityData(), levelInfo, proxy(GameEventService.class, (name, args) -> null));
+                null, new DefaultEntityData(), levelInfo, proxy(GameEventService.class, (name, args) -> null), null);
 
         for (int blow = 0; blow < 3; blow++) {
             assertEquals(25, mapController.damageTile(new Point(0, 0), KEEPER_ID, null));
@@ -158,7 +158,7 @@ class DugOutWallTest {
                 Player.NEUTRAL_PLAYER_ID, new Keeper(false, Player.NEUTRAL_PLAYER_ID)));
         MapController mapController = new MapController(kwdFile, null,
                 Map.of(MiscType.REINFORCE_WALL_HEALTH, CreatureSleepFixtures.variable(MiscType.REINFORCE_WALL_HEALTH, 100)),
-                null, new DefaultEntityData(), levelInfo, proxy(GameEventService.class, (name, args) -> null));
+                null, new DefaultEntityData(), levelInfo, proxy(GameEventService.class, (name, args) -> null), null);
         IMapTileController tile = mapController.getMapData().getTile(0, 0);
 
         mapController.applyClaimTile(new Point(0, 0), KEEPER_ID, null);

@@ -96,7 +96,7 @@ class EditorHeartHealthTest {
 
         MapController mapController = new MapController(kwdFile, objectsController,
                 Map.of(MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE, CreatureSleepFixtures.variable(MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE, 100)),
-                gameTimer, entityData, levelInfo, null);
+                gameTimer, entityData, levelInfo, null, null);
         return mapController.getRoomControllers().iterator().next();
     }
 

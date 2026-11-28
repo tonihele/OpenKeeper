@@ -21,23 +21,24 @@ import java.util.Map;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
- * A class to hold player's miscellaneous statistics
+ * A class to hold player's miscellaneous statistics. The counts are kept by
+ * creature ID, so that they can be saved with the game.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class PlayerStatsControl {
 
     private int payDays;
-    private final Map<Creature, Integer> slapsMap = new HashMap<>();
-    private final Map<Creature, Integer> pickUpsMap = new HashMap<>();
-    private final Map<Creature, Integer> dropsMap = new HashMap<>();
+    private final Map<Short, Integer> slapsMap = new HashMap<>();
+    private final Map<Short, Integer> pickUpsMap = new HashMap<>();
+    private final Map<Short, Integer> dropsMap = new HashMap<>();
 
     public boolean hasSlapped() {
         return !slapsMap.isEmpty();
     }
 
     public boolean hasSlapped(Creature creature) {
-        return slapsMap.containsKey(creature);
+        return slapsMap.containsKey(creature.getCreatureId());
     }
 
     /**
@@ -60,13 +61,8 @@ public final class PlayerStatsControl {
         increaseMapCount(creature, slapsMap);
     }
 
-    private void increaseMapCount(Creature creature, Map<Creature, Integer> map) {
-        Integer count = map.get(creature);
-        if (count == null) {
-            count = 0;
-        }
-        count++;
-        map.put(creature, count);
+    private void increaseMapCount(Creature creature, Map<Short, Integer> map) {
+        map.merge(creature.getCreatureId(), 1, Integer::sum);
     }
 
     public boolean hasPickedUp() {
@@ -74,7 +70,7 @@ public final class PlayerStatsControl {
     }
 
     public boolean hasPickedUp(Creature creature) {
-        return pickUpsMap.containsKey(creature);
+        return pickUpsMap.containsKey(creature.getCreatureId());
     }
 
     public void creaturePickedUp(Creature creature) {
@@ -86,7 +82,7 @@ public final class PlayerStatsControl {
     }
 
     public boolean hasDropped(Creature creature) {
-        return dropsMap.containsKey(creature);
+        return dropsMap.containsKey(creature.getCreatureId());
     }
 
     public void creatureDropped(Creature creature) {

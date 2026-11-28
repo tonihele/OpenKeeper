@@ -25,7 +25,6 @@ import com.simsilica.es.filter.AndFilter;
 import com.simsilica.es.filter.FieldFilter;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -34,6 +33,7 @@ import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
+import toniarts.openkeeper.game.component.CreatureExperienceTimer;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.ICreaturesController;
@@ -46,9 +46,8 @@ import toniarts.openkeeper.utils.Utils;
 
 /**
  * Levels up creatures and adds experience points to them when they are doing
- * meaningful tasks<br>
- * This creates some counter etc. that basically needs to be saved then, but I
- * felt wrong to add them to the components, idk
+ * meaningful tasks. The time towards the next gain is kept in a
+ * {@link CreatureExperienceTimer} component, so that it is saved with the game
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -77,7 +76,6 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     private final SafeArrayList<EntityId> experienceEntityIds;
     private final SafeArrayList<EntityId> trainingEntityIds;
     private final ICreaturesController creaturesController;
-    private final Map<EntityId, Double> timeWorkingByEntityId = new HashMap<>();
 
     public CreatureExperienceSystem(EntityData entityData, IKwdFile kwdFile,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
@@ -182,19 +180,16 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
 
         // Fighting teaches on every tick, the rest once a second
         if (reason != ExperienceGainReason.FIGHTING) {
-            double timeWorking = timeWorkingByEntityId.compute(entityId, (k, v) -> {
-                if (v == null) {
-                    return 0.0;
-                }
-                return v + tpf;
-            });
+            CreatureExperienceTimer timer = entityData.getComponent(entityId, CreatureExperienceTimer.class);
+            double timeWorking = timer != null ? timer.timeWorking + tpf : 0.0;
 
             // Increase the exp
             if (timeWorking < 1) {
+                entityData.setComponent(entityId, new CreatureExperienceTimer(timeWorking));
                 return;
             }
 
-            timeWorkingByEntityId.merge(entityId, -1.0, Double::sum);
+            entityData.setComponent(entityId, new CreatureExperienceTimer(timeWorking - 1));
         }
         addExperience(entityId, creatureExperience, getCreatureExperienceGain(entity, reason));
     }
@@ -240,7 +235,7 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
             entityIds.remove(index);
 
             // Logically it can't be on the two lists at the same time
-            timeWorkingByEntityId.remove(entity.getId());
+            entityData.removeComponent(entity.getId(), CreatureExperienceTimer.class);
         }
     }
 
@@ -319,7 +314,6 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     public void stop() {
         experienceEntities.release();
         trainingEntities.release();
-        timeWorkingByEntityId.clear();
         experienceEntityIds.clear();
         trainingEntityIds.clear();
     }
