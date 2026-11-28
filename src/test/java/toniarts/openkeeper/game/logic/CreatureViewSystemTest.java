@@ -61,7 +61,7 @@ class CreatureViewSystemTest {
 
     private Creature.AnimationType tortureAnimation(short deviceObjectId) {
         EntityId victim = victim(deviceObjectId);
-        CreatureViewSystem system = new CreatureViewSystem(entityData, null);
+        CreatureViewSystem system = new CreatureViewSystem(entityData, null, null);
         system.processTick(1);
         return entityData.getComponent(victim, CreatureViewState.class).state;
     }
@@ -74,7 +74,7 @@ class CreatureViewSystemTest {
     @Test
     void victimOnTheElectricChairIsElectrocutedForThreeSecondsThenSitsForThreeSeconds() {
         EntityId victim = victim(ELECTRIC_CHAIR);
-        CreatureViewSystem system = new CreatureViewSystem(entityData, null);
+        CreatureViewSystem system = new CreatureViewSystem(entityData, null, null);
 
         // Four ticks a second, like in DK II
         Creature.AnimationType[] seconds = new Creature.AnimationType[12];
@@ -120,7 +120,7 @@ class CreatureViewSystemTest {
                 new Position(0, new Vector3f()),
                 new CreatureAi(0, CreatureState.WORK, (short) 4),
                 new TaskComponent(1, target, null, TaskType.TORTURE, 0, true));
-        CreatureViewSystem system = new CreatureViewSystem(entityData, null);
+        CreatureViewSystem system = new CreatureViewSystem(entityData, null, null);
         system.processTick(1);
         return entityData.getComponent(mistress, CreatureViewState.class).state;
     }
@@ -136,7 +136,7 @@ class CreatureViewSystemTest {
                 new Position(0, new Vector3f()),
                 new CreatureAi(0, CreatureState.WORK, (short) 4),
                 new TaskComponent(1, null, null, TaskType.SULK, 0, true));
-        CreatureViewSystem system = new CreatureViewSystem(entityData, kwdFile);
+        CreatureViewSystem system = new CreatureViewSystem(entityData, kwdFile, null);
 
         system.processTick(0.25f);
         assertEquals(Creature.AnimationType.STAND_STILL, entityData.getComponent(sulker, CreatureViewState.class).state);

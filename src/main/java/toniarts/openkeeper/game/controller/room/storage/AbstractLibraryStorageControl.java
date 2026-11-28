@@ -107,7 +107,8 @@ public abstract class AbstractLibraryStorageControl extends AbstractRoomObjectCo
             Vector3f target = WorldUtils.pointToVector3f(point);
             target.y = WorldUtils.FLOOR_HEIGHT + STORED_HEIGHT * WorldUtils.TILE_HEIGHT;
             if (items.size() == 2) {
-                float offset = (i == 0 ? PAIR_OFFSET : -PAIR_OFFSET) * WorldUtils.TILE_WIDTH;
+                // DK II puts the item stored last at +0x2aa and the older one at -0x2aa (0x4E12A0)
+                float offset = (item.equals(value) ? PAIR_OFFSET : -PAIR_OFFSET) * WorldUtils.TILE_WIDTH;
                 target.addLocal(offset, 0, offset);
             }
             entityData.setComponent(item, new Position(old.rotation, target));

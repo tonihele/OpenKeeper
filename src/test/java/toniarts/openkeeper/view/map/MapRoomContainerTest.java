@@ -22,6 +22,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -36,6 +37,7 @@ import toniarts.openkeeper.view.ClientEntityData;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MapRoomContainerTest {
@@ -96,6 +98,23 @@ class MapRoomContainerTest {
         entityData.setComponent(heartObject, new Health(40000, 100000));
         container.update();
         assertEquals(40, container.getRoomInformation(heart).getHealthPercent());
+    }
+
+    @Test
+    void casinoPayOutIsReadFromTheRoomEntity() {
+        EntityId casino = createRoom((short) 15);
+        entityData.setComponent(casino, new Casino(Casino.PayOut.SMILES));
+        EntityId other = createRoom((short) 2);
+
+        container.start();
+
+        assertEquals(Casino.PayOut.SMILES, container.getRoomInformation(casino).getCasinoPayOut());
+        assertNull(container.getRoomInformation(other).getCasinoPayOut());
+
+        // The keeper pulls the lever
+        entityData.setComponent(casino, new Casino(Casino.PayOut.MONEY));
+        container.update();
+        assertEquals(Casino.PayOut.MONEY, container.getRoomInformation(casino).getCasinoPayOut());
     }
 
     @Test

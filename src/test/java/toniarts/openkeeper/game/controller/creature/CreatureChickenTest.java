@@ -17,31 +17,47 @@
 package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
+import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.map.FakeMapData;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A creature under the Chicken spell does nothing but wander about until the
- * spell wears off
+ * A creature under the Chicken spell does nothing but walk to its keeper's
+ * Hatchery, or step about when there is none, until the spell wears off
+ * (DKII.EXE 0x463BE0)
  */
 @SuppressWarnings("unchecked")
 class CreatureChickenTest {
@@ -50,6 +66,11 @@ class CreatureChickenTest {
 
     private double now = NOW;
 
+    private final List<IRoomController> hatcheries = new ArrayList<>();
+    private final Set<Point> unreachable = new HashSet<>();
+    private final Set<Point> solid = new HashSet<>();
+    private final Set<Point> water = new HashSet<>();
+    private final Set<Point> lava = new HashSet<>();
     private EntityData entityData;
     private EntityId entity;
     private CreatureController controller;
@@ -132,6 +153,55 @@ class CreatureChickenTest {
         assertTrue(controller.isStateTimeExceeded());
     }
 
+    @Test
+    void chickenWalksToTheNearestHatcheryItCanGetTo() {
+        entityData.setComponent(entity, new Position(0, WorldUtils.pointToVector3f(1, 1)));
+        IRoomController far = hatchery(20, 22);
+        IRoomController near = hatchery(5, 7);
+        hatcheries.addAll(List.of(far, near));
+
+        controller.navigateAsChicken();
+        assertTrue(near.getRoomInstance().hasCoordinate(entityData.getComponent(entity, Navigation.class).target));
+
+        // The nearest is cut off
+        unreachable.addAll(near.getRoomInstance().getCoordinates());
+        controller.navigateAsChicken();
+        assertTrue(far.getRoomInstance().hasCoordinate(entityData.getComponent(entity, Navigation.class).target));
+    }
+
+    @Test
+    void chickenWithoutAHatcheryStepsToANeighbouringTileThatIsNotSolidWaterOrLava() {
+        entityData.setComponent(entity, new Position(0, WorldUtils.pointToVector3f(4, 4)));
+        solid.add(new Point(5, 4));
+        water.add(new Point(3, 4));
+        lava.add(new Point(4, 5));
+
+        controller.navigateAsChicken();
+        assertEquals(new Point(4, 3), entityData.getComponent(entity, Navigation.class).target);
+
+        // Boxed in it stays
+        entityData.removeComponent(entity, Navigation.class);
+        solid.add(new Point(4, 3));
+        controller.navigateAsChicken();
+        assertNull(entityData.getComponent(entity, Navigation.class));
+    }
+
+    /**
+     * A one tile high Hatchery from x {@code fromX} to {@code toX}
+     */
+    private static IRoomController hatchery(int fromX, int toX) {
+        RoomInstance instance = new RoomInstance(new Room());
+        for (int x = fromX; x <= toX; x++) {
+            instance.addCoordinate(new Point(x, 1));
+        }
+        return (IRoomController) Proxy.newProxyInstance(IRoomController.class.getClassLoader(),
+                new Class<?>[]{IRoomController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getRoomInstance" -> instance;
+                    case "isTileAccessible" -> true;
+                    default -> defaultValue(method.getReturnType());
+                });
+    }
+
     private static Creature creature(Creature.CreatureFlag... flags) {
         EnumSet<Creature.CreatureFlag> set = EnumSet.noneOf(Creature.CreatureFlag.class);
         set.addAll(List.of(flags));
@@ -141,7 +211,20 @@ class CreatureChickenTest {
     private CreatureController controller(Creature creature) {
         ILevelInfo levelInfo = (ILevelInfo) Proxy.newProxyInstance(ILevelInfo.class.getClassLoader(),
                 new Class<?>[]{ILevelInfo.class}, (proxy, method, args) -> null);
-        return new CreatureController(entity, entityData, creature, null, null, () -> now, Map.of(), null, null, null, levelInfo, null, null, null);
+        FakeMapData mapData = new FakeMapData(30, 9);
+        IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
+                new Class<?>[]{IMapController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getMapData" -> mapData;
+                    case "getRoomsByFunction" -> hatcheries;
+                    case "isSolid" -> solid.contains((Point) args[0]);
+                    case "isWater" -> water.contains((Point) args[0]);
+                    case "isLava" -> lava.contains((Point) args[0]);
+                    default -> defaultValue(method.getReturnType());
+                });
+        INavigationService navigationService = (INavigationService) Proxy.newProxyInstance(INavigationService.class.getClassLoader(),
+                new Class<?>[]{INavigationService.class}, (proxy, method, args) -> method.getName().equals("findPath")
+                && !unreachable.contains((Point) args[1]) ? new DefaultGraphPath<>() : defaultValue(method.getReturnType()));
+        return new CreatureController(entity, entityData, creature, navigationService, null, () -> now, Map.of(), null, null, mapController, levelInfo, null, null, null);
     }
 
     private static ICreatureController creature(AtomicBoolean timeUp, AtomicBoolean wandered, AtomicReference<CreatureState> state) {
@@ -158,7 +241,7 @@ class CreatureChickenTest {
                 ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "isStateTimeExceeded" -> timeUp.get();
                     case "isStopped" -> true;
-                    case "navigateToRandomPoint" -> {
+                    case "navigateAsChicken" -> {
                         wandered.set(true);
                         yield null;
                     }

@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.room;
 
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.PrisonStatus;
@@ -97,6 +98,12 @@ public abstract class AbstractRoomInformation implements IRoomInformation {
     @Override
     public AbstractRoomController.ObjectType getDefaultStorageType() {
         return getEntityComponent(RoomComponent.class).defaultStorageType;
+    }
+
+    @Override
+    public Casino.PayOut getCasinoPayOut() {
+        Casino casino = getEntityComponent(Casino.class);
+        return casino != null ? casino.payOut : null;
     }
 
     @Override

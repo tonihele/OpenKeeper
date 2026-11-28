@@ -84,6 +84,8 @@ public enum ChickenState implements State<IChickenController> {
         public void update(IChickenController entity) {
             if (entity.isStopped()) {
                 entity.getStateMachine().changeState(PECKING);
+            } else {
+                entity.dodgeCreature();
             }
         }
 

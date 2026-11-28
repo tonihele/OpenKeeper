@@ -20,11 +20,17 @@ import com.jme3.math.FastMath;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
+import java.util.ArrayList;
+import java.util.List;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CombatPitFight;
 import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
@@ -35,11 +41,20 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
  */
 public final class CombatPitController extends DoubleQuadController {
 
+    /**
+     * How long the creatures watching the pit stay after the last fight they
+     * saw, in seconds (DKII.EXE 0x4580D0)
+     */
+    private static final int WATCH_SECONDS_AFTER_FIGHT = 4;
+
+    private final IGameTimer gameTimer;
     private Point door;
 
     public CombatPitController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
-            RoomInstance roomInstance, IObjectsController objectsController) {
+            RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController);
+
+        this.gameTimer = gameTimer;
     }
 
     @Override
@@ -89,6 +104,48 @@ public final class CombatPitController extends DoubleQuadController {
      */
     public Point getRandomFightingTile() {
         return insideCoordinates.stream().skip(FastMath.nextRandomInt(0, insideCoordinates.size() - 1)).findFirst().orElseThrow();
+    }
+
+    /**
+     * The tiles round the pit itself, where the creatures that watch a fight
+     * stand
+     *
+     * @return the tiles of the room the creatures don't fight on
+     */
+    public List<Point> getSpectatorTiles() {
+        List<Point> tiles = new ArrayList<>(roomInstance.getCoordinates());
+        tiles.removeAll(insideCoordinates);
+        return tiles;
+    }
+
+    /**
+     * Is there a fighter on its feet in the pit. Like DK II (0x4D7CF0), the
+     * pit remembers when it was last asked and had one
+     *
+     * @return true if a fight is on
+     */
+    public boolean isFightOn() {
+        for (EntityId fighter : entityData.findEntities(new FieldFilter<>(CombatPitFighter.class, "pit", getEntityId()), CombatPitFighter.class)) {
+            if (entityData.getComponent(fighter, Unconscious.class) == null && entityData.getComponent(fighter, InHand.class) == null) {
+                entityData.setComponent(getEntityId(), new CombatPitFight(gameTimer.getGameTime()));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Is there something to watch: a fight, or one that was seen no more than
+     * 4 seconds ago
+     *
+     * @return true if the creatures watching the pit stay
+     */
+    public boolean isFightToWatch() {
+        if (isFightOn()) {
+            return true;
+        }
+        CombatPitFight fight = entityData.getComponent(getEntityId(), CombatPitFight.class);
+        return fight != null && gameTimer.getGameTime() - fight.lastFightTime <= WATCH_SECONDS_AFTER_FIGHT;
     }
 
     /**

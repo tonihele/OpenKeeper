@@ -25,6 +25,7 @@ import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
 import com.simsilica.event.EventBus;
 import toniarts.openkeeper.game.component.Casino;
+import toniarts.openkeeper.game.component.CasinoBigWinner;
 import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
@@ -54,6 +55,7 @@ import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.CasinoController;
+import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
@@ -87,6 +89,7 @@ import toniarts.openkeeper.game.task.creature.Research;
 import toniarts.openkeeper.game.task.creature.Sulk;
 import toniarts.openkeeper.game.task.creature.Torture;
 import toniarts.openkeeper.game.task.creature.Train;
+import toniarts.openkeeper.game.task.creature.WatchCombatPit;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
 import toniarts.openkeeper.game.task.objective.KillCreatures;
 import toniarts.openkeeper.game.task.objective.KillPlayer;
@@ -1323,9 +1326,68 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
                 return true;
             }
+            case COMBAT_PIT_SPECTATE: {
+                return assignWatchCombatPitTask(creature, assign);
+            }
             default:
                 return false;
         }
+    }
+
+    /**
+     * Sends the creature to watch a fight in a Combat Pit of its keeper, as
+     * DK II does (0x457780, 0x4D8510). A creature standing on the tiles round
+     * a pit watches from there, also for a moment after the fight. Otherwise
+     * it goes to the nearest free tile round a pit with a fight on that it
+     * can get to
+     *
+     * @param creature the creature
+     * @param assign whether to actually assign the creature to the task or
+     * just test
+     * @return true if there is a fight to watch
+     */
+    private boolean assignWatchCombatPitTask(ICreatureController creature, boolean assign) {
+        Point location = creature.getCreatureCoordinates();
+        CombatPitController nearestPit = null;
+        Point nearestSpot = null;
+        int nearestDistance = Integer.MAX_VALUE;
+        for (IRoomController room : mapController.getRoomControllers()) {
+            if (!(room instanceof CombatPitController pit) || pit.getOwnerId() != creature.getOwnerId() || pit.isDestroyed()) {
+                continue;
+            }
+            List<Point> spots = pit.getSpectatorTiles();
+            if (spots.contains(location)) {
+                if (pit.isFightToWatch()) {
+                    nearestPit = pit;
+                    nearestSpot = location;
+                    break;
+                }
+                continue;
+            }
+            if (!pit.isFightOn()) {
+                continue;
+            }
+            for (Point spot : spots) {
+                int distance = WorldUtils.calculateDistance(location, spot);
+                if (distance < nearestDistance
+                        && entityPositionLookup.getEntityTypesInLocation(spot, ICreatureController.class).isEmpty()
+                        && navigationService.findPath(location, spot, creature) != null) {
+                    nearestPit = pit;
+                    nearestSpot = spot;
+                    nearestDistance = distance;
+                }
+            }
+        }
+        if (nearestPit == null) {
+            return false;
+        }
+        if (assign) {
+            Task task = new WatchCombatPit(navigationService, mapController, nearestPit, nearestSpot, creature.getOwnerId(),
+                    entityData, entityPositionLookup, FastMath.rand);
+            task.assign(creature, true);
+            tasksByIds.put(task.getId(), task);
+        }
+        return true;
     }
 
     /**
@@ -1449,10 +1511,14 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     @Override
     public boolean assignCollectWinningsTask(ICreatureController creature) {
 
-        // The keeper's gold is in the Treasuries and the Dungeon Heart, go to the nearest one we can reach
+        // The keeper's gold is in the Treasuries and the Dungeon Heart. Go to the nearest one we can reach that holds more
+        // gold than the winnings, and only when there is none to the nearest one we can reach (DKII.EXE 0x457010)
         Point currentLocation = creature.getCreatureCoordinates();
-        List<IRoomController> rooms = mapController.getRoomsByFunction(ObjectType.GOLD, creature.getOwnerId());
-        rooms.sort(Comparator.comparing(room -> getShortestDistance(currentLocation, room.getRoomInstance().getCoordinates().toArray(new Point[0]))));
+        CasinoBigWinner bigWinner = entityData.getComponent(creature.getEntityId(), CasinoBigWinner.class);
+        int winnings = bigWinner != null ? bigWinner.winnings : 0;
+        List<IRoomController> rooms = new ArrayList<>(mapController.getRoomsByFunction(ObjectType.GOLD, creature.getOwnerId()));
+        rooms.sort(Comparator.comparing((IRoomController room) -> room.getObjectControl(ObjectType.GOLD).getCurrentCapacity() <= winnings)
+                .thenComparing(room -> getShortestDistance(currentLocation, room.getRoomInstance().getCoordinates().toArray(new Point[0]))));
         for (IRoomController room : rooms) {
             List<Point> coordinates = new ArrayList<>(room.getRoomInstance().getCoordinates());
             coordinates.removeIf(p -> !room.isTileAccessible(null, p));

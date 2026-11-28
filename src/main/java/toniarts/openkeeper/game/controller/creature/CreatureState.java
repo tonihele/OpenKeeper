@@ -305,10 +305,11 @@ public enum CreatureState implements State<ICreatureController> {
 
             // Hunger, then fatigue, then pay day interrupt a room job, including travel to it. DK II gives the three
             // one mask of job groups (0x800A3C3B, set in 0x4798F0 and checked in 0x477C20): research, the Workshop,
-            // guard duty, the Temple, training and the Casino, but not the Prison, the Torture Chamber or a fight
+            // guard duty, the Temple, training, the Casino and watching the Combat Pit (group 0x1F), but not the
+            // Prison, the Torture Chamber or a fight
             Task task = entity.getAssignedTask();
             boolean interruptible = task != null && switch (task.getTaskType()) {
-                case RESEARCH, MANUFACTURE, GUARD, PRAY, TRAIN, GAMBLE -> true;
+                case RESEARCH, MANUFACTURE, GUARD, PRAY, TRAIN, GAMBLE, WATCH_COMBAT_PIT -> true;
                 default -> false;
             };
             if (interruptible && ((entity.isHungry() && entity.goToEat())
@@ -372,6 +373,13 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
+
+            // The winner of a Combat Pit fight celebrates first (DK II 0x457CF0)
+            if (entity.hasWonCombatPitFight()) {
+                entity.getStateMachine().changeState(COMBAT_PIT_VICTORY);
+                return;
+            }
+
             IEntityController attackTarget = entity.getAttackTarget();
             if (attackTarget == null) {
                 entity.getStateMachine().changeState(entity.isCombatPitFighter() ? COMBAT_PIT : IDLE); // Nothing to do
@@ -889,6 +897,32 @@ public enum CreatureState implements State<ICreatureController> {
         public boolean onMessage(ICreatureController entity, Telegram telegram) {
             return true;
         }
+    }, COMBAT_PIT_VICTORY {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.stopCreature();
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Cheer, then the win cheers us up and we fight on (DK II 0x457CF0)
+            if (entity.isStateTimeExceeded()) {
+                entity.cheerUpCombatPitVictor();
+                entity.getStateMachine().changeState(COMBAT_PIT);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
     }, DANCING {
 
         @Override
@@ -949,7 +983,7 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void enter(ICreatureController entity) {
             entity.unassingCurrentTask();
-            entity.navigateToRandomPoint();
+            entity.navigateAsChicken();
         }
 
         @Override
@@ -961,9 +995,9 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            // Just peck about
+            // Off to the Hatchery, again and again
             if (entity.isStopped()) {
-                entity.navigateToRandomPoint();
+                entity.navigateAsChicken();
             }
         }
 
