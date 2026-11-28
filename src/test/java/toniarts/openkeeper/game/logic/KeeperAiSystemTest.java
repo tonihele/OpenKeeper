@@ -2896,11 +2896,12 @@ class KeeperAiSystemTest {
 
         INavigationService navigationService = (INavigationService) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{INavigationService.class}, (proxy, method, args) -> {
-                    if (!"findPath".equals(method.getName())) {
+                    if (!"findPath".equals(method.getName()) && !"isReachable".equals(method.getName())) {
                         throw new UnsupportedOperationException(method.getName());
                     }
                     routesAsked.add(List.of((Point) args[0], (Point) args[1]));
-                    return findPath((Point) args[0], (Point) args[1]);
+                    Object path = findPath((Point) args[0], (Point) args[1]);
+                    return "isReachable".equals(method.getName()) ? path != null : path;
                 });
 
         return new KeeperAiSystem(entityData, kwdFile, Map.of(PLAYER_ID, playerController, enemyId, enemyController), gameWorldController,
