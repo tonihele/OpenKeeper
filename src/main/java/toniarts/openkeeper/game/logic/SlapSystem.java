@@ -33,10 +33,12 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
@@ -62,10 +64,24 @@ public final class SlapSystem extends GameTimeCounter {
      * is slapped again, as in DK II
      */
     private final static int BIG_WINNER_SLAPPED_AGAIN_ANGER = 5000;
+    /**
+     * A slap makes the creature 50 % faster for 100 seconds. DKII.EXE has both
+     * numbers in its code, it doesn't read SLAP_SPEED_UP_DURATION_SECONDS
+     */
+    private final static int SLAP_SPEED_UP_PERCENTAGE = 150;
+    private final static int SLAP_SPEED_UP_SECONDS = 100;
+    /**
+     * A slap makes the creature work faster for 100 ticks. DKII.EXE sets its
+     * work faster timer to 100 and counts it down by one a tick (0x48B8A0,
+     * 0x48E160). The faster research lasts the level's
+     * INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS (0x4C2DC0)
+     */
+    private final static int WORK_FASTER_TICKS = 100;
 
     private final IKwdFile kwdFile;
     private final EntitySet creatureEntities;
     private final EntitySet objectEntities;
+    private final EntitySet speedChangeEntities;
     private final EntityData entityData;
     private final IObjectsController objectsController;
     private final int maxSlapDuration;
@@ -87,6 +103,7 @@ public final class SlapSystem extends GameTimeCounter {
 
         creatureEntities = entityData.getEntities(Slapped.class, CreatureComponent.class, Owner.class);
         objectEntities = entityData.getEntities(Slapped.class, ObjectComponent.class, Interaction.class);
+        speedChangeEntities = entityData.getEntities(SpeedChange.class, Mobile.class, CreatureComponent.class);
         processAddedCreatureEntities(creatureEntities);
         processAddedObjectEntities(objectEntities);
     }
@@ -94,6 +111,15 @@ public final class SlapSystem extends GameTimeCounter {
     @Override
     public void processTick(float tpf) {
         super.processTick(tpf);
+
+        // The work bonus ends after its ticks, before a new slap can start it again
+        double workFasterSeconds = getWorkFasterSeconds();
+        for (Map.Entry<EntityId, Double> entry : slapStartTimesByEntityId.entrySet()) {
+            double slapped = timeElapsed - entry.getValue();
+            if (slapped >= workFasterSeconds && slapped - tpf < workFasterSeconds) {
+                addEfficiency(entry.getKey(), -EFFICIENCY_BONUS);
+            }
+        }
 
         if (creatureEntities.applyChanges()) {
             processDeletedEntities(creatureEntities.getRemovedEntities());
@@ -114,6 +140,8 @@ public final class SlapSystem extends GameTimeCounter {
                 entityData.removeComponent(entry.getKey(), Slapped.class);
             }
         }
+
+        processSpeedChanges();
     }
 
     private void processAddedCreatureEntities(Set<Entity> entities) {
@@ -127,12 +155,19 @@ public final class SlapSystem extends GameTimeCounter {
             handleCreatureSlap(entity, creatureId, ownerId);
 
             // Efficiency, this doesn't stack, so only when added
-            // TODO: there are several parameters, speed and work efficiency, and they look a bit weird to me, so just this now
-            CreatureEfficiency efficiency = entityData.getComponent(entity.getId(), CreatureEfficiency.class);
-            if (efficiency != null) {
-                entityData.setComponent(entity.getId(), new CreatureEfficiency(efficiency.efficiencyPercentage + EFFICIENCY_BONUS));
-            }
+            addEfficiency(entity.getId(), EFFICIENCY_BONUS);
         }
+    }
+
+    private void addEfficiency(EntityId entityId, int bonus) {
+        CreatureEfficiency efficiency = entityData.getComponent(entityId, CreatureEfficiency.class);
+        if (efficiency != null) {
+            entityData.setComponent(entityId, new CreatureEfficiency(efficiency.efficiencyPercentage + bonus));
+        }
+    }
+
+    private double getWorkFasterSeconds() {
+        return WORK_FASTER_TICKS / (double) kwdFile.getGameLevel().getTicksPerSec();
     }
 
     private void processAddedObjectEntities(Set<Entity> entities) {
@@ -191,7 +226,27 @@ public final class SlapSystem extends GameTimeCounter {
             entityData.setComponent(entity.getId(), updatedSleep);
         }
 
+        // Speed up, unless the speed is already changed (DKII.EXE 0x48B8A0)
+        Mobile mobile = entityData.getComponent(entity.getId(), Mobile.class);
+        if (mobile != null && entityData.getComponent(entity.getId(), SpeedChange.class) == null) {
+            entityData.setComponent(entity.getId(), new Mobile(mobile.canFly, mobile.canWalkOnWater, mobile.canWalkOnLava,
+                    mobile.maxSpeed * SLAP_SPEED_UP_PERCENTAGE / 100));
+            entityData.setComponent(entity.getId(), new SpeedChange(entity.get(Slapped.class).startTime + SLAP_SPEED_UP_SECONDS));
+        }
+
         // TODO: Apply the force
+    }
+
+    private void processSpeedChanges() {
+        speedChangeEntities.applyChanges();
+        for (Entity entity : speedChangeEntities) {
+            if (timeElapsed >= entity.get(SpeedChange.class).endTime) {
+                Mobile mobile = entity.get(Mobile.class);
+                entityData.setComponent(entity.getId(), new Mobile(mobile.canFly, mobile.canWalkOnWater, mobile.canWalkOnLava,
+                        entity.get(CreatureComponent.class).speed));
+                entityData.removeComponent(entity.getId(), SpeedChange.class);
+            }
+        }
     }
 
     /**
@@ -257,10 +312,9 @@ public final class SlapSystem extends GameTimeCounter {
 
     private void processDeletedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            slapStartTimesByEntityId.remove(entity.getId());
-            CreatureEfficiency efficiency = entityData.getComponent(entity.getId(), CreatureEfficiency.class);
-            if (efficiency != null) {
-                entityData.setComponent(entity.getId(), new CreatureEfficiency(efficiency.efficiencyPercentage - EFFICIENCY_BONUS));
+            Double startTime = slapStartTimesByEntityId.remove(entity.getId());
+            if (startTime != null && timeElapsed - startTime < getWorkFasterSeconds()) {
+                addEfficiency(entity.getId(), -EFFICIENCY_BONUS);
             }
         }
     }
@@ -269,9 +323,16 @@ public final class SlapSystem extends GameTimeCounter {
         for (Entity entity : entities) {
             double startTime = entity.get(Slapped.class).startTime;
 
-            if (slapStartTimesByEntityId.get(entity.getId()) != startTime) {
+            Double previousStartTime = slapStartTimesByEntityId.get(entity.getId());
+            if (previousStartTime != startTime) {
                 slapStartTimesByEntityId.put(entity.getId(), startTime);
                 if (entity.get(CreatureComponent.class) != null) {
+
+                    // The work bonus starts again, it is given again if it had run out
+                    if (timeElapsed - previousStartTime >= getWorkFasterSeconds()) {
+                        addEfficiency(entity.getId(), EFFICIENCY_BONUS);
+                    }
+
                     short creatureId = entity.get(CreatureComponent.class).creatureId;
                     short ownerId = entity.get(Owner.class).ownerId;
 
@@ -291,6 +352,7 @@ public final class SlapSystem extends GameTimeCounter {
     public void stop() {
         creatureEntities.release();
         objectEntities.release();
+        speedChangeEntities.release();
         slapStartTimesByEntityId.clear();
     }
 

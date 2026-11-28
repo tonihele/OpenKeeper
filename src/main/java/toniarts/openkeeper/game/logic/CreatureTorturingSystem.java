@@ -20,15 +20,23 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
+import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.KeeperInformation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -41,8 +49,10 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -53,16 +63,52 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public final class CreatureTorturingSystem extends GameTimeCounter {
 
+    /**
+     * What a torture victim can tell about its keeper. The numbers are DK
+     * II's. OpenKeeper has no panel that shows the keeper information, the
+     * victim only tells it once.
+     */
+    private static final int INFO_ARTISAN = 3;
+    private static final int INFO_THINKER = 4;
+    private static final int INFO_FIGHTER = 5;
+    private static final int INFO_ARTISAN_2 = 7;
+    private static final int INFO_FIGHTER_2 = 8;
+    private static final int INFO_THINKER_2 = 9;
+    private static final int INFO_ANY = 10;
+    private static final int INFO_ROOM = 11;
+
     private final EntityData entityData;
     private final ICreaturesController creaturesController;
     private final IMapController mapController;
     private final GameEventService gameEventService;
     private final int chanceOfDyingWhenConverted;
     private final EntitySet torturedEntities;
+    private final EntitySet keeperInformation;
+    private final Random random;
+    private final double tortureInterval;
     private final Map<EntityId, IRoomController> chambersByVictim = new HashMap<>();
 
+    /**
+     * The torture
+     *
+     * @param entityData the entity data
+     * @param creaturesController the creatures, for converting the victims
+     * @param mapController the map, for the chambers
+     * @param gameEventService the game events
+     * @param gameSettings the level variables
+     * @param ticksPerSecond the level's ticks per second
+     */
     public CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapController mapController,
-            GameEventService gameEventService, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+            GameEventService gameEventService, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            int ticksPerSecond) {
+        this(entityData, creaturesController, mapController, gameEventService, gameSettings, ticksPerSecond, new Random());
+    }
+
+    CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapController mapController,
+            GameEventService gameEventService, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            int ticksPerSecond, Random random) {
+        this.random = random;
+        tortureInterval = getTortureInterval(ticksPerSecond);
         this.entityData = entityData;
         this.gameEventService = gameEventService;
         this.creaturesController = creaturesController;
@@ -71,6 +117,7 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
 
         // Have the position also here, since the player may move tortured entities between torture rooms, kinda still tortured but not counting towards death at the time
         torturedEntities = entityData.getEntities(CreatureTortured.class, CreatureComponent.class, Position.class, Owner.class);
+        keeperInformation = entityData.getEntities(KeeperInformation.class);
     }
 
     @Override
@@ -89,15 +136,19 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
             if (chamber != null) {
                 playTortureSounds(entity, creatureTortured.device);
             }
-            if (creatureTortured.tortureCheckTime >= timeElapsed || chamber == null) {
+            // Like in DK II, the torture works once a second, and that second takes a tick more (0x47B590)
+            if (timeElapsed - creatureTortured.tortureCheckTime < tortureInterval || chamber == null) {
                 continue;
             }
 
             CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
             Owner owner = entity.get(Owner.class);
             short playerId = chamber.getRoomInstance().getOwnerId();
+            double tortureCheckTime = creatureTortured.tortureCheckTime + tortureInterval;
 
-            if (creatureTortured.timeTortured + tpf >= creatureComponent.tortureTimeToConvert) {
+            tortureForASecond(entity.getId(), owner.ownerId == playerId);
+
+            if (creatureTortured.timeTortured + 1 >= creatureComponent.tortureTimeToConvert) {
                 if (owner.ownerId != playerId) {
 
                     // Some die instead, the torture starts over for them until death comes
@@ -106,7 +157,7 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
                         if (health != null) {
                             EntityController.setDamage(entityData, entity.getId(), health.health);
                         }
-                        entity.set(new CreatureTortured(0, timeElapsed, creatureTortured.healthCheckTime, creatureTortured.device));
+                        entity.set(new CreatureTortured(0, tortureCheckTime, creatureTortured.healthCheckTime, creatureTortured.device));
                         continue;
                     }
 
@@ -122,8 +173,40 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
                 }
             }
 
-            entity.set(new CreatureTortured(creatureTortured.timeTortured + tpf, timeElapsed, creatureTortured.healthCheckTime, creatureTortured.device));
+            entity.set(new CreatureTortured(creatureTortured.timeTortured + 1, tortureCheckTime, creatureTortured.healthCheckTime, creatureTortured.device));
         }
+    }
+
+    /**
+     * How long a second of torture takes. DK II counts a byte down from the
+     * ticks per second to 0 and only on the tick it finds 0 does it change the
+     * victim's health and mood and add a second to its torture time, so the
+     * second takes a tick more (DKII.EXE 0x47B590). The conversion comes after
+     * the victim's torture time to convert in these seconds.
+     *
+     * @param ticksPerSecond the level's ticks per second
+     * @return the length of a second of torture, in seconds
+     */
+    public static double getTortureInterval(int ticksPerSecond) {
+        return (ticksPerSecond + 1) / (double) ticksPerSecond;
+    }
+
+    /**
+     * A second of torture. Like in DK II, the keeper's own victim gets its
+     * torture mood change, which a Mistress enjoys. The health change is done
+     * by the health system.
+     */
+    private void tortureForASecond(EntityId victim, boolean ownCreature) {
+        if (!ownCreature) {
+            return;
+        }
+        Creature creature = creaturesController.createController(victim).getCreature();
+        CreatureMood mood = entityData.getComponent(victim, CreatureMood.class);
+        if (creature == null || mood == null || creature.getAttributes().getTortureMoodChange() == 0
+                || (creature.getFlags2() != null && creature.getFlags2().contains(Creature.CreatureFlag2.IS_EMOTIONLESS))) {
+            return;
+        }
+        entityData.setComponent(victim, mood.add(CreatureMood.REASON_OTHER, creature.getAttributes().getTortureMoodChange()));
     }
 
     /**
@@ -158,7 +241,11 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
 
     /**
      * The victim is no longer tortured: it died, was picked up, or the chamber
-     * was sold or destroyed, which sets its victims free
+     * set it free. Like in DK II, a chamber sets its victims free when it is
+     * sold or destroyed, and when it is built again with no device left for
+     * the victim (0x4F1F10 puts each victim in state 0x88, 0x484CE0, which
+     * finds no device and falls back to state 1, where 0x4773D0 clears the
+     * torturer's hold +0x3CB)
      */
     private void processRemovedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
@@ -169,7 +256,21 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
             }
             leaveDevice(victim);
 
-            if (!chamber.getRoomInstance().isDestroyed()
+            // A victim moved by the keeper is in another state by now
+            CreatureAi ai = entityData.getComponent(victim, CreatureAi.class);
+            boolean leftWithoutDevice = ai != null && ai.getCreatureState() == CreatureState.TORTURED
+                    && entityData.getComponent(victim, CreatureTortured.class) == null;
+
+            // An enemy tortured to death tells something about its keeper
+            Owner owner = entityData.getComponent(victim, Owner.class);
+            short playerId = chamber.getRoomInstance().getOwnerId();
+            CreatureComponent creatureComponent = entityData.getComponent(victim, CreatureComponent.class);
+            if (entityData.getComponent(victim, Death.class) != null && owner != null && creatureComponent != null
+                    && owner.ownerId != playerId) {
+                revealInformation(playerId, owner.ownerId, creaturesController.createController(victim).getCreature());
+            }
+
+            if (!chamber.getRoomInstance().isDestroyed() && !leftWithoutDevice
                     || entityData.getComponent(victim, Death.class) != null
                     || entityData.getComponent(victim, InHand.class) != null
                     || entityData.getComponent(victim, CreatureComponent.class) == null) {
@@ -177,10 +278,85 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
             }
 
             // Set free
-            Owner owner = entityData.getComponent(victim, Owner.class);
             entityData.setComponent(victim, new Owner(owner.ownerId, owner.ownerId));
             creaturesController.createController(victim).getStateMachine().changeState(CreatureState.IDLE);
         }
+    }
+
+    /**
+     * Like in DK II, the victim tells one thing its keeper's torturer does not
+     * know yet, picked at random. Depending on its job, a creature knows two
+     * things about its keeper, any creature one more, and it can always tell
+     * where one of the keeper's rooms is. OpenKeeper reveals the room, a
+     * room not revealed this way yet. What the torturer knows is kept in a
+     * KeeperInformation entity.
+     *
+     * @param playerId the torturer
+     * @param victimOwnerId the keeper of the victim
+     * @param creature the victim
+     */
+    private void revealInformation(short playerId, short victimOwnerId, Creature creature) {
+        Entity entity = getKeeperInformation(playerId, victimOwnerId);
+        KeeperInformation known = entity.get(KeeperInformation.class);
+        List<Integer> info = new ArrayList<>(4);
+        for (int item : getInformation(creature)) {
+            if (!known.told.contains(item)) {
+                info.add(item);
+            }
+        }
+        info.add(INFO_ROOM);
+
+        int item = info.get(random.nextInt(info.size()));
+        if (item != INFO_ROOM) {
+            Set<Integer> told = new HashSet<>(known.told);
+            told.add(item);
+            entity.set(new KeeperInformation(playerId, victimOwnerId, told, known.roomsRevealed));
+            return;
+        }
+
+        for (IRoomController room : mapController.getRoomControllers()) {
+            RoomInstance roomInstance = room.getRoomInstance();
+            if (roomInstance.getOwnerId() == victimOwnerId && !roomInstance.isDestroyed()
+                    && !known.roomsRevealed.contains(room.getEntityId())) {
+                Set<EntityId> roomsRevealed = new HashSet<>(known.roomsRevealed);
+                roomsRevealed.add(room.getEntityId());
+                entity.set(new KeeperInformation(playerId, victimOwnerId, known.told, roomsRevealed));
+                mapController.revealTiles(new ArrayList<Point>(roomInstance.getCoordinates()), playerId);
+                return;
+            }
+        }
+    }
+
+    private Entity getKeeperInformation(short playerId, short keeperId) {
+        keeperInformation.applyChanges();
+        for (Entity entity : keeperInformation) {
+            KeeperInformation known = entity.get(KeeperInformation.class);
+            if (known.playerId == playerId && known.keeperId == keeperId) {
+                return entity;
+            }
+        }
+
+        EntityId entityId = entityData.createEntity();
+        entityData.setComponent(entityId, new KeeperInformation(playerId, keeperId, Set.of(), Set.of()));
+        keeperInformation.applyChanges();
+        return keeperInformation.getEntity(entityId);
+    }
+
+    private static int[] getInformation(Creature creature) {
+        Creature.JobClass jobClass = (creature != null ? creature.getJobClass() : null);
+        if (jobClass == null) {
+            return new int[]{INFO_ANY};
+        }
+        return switch (jobClass) {
+            case ARTISAN ->
+                new int[]{INFO_ARTISAN, INFO_ARTISAN_2, INFO_ANY};
+            case THINKER ->
+                new int[]{INFO_THINKER, INFO_THINKER_2, INFO_ANY};
+            case FIGHTER ->
+                new int[]{INFO_FIGHTER, INFO_FIGHTER_2, INFO_ANY};
+            default ->
+                new int[]{INFO_ANY};
+        };
     }
 
     private void leaveDevice(EntityId victim) {
@@ -198,6 +374,7 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
     @Override
     public void stop() {
         torturedEntities.release();
+        keeperInformation.release();
         chambersByVictim.clear();
     }
 

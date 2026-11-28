@@ -104,6 +104,11 @@ public final class CreaturePortraitScrollControl extends AbstractController {
         return Math.max(0, portraits.size() - visibleSlots);
     }
 
+    public void refreshLayout() {
+        firstVisible = Math.min(firstVisible, maxFirstVisible());
+        layoutPortraits();
+    }
+
     private void layoutPortraits() {
         if (content == null || viewport == null || visibleWindow == null) {
             return;
