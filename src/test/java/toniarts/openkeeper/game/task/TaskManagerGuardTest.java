@@ -221,6 +221,8 @@ class TaskManagerGuardTest {
             case "getOwnerId" -> KEEPER;
             case "getEntityId" -> id;
             case "getCreature" -> type;
+            // Enough to gamble with, DK II's Drink job wants more than a turn's stake (0x4560F0)
+            case "getGold" -> 100;
             case "setAssignedTask" -> {
                 task.set((Task) args[0]);
                 yield null;
@@ -272,8 +274,11 @@ class TaskManagerGuardTest {
             case "getRoomsByFunction" -> rooms;
             default -> null;
         });
-        INavigationService navigation = stub(INavigationService.class, (proxy, method, args)
-                -> "findPath".equals(method.getName()) ? new DefaultGraphPath<>() : null);
+        INavigationService navigation = stub(INavigationService.class, (proxy, method, args) -> switch (method.getName()) {
+            case "findPath" -> new DefaultGraphPath<>();
+            case "isReachable" -> true;
+            default -> null;
+        });
         IKwdFile kwdFile = stub(IKwdFile.class, (proxy, method, args) -> "getGameLevel".equals(method.getName()) ? CreatureSleepFixtures.level(4) : null);
         ILevelInfo levelInfo = stub(ILevelInfo.class, (proxy, method, args) -> "getLevelData".equals(method.getName()) ? kwdFile : null);
         Map<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
