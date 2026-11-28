@@ -88,6 +88,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -317,8 +318,17 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     private EntityId loadCreature(EntityId entity, Creature creature, Integer healthPercentage, int money, int level, SpawnType spawnType, float x, float y, short ownerId, float rotation, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId, boolean diesInstantly) {
-        String name = Utils.generateCreatureName();
-        String bloodType = Utils.generateBloodType();
+
+        // The name and the blood type are unique among the owner's creatures
+        Set<String> names = new HashSet<>();
+        Set<String> bloodTypes = new HashSet<>();
+        for (EntityId ownedCreature : entityData.findEntities(new FieldFilter<>(Owner.class, "ownerId", ownerId), Owner.class, CreatureComponent.class)) {
+            CreatureComponent creatureComponent = entityData.getComponent(ownedCreature, CreatureComponent.class);
+            names.add(creatureComponent.name);
+            bloodTypes.add(creatureComponent.bloodType);
+        }
+        String name = Utils.generateCreatureName(names);
+        String bloodType = Utils.generateBloodType(bloodTypes);
 
         return loadCreature(entity, creature, name, bloodType, healthPercentage, money, level, spawnType, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId, diesInstantly);
     }
