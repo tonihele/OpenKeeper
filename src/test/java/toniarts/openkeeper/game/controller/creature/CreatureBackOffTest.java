@@ -570,7 +570,8 @@ class CreatureBackOffTest {
             }
             case "canStepBack" -> stepsBack.get();
             case "isStateTimeExceeded" -> false;
-            case "releaseCastShot" -> null;
+            case "releaseCastShot", "releaseMeleeHit", "cancelMeleeHit" -> null;
+            case "castSupportSpell", "hasPendingMeleeHit" -> false;
             default -> throw new UnsupportedOperationException(method);
         }));
         return self.get();
