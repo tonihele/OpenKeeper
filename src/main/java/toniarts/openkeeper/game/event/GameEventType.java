@@ -118,8 +118,16 @@ public enum GameEventType {
     ROOM_TILES_LAID,
     ROOM_TILE_BUILT,
     ROOM_SOLD,
-    /** A completed room capture, delivered only to its new owner. */
+    /** A completed capture of a neutral room, delivered only to its new owner. */
     ROOM_CAPTURED,
+    /** A completed capture of an enemy room, delivered only to its new owner. */
+    ROOM_TAKEN_OVER,
+    /** A room taken by an enemy, delivered only to its old owner. */
+    ROOM_LOST,
+    /**
+     * The keeper has no mana left, only that keeper gets this. The subject is the Dungeon Heart room
+     */
+    NO_MANA,
     TERRAIN_DESTROYED,
 
     // Temple

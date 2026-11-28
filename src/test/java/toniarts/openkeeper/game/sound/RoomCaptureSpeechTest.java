@@ -39,6 +39,19 @@ class RoomCaptureSpeechTest {
     }
 
     @Test
+    void anEnemyRoomIsTakenOverAndItsOwnerLosesIt() {
+
+        // DK II's messages 0x20 and 0x23 (tables at 0x6A0060 and 0x6A0220): "You have taken over an enemy Lair",
+        // "The enemy has taken your Lair", and the room versions without a recording of their own
+        assertEquals(64, RoomCaptureSpeech.forTakenOver(SoundFixtures.room("ROOM_LAIR")));
+        assertEquals(126, RoomCaptureSpeech.forLost(SoundFixtures.room("ROOM_LAIR")));
+        assertEquals(72, RoomCaptureSpeech.forTakenOver(SoundFixtures.room("ROOM_PORTAL")));
+        assertEquals(134, RoomCaptureSpeech.forLost(SoundFixtures.room("ROOM_PORTAL")));
+        assertEquals(78, RoomCaptureSpeech.forTakenOver(null));
+        assertEquals(140, RoomCaptureSpeech.forLost(null));
+    }
+
+    @Test
     void existingCallToArmsNarrationUsesTheSameQueue() {
         var queued = new ArrayList<Integer>();
         var player = new GameEventSoundPlayer(null, queued::add);

@@ -26,12 +26,15 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.Casino;
+import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.GuardRoomController;
@@ -230,8 +233,13 @@ class JobRoomOccupancyTest {
         gameSettings.put(MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL, CreatureSleepFixtures.variable(MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL, 10));
         gameSettings.put(MiscType.MODIFY_PLAYER_GOLD_WHILE_TRAINING_PER_SECOND, CreatureSleepFixtures.variable(MiscType.MODIFY_PLAYER_GOLD_WHILE_TRAINING_PER_SECOND, -1));
         Keeper keeper = new Keeper(false, KEEPER);
-        keeper.setGold(100);
-        IPlayerController playerController = proxy(IPlayerController.class, (proxy, method, args) -> method.getName().equals("getKeeper") ? keeper : null);
+        entityData.setComponents(entityData.createEntity(), new KeeperComponent(KEEPER), new Gold(100, 100));
+        PlayerGoldControl goldControl = new PlayerGoldControl(keeper, entityData);
+        IPlayerController playerController = proxy(IPlayerController.class, (proxy, method, args) -> switch (method.getName()) {
+            case "getKeeper" -> keeper;
+            case "getGoldControl" -> goldControl;
+            default -> null;
+        });
         return new Train(null, null, new Point(1, 1), KEEPER, room, taskManager(), null, gameSettings, playerController, null, null);
     }
 

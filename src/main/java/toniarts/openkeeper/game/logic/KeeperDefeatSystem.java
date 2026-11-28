@@ -31,7 +31,9 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.GameEnded;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.component.KeeperDefeated;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
@@ -63,8 +65,11 @@ import toniarts.openkeeper.utils.Point;
  * he is marked destroyed, loses the game, his heart room is left in ruins and
  * his land goes back to nobody. From 5 turns later his imps die and his other
  * creatures leave.
- * In a skirmish or multiplayer game the last keeper standing wins. In the
- * campaign, a level can have the last enemy heart leave a Portal Gem.
+ * In a skirmish or multiplayer game the last keeper standing wins, and when a
+ * keeper wins, by the level script too, every keeper who is not his ally
+ * loses. A keeper who loses by the level script can leave the last side
+ * standing too. In the campaign, a level can have the last enemy heart leave a
+ * Portal Gem.
  */
 public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
@@ -92,6 +97,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
     private final boolean lastKeeperWins;
     private final EntitySet hearts;
     private final EntitySet defeats;
+    private final EntitySet endedGames;
     private final Map<EntityId, Short> heartOwners = new HashMap<>();
     private final Map<Short, EntitySet> defeatedKeepersCreatures = new HashMap<>();
 
@@ -119,6 +125,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
                 ObjectComponent.class, Owner.class, Health.class);
         processAddedHearts(hearts);
         defeats = entityData.getEntities(new FieldFilter(KeeperDefeated.class, "creaturesGone", false), KeeperDefeated.class);
+        endedGames = entityData.getEntities(KeeperComponent.class, GameEnded.class);
     }
 
     @Override
@@ -130,6 +137,17 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
             // A removed entity has no components left, so we remember the owners
             for (Entity heart : hearts.getRemovedEntities()) {
                 heartDestroyed(heart.getId());
+            }
+        }
+        if (endedGames.applyChanges() && lastKeeperWins) {
+            for (Entity player : endedGames.getAddedEntities()) {
+                if (player.get(GameEnded.class).won) {
+                    rivalsLose(levelInfo.getPlayer(player.get(KeeperComponent.class).playerId));
+                } else if (endedGames.stream().noneMatch(ended -> ended.get(GameEnded.class).won)) {
+
+                    // A keeper who loses, by the level script too, can leave one side standing, which wins (0x4BE630)
+                    checkLastKeeperStanding();
+                }
             }
         }
 
@@ -152,6 +170,21 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
                 defeat.set(new KeeperDefeated(keeperDefeated.playerId, keeperDefeated.time, true));
             } else {
                 sendCreaturesAway(creatures);
+            }
+        }
+    }
+
+    /**
+     * When a keeper wins a skirmish or multiplayer game, every other keeper
+     * loses unless the two are allies of each other. The winner's allies don't
+     * win from it (0x4BE630)
+     *
+     * @param winner the keeper who won
+     */
+    private void rivalsLose(Keeper winner) {
+        for (Keeper keeper : getKeepersStillPlaying()) {
+            if (keeper != winner && (winner.isEnemy(keeper.getId()) || keeper.isEnemy(winner.getId()))) {
+                gameController.endGame(keeper.getId(), false);
             }
         }
     }
@@ -306,7 +339,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
     }
 
     private void checkLastKeeperStanding() {
-        List<Keeper> standing = getKeepersStanding();
+        List<Keeper> standing = getKeepersStillPlaying();
         if (standing.isEmpty()) {
             return;
         }
@@ -359,6 +392,15 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
         return keeper.getPlayer() != null && keeper.getPlayer().isAi();
     }
 
+    /**
+     * The keepers standing whose game hasn't ended, by a win or a loss
+     */
+    private List<Keeper> getKeepersStillPlaying() {
+        List<Keeper> playing = getKeepersStanding();
+        playing.removeIf(keeper -> endedGames.stream().anyMatch(ended -> ended.get(KeeperComponent.class).playerId == keeper.getId()));
+        return playing;
+    }
+
     private List<Keeper> getKeepersStanding() {
         List<Keeper> standing = new ArrayList<>();
         for (Keeper keeper : levelInfo.getPlayers().values()) {
@@ -381,6 +423,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
         defeats.release();
         defeatedKeepersCreatures.values().forEach(EntitySet::release);
         defeatedKeepersCreatures.clear();
+        endedGames.release();
         heartOwners.clear();
     }
 

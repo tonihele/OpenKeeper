@@ -43,6 +43,7 @@ import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -81,14 +82,16 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
     private final IGameTimer gameTimer;
     private final int angerRecoveryInLairPerSecond;
     private final Map<Short, IPlayerController> playerControllersById;
+    private final RoomAttackMessages messages;
     private final EntitySet entities;
 
     public CreatureMoodSystem(EntityData entityData, IKwdFile kwdFile,
             Collection<IPlayerController> playerControllers, IGameTimer gameTimer,
-            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, RoomAttackMessages messages) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.gameTimer = gameTimer;
+        this.messages = messages;
         angerRecoveryInLairPerSecond = (int) gameSettings.get(
                 Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND).getValue();
         lair = kwdFile.getRoomById(LAIR_ROOM_ID);
@@ -156,6 +159,9 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
             if (anger != 0) {
                 CreatureMood updatedMood = mood.add(CreatureMood.REASON_NO_LAIR, anger);
                 entityData.setComponent(entity.getId(), updatedMood);
+                if (messages != null) {
+                    messages.creatureMoodWorsened(entity.getId(), owner.ownerId, creature, mood, updatedMood, RoomAttackMessages.MOOD_REASON_NO_LAIR);
+                }
                 int oldState = mood.getState(unhappyThreshold);
                 int newState = updatedMood.getState(unhappyThreshold);
                 if (mood.noLair == 0

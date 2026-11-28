@@ -17,13 +17,17 @@
 package toniarts.openkeeper.view;
 
 import com.jme3.app.state.AppStateManager;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * The message state is gone once a level ends, messages sent after that must
- * not crash the game
+ * not crash the game. The tab icon is the message's graphic id in DK II's
+ * message table (0x6A0B00). The row of tabs (0x423BD0) is built from Nifty
+ * elements, so it is not covered here
  */
 public class SystemMessageStateTest {
 
@@ -35,5 +39,14 @@ public class SystemMessageStateTest {
             assertFalse(SystemMessageState.addMessageIfAttached(stateManager,
                     SystemMessageState.MessageType.INFO, "${level.1}"));
         });
+    }
+
+    @Test
+    void theTabIconIsTheMessagesGraphicId() {
+        assertEquals(List.of(SystemMessageState.MessageType.INFO, SystemMessageState.MessageType.INFO,
+                SystemMessageState.MessageType.CREATURE, SystemMessageState.MessageType.FIGHT,
+                SystemMessageState.MessageType.OBJECTIVE, SystemMessageState.MessageType.ALLY_MSG,
+                SystemMessageState.MessageType.PLAYER_EXIT),
+                List.of(0, 1, 2, 3, 4, 5, 6).stream().map(SystemMessageState.MessageType::ofGraphic).toList());
     }
 }

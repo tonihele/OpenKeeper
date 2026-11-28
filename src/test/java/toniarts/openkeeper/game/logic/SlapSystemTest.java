@@ -73,7 +73,7 @@ class SlapSystemTest {
     void setUp() {
         setting(MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS, 25);
         setting(MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY, 2000);
-        slapSystem = new SlapSystem(entityData, kwdFile(), List.of(player()), gameSettings, objectsController());
+        slapSystem = new SlapSystem(entityData, kwdFile(), List.of(player()), gameSettings, objectsController(), null);
     }
 
     @Test
@@ -215,7 +215,7 @@ class SlapSystemTest {
     @Test
     void slapSpeedsTheCreatureUpByHalfForAHundredSeconds() {
         EntityId creature = slappedCreature(2f);
-        slapSystem = new SlapSystem(entityData, kwdFile(), List.of(player()), gameSettings, objectsController());
+        slapSystem = new SlapSystem(entityData, kwdFile(), List.of(player()), gameSettings, objectsController(), null);
 
         assertEquals(3f, entityData.getComponent(creature, Mobile.class).maxSpeed, 0.0001f);
 
@@ -230,7 +230,7 @@ class SlapSystemTest {
     @Test
     void slapDuringTheSpeedUpNeitherAddsToItNorExtendsIt() {
         EntityId creature = slappedCreature(2f);
-        slapSystem = new SlapSystem(entityData, kwdFile(), List.of(player()), gameSettings, objectsController());
+        slapSystem = new SlapSystem(entityData, kwdFile(), List.of(player()), gameSettings, objectsController(), null);
 
         slapSystem.processTick(10f);
         entityData.setComponent(creature, new Slapped(10));
@@ -245,7 +245,7 @@ class SlapSystemTest {
     void slapMakesTheCreatureWorkFasterForAHundredTicks() {
         EntityId creature = slappedCreature(2f);
         entityData.setComponent(creature, new CreatureEfficiency(80));
-        slapSystem = new SlapSystem(entityData, kwdFile(), List.of(player()), gameSettings, objectsController());
+        slapSystem = new SlapSystem(entityData, kwdFile(), List.of(player()), gameSettings, objectsController(), null);
         assertEquals(90, entityData.getComponent(creature, CreatureEfficiency.class).efficiencyPercentage);
 
         // DK II's work faster timer is 100 ticks, 25 seconds at 4 ticks a second (0x48B8A0, 0x48E160)

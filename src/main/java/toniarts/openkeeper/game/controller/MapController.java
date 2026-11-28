@@ -821,9 +821,16 @@ public final class MapController extends Container implements IMapController {
         room.setHealth(room.getMaxHealth());
         notifyOnCapturedByEnemy(owner, room);
         notifyOnCaptured(playerId, room);
+        // The new owner hears that he claimed a neutral room or took over an enemy one, and the old owner
+        // that the enemy took it (DKII.EXE 0x4E5650, messages 0x21, 0x20 and 0x23)
         if (playerId != owner && playerId != 0 && playerId != Player.NEUTRAL_PLAYER_ID) {
-            gameEventService.emitToPlayer(GameEventType.ROOM_CAPTURED, ThingFlag.ROOM,
-                    room.getRoom().getRoomId(), playerId);
+            short roomId = room.getRoom().getRoomId();
+            if (owner == Player.NEUTRAL_PLAYER_ID) {
+                gameEventService.emitToPlayer(GameEventType.ROOM_CAPTURED, ThingFlag.ROOM, roomId, playerId);
+            } else {
+                gameEventService.emitToPlayer(GameEventType.ROOM_TAKEN_OVER, ThingFlag.ROOM, roomId, playerId);
+                gameEventService.emitToPlayer(GameEventType.ROOM_LOST, ThingFlag.ROOM, roomId, owner);
+            }
         }
     }
 

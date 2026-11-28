@@ -21,14 +21,25 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
+import toniarts.openkeeper.game.controller.IGameTimer;
+import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.player.PlayerManaControl;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.state.session.PlayerService;
+import toniarts.openkeeper.tools.convert.map.DestroyRoomsFixtures;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -44,6 +55,7 @@ class PossessedSystemTest {
     private int swings;
     private int releases;
     private final List<String> possessions = new ArrayList<>();
+    private final List<Integer> speech = new ArrayList<>();
 
     private <T> T stub(Class<T> type, Function<String, Object> answer) {
         return type.cast(Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[] {type},
@@ -51,6 +63,10 @@ class PossessedSystemTest {
     }
 
     private PossessedSystem system(Runnable onSwing) {
+        return system(onSwing, List.of(), null);
+    }
+
+    private PossessedSystem system(Runnable onSwing, List<IPlayerController> players, RoomAttackMessages messages) {
         ICreatureController controller = stub(ICreatureController.class, name -> {
             if ("setPossession".equals(name)) {
                 releases++;
@@ -69,7 +85,7 @@ class PossessedSystemTest {
                     }
                     return null;
                 });
-        return new PossessedSystem(List.of(), entityData, game, creatures);
+        return new PossessedSystem(players, entityData, game, creatures, messages);
     }
 
     private EntityId possessed(boolean attackHeld, double attackPressTime) {
@@ -159,5 +175,54 @@ class PossessedSystemTest {
         system.processTick(0.5f);
 
         assertEquals(1, releases);
+    }
+
+    @Test
+    void keeperIsToldWhenThePossessionEndsForWantOfMana() {
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new Possessed(10, 0), new Owner((short) 2, (short) 2));
+
+        system(() -> { }, List.of(keeper(9)), messages()).processTick(1f);
+
+        // "You do not have enough Mana to continue possession", message 0x35 variant 5
+        assertEquals(1, releases);
+        assertEquals(List.of(1335), speech);
+    }
+
+    @Test
+    void keeperWithTheManaIsNotTold() {
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new Possessed(10, 0), new Owner((short) 2, (short) 2));
+
+        system(() -> { }, List.of(keeper(10)), messages()).processTick(1f);
+
+        assertEquals(0, releases);
+        assertEquals(List.of(), speech);
+    }
+
+    private IPlayerController keeper(int mana) {
+        Keeper keeper = new Keeper(false, (short) 2);
+        Map<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
+        settings.put(MiscType.MAXIMUM_MANA_THRESHOLD, DestroyRoomsFixtures.destroyRoomsVariable(MiscType.MAXIMUM_MANA_THRESHOLD, 200000));
+        settings.put(MiscType.MAXIMUM_MANA_GAIN_PER_SECOND, DestroyRoomsFixtures.destroyRoomsVariable(MiscType.MAXIMUM_MANA_GAIN_PER_SECOND, 1000));
+        PlayerManaControl manaControl = new PlayerManaControl(keeper, settings);
+        keeper.setMana(mana);
+        return stub(IPlayerController.class, name -> switch (name) {
+            case "getKeeper" -> keeper;
+            case "getManaControl" -> manaControl;
+            default -> null;
+        });
+    }
+
+    private RoomAttackMessages messages() {
+        PlayerService playerService = (PlayerService) Proxy.newProxyInstance(PlayerService.class.getClassLoader(),
+                new Class<?>[] {PlayerService.class}, (proxy, method, args) -> {
+                    if ("showMentorMessage".equals(method.getName())) {
+                        assertEquals((short) 2, args[3]);
+                        speech.add((Integer) args[0]);
+                    }
+                    return null;
+                });
+        return new RoomAttackMessages(entityData, playerService, stub(IGameTimer.class, name -> 0.0), 4);
     }
 }

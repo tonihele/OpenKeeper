@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.utils.GameTimeCounter;
 
@@ -47,10 +48,12 @@ public final class PossessedSystem extends GameTimeCounter {
     private final EntityData entityData;
     private final IGameController gameController;
     private final ICreaturesController creaturesController;
+    private final RoomAttackMessages messages;
 
     public PossessedSystem(Collection<IPlayerController> playerControllers, EntityData entityData, IGameController gameController,
-            ICreaturesController creaturesController) {
+            ICreaturesController creaturesController, RoomAttackMessages messages) {
         this.gameController = gameController;
+        this.messages = messages;
         this.creaturesController = creaturesController;
         this.entityData = entityData;
         manaControls = HashMap.newHashMap(playerControllers.size());
@@ -87,6 +90,11 @@ public final class PossessedSystem extends GameTimeCounter {
             PlayerManaControl manaControl = manaControls.get(owner.ownerId);
             if (manaControl == null || !manaControl.hasEnoughMana(possessed.manaDrain)) {
                 creaturesController.createController(entity.getId()).setPossession(false);
+
+                // The keeper is told why (message 0x35 variant 5, 0x4C10E0)
+                if (manaControl != null && messages != null) {
+                    messages.notEnoughManaForPossession(owner.ownerId);
+                }
             } else {
 
                 // Keep the attack that the session thread may have written meanwhile

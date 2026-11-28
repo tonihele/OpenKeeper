@@ -497,7 +497,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
         if (playerController.getKeeper().getMana() < manaCost) {
             return false;
         }
-        playerController.getManaControl().addMana(-manaCost);
+        playerController.getManaControl().spendMana(manaCost);
 
         return true;
     }

@@ -20,6 +20,7 @@ import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import com.simsilica.es.filter.FieldFilter;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -34,7 +35,10 @@ import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.GameEnded;
+import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.component.KeeperDefeated;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
@@ -382,7 +386,7 @@ class KeeperDefeatSystemTest {
         system.processTick(0.25f);
 
         // Only the gold in the treasury is left, and only the treasury stores gold
-        assertEquals(3000, keepers.get(RIVAL).getGold());
+        assertEquals(3000, playerControllers.get(RIVAL).getGoldControl().getGold());
         assertEquals(TREASURY_CAPACITY, playerControllers.get(RIVAL).getGoldControl().getGoldMax());
     }
 
@@ -451,6 +455,56 @@ class KeeperDefeatSystemTest {
     }
 
     @Test
+    void keeperWhoWinsTheSkirmishMakesEveryKeeperButHisAlliesLose() {
+        KeeperDefeatSystem system = skirmish(HUMAN, RIVAL, OTHER_RIVAL, FOURTH_RIVAL);
+        keepers.get(HUMAN).createAlliance(RIVAL);
+        keepers.get(RIVAL).createAlliance(HUMAN);
+        keepers.get(HUMAN).createAlliance(OTHER_RIVAL); // one sided, so not an ally
+
+        // The level script or a cheat ends the human's game with a win
+        entityData.setComponent(entityData.findEntity(new FieldFilter<>(KeeperComponent.class, "playerId", HUMAN), KeeperComponent.class),
+                new GameEnded(true));
+        system.processTick(0.25f);
+
+        // The ally doesn't win from it
+        assertEquals(Set.of(OTHER_RIVAL + " lost", FOURTH_RIVAL + " lost"), new HashSet<>(endings));
+        assertEquals(2, endings.size());
+    }
+
+    @Test
+    void keeperWhoLosesTheSkirmishEndsNobodyElsesGameWhileRivalsAreLeft() {
+        KeeperDefeatSystem system = skirmish(HUMAN, RIVAL, OTHER_RIVAL);
+        entityData.setComponent(entityData.findEntity(new FieldFilter<>(KeeperComponent.class, "playerId", HUMAN), KeeperComponent.class),
+                new GameEnded(false));
+        system.processTick(0.25f);
+        assertTrue(endings.isEmpty());
+    }
+
+    @Test
+    void keeperWhoLosesTheSkirmishLeavesTheLastSideStandingTheWinners() {
+        KeeperDefeatSystem system = skirmish(HUMAN, RIVAL, OTHER_RIVAL);
+        keepers.get(RIVAL).createAlliance(OTHER_RIVAL);
+        keepers.get(OTHER_RIVAL).createAlliance(RIVAL);
+
+        // The level script ends the human's game with a loss, the two allies left win together (0x4BE630)
+        entityData.setComponent(entityData.findEntity(new FieldFilter<>(KeeperComponent.class, "playerId", HUMAN), KeeperComponent.class),
+                new GameEnded(false));
+        system.processTick(0.25f);
+
+        assertEquals(Set.of(RIVAL + " won", OTHER_RIVAL + " won"), new HashSet<>(endings));
+        assertEquals(2, endings.size());
+    }
+
+    @Test
+    void keeperWhoWinsTheCampaignLevelEndsNobodyElsesGame() {
+        KeeperDefeatSystem system = campaign(HUMAN, RIVAL);
+        entityData.setComponent(entityData.findEntity(new FieldFilter<>(KeeperComponent.class, "playerId", HUMAN), KeeperComponent.class),
+                new GameEnded(true));
+        system.processTick(0.25f);
+        assertTrue(endings.isEmpty());
+    }
+
+    @Test
     void skirmishTellsAiFromHumanByTheLobbyNotTheMapRecord() {
         KeeperDefeatSystem system = skirmish(HUMAN, RIVAL);
         keepers.get(HUMAN).setPlayer(KeeperDefeatFixtures.player(HUMAN, true));
@@ -514,7 +568,8 @@ class KeeperDefeatSystemTest {
             keepers.put(keeperId, keeper);
             players.put(keeperId, keeper);
 
-            PlayerGoldControl goldControl = new PlayerGoldControl(keeper);
+            entityData.setComponents(entityData.createEntity(), new KeeperComponent(keeperId), new Gold(0, Integer.MAX_VALUE));
+            PlayerGoldControl goldControl = new PlayerGoldControl(keeper, entityData);
             goldControl.setGoldMax(HEART_CAPACITY + TREASURY_CAPACITY);
             goldControl.addGold(HEART_GOLD + 3000);
             playerControllers.put(keeperId, stub(IPlayerController.class, (name, args) -> "getGoldControl".equals(name) ? goldControl : null));

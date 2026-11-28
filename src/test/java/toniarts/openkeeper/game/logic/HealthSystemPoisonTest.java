@@ -47,7 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class HealthSystemPoisonTest {
 
     private final EntityData entityData = new DefaultEntityData();
-    private final HealthSystem healthSystem = new HealthSystem(entityData, null, settings(), null, levelInfo(), List.of(), null,
+    private final HealthSystem healthSystem = new HealthSystem(entityData, null, settings(), null, null, levelInfo(), List.of(), null,
             () -> 0, (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(),
                     new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null));
 

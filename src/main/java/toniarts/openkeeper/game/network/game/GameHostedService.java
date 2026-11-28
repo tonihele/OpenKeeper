@@ -272,6 +272,16 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
+    public void showMentorMessage(int speechId, Vector3f position, short namedPlayerId, short playerId, float seconds, float tabSeconds, int graphic) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onShowMentorMessage(speechId, position, namedPlayerId, seconds, tabSeconds, graphic);
+                break;
+            }
+        }
+    }
+
+    @Override
     public void zoomViewToPoint(Vector3f point, short playerId) {
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (gameSession.getKey().getKeeper().getId() == playerId) {
@@ -371,13 +381,6 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
             }
         }
         return false;
-    }
-
-    @Override
-    public void onGoldChange(short keeperId, int gold) {
-        for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onGoldChange(keeperId, gold);
-        }
     }
 
     @Override
@@ -737,11 +740,6 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
-        public void onGoldChange(short keeperId, int gold) {
-            getCallback().onGoldChange(keeperId, gold);
-        }
-
-        @Override
         public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
             getCallback().onManaChange(keeperId, mana, manaLoose, manaGain);
         }
@@ -795,6 +793,11 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         @Override
         public void onShowMessage(int textId) {
             getCallback().onShowMessage(textId);
+        }
+
+        @Override
+        public void onShowMentorMessage(int speechId, Vector3f position, short namedPlayerId, float seconds, float tabSeconds, int graphic) {
+            getCallback().onShowMentorMessage(speechId, position, namedPlayerId, seconds, tabSeconds, graphic);
         }
 
         @Override

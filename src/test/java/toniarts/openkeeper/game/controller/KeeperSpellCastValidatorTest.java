@@ -106,6 +106,16 @@ class KeeperSpellCastValidatorTest {
     }
 
     @Test
+    void manaSpentThisSecondIsNotCountedTwice() {
+
+        // The loss shows the 6000 just spent, the mana left still pays for another strike
+        player.setMana(6000);
+        player.setManaLoose(6000);
+
+        assertTrue(isValidCast(thunderbolt, creature, ENEMY_ID, false));
+    }
+
+    @Test
     void chickenCannotBePossessed() {
         assertTrue(isValidCast(possession, creature, PLAYER_ID, false));
         assertFalse(isValidCast(possession, creature, PLAYER_ID, true));

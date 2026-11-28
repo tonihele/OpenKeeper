@@ -37,9 +37,11 @@ public final class SystemMessageControl extends AbstractController {
     private Nifty nifty;
     private Element element;
     private boolean unread = true;
+    private boolean dismissed;
     private String text = "";
     private final Long createdAt = System.currentTimeMillis();
     private Screen hud;
+    private SystemMessageTarget target;
 
     @Override
     public void bind(Nifty nifty, Screen screen, Element element, Parameters parameter) {
@@ -87,7 +89,15 @@ public final class SystemMessageControl extends AbstractController {
      */
     public void dismissMessage() {
         NiftyUtils.playSound(nifty, GlobalCategory.GUI_BUTTON_DEFAULT, GlobalType.GUI_BUTTON_CKICK.getId());
+        this.dismissed = true;
         this.element.markForRemoval();
+    }
+
+    /**
+     * @return true if the player dismissed the message's tab
+     */
+    public boolean isDismissed() {
+        return this.dismissed;
     }
 
     /**
@@ -122,5 +132,22 @@ public final class SystemMessageControl extends AbstractController {
      */
     public String getText() {
         return this.text;
+    }
+
+    /**
+     * @return what the message is about, or {@code null} if it is about no
+     * particular place
+     */
+    public SystemMessageTarget getTarget() {
+        return this.target;
+    }
+
+    /**
+     * Set what the message is about, the message box then offers to zoom to it
+     *
+     * @param target the target, or {@code null} if none
+     */
+    public void setTarget(SystemMessageTarget target) {
+        this.target = target;
     }
 }

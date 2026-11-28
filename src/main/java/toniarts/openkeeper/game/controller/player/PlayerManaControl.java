@@ -31,6 +31,7 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 public final class PlayerManaControl {
 
     private final Keeper keeper;
+    private final int maxManaGain;
     private final SafeArrayList<PlayerManaListener> listeners = new SafeArrayList<>(PlayerManaListener.class);
 
     public PlayerManaControl(Keeper keeper,
@@ -38,20 +39,50 @@ public final class PlayerManaControl {
         this.keeper = keeper;
 
         this.keeper.setMaxMana((int) gameSettings.get(MiscType.MAXIMUM_MANA_THRESHOLD).getValue());
+        this.maxManaGain = (int) gameSettings.get(MiscType.MAXIMUM_MANA_GAIN_PER_SECOND).getValue();
     }
 
     /**
-     * Updates gain and loose and adds/removes mana accordingly to the player
+     * Updates gain and loose and adds/removes mana accordingly to the player.
+     * The gain is limited to the maximum mana gain per second, raised by the
+     * owned tiles (mana vaults), and the loose is paid after the limit
+     * (DKII.EXE 0x4C10E0; a tile changing owner moves its raise in 0x4559D0).<br>
+     * The possession and Call to Arms upkeep is in the loose, but DKII.EXE
+     * also adds it to the gain before the limit (0x4C10E0, the loss from
+     * 0x4C17A0). So it only costs the part of it that pushes the gain over the
+     * limit. The imp and trap upkeep is paid in full after the limit.<br>
+     * The mana spent at once since the last update leaves the loose here, like
+     * DKII.EXE clears it before the update (0x4C10E0)
      *
      * @param gain mana gain
-     * @param loose mana loose
+     * @param loose mana loose, with the possession and Call to Arms upkeep
+     * @param maxGainIncrease how much the owned mana sources raise the gain
+     * limit
+     * @param spellUpkeep the possession and Call to Arms upkeep per second
      */
-    public void updateMana(int gain, int loose) {
+    public void updateMana(int gain, int loose, int maxGainIncrease, int spellUpkeep) {
 
-        keeper.setManaGain(gain);
+        int cappedGain = Math.min(gain + spellUpkeep, maxManaGain + maxGainIncrease);
+
+        keeper.setManaGain(cappedGain);
         keeper.setManaLoose(loose);
+        keeper.setManaUpkeep(loose - spellUpkeep);
 
-        addMana(keeper.getManaGain() - keeper.getManaLoose());
+        addMana(cappedGain - loose);
+
+        updateListerners();
+    }
+
+    /**
+     * Spends mana at once, like a spell that is cast or a trap that fires.
+     * DKII.EXE adds it to the keeper's loss of the second it is spent in
+     * (0x4C17A0), so it shows with the other losses until the next update
+     *
+     * @param amount the mana spent
+     */
+    public void spendMana(int amount) {
+        addMana(-amount);
+        keeper.setManaLoose(keeper.getManaLoose() + amount);
 
         updateListerners();
     }
@@ -75,7 +106,16 @@ public final class PlayerManaControl {
         listeners.remove(listener);
     }
 
+    /**
+     * Whether the keeper has the mana to go on possessing. DKII.EXE ends the
+     * possession once the mana less the imp and trap upkeep per second is
+     * below the possession cost per second (0x4C10E0). The mana just spent
+     * is already gone from the mana, it doesn't count again.
+     *
+     * @param manaDrain the possession cost per second
+     * @return true if the possession can go on
+     */
     public boolean hasEnoughMana(int manaDrain) {
-        return keeper.getMana() - manaDrain + keeper.getManaGain() - keeper.getManaLoose() > 0;
+        return keeper.getMana() - keeper.getManaUpkeep() >= manaDrain;
     }
 }

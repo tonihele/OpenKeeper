@@ -55,7 +55,9 @@ import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.logic.KeeperAiSystem;
 import toniarts.openkeeper.game.logic.KeeperDefeatSystem;
 import toniarts.openkeeper.game.logic.LooseObjectSystem;
+import toniarts.openkeeper.game.logic.LowManaSystem;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
+import toniarts.openkeeper.game.logic.MentorHintSystem;
 import toniarts.openkeeper.game.logic.MovementSystem;
 import toniarts.openkeeper.game.logic.OnFireSystem;
 import toniarts.openkeeper.game.logic.PayDaySystem;
@@ -121,7 +123,7 @@ public final class GameLoopManager {
         final GameEventService gameEventService = gameController.getGameEventService();
 
         payDaySystem = new PayDaySystem(entityData, levelInfo.getLevelData(), gameController.getGameTimer(),
-                playerControllers.values(), gameSettings);
+                playerControllers.values(), gameSettings, gameWorldController.getRoomAttackMessages());
 
         // Game logic
         gameLogicThread = new GameLogicManager(
@@ -136,14 +138,15 @@ public final class GameLoopManager {
                 new CreatureSleepSystem(entityData, levelInfo.getLevelData(),
                         gameController.getGameTimer()),
                 new CreatureMoodSystem(entityData, levelInfo.getLevelData(), playerControllers.values(),
-                        gameController.getGameTimer(), gameSettings),
+                        gameController.getGameTimer(), gameSettings, gameWorldController.getRoomAttackMessages()),
                 new CreatureDisturbanceSystem(entityData, levelInfo.getLevelData(), gameWorldController.getMapController(),
                         gameWorldController.getCreaturesController(), gameController.getGameTimer()),
                 payDaySystem,
                 new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings,
-                        gameWorldController.getObjectsController()),
+                        gameWorldController.getObjectsController(), gameWorldController.getRoomAttackMessages()),
                 new TurncoatSystem(entityData, gameController.getGameTimer()),
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
+                        gameWorldController.getRoomAttackMessages(),
                         levelInfo, playerControllers.values(), gameWorldController.getMapController(),
                         gameController.getGameTimer(), gameEventService),
                 new InfernoSystem(entityData, positionSystem, levelInfo.getLevelData()),
@@ -171,8 +174,12 @@ public final class GameLoopManager {
                 new ChickenSpawnSystem(entityData, gameWorldController.getObjectsController(),
                         playerControllers.values(), gameSettings, gameWorldController.getMapController()),
                 new ManaCalculatorLogic(playerControllers.values(), entityData),
+                new LowManaSystem(entityData, level, playerControllers.values(), gameSettings, gameWorldController.getRoomAttackMessages(),
+                        gameEventService),
+                new MentorHintSystem(entityData, level, playerControllers.values(), gameWorldController.getRoomAttackMessages(),
+                        gameController.getGameTimer()),
                 new PossessedSystem(playerControllers.values(), entityData, gameController,
-                        gameWorldController.getCreaturesController()),
+                        gameWorldController.getCreaturesController(), gameWorldController.getRoomAttackMessages()),
                 new SummonedReaperSystem(entityData, playerControllers.values(), gameWorldController.getCreaturesController(),
                         gameController.getGameTimer(), gameController.getNavigationService()),
                 new CallToArmsSystem(entityData, level, playerControllers.values(),

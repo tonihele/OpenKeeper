@@ -26,13 +26,25 @@ import com.simsilica.es.EntityComponent;
 public final class Mana implements EntityComponent {
 
     public int manaGeneration;
+    public int maxManaGeneration; // Raises the owner's mana gain limit
 
     public Mana() {
         // For serialization
     }
 
     public Mana(int manaGeneration) {
+        this(manaGeneration, 0);
+    }
+
+    /**
+     * Mana flow of an entity
+     *
+     * @param manaGeneration mana per second, negative for upkeep
+     * @param maxManaGeneration how much the owner's mana gain limit rises
+     */
+    public Mana(int manaGeneration, int maxManaGeneration) {
         this.manaGeneration = manaGeneration;
+        this.maxManaGeneration = maxManaGeneration;
     }
 
 }

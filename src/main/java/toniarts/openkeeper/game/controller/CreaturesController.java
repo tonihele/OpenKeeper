@@ -259,6 +259,11 @@ public final class CreaturesController implements ICreaturesController {
         SpawnType spawnType = !startsDying && flags != null && flags.contains(Thing.Creature.CreatureFlag.ACT_AS_DROPPED) ? SpawnType.DROP : SpawnType.PLACE;
         EntityId entityId = loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
                 triggerId != null && triggerId != 0 ? triggerId : null, spawnType, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
+        if (isRoomDestroyer(creature)) {
+            CreatureComponent creatureComponent = new CreatureComponent(entityData.getComponent(entityId, CreatureComponent.class));
+            creatureComponent.destroysRooms = true;
+            entityData.setComponent(entityId, creatureComponent);
+        }
 
         if (startsDying) {
             startDying(entityId);
@@ -274,6 +279,18 @@ public final class CreaturesController implements ICreaturesController {
             entityData.setComponent(entityId, new ReturnToHeroLair());
         }
         return entityId;
+    }
+
+    /**
+     * Does the hero wreck the keepers' rooms on his way, i.e. has he the
+     * DESTROY_ROOMS flag
+     *
+     * @param creature the creature placed on the map or in a hero party
+     * @return true if the creature destroys rooms
+     */
+    static boolean isRoomDestroyer(Thing.Creature creature) {
+        return creature instanceof Thing.GoodCreature goodCreature && goodCreature.getFlags2() != null
+                && goodCreature.getFlags2().contains(Thing.Creature.CreatureFlag2.DESTROY_ROOMS);
     }
 
     /** Apply the editor's knock-out after level-scaled health has been initialized. */

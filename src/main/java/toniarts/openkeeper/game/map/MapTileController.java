@@ -82,7 +82,7 @@ public final class MapTileController extends AbstractMapTileInformation implemen
         Gold gold = new Gold(terrain.getGoldValue(), terrain.getGoldValue());
 
         // Mana
-        Mana mana = new Mana(terrain.getManaGain());
+        Mana mana = new Mana(terrain.getManaGain(), terrain.getMaxManaGain());
 
         // Randomize the texture index, the terrain can change for sure but the changed types have no random textures
         // But for the principle, let it be here

@@ -20,6 +20,7 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.TileWork;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -146,7 +147,7 @@ class ClaimTileTaskTest {
             default ->
                 throw new UnsupportedOperationException(method.getName());
         });
-        ClaimRoomTask task = new ClaimRoomTask(null, mapController, new Point(1, 1), PLAYER);
+        ClaimRoomTask task = new ClaimRoomTask(null, mapController, gameWorldController(), new Point(1, 1), PLAYER);
         List<GameEventType> events = new ArrayList<>();
         ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20), events);
         task.assign(imp, false);
@@ -195,7 +196,7 @@ class ClaimTileTaskTest {
             default ->
                 throw new UnsupportedOperationException(method.getName());
         });
-        ClaimRoomTask task = new ClaimRoomTask(null, mapController, new Point(1, 1), PLAYER);
+        ClaimRoomTask task = new ClaimRoomTask(null, mapController, gameWorldController(), new Point(1, 1), PLAYER);
         List<GameEventType> events = new ArrayList<>();
         ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20), events);
         task.assign(imp, false);
@@ -281,6 +282,11 @@ class ClaimTileTaskTest {
             });
         }
 
+    }
+
+    private static IGameWorldController gameWorldController() {
+        return (IGameWorldController) Proxy.newProxyInstance(IGameWorldController.class.getClassLoader(),
+                new Class<?>[]{IGameWorldController.class}, (proxy, method, args) -> null);
     }
 
 }

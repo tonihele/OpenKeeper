@@ -17,7 +17,9 @@
 package toniarts.openkeeper.game.task.worker;
 
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.TaskType;
@@ -29,8 +31,27 @@ import toniarts.openkeeper.game.task.TaskType;
  */
 public final class ClaimRoomTask extends ClaimTileTask {
 
-    public ClaimRoomTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId) {
+    private final IGameWorldController gameWorldController;
+
+    public ClaimRoomTask(final INavigationService navigationService, final IMapController mapController,
+            IGameWorldController gameWorldController, Point p, short playerId) {
         super(navigationService, mapController, p, playerId);
+
+        this.gameWorldController = gameWorldController;
+    }
+
+    @Override
+    public void executeTask(ICreatureController creature, float executionDuration) {
+
+        // The room's owner is told as the Imp starts on the room, like DK II
+        // (DKII.EXE 0x466080, message 0x22). The message queue holds the
+        // message, so the Imps that come after don't repeat it
+        RoomAttackMessages messages = gameWorldController.getRoomAttackMessages();
+        if (messages != null && getExecutionDuration(creature) == 0.0f) {
+            messages.roomTileAttacked(mapController.getMapData().getTile(getTaskLocation()).getOwnerId(),
+                    mapController.getRoomControllerByCoordinates(getTaskLocation()).getRoom(), getTaskLocation());
+        }
+        super.executeTask(creature, executionDuration);
     }
 
     @Override

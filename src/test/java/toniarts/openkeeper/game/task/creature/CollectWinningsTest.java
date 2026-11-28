@@ -20,13 +20,17 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CasinoBigWinner;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.utils.Point;
 
@@ -36,13 +40,16 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The big winner of the Casino collects its jackpot from the keeper's gold
+ * The big winner of the Casino collects its jackpot from the keeper's gold.
+ * When the keeper has too little, the keeper is told (DKII.EXE message 0x4D,
+ * speech 373)
  */
 class CollectWinningsTest {
 
     private static final short KEEPER = 3;
 
     private final EntityData entityData = new DefaultEntityData();
+    private final List<Integer> speeches = new ArrayList<>();
     private int keeperGold = 5000;
     private EntityId creatureId;
     private ICreatureController creature;
@@ -89,6 +96,14 @@ class CollectWinningsTest {
         assertEquals(700, bigWinner.winnings);
         assertEquals(100, bigWinner.timeLeft);
         assertEquals(1, bigWinner.slapCount);
+        assertEquals(List.of(373), speeches);
+    }
+
+    @Test
+    void aKeeperThatCanPayIsNotTold() {
+        collectWinnings.executeTask(creature, 0);
+
+        assertEquals(List.of(), speeches);
     }
 
     @Test
@@ -116,7 +131,17 @@ class CollectWinningsTest {
     }
 
     private IGameWorldController gameWorldController() {
+        PlayerService playerService = (PlayerService) Proxy.newProxyInstance(PlayerService.class.getClassLoader(), new Class<?>[]{PlayerService.class}, (proxy, method, args) -> {
+            if ("showMentorMessage".equals(method.getName())) {
+                speeches.add((Integer) args[0]);
+            }
+            return null;
+        });
+        RoomAttackMessages messages = new RoomAttackMessages(entityData, playerService, () -> 0, 4);
         return (IGameWorldController) Proxy.newProxyInstance(IGameWorldController.class.getClassLoader(), new Class<?>[]{IGameWorldController.class}, (proxy, method, args) -> {
+            if ("getRoomAttackMessages".equals(method.getName())) {
+                return messages;
+            }
             if ("substractGold".equals(method.getName())) {
                 int amount = (int) args[0];
                 int paid = Math.min(amount, keeperGold);
