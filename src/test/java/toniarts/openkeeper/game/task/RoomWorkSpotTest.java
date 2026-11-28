@@ -164,7 +164,8 @@ class RoomWorkSpotTest {
             default ->
                 null;
         });
-        INavigationService navigationService = proxy(INavigationService.class, (proxy, method, args) -> new DefaultGraphPath<>());
+        INavigationService navigationService = proxy(INavigationService.class,
+                (proxy, method, args) -> "isReachable".equals(method.getName()) ? true : new DefaultGraphPath<>());
         IGameWorldController gameWorldController = proxy(IGameWorldController.class, (proxy, method, args) -> null);
         Keeper keeper = new Keeper(false, PLAYER_ID);
         IPlayerController player = proxy(IPlayerController.class, (proxy, method, args) -> switch (method.getName()) {

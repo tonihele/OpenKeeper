@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
-import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -86,7 +85,7 @@ class CreatureAttackTargetTest {
     private CreatureController createController(EntityId entity, boolean pathExists) {
         Creature creature = ShotFixtures.creature((short) 14, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.noneOf(Creature.CreatureFlag3.class));
         INavigationService navigationService = stub(INavigationService.class,
-                (name, args) -> "findPath".equals(name) && pathExists ? new DefaultGraphPath<>() : null);
+                (name, args) -> "isReachable".equals(name) ? pathExists : null);
         ICreaturesController creaturesController = stub(ICreaturesController.class, (name, args) -> switch (name) {
             case "isValidEntity" -> true;
             case "createController" -> stub(ICreatureController.class, (method, params) -> null);
