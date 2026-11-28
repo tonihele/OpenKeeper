@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureTortured;
@@ -240,7 +241,11 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
 
     /**
      * The victim is no longer tortured: it died, was picked up, or the chamber
-     * was sold or destroyed, which sets its victims free
+     * set it free. Like in DK II, a chamber sets its victims free when it is
+     * sold or destroyed, and when it is built again with no device left for
+     * the victim (0x4F1F10 puts each victim in state 0x88, 0x484CE0, which
+     * finds no device and falls back to state 1, where 0x4773D0 clears the
+     * torturer's hold +0x3CB)
      */
     private void processRemovedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
@@ -251,6 +256,11 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
             }
             leaveDevice(victim);
 
+            // A victim moved by the keeper is in another state by now
+            CreatureAi ai = entityData.getComponent(victim, CreatureAi.class);
+            boolean leftWithoutDevice = ai != null && ai.getCreatureState() == CreatureState.TORTURED
+                    && entityData.getComponent(victim, CreatureTortured.class) == null;
+
             // An enemy tortured to death tells something about its keeper
             Owner owner = entityData.getComponent(victim, Owner.class);
             short playerId = chamber.getRoomInstance().getOwnerId();
@@ -260,7 +270,7 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
                 revealInformation(playerId, owner.ownerId, creaturesController.createController(victim).getCreature());
             }
 
-            if (!chamber.getRoomInstance().isDestroyed()
+            if (!chamber.getRoomInstance().isDestroyed() && !leftWithoutDevice
                     || entityData.getComponent(victim, Death.class) != null
                     || entityData.getComponent(victim, InHand.class) != null
                     || entityData.getComponent(victim, CreatureComponent.class) == null) {
