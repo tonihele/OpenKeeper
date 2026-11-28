@@ -344,6 +344,15 @@ public enum CreatureState implements State<ICreatureController> {
                 // Do the task we were supposed to do
                 entity.executeAssignedTask();
 
+                // DK II's dig state (0x4655D0) sees the swing that brought the tile down end and goes idle on the
+                // same tick, it doesn't wait for the next one
+                if (task != null && task.getTaskType() == TaskType.DIG_TILE && !entity.isAssignedTaskValid()) {
+                    if (!(entity.isTooMuchGold() && entity.dropGoldToTreasury())) {
+                        entity.getStateMachine().changeState(IDLE);
+                    }
+                    return;
+                }
+
                 // If we have too much gold, take it to the treasury. With nowhere to take it, we keep it
                 if (entity.isTooMuchGold()) {
                     entity.dropGoldToTreasury();
