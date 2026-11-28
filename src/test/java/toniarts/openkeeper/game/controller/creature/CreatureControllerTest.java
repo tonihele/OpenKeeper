@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -43,6 +44,7 @@ import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.IdleAnimation;
 import toniarts.openkeeper.game.component.MeleeHit;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -81,6 +83,7 @@ import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureFixtures;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -111,6 +114,45 @@ class CreatureControllerTest {
             assertEquals(0, f.sleep().sleepNeed);
             assertEquals(0, f.sleepAssignments);
             assertNull(f.data.getComponent(f.entity, CreatureRecuperating.class));
+        }
+    }
+
+    @Test
+    void idleWorkerLooksForWorkAgainAsSoonAsItStandsStill() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.getComponent(f.entity, CreatureComponent.class).worker = true;
+            f.controller.getStateMachine().changeState(CreatureState.IDLE);
+            f.tick();
+            f.tick();
+
+            // DK II's imp searches again when its wander walk ends, it doesn't stand about for 5 seconds first
+            assertEquals(List.of(0.0, .25, .5), f.workSearches);
+        }
+    }
+
+    @Test
+    void idleWorkerWalksOnAfterAnIdleAnimationUntilItsWaitRunsOut() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.getComponent(f.entity, CreatureComponent.class).worker = true;
+            f.controller.getStateMachine().changeState(CreatureState.IDLE);
+            f.tick();
+
+            // DK II's worker that finds no work stays in its idle state for 240 to 479 ticks (0x463DF0)
+            double lookForWorkTime = f.data.getComponent(f.entity, IdleAnimation.class).lookForWorkTime;
+            assertTrue(lookForWorkTime >= .25 + 60 && lookForWorkTime < .25 + 120, "look for work at " + lookForWorkTime);
+
+            // After an idle animation it walks on without looking, and looks again when the walk ends
+            f.data.setComponent(f.entity, new IdleAnimation(Creature.AnimationType.IDLE_1, f.time, lookForWorkTime));
+            f.tick();
+            assertEquals(List.of(0.0, .25), f.workSearches);
+            assertNull(f.data.getComponent(f.entity, IdleAnimation.class).animation);
+            f.tick();
+            assertEquals(List.of(0.0, .25, .75), f.workSearches);
+
+            // Once the wait has run out it looks right after the animation
+            f.data.setComponent(f.entity, new IdleAnimation(Creature.AnimationType.IDLE_1, f.time, f.time));
+            f.tick();
+            assertEquals(List.of(0.0, .25, .75, 1.0), f.workSearches);
         }
     }
 
@@ -863,18 +905,77 @@ class CreatureControllerTest {
     }
 
     @Test
-    void idleHeroTriesItsObjectiveAgainEveryTwelveTicks() {
+    void idleHeroTriesItsObjectiveAgainWhenItsIdleAnimationEnds() {
         try (Fixture f = new Fixture(9)) {
             f.data.setComponent(f.entity, new Owner(Player.GOOD_PLAYER_ID, Player.GOOD_PLAYER_ID));
             f.data.setComponent(f.entity, new Objective(Thing.HeroParty.Objective.KILL_PLAYER, (short) 3, 0));
             f.data.removeComponent(f.entity, CreatureSleep.class);
             f.controller.getStateMachine().changeState(CreatureState.IDLE);
-            for (int i = 0; i < 24; i++) {
+            f.data.setComponent(f.entity, new IdleAnimation(Creature.AnimationType.IDLE_1, 1, 0));
+            for (int i = 0; i < 5; i++) {
                 f.tick();
             }
 
-            // DK II's hero idle state does nothing for 12 ticks when the objective can't start (0x477850)
-            assertEquals(List.of(0d, 3d, 6d), f.objectiveAttempts);
+            // DK II's doing nothing state stays while the idle animation plays (0x477680). Then the hero tries again,
+            // and once more after the idle walk that follows, which goes nowhere here
+            assertEquals(List.of(0d, 1d, 1.25), f.objectiveAttempts);
+        }
+    }
+
+    @Test
+    void anIdleAnimationOnlyFollowsAnIdleWalk() {
+        try (Fixture f = new Fixture(9)) {
+            Creature definition = f.controller.getCreature();
+            definition.getAnimations().put(Creature.AnimationType.IDLE_1, CreatureFixtures.animation(60, 30));
+            definition.getAnimations().put(Creature.AnimationType.IDLE_2, CreatureFixtures.animation(30, 30));
+            f.time = 10;
+            int first = 0;
+            int second = 0;
+            for (int i = 0; i < 2000; i++) {
+
+                // The first time it walks (DK II 0x4776C0)
+                f.data.removeComponent(f.entity, IdleAnimation.class);
+                assertFalse(f.controller.playIdleAnimation());
+                assertFalse(f.controller.isPlayingIdleAnimation());
+
+                // After the walk it stands through an animation three times out of four, for as long as it lasts
+                if (f.controller.playIdleAnimation()) {
+                    IdleAnimation idle = f.data.getComponent(f.entity, IdleAnimation.class);
+                    assertTrue(f.controller.isPlayingIdleAnimation());
+                    if (idle.animation == Creature.AnimationType.IDLE_1) {
+                        first++;
+                        assertEquals(12, idle.endTime);
+                    } else {
+                        second++;
+                        assertEquals(Creature.AnimationType.IDLE_2, idle.animation);
+                        assertEquals(11, idle.endTime);
+                    }
+
+                    // And after the animation it walks again
+                    assertFalse(f.controller.playIdleAnimation());
+                }
+            }
+            assertTrue(first > 900 && first < 1100, "first idle animation: " + first);
+            assertTrue(second > 420 && second < 580, "second idle animation: " + second);
+
+            // A worker makes the same roll in its own idle state (0x464240)
+            f.data.getComponent(f.entity, CreatureComponent.class).worker = true;
+            int worker = 0;
+            for (int i = 0; i < 400; i++) {
+                f.data.setComponent(f.entity, new IdleAnimation(null, 0, 0));
+                if (f.controller.playIdleAnimation()) {
+                    worker++;
+                }
+            }
+            assertTrue(worker > 260 && worker < 340, "worker idle animations: " + worker);
+
+            // A neutral creature never does
+            f.data.getComponent(f.entity, CreatureComponent.class).worker = false;
+            f.data.setComponent(f.entity, new IdleAnimation(null, 0, 0));
+            f.data.setComponent(f.entity, new Owner(Player.NEUTRAL_PLAYER_ID, Player.NEUTRAL_PLAYER_ID));
+            for (int i = 0; i < 50; i++) {
+                assertFalse(f.controller.playIdleAnimation());
+            }
         }
     }
 
@@ -957,6 +1058,7 @@ class CreatureControllerTest {
             return null;
         });
         final List<Double> eatAttempts = new java.util.ArrayList<>();
+        final List<Double> workSearches = new java.util.ArrayList<>();
         final List<Double> objectiveAttempts = new java.util.ArrayList<>();
         int sleepAssignments;
         int lairSearches;
@@ -994,7 +1096,6 @@ class CreatureControllerTest {
             });
             ITaskManager taskManager = proxy(ITaskManager.class, (method, args) -> switch (method) {
                 case "getTaskById" -> tasks.get((Long) args[0]);
-                case "addToUnemployedWorkerQueue" -> null;
                 case "assignObjectiveTask" -> {
                     objectiveAttempts.add(time);
                     yield false;
@@ -1023,6 +1124,11 @@ class CreatureControllerTest {
                     tasks.put(-2L, task);
                     ((ICreatureController) args[0]).setAssignedTask(task);
                     yield true;
+                }
+                case "addToUnemployedWorkerQueue" -> {
+                    workSearches.add(time);
+                    ((Consumer<Boolean>) args[1]).accept(false);
+                    yield null;
                 }
                 default -> throw new UnsupportedOperationException(method);
             });

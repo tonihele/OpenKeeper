@@ -33,6 +33,7 @@ import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.IdleAnimation;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
@@ -150,6 +151,13 @@ public final class CreatureViewSystem extends GameTimeCounter {
                         targetState = getTortureAnimation(tortured != null ? tortured.device : null, state);
                     } else if (aiState != null) {
                         targetState = getAnimation(aiState.getCreatureState());
+
+                        // The idle animation the creature chose to stand through
+                        IdleAnimation idle = aiState.getCreatureState() == CreatureState.IDLE
+                                ? entityData.getComponent(entityId, IdleAnimation.class) : null;
+                        if (idle != null && idle.animation != null && timeElapsed < idle.endTime) {
+                            targetState = idle.animation;
+                        }
                         CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
                         if (aiState.getCreatureState() == MELEE_ATTACK && meleeAttack != null && meleeAttack.swipe) {
                             targetState = Creature.AnimationType.SWIPE;
