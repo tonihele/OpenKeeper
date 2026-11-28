@@ -22,6 +22,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.TileWork;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.game.task.TaskType;
@@ -36,8 +37,47 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class ClaimTileTask extends AbstractTileTask {
 
+    private final boolean leftByDigging;
+
     public ClaimTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId) {
+        this(navigationService, mapController, p, playerId, false);
+    }
+
+    /**
+     * Claim a tile
+     *
+     * @param navigationService the navigation service
+     * @param mapController the map controller
+     * @param p the tile
+     * @param playerId the claiming player
+     * @param leftByDigging whether the tile is the floor that digging by the
+     * player's workers has just left
+     */
+    public ClaimTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, boolean leftByDigging) {
         super(navigationService, mapController, p, playerId);
+        this.leftByDigging = leftByDigging;
+    }
+
+    /**
+     * The floor that digging has left is claimed by a worker that walks over
+     * it, but not while any of the eight tiles around it is still tagged for
+     * digging. Tiles tagged for mining gold or gems don't hold it up (DKII.EXE
+     * 0x469600, job 0xE)
+     *
+     * @return {@code true} if this is such floor, with no digging left around
+     * it
+     */
+    public boolean isDugFloorToClaim() {
+        if (!leftByDigging) {
+            return false;
+        }
+        for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), true)) {
+            IMapTileInformation tile = mapController.getMapData().getTile(p);
+            if (tile.isSelected(playerId) && tile.getGold() == 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -48,6 +88,16 @@ public class ClaimTileTask extends AbstractTileTask {
     @Override
     public boolean isValid(ICreatureController creature) {
         return mapController.isClaimableTile(getTaskLocation(), playerId) || getExecutionDuration(creature) < 0;
+    }
+
+    /**
+     * A worker nearer to the tile than the one assigned to it takes the claim
+     * over, unless that one is claiming it already. So after a fight the
+     * workers go straight back to the tile (0x46AB50)
+     */
+    @Override
+    public boolean makeRoomFor(ICreatureController creature) {
+        return takeOverFromFartherWorker(creature);
     }
 
     @Override

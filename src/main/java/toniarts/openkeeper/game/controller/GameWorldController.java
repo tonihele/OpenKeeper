@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.JobPicked;
 import toniarts.openkeeper.game.component.KeeperSpellCast;
 import toniarts.openkeeper.game.component.LevelIndicator;
 import toniarts.openkeeper.game.component.Mana;
@@ -1470,6 +1471,13 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         restoreDroppedCreatureAi(entity, creatureState, targetState);
+
+        // A dropped worker first looks for work right around it. What it was doing before it was picked up doesn't
+        // carry over to where it lands
+        CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
+        if (creatureComponent.worker) {
+            entityData.setComponent(entity, new JobPicked(null, tortureOrImprisonment ? null : tile));
+        }
 
         // Add the dropping component to the creature
         if (!tortureOrImprisonment) {

@@ -62,6 +62,15 @@ public final class FetchObjectTask extends AbstractTileTask {
         return gameObject.getPickUpPriority();
     }
 
+    /**
+     * Whether the object to pick up is loose gold
+     *
+     * @return true for gold
+     */
+    public boolean isGold() {
+        return gameObject.getType() == AbstractRoomController.ObjectType.GOLD;
+    }
+
     @Override
     public String toString() {
         return "Collecting item at " + getTaskLocation();
@@ -90,6 +99,15 @@ public final class FetchObjectTask extends AbstractTileTask {
             }
         }
         return true;
+    }
+
+    /**
+     * A worker nearer to the object than the one on its way to it takes the
+     * job over, and the other looks for work again (DKII.EXE 0x46B9C0)
+     */
+    @Override
+    public boolean makeRoomFor(ICreatureController creature) {
+        return takeOverFromFartherWorker(creature);
     }
 
     @Override

@@ -89,6 +89,13 @@ public final class ArmTrapTask extends AbstractTask {
     }
 
     /**
+     * @return the blueprint the crate is for
+     */
+    public EntityId getBlueprint() {
+        return blueprint;
+    }
+
+    /**
      * Done, or it can't be done anymore: the trap is armed, the blueprint is
      * sold or the crate is gone. Unlike {@link #isValid}, which also says no
      * while somebody carries the crate.
@@ -100,6 +107,17 @@ public final class ArmTrapTask extends AbstractTask {
         }
         TrapViewState viewState = entityData.getComponent(blueprint, TrapViewState.class);
         return viewState == null || !viewState.blueprint;
+    }
+
+    /**
+     * A worker takes the job over from one still on its way to the crate,
+     * whatever the distance. Not from one in the keeper's hand, which can't be
+     * told to look for work (0x464A80). The task manager only asks when no
+     * blueprint job is free
+     */
+    @Override
+    public boolean makeRoomFor(ICreatureController creature) {
+        return getAssignees().stream().allMatch(assignee -> assignee.getPosition() != null) && takeOver(creature);
     }
 
     @Override

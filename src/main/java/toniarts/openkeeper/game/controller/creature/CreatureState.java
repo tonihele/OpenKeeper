@@ -350,6 +350,10 @@ public enum CreatureState implements State<ICreatureController> {
                 }
             } else if (entity.isStopped()) {
                 entity.navigateToAssignedTask();
+            } else {
+
+                // A worker on its way claims the floor that digging has left as it walks over it
+                entity.claimDugFloorOnTheWay();
             }
         }
 
