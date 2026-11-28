@@ -36,8 +36,18 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class ClaimTileTask extends AbstractTileTask {
 
-    public ClaimTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId) {
+    /**
+     * The ticks from breaking an enemy's floor to starting to claim it. DK II's
+     * imp goes from attacking (state 20) to claiming (state 15, then 16,
+     * 0x465CD0), and state 16 starts the claim action, each on its own tick
+     */
+    private static final int TICKS_TO_START_CLAIMING = 3;
+
+    private final float tickLength;
+
+    public ClaimTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, int ticksPerSecond) {
         super(navigationService, mapController, p, playerId);
+        this.tickLength = 1f / ticksPerSecond;
     }
 
     @Override
@@ -61,11 +71,12 @@ public class ClaimTileTask extends AbstractTileTask {
      * worth of the attack rate. Ground nobody owns is claimed (0x465CD0,
      * 0x4974C0) every tick from the tick after the worker starts, a tick's
      * worth of the claim rate, until the tile turns, and then the worker plays
-     * the loop of its work animation out before it moves on. While it does,
-     * the stored execution duration is the time on the task when the loop
-     * ends, negated. A room is claimed in blows too (0x466180, 0x497BF0). The
-     * work animation is the worker's eating one, the imp's is called
-     * Imp_ClaimFloor.
+     * the loop of its work animation out before it moves on. A broken floor
+     * is claimed once the worker has gone over to claiming it. While the
+     * worker waits for either, the stored execution duration is the time on
+     * the task when it is done waiting, negated. A room is claimed in blows
+     * too (0x466180, 0x497BF0). The work animation is the worker's eating
+     * one, the imp's is called Imp_ClaimFloor.
      *
      * @param creature the worker
      * @param executionDuration the time the worker has spent on the task
@@ -80,9 +91,12 @@ public class ClaimTileTask extends AbstractTileTask {
             return;
         }
         if (mapController.isClaimableTile(getTaskLocation(), playerId)) {
-            if (isGround() ? executionDuration > 0 : isBlowDue(creature, executionDuration, Creature.AnimationType.EATING)) {
+            boolean ground = isGround();
+            if (ground ? executionDuration > 0 : isBlowDue(creature, executionDuration, Creature.AnimationType.EATING)) {
                 mapController.applyClaimTile(getTaskLocation(), playerId, creature);
-                if (!isValid(creature)) {
+                if (!ground && isGround()) {
+                    setExecutionDuration(creature, -(executionDuration + TICKS_TO_START_CLAIMING * tickLength));
+                } else if (!isValid(creature)) {
                     creature.fireEvent(GameEventType.CREATURE_CLAIM_TILE, getTaskLocation());
                     loopEnd = getLoopEnd(creature.getCreature(), Creature.AnimationType.EATING, executionDuration);
                     if (loopEnd > executionDuration) {

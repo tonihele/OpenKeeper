@@ -67,6 +67,10 @@ public final class CreatureAiSystem implements IGameLogicUpdatable {
             processAddedEntities(creatureEntities.getAddedEntities());
         }
 
+        // The workers that went idle on the last tick look for work now. In DK II an imp that has finished a job looks
+        // for the next one in its idle state (0x463DF0), which runs on the tick after it went idle
+        taskManager.processUnemployedWorkerQueue();
+
         // Process ticks
         for (ICreatureController creatureController : creatureControllers.getArray()) {
             try {
@@ -77,9 +81,6 @@ public final class CreatureAiSystem implements IGameLogicUpdatable {
                 logger.log(Level.ERROR, "Creature " + creatureController.getEntityId() + " failed on this tick!", ex);
             }
         }
-
-        // We have a specialty here, process creature worker queue
-        taskManager.processUnemployedWorkerQueue();
     }
 
     private void processAddedEntities(Set<Entity> entities) {

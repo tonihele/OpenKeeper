@@ -45,8 +45,9 @@ public final class SteerableEntity implements ISteerableEntity {
         this.entityId = entityId;
         this.boundingRadius = boundingRadius;
         this.maxLinearSpeed = maxSpeed;
-        // FIXME how calculate acceleration? mass & maxLinearSpeed?
-        this.maxLinearAcceleration = maxLinearSpeed * 4;
+        // DK II sets a walker's velocity from its steering every tick (0x4D4760), it doesn't speed up to it. So a
+        // walk is at full speed from its first tick: within a frame of the 60 fps steering loop
+        this.maxLinearAcceleration = maxLinearSpeed * 60;
         // FIXME how calculate zero linear speed threshold?
         //zeroLinearSpeedThreshold = maxLinearSpeed / 3;
         this.position.x = xPos;
