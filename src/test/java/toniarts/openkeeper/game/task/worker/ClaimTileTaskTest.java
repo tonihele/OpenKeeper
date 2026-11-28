@@ -54,7 +54,7 @@ class ClaimTileTaskTest {
     @Test
     void impClaimsDirtPathInFiveTicks() {
         Claiming claiming = new Claiming(1, TileWork.perTick(825 / TICKS_PER_SECOND, FRESH_IMP));
-        ClaimTileTask task = new ClaimTileTask(null, claiming.mapController(), new Point(1, 1), PLAYER);
+        ClaimTileTask task = new ClaimTileTask(null, claiming.mapController(), new Point(1, 1), PLAYER, TICKS_PER_SECOND);
         ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20));
         task.assign(imp, false);
 
@@ -74,7 +74,7 @@ class ClaimTileTaskTest {
     @Test
     void othersCantTakeTheClaimedTileWhileTheImpFinishes() {
         Claiming claiming = new Claiming(657, 164);
-        ClaimTileTask task = new ClaimTileTask(null, claiming.mapController(), new Point(1, 1), PLAYER);
+        ClaimTileTask task = new ClaimTileTask(null, claiming.mapController(), new Point(1, 1), PLAYER, TICKS_PER_SECOND);
         ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20));
         task.assign(imp, false);
 
@@ -89,11 +89,12 @@ class ClaimTileTaskTest {
     @Test
     void impAttacksEnemyFloorEveryTickAndThenClaimsIt() {
 
-        // 28 a blow, 660 health: 24 blows, the second once the first loop (2.2 ticks) is over, as measured in DK II
+        // 28 a blow, 660 health: 24 blows, the second once the first loop (2.2 ticks) is over, as measured in DK II,
+        // and the claim action starts three ticks after the breaking blow, adding from the tick after
         Claiming claiming = new Claiming(1, TileWork.perTick(825 / TICKS_PER_SECOND, FRESH_IMP));
         claiming.enemyHealth = 660;
         claiming.perBlow = TileWork.perSwing(-140 / TICKS_PER_SECOND, FRESH_IMP);
-        ClaimTileTask task = new ClaimTileTask(null, claiming.mapController(), new Point(1, 1), PLAYER);
+        ClaimTileTask task = new ClaimTileTask(null, claiming.mapController(), new Point(1, 1), PLAYER, TICKS_PER_SECOND);
         ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20));
         task.assign(imp, false);
 
@@ -106,7 +107,7 @@ class ClaimTileTaskTest {
         assertEquals(24, claiming.blows.size());
         assertEquals(List.of(1, 4, 5), claiming.blows.subList(0, 3));
         assertEquals(26, claiming.blows.get(23));
-        assertEquals(List.of(27, 28, 29, 30, 31), claiming.claims);
+        assertEquals(List.of(30, 31, 32, 33, 34), claiming.claims);
     }
 
     @Test
@@ -146,7 +147,7 @@ class ClaimTileTaskTest {
             default ->
                 throw new UnsupportedOperationException(method.getName());
         });
-        ClaimRoomTask task = new ClaimRoomTask(null, mapController, new Point(1, 1), PLAYER);
+        ClaimRoomTask task = new ClaimRoomTask(null, mapController, new Point(1, 1), PLAYER, TICKS_PER_SECOND);
         List<GameEventType> events = new ArrayList<>();
         ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20), events);
         task.assign(imp, false);
@@ -195,7 +196,7 @@ class ClaimTileTaskTest {
             default ->
                 throw new UnsupportedOperationException(method.getName());
         });
-        ClaimRoomTask task = new ClaimRoomTask(null, mapController, new Point(1, 1), PLAYER);
+        ClaimRoomTask task = new ClaimRoomTask(null, mapController, new Point(1, 1), PLAYER, TICKS_PER_SECOND);
         List<GameEventType> events = new ArrayList<>();
         ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20), events);
         task.assign(imp, false);

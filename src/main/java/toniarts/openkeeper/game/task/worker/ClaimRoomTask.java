@@ -29,8 +29,8 @@ import toniarts.openkeeper.game.task.TaskType;
  */
 public final class ClaimRoomTask extends ClaimTileTask {
 
-    public ClaimRoomTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId) {
-        super(navigationService, mapController, p, playerId);
+    public ClaimRoomTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, int ticksPerSecond) {
+        super(navigationService, mapController, p, playerId, ticksPerSecond);
     }
 
     @Override

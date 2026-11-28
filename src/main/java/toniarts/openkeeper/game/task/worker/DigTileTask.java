@@ -50,9 +50,11 @@ public class DigTileTask extends AbstractTileTask {
     private final EntityData entityData;
     private final IEntityPositionLookup entityPositionLookup;
     private final int maxGoldPile;
+    private final float firstSwing;
+    private final float hitDelay;
 
     public DigTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId) {
-        this(navigationService, mapController, p, playerId, null, null, 0);
+        this(navigationService, mapController, p, playerId, null, null, 0, 0);
     }
 
     /**
@@ -66,14 +68,23 @@ public class DigTileTask extends AbstractTileTask {
      * @param entityData the entity data
      * @param entityPositionLookup the entities by tile
      * @param maxGoldPile the level's MAX_GOLD_PILE_OUTSIDE_TREASURY
+     * @param ticksPerSecond the level's ticks per second. Like DK II, the
+     * worker turns to the tile on the tick after its walk (0x4654F0, mining
+     * 0x465790) and its dig state starts the first swing on the tick after
+     * that (0x4655D0, 0x465870). 0 swings at once.
+     * Also like DK II, a swing hits the tile on the tick after it starts: the swing is set up
+     * (0x496700) and its hit (0x496E00, mining 0x4971D0) runs on the
+     * worker's next update (0x496AA0). 0 hits as the swing starts
      */
     public DigTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId,
-            EntityData entityData, IEntityPositionLookup entityPositionLookup, int maxGoldPile) {
+            EntityData entityData, IEntityPositionLookup entityPositionLookup, int maxGoldPile, int ticksPerSecond) {
         super(navigationService, mapController, p, playerId);
 
         this.entityData = entityData;
         this.entityPositionLookup = entityPositionLookup;
         this.maxGoldPile = maxGoldPile;
+        this.firstSwing = ticksPerSecond > 0 ? 2f / ticksPerSecond : 0;
+        this.hitDelay = ticksPerSecond > 0 ? 1f / ticksPerSecond : 0;
     }
 
     @Override
@@ -172,10 +183,11 @@ public class DigTileTask extends AbstractTileTask {
 
     /**
      * Digs in swings, as DK II's dig action does (0x496AA0, 0x496E00). Each
-     * swing hits the tile once, at its start. The swing that brings the tile
-     * down plays the animation out, and only then does the digger move on. The
-     * stored execution duration is the time on the task when the current
-     * swing ends, 0 before the first swing and once the digger is done.
+     * swing hits the tile once, the hit delay after it starts. The swing that
+     * brings the tile down plays the animation out, and only then does the
+     * digger move on. The stored execution duration is the time on the task
+     * when the next swing hits, or when the last one ends, 0 before the first
+     * swing and once the digger is done.
      *
      * @param creature the digger
      * @param executionDuration the time the digger has spent on the task
@@ -183,7 +195,7 @@ public class DigTileTask extends AbstractTileTask {
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
         float swingEnd = getExecutionDuration(creature);
-        if (executionDuration < swingEnd) {
+        if (executionDuration < swingEnd || executionDuration < firstSwing + hitDelay) {
             return;
         }
         if (!isTileToDig()) {
@@ -198,8 +210,12 @@ public class DigTileTask extends AbstractTileTask {
             return;
         }
 
+        // The animation starts with the first swing and the hit lands the hit delay after the swing started, so the
+        // swing that brings the tile down ends that much sooner after its hit
         creature.addGold(mapController.damageTile(getTaskLocation(), playerId, creature));
-        setExecutionDuration(creature, getSwingEnd(creature.getCreature(), executionDuration, swingEnd == 0, !isTileToDig()));
+        boolean last = !isTileToDig();
+        float end = firstSwing + getSwingEnd(creature.getCreature(), executionDuration - firstSwing - hitDelay, swingEnd == 0, last);
+        setExecutionDuration(creature, last ? end : end + hitDelay);
     }
 
     /**
