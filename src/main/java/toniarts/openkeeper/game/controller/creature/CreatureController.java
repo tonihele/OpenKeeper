@@ -163,6 +163,11 @@ public final class CreatureController extends EntityController implements ICreat
      * The least distance, in tiles, a creature backs off from its target
      */
     private static final float BACK_OFF_RANGE = 2f;
+    /**
+     * Within this many tiles of our own Dungeon Heart, a badly hurt creature
+     * still fights (DK II 0x45EDA0)
+     */
+    private static final int BADLY_HURT_HEART_DISTANCE = 5;
 
     private static final Logger logger = System.getLogger(CreatureController.class.getName());
 
@@ -301,8 +306,20 @@ public final class CreatureController extends EntityController implements ICreat
     public boolean shouldFleeOrAttack() {
         checkSurroundings();
 
-        // Check fleeing, TODO: Always flee?
+        // A fighter that finds an enemy goes into the fight with it, and only there weighs the threat against
+        // its fear and backs off when scared. Only a badly hurt one withdraws instead (DK II 0x45CB00, 0x45EDA0)
         boolean fighter = creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER;
+        IEntityController attackTarget = fighter && (stateMachine.isInState(CreatureState.FIGHT) || isNearCallToArms())
+                ? getAttackTarget() : null;
+        if (attackTarget != null) {
+            CreatureState state = isBadlyHurt() ? CreatureState.FLEE : CreatureState.FIGHT;
+            if (!stateMachine.isInState(state)) {
+                stateMachine.changeState(state);
+            }
+            return true;
+        }
+
+        // Check fleeing, TODO: Always flee?
         boolean inDHeart = false;
         if (entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter() && isThreatTooHigh()) {
 
@@ -321,10 +338,10 @@ public final class CreatureController extends EntityController implements ICreat
             }
         }
 
-        // Should we attack, try to avoid i.e. imps engaging in a fight. Near their own heart they
-        // only hit back at an enemy in reach, which DK II makes one tile, and otherwise keep working
-        IEntityController attackTarget = fighter || inDHeart ? getAttackTarget() : null;
-        if (attackTarget != null && (fighter || isInRange(WorldUtils.TILE_WIDTH, attackTarget.getEntityId()))
+        // Try to avoid i.e. imps engaging in a fight. Near their own heart they only hit back
+        // at an enemy in reach, which DK II makes one tile, and otherwise keep working
+        attackTarget = inDHeart && !fighter ? getAttackTarget() : null;
+        if (attackTarget != null && isInRange(WorldUtils.TILE_WIDTH, attackTarget.getEntityId())
                 && (stateMachine.isInState(CreatureState.FIGHT) || isNearCallToArms())) {
             if (!stateMachine.isInState(CreatureState.FIGHT)) {
                 stateMachine.changeState(CreatureState.FIGHT);
@@ -2932,6 +2949,22 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         return false;
+    }
+
+    @Override
+    public boolean isBadlyHurt() {
+
+        // Below a sixth of its health, unless it is fearless, and more than 5 tiles from its own heart. Heroes go
+        // to the hero lair instead (DK II 0x45EDA0)
+        Health health = entityData.getComponent(entityId, Health.class);
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+        Point heart = keeper != null ? keeper.getDungeonHeartLocation() : null;
+        if (getOwnerId() == Player.GOOD_PLAYER_ID || heart == null || entityData.getComponent(entityId, Fearless.class) != null
+                || isCombatPitFighter() || health == null || health.health >= health.maxHealth / 6) {
+            return false;
+        }
+        Point tile = getCreatureCoordinates();
+        return Math.max(Math.abs(tile.x - heart.x), Math.abs(tile.y - heart.y)) > BADLY_HURT_HEART_DISTANCE;
     }
 
     @Override

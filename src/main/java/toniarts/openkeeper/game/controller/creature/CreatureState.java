@@ -384,6 +384,12 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // A badly hurt keeper's creature withdraws, also before fear is weighed (DK II 0x45F030, 0x45EDA0)
+            if (entity.isBadlyHurt()) {
+                entity.getStateMachine().changeState(FLEE);
+                return;
+            }
+
             // A scared creature backs off from its target for a while (DK II 0x45F030)
             if (entity.isScared()) {
                 entity.getStateMachine().changeState(BACK_OFF);

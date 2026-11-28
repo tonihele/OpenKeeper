@@ -235,6 +235,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean withdrawToHeroLair();
 
     /**
+     * Tells whether we are hurt too badly to fight on, away from our own
+     * Dungeon Heart. Such a creature withdraws rather than fights
+     *
+     * @return true if we should withdraw from a fight
+     */
+    public boolean isBadlyHurt();
+
+    /**
      * Walks to a tile of our own land some way off, as a recuperating hero
      * does until its health is back
      */
