@@ -179,7 +179,7 @@ class FurnitureWorkPositionTest {
     }
 
     private Manufacture manufacture(int x, int y) {
-        return new Manufacture(null, null, new Point(x, y), (short) 3, room(), null, null, objectsController());
+        return new Manufacture(null, null, new Point(x, y), (short) 3, room(), null, null, objectsController(), null);
     }
 
     private Gamble gamble(int x, int y, int seed) {

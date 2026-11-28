@@ -689,8 +689,15 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     }
 
     @Override
-    public void onGoldChange(short keeperId, int gold) {
+    public void onGoldChange(short keeperId, int gold, int goldSpentOnBuilding) {
         screen.setGold(gold);
+    }
+
+    @Override
+    public void onStatsChange(short keeperId, int enemyCreaturesKilled, int heroesDestroyed, int ownCreaturesKilled,
+            int researchCompleted) {
+
+        // The Player Information window reads the keepers' stats while it is shown
     }
 
     @Override

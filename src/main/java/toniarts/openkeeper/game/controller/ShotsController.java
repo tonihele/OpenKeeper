@@ -37,6 +37,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Poisoned;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
+import toniarts.openkeeper.game.component.ShotTarget;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Tremor;
@@ -70,6 +71,8 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.ALARM;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CHICKEN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_SINGLE_CREATURE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.DECKEM;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.DRAIN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FEAR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
@@ -159,6 +162,10 @@ public final class ShotsController implements IShotsController {
                         WorldUtils.vector3fToVector2f(request.position()), ICreaturesController.SpawnType.CONJURE);
             }
         });
+
+        // One creature of type data 1 at level data 2 (0x4AFE50), the upgraded Create Imp's Imp at level 4
+        result.put(CREATE_SINGLE_CREATURE, request -> creaturesController.spawnCreature((short) request.shotData1(), request.playerId(),
+                request.shotData2(), WorldUtils.vector3fToVector2f(request.position()), ICreaturesController.SpawnType.CONJURE));
         result.put(CREATE_OBJECT, request -> {
             GameObject object = kwdFile.getObject(request.shotData1());
             if (object != null && object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
@@ -171,7 +178,13 @@ public final class ShotsController implements IShotsController {
             }
         });
         result.put(POSSESS_CREATURE, request -> creaturesController.createController(request.target()).setPossession(true));
-        result.put(MODIFY_HEALTH, request -> EntityController.setDamage(entityData, request.target(), -request.shotData1()));
+        result.put(MODIFY_HEALTH, request -> {
+
+            // Healing does nothing to a Horned Reaper (0x4ADB30)
+            if (!isHornedReaper(request.target())) {
+                EntityController.setDamage(entityData, request.target(), -request.shotData1());
+            }
+        });
         // Cast Armour: the first value is how long the armour lasts, in game ticks
         result.put(MODIFY_ARMOUR, request -> entityData.setComponent(request.target(),
                 new Armour(gameTimer.getGameTime() + (double) request.shotData1() / kwdFile.getGameLevel().getTicksPerSec())));
@@ -228,6 +241,7 @@ public final class ShotsController implements IShotsController {
         result.put(RAISE_DEAD, this::raiseDead);
         result.put(WIND, new WindShotProcessor(entityData, kwdFile, gameController, mapController, creaturesController));
         result.put(FREEZE, this::freeze);
+        result.put(DECKEM, this::knockDown);
         result.put(ALARM, this::raiseAlarm);
         result.put(POISON_SPIT, this::poison);
 
@@ -419,16 +433,37 @@ public final class ShotsController implements IShotsController {
         }
 
         // Like with setting off traps, the data flag OpenKeeper calls IS_HORNY makes the Horned Reaper immune
-        CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
-        if (creatureComponent == null) {
-            return;
-        }
-        Creature creature = kwdFile.getCreature(creatureComponent.creatureId);
-        if (creature != null && creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)) {
+        if (entityData.getComponent(target, CreatureComponent.class) == null || isHornedReaper(target)) {
             return;
         }
 
         entityData.setComponent(target, new Frozen(gameTimer.getGameTime(), request.shotData1()));
+    }
+
+    /**
+     * The Reaper Fireball knocks the creature it hits off its feet, on top of
+     * its damage. Not a creature that is out cold already, nor a Horned Reaper
+     * (0x4AF610)
+     *
+     * @param request the shot
+     */
+    private void knockDown(ShotRequest request) {
+        EntityId target = request.target();
+        if (target == null || entityData.getComponent(target, CreatureComponent.class) == null || isHornedReaper(target)) {
+            return;
+        }
+
+        creaturesController.createController(target).knockDown();
+    }
+
+    /**
+     * Is the thing a creature with the data flag OpenKeeper calls IS_HORNY,
+     * the Horned Reaper
+     */
+    private boolean isHornedReaper(EntityId thing) {
+        CreatureComponent creatureComponent = thing != null ? entityData.getComponent(thing, CreatureComponent.class) : null;
+        Creature creature = creatureComponent != null ? kwdFile.getCreature(creatureComponent.creatureId) : null;
+        return creature != null && creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY);
     }
 
     /**
@@ -503,6 +538,9 @@ public final class ShotsController implements IShotsController {
                 new Position(FastMath.atan2(flight.velocity.x, flight.velocity.z), new Vector3f(flight.start)),
                 new ShotViewState(flight.shotId, flight.velocity.mult(ticksPerSecond)),
                 flight);
+        if (kwdFile.getShotById(flight.shotId).getProcessType() == Shot.ProcessType.GUIDED) {
+            entityData.setComponent(entity, new ShotTarget(flight.target));
+        }
     }
 
     /**

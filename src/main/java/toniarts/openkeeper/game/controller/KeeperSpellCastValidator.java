@@ -47,6 +47,12 @@ import toniarts.openkeeper.tools.convert.map.Player;
  */
 public final class KeeperSpellCastValidator {
 
+    /**
+     * Heal, the one spell DK II refuses on a creature at full health
+     * (0x4075E0)
+     */
+    private static final short HEAL_ID = 10;
+
     private KeeperSpellCastValidator() {
         // Nope
     }
@@ -95,6 +101,7 @@ public final class KeeperSpellCastValidator {
      * @param owner the keeper in control of the target, {@code null} if
      * there is no target or it has no owner
      * @param chicken whether the targeted creature is a chicken
+     * @param fullHealth whether the targeted creature is at its full health
      * @param manaCost the mana the cast costs, see {@link KeeperSpellCost}
      * @return whether the cast is allowed
      */
@@ -106,17 +113,18 @@ public final class KeeperSpellCastValidator {
             Creature creature,
             Short owner,
             boolean chicken,
+            boolean fullHealth,
             int manaCost) {
         return checkPlayerMana(manaCost, player)
                 && checkCastRule(mapInformation, mapTile, keeperSpell, player)
-                && checkTargetRule(creature, owner, chicken, keeperSpell, player);
+                && checkTargetRule(creature, owner, chicken, fullHealth, keeperSpell, player);
     }
 
     private static boolean checkPlayerMana(int manaCost, Keeper player) {
         return manaCost <= player.getMana() - player.getManaLoose();
     }
 
-    private static boolean checkTargetRule(Creature creature, Short owner, boolean chicken, KeeperSpell keeperSpell, Keeper player) {
+    private static boolean checkTargetRule(Creature creature, Short owner, boolean chicken, boolean fullHealth, KeeperSpell keeperSpell, Keeper player) {
         short playerId = player.getId();
 
         switch (keeperSpell.getTargetRule()) {
@@ -142,6 +150,11 @@ public final class KeeperSpellCastValidator {
             }
             case OWN_CREATURES -> {
                 if (creature == null || owner == null || owner != playerId) {
+                    return false;
+                }
+
+                // Like DK II, Heal can't be cast on a creature that is already at full health (0x4075E0)
+                if (fullHealth && keeperSpell.getKeeperSpellId() == HEAL_ID) {
                     return false;
                 }
             }

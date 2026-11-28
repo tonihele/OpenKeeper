@@ -36,6 +36,7 @@ public final class ShotFixtures {
      * fireball
      */
     public static final short FIREBALL_ID = 1;
+    public static final short GUIDED_BOLT_ID = 35;
 
     /**
      * The Vampire's Raise Dead
@@ -116,6 +117,21 @@ public final class ShotFixtures {
         shot.setHitThingEffectId(FIREBALL_HIT_EFFECT_ID);
         shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.DIE_OVER_TIME,
                 Shot.ShotFlag.MOVE_TOWARDS_TARGET, Shot.ShotFlag.RECOIL));
+        return shot;
+    }
+
+    /**
+     * The Guided Bolt of the Dark Elf and the Elven Archer, with the values of
+     * the original data
+     *
+     * @return the shot
+     */
+    public static Shot guidedBolt() {
+        Shot shot = fireball();
+        shot.setShotId(GUIDED_BOLT_ID);
+        shot.setProcessType(Shot.ProcessType.GUIDED);
+        shot.setSpeed(0.7f);
+
         return shot;
     }
 
@@ -293,6 +309,10 @@ public final class ShotFixtures {
 
     public static KeeperSpell keeperSpell(KeeperSpell.CastRule castRule, KeeperSpell.TargetRule targetRule, int manaCost) {
         return keeperSpell(castRule, targetRule, manaCost, 0, (short) 1);
+    }
+
+    public static KeeperSpell keeperSpell(short keeperSpellId, KeeperSpell.CastRule castRule, KeeperSpell.TargetRule targetRule, int manaCost) {
+        return keeperSpell(castRule, targetRule, manaCost, 0, keeperSpellId);
     }
 
     public static KeeperSpell keeperSpell(KeeperSpell.CastRule castRule, KeeperSpell.TargetRule targetRule, int manaCost, float rechargeTime, short keeperSpellId) {

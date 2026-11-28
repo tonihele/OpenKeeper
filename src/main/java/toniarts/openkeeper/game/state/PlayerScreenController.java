@@ -58,6 +58,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.KeeperSpellCost;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
@@ -90,6 +91,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.function.Supplier;
 
 /**
@@ -120,6 +122,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
      */
     private static final short ONE_SHOT_REAPER_SPELL_ID = 14;
 
+    /**
+     * The parameters of a row of the Player Information window, the player and
+     * its stats in DK II's order (texts 1518 to 1528)
+     */
+    private static final String[] PLAYER_INFORMATION_COLUMNS = {"player", "kill", "death", "value", "mana",
+        "creature", "imp", "trap", "training", "research", "happiness", "mapPercent"};
+
     public float lastUpdate = 0;
 
     private PlayerState state;
@@ -142,6 +151,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private float payDayTimeLeft;
     private int payDayCost;
     private EntitySet callToArmsBanners;
+    private EntitySet keeperCreatures;
+    private EntitySet keeperTraps;
+    private String playerInformation;
     private WatchedEntity possessedCreature;
     private int lastImpCount = -1;
     private EntitySet spellCasts;
@@ -195,6 +207,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             updateCallToArms();
             if (state != null && screen != null && SCREEN_HUD_ID.equals(screen.getScreenId())) {
                 updateWorkshopAvailability();
+                updatePlayerInformation();
             }
             lastUpdate = 0;
         }
@@ -294,6 +307,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (callToArmsBanners != null) {
             callToArmsBanners.release();
             callToArmsBanners = null;
+        }
+        if (keeperCreatures != null) {
+            keeperCreatures.release();
+            keeperCreatures = null;
+            keeperTraps.release();
+            keeperTraps = null;
         }
         if (possessedCreature != null) {
             possessedCreature.release();
@@ -1258,6 +1277,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
         showBattleButton();
         callToArmsBanners = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", state.getPlayer().getId()),
                 CallToArms.class, ObjectViewState.class, Position.class, Owner.class);
+        keeperCreatures = entityData.getEntities(CreatureComponent.class, CreatureExperience.class, CreatureMood.class, Owner.class);
+        keeperTraps = entityData.getEntities(TrapComponent.class, Owner.class);
+        playerInformation = null;
 
         // Keeper spell recharge, a cast that is already in the set is not tracked, the changes are
         spellCasts = entityData.getEntities(new FieldFilter(KeeperSpellCast.class, "keeperId", state.getPlayer().getId()), KeeperSpellCast.class);
@@ -1304,6 +1326,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         hud.findNiftyControl("gold", Label.class).setText(Integer.toString(gold));
         updateRoomAffordability(gold);
+        if (state != null) {
+            updateWorkshopAvailability();
+        }
     }
 
     /**
@@ -1518,22 +1543,119 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     /**
-     * Tints the trap and door icons while the player has no Workshop to
-     * manufacture them in, as DKII.EXE does (0x412FC0, colour 0x808080)
+     * Tints the trap and door icons as DKII.EXE does (0x412FC0): 0x808080
+     * while the player has no Workshop to manufacture them in, and 0x646464
+     * while it doesn't have the gold a blueprint takes (door +0x8F, trap
+     * +0x92). The Workshop tint is set last, so it wins when both apply.
      */
     private void updateWorkshopAvailability() {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
-        String tint = state.hasWorkshop() ? null : "workshopless";
+        boolean hasWorkshop = state.hasWorkshop();
+        int gold = state.getPlayer().getGold();
         for (ResearchableEntity door : state.getAvailableDoors()) {
             if (door.isDiscovered()) {
-                updateWorkshopIcon(hud.findElementById("door_" + state.getKwdFile().getDoorById(door.getId()).getDoorId()), tint);
+                Door data = state.getKwdFile().getDoorById(door.getId());
+                updateWorkshopIcon(hud.findElementById("door_" + data.getDoorId()), getWorkshopTint(hasWorkshop, data.getGoldCost() > gold));
             }
         }
         for (ResearchableEntity trap : state.getAvailableTraps()) {
             if (trap.isDiscovered()) {
-                updateWorkshopIcon(hud.findElementById("trap_" + state.getKwdFile().getTrapById(trap.getId()).getTrapId()), tint);
+                Trap data = state.getKwdFile().getTrapById(trap.getId());
+                updateWorkshopIcon(hud.findElementById("trap_" + data.getTrapId()), getWorkshopTint(hasWorkshop, data.getGoldCost() > gold));
             }
         }
+    }
+
+    private static String getWorkshopTint(boolean hasWorkshop, boolean unaffordable) {
+        return !hasWorkshop ? "workshopless" : unaffordable ? "unaffordable" : null;
+    }
+
+    /**
+     * Fills the Player Information window (the I key) while it is shown, as
+     * DK II's 0x423450 does: a row for each keeper with the stats of 0x4C2C30,
+     * shown only for the player and its allies (0x4C2BC0) and "-" for the
+     * others, and 1000 or more in thousands ("12K"). The map area shows the
+     * share of the map the keeper owns, where DK II shows the kills again
+     * (0x423450 asks 0x4C2C30 for stat 1 in that column).
+     */
+    private void updatePlayerInformation() {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        Element window = hud.findElementById("statistics");
+        if (window == null || !window.isVisible() || keeperCreatures == null) {
+            return;
+        }
+        keeperCreatures.applyChanges();
+        keeperTraps.applyChanges();
+        GameClientState gameState = state.stateManager.getState(GameClientState.class);
+        short impId = state.getKwdFile().getImp().getCreatureId();
+        List<String[]> rows = new ArrayList<>();
+        for (Keeper keeper : gameState.getPlayers()) {
+            if (keeper.getId() == Player.GOOD_PLAYER_ID || keeper.getId() == Player.NEUTRAL_PLAYER_ID) {
+                continue;
+            }
+            String[] row = new String[PLAYER_INFORMATION_COLUMNS.length];
+            Arrays.fill(row, "");
+            row[0] = gameState.getPlayerName(keeper);
+            if (!state.getPlayer().isAlly(keeper.getId())) {
+                Arrays.fill(row, 1, row.length, "-");
+                rows.add(row);
+                continue;
+            }
+
+            // Creatures (stat 5) leave out the Imps (stat 6); the training is their average level (stat 8) and the
+            // happiness comes from their average anger, each creature's the average of its 6 kinds (stat 10)
+            int creatures = 0;
+            int imps = 0;
+            int levels = 0;
+            int anger = 0;
+            for (Entity creature : keeperCreatures) {
+                if (creature.get(Owner.class).ownerId != keeper.getId()) {
+                    continue;
+                }
+                if (creature.get(CreatureComponent.class).creatureId == impId) {
+                    imps++;
+                } else {
+                    creatures++;
+                }
+                levels += creature.get(CreatureExperience.class).level;
+                CreatureMood mood = creature.get(CreatureMood.class);
+                anger += (mood.general + mood.noFood + mood.noLair + mood.noWork + mood.noPay + mood.other) / 6;
+            }
+            int count = creatures + imps;
+            int traps = (int) keeperTraps.stream().filter(trap -> trap.get(Owner.class).ownerId == keeper.getId()).count();
+            row[1] = formatPlayerStat(keeper.getEnemyCreaturesKilled() + keeper.getHeroesDestroyed());
+            row[2] = formatPlayerStat(keeper.getOwnCreaturesKilled());
+            row[3] = formatPlayerStat(keeper.getGold() + keeper.getGoldSpentOnBuilding());
+            row[4] = formatPlayerStat(keeper.getMaxMana());
+            row[5] = formatPlayerStat(creatures);
+            row[6] = formatPlayerStat(imps);
+            row[7] = formatPlayerStat(traps);
+            row[8] = formatPlayerStat(count > 0 ? levels / count : 0);
+            row[9] = formatPlayerStat(keeper.getResearchCompleted());
+            row[10] = formatPlayerStat(100 - (count > 0 ? anger / count : 0) * 100 / 0xFFFE);
+            row[11] = formatPlayerStat(gameState.getMapClientService().getMapData().getOwnedPercentage(keeper.getId()));
+            rows.add(row);
+        }
+
+        // Build the rows again only when something changed
+        String shown = rows.stream().map(row -> String.join("|", row)).collect(Collectors.joining("\n"));
+        if (shown.equals(playerInformation)) {
+            return;
+        }
+        playerInformation = shown;
+        Element list = hud.findElementById("playerStatistics");
+        removeAllChildElements(list);
+        for (String[] row : rows) {
+            ControlBuilder entry = new ControlBuilder("statisticEntry");
+            for (int i = 0; i < row.length; i++) {
+                entry.parameter(PLAYER_INFORMATION_COLUMNS[i], row[i]);
+            }
+            entry.build(list);
+        }
+    }
+
+    private static String formatPlayerStat(int value) {
+        return value < 1000 ? Integer.toString(value) : value / 1000 + "K";
     }
 
     private void updateWorkshopIcon(Element icon, String tint) {

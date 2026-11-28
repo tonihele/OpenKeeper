@@ -66,7 +66,7 @@ public final class PlayerGoldControl implements RoomListener {
 
     private void updateListeners() {
         for (PlayerGoldListener listener : listeners.getArray()) {
-            listener.onGoldChange(keeper.getId(), keeper.getGold());
+            listener.onGoldChange(keeper.getId(), keeper.getGold(), keeper.getGoldSpentOnBuilding());
         }
     }
 

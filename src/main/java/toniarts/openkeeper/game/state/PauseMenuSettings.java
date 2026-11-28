@@ -252,6 +252,7 @@ final class PauseMenuSettings {
         AudioOutput.Result result = AudioOutput.apply(mode);
         find("audioOutputStatus", Label.class).setText(result.applied() ? "" : result.message());
         Main.setupNiftySound(nifty);
+        Main.applySoundSettings();
         save();
     }
 

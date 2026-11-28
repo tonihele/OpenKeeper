@@ -22,8 +22,12 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.control.Container;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.map.FlashTileControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -579,6 +583,11 @@ public final class MapController extends Container implements IMapController {
             gameEventService.emit(GameEventType.TERRAIN_DESTROYED, ThingFlag.TERRAIN, terrain.getTerrainId(), point);
             changeTerrain(tile, terrain.getDestroyedTypeTerrainId());
 
+            // Taking an enemy's floor destroys the traps on it, they take their own health as damage (DKII.EXE 0x4977F0)
+            if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                destroyTraps(point);
+            }
+
 //            updateRoomWalls(tile);
 //            mapLoader.updateTiles(mapLoader.getSurroundingTiles(tile.getLocation(), true));
             // Notify
@@ -591,6 +600,14 @@ public final class MapController extends Container implements IMapController {
         }
 
         return returnedGold;
+    }
+
+    private void destroyTraps(Point point) {
+        for (EntityId trap : entityData.findEntities(null, TrapComponent.class, Position.class, Health.class)) {
+            if (point.equals(WorldUtils.vectorToPoint(entityData.getComponent(trap, Position.class).position))) {
+                EntityController.setDamage(entityData, trap, entityData.getComponent(trap, Health.class).health);
+            }
+        }
     }
 
     @Override

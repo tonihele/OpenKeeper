@@ -39,7 +39,12 @@ public interface IMainMenuScreenController extends ScreenController {
     public void addComputerPlayer();
 
     //// screen id="skirmish" and id="multiplayerCreate" ////
-    public void changeAI();
+    /**
+     * Steps the type of the selected computer player through the AI types, wrapping round
+     *
+     * @param step "1" for the next type, "-1" for the one before
+     */
+    public void changeAI(String step);
 
     public void kickPlayer();
 

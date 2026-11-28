@@ -38,13 +38,16 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapFiring;
+import toniarts.openkeeper.game.component.TrapTarget;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.TriggerWave;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
+import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -164,7 +167,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
         double gameTime = gameTimer.getGameTime();
         for (Entity trapEntity : trapEntities) {
             if (!trapEntity.get(TrapViewState.class).blueprint) {
-                processTrap(trapEntity, gameTime);
+                processTrap(trapEntity, gameTime, tpf);
             }
         }
 
@@ -189,7 +192,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
         }
     }
 
-    private void processTrap(Entity trapEntity, double gameTime) {
+    private void processTrap(Entity trapEntity, double gameTime, float tpf) {
         TrapFiring firing = getFiring(trapEntity.getId());
         if (gameTime >= firing.threatEndTime && entityData.getComponent(trapEntity.getId(), Threat.class) != null) {
             entityData.removeComponent(trapEntity.getId(), Threat.class);
@@ -204,7 +207,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
             // Nothing to fire, the Guard Post for one
             return;
         }
-        EntityId target = isTriggeredByTriggerTrap(trapEntity, trap) ? null : findTarget(trapEntity, trap);
+        EntityId target = isTriggeredByTriggerTrap(trapEntity, trap) ? null : findTarget(trapEntity, trap, gameTime, tpf);
         if (target == null) {
 
             // Losing the victim starts the charging over
@@ -248,6 +251,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
         Vector3f shotStart = doorEntity.get(Position.class).position.add(0, WorldUtils.TILE_HEIGHT / 2, 0);
         shotsController.fireShot(trap.getShotTypeId(), trap.getShotData1(), trap.getShotData2(), ownerId, shotStart, target,
                 doorEntity.getId(), 0);
+        gameEventService.emit(GameEventType.TRAP_FIRED, ThingFlag.TRAP, trap.getTrapId(), doorEntity.get(Position.class).position);
         entityData.setComponent(doorEntity.getId(), new TrapFiring(gameTime + trap.getRechargeTime(), TrapFiring.NOT_CHARGING, 0));
     }
 
@@ -281,6 +285,9 @@ public final class TrapSystem implements IGameLogicUpdatable {
             shotsController.createShot(trap.getShotTypeId(), trap.getShotData1(), trap.getShotData2(), ownerId,
                     trapPosition.clone(), target, null);
         }
+
+        // The trap makes its trigger sound (0x4A80E0)
+        gameEventService.emit(GameEventType.TRAP_FIRED, ThingFlag.TRAP, trap.getTrapId(), trapPosition);
         if (trap.getFlags().contains(Trap.TrapFlag.REVEAL_WHEN_FIRED)) {
             reveal(trapEntity);
         }
@@ -502,7 +509,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
         return true;
     }
 
-    private EntityId findTarget(Entity trapEntity, Trap trap) {
+    private EntityId findTarget(Entity trapEntity, Trap trap, double gameTime, float tpf) {
         if (trap.getTriggerType() == null) {
             return null;
         }
@@ -511,7 +518,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
         Point trapTile = WorldUtils.vectorToPoint(trapEntity.get(Position.class).position);
         return switch (trap.getTriggerType()) {
             case LINE_OF_SIGHT ->
-                findTargetInSight(trapEntity, trap.getTriggerData());
+                findTargetInSight(trapEntity, trap.getTriggerData(), gameTime, tpf);
             case PRESSURE ->
                 findTargetOnTile(ownerId, trapTile, true);
             case TRIGGER ->
@@ -522,18 +529,36 @@ public final class TrapSystem implements IGameLogicUpdatable {
     }
 
     /**
-     * The nearest enemy creature in the trap's sight
+     * The nearest enemy creature in the trap's sight. Like DK II (0x4A9400),
+     * the creature the trap aimed at on the tick before stays its target while
+     * it is in sight and not beyond the range, the edge of the range included.
+     * Another creature takes over only if it is strictly nearer, and strictly
+     * inside the range.
      *
      * @param trapEntity the trap
-     * @param range the trigger range in tiles, the victim needs to be closer
+     * @param range the trigger range in tiles, a new victim needs to be closer
+     * @param gameTime the current game time
+     * @param tpf the length of a tick
      * @return the victim, {@code null} if none is in sight
      */
-    private EntityId findTargetInSight(Entity trapEntity, int range) {
+    private EntityId findTargetInSight(Entity trapEntity, int range, double gameTime, float tpf) {
         Vector3f trapPosition = trapEntity.get(Position.class).position;
         Point trapTile = WorldUtils.vectorToPoint(trapPosition);
         short ownerId = trapEntity.get(Owner.class).ownerId;
         float closestDistanceSquared = range * range;
         EntityId target = null;
+        TrapTarget last = entityData.getComponent(trapEntity.getId(), TrapTarget.class);
+        if (last != null && gameTime > last.time && gameTime - last.time < tpf * 1.5f) {
+            Entity kept = getCreature(last.target);
+            if (kept != null && canSetOffTraps(kept, true)) {
+                Vector3f keptPosition = kept.get(Position.class).position;
+                float distanceSquared = distanceSquared(trapPosition, keptPosition);
+                if (distanceSquared <= closestDistanceSquared && entityPositionLookup.hasLineOfSight(trapPosition, keptPosition)) {
+                    closestDistanceSquared = distanceSquared;
+                    target = last.target;
+                }
+            }
+        }
         for (int x = trapTile.x - range; x <= trapTile.x + range; x++) {
             for (int y = trapTile.y - range; y <= trapTile.y + range; y++) {
                 for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
@@ -554,6 +579,11 @@ public final class TrapSystem implements IGameLogicUpdatable {
             }
         }
 
+        if (target != null) {
+            entityData.setComponent(trapEntity.getId(), new TrapTarget(target, gameTime));
+        } else if (last != null) {
+            entityData.removeComponent(trapEntity.getId(), TrapTarget.class);
+        }
         return target;
     }
 

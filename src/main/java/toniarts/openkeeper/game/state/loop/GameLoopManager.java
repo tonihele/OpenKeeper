@@ -146,7 +146,7 @@ public final class GameLoopManager {
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
                         levelInfo, playerControllers.values(), gameWorldController.getMapController(),
                         gameController.getGameTimer(), gameEventService),
-                new InfernoSystem(entityData, positionSystem, levelInfo.getLevelData()),
+                new InfernoSystem(entityData, positionSystem, levelInfo.getLevelData(), gameController.getGameTimer()),
                 new CreatureTorturingSystem(entityData, gameWorldController.getCreaturesController(),
                         gameWorldController.getMapController(), gameEventService, gameSettings,
                         levelInfo.getLevelData().getGameLevel().getTicksPerSec()),
@@ -184,7 +184,7 @@ public final class GameLoopManager {
                 new TrainingDummySystem(entityData, levelInfo.getLevelData(), gameWorldController.getMapController(),
                         gameController.getGameTimer()),
                 new CreatureViewSystem(entityData, levelInfo.getLevelData()),
-                new DoorViewSystem(entityData, positionSystem),
+                new DoorViewSystem(entityData, positionSystem, levelInfo),
                 new BattleSystem(entityData, gameController.getGameTimer()),
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
@@ -195,7 +195,7 @@ public final class GameLoopManager {
                         gameWorldController.getShotsController(), gameEventService),
                 new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
                 new ShotSystem(entityData, level, gameEventService, gameWorldController.getShotsController(), positionSystem,
-                        gameWorldController.getMapController(), playerControllers),
+                        gameWorldController.getMapController(), playerControllers, gameController.getGameTimer()),
                 new OnFireSystem(entityData, levelInfo.getLevelData(), gameController.getGameTimer(), gameEventService),
                 (IGameLogicUpdatable) taskManager);
 

@@ -65,6 +65,8 @@ public final class ThingSounds {
     public static final int CREATURE_ELECTROCUTED = 0x156; // on the Electric Chair
     public static final int CREATURE_TORTURE_FIRE = 0x31B; // upside down over the coals, on a wheel on the wall
     public static final int CREATURE_TORTURE_WATER = 0x31C; // upside down over the water, on a wheel on the wall
+    public static final int CREATURE_ARM_TRAP = 0x328;
+    public static final int CREATURE_BUILD_DOOR = 0x327;
 
     // Hand
     public static final int TAG = 0xEC;

@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.sound;
 
+import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventType;
@@ -32,6 +33,7 @@ import toniarts.openkeeper.utils.Point;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * What a client hears of a {@link GameEvent}: the sound category and the sound event are picked here, from the
@@ -39,6 +41,15 @@ import java.util.List;
  */
 public final class GameEventSounds {
 
+    /**
+     * The mentor's speech for a made trap or door, by the object type of its
+     * crate. DK II's message 0x1A (table at 0x6A0838), a crate type that is
+     * not here has no message
+     */
+    private static final Map<Integer, Integer> ITEM_MADE_SPEECHES = Map.ofEntries(Map.entry(40, 1397), Map.entry(36, 1398),
+            Map.entry(42, 1399), Map.entry(5, 1400), Map.entry(38, 1401), Map.entry(41, 1402), Map.entry(39, 1403),
+            Map.entry(44, 1404), Map.entry(37, 1405), Map.entry(43, 1406), Map.entry(52, 1407), Map.entry(54, 1408),
+            Map.entry(53, 1409), Map.entry(55, 1410), Map.entry(57, 1411), Map.entry(56, 1412), Map.entry(92, 1487));
     private static final short MAIDEN_OF_THE_NEST_ID = 45;
 
     private GameEventSounds() {
@@ -92,6 +103,12 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.CREATURE_REINFORCE, event.position);
             case CREATURE_SULK ->
                 add(sounds, subject, ThingSounds.CREATURE_SULK, event.position);
+            case CREATURE_STORE_GOLD ->
+                add(sounds, getCategory(kwdFile, ThingFlag.OBJECT, ObjectsController.OBJECT_GOLD_ID), ThingSounds.DROP, event.position);
+            case CREATURE_ARM_TRAP -> // From the worker's own bank, not the trap's (0x4671B0)
+                add(sounds, subject, ThingSounds.CREATURE_ARM_TRAP, event.position);
+            case CREATURE_BUILD_DOOR -> // From the worker's own bank, not the door's (0x467460)
+                add(sounds, subject, ThingSounds.CREATURE_BUILD_DOOR, event.position);
             case MELEE_HIT ->
                 addMeleeHit(sounds, event, kwdFile);
             case SPECIAL_ACTIVATED -> {
@@ -121,12 +138,30 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.SHOT_LAUNCH, event.position);
             case SHOT_HIT ->
                 addShotHit(sounds, event, kwdFile, subject);
+            case TRAP_FIRED -> // From the trap's own bank, the Magic Door's trap's too (0x4A80E0, 0x4A55F0)
+                add(sounds, kwdFile.getTrapById(event.subjectId).getSoundCategory(), ThingSounds.TRAP_TRIGGER, event.position);
             case IMPS_CREATED ->
                 add(sounds, ThingSounds.getCreateImpCategory(kwdFile), ThingSounds.SHOT_LAUNCH, event.position);
             case CALL_TO_ARMS_UNREACHABLE ->
                 add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MISC054.getId(), null);
             case ALARM_RAISED ->
                 add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MISC077.getId(), null);
+            case NOT_ENOUGH_GOLD -> // Message 0x37 variant 6, which has no speech of its own and takes the default one
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.GOLD002.getId(), null);
+            case WORKSHOP_ITEM_MADE -> {
+                // The crate plays the sound from the trap's or the door's own bank (0x4F5240)
+                if (event.subjectKind == ThingFlag.DOOR) {
+                    add(sounds, kwdFile.getDoorById(event.subjectId).getSoundCategory(), ThingSounds.MANUFACTURED, event.position);
+                } else if (event.subjectKind == ThingFlag.TRAP) {
+                    add(sounds, kwdFile.getTrapById(event.subjectId).getSoundCategory(), ThingSounds.MANUFACTURED, event.position);
+                }
+            }
+            case WORKSHOP_ITEM_MADE_MESSAGE -> {
+                Integer speech = ITEM_MADE_SPEECHES.get(event.subjectId);
+                if (speech != null) {
+                    add(sounds, SoundCategory.SPEECH_MENTOR, speech, null);
+                }
+            }
             case TORTURE_ELECTROCUTED -> {
                 add(sounds, subject, ThingSounds.ELECTRIC_CHAIR_ZAP, event.position);
                 add(sounds, getCategory(kwdFile, event.targetKind, event.targetId), ThingSounds.CREATURE_ELECTROCUTED,

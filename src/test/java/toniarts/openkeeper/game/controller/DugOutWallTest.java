@@ -16,11 +16,18 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.map.IMapTileController;
@@ -35,11 +42,13 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.flags;
 
 /**
- * Who owns a wall once it is dug out or repaired, and what mining gems gives
+ * Who owns a wall once it is dug out or repaired, what mining gems gives, and
+ * what is left of the traps on an enemy floor that is taken
  */
 class DugOutWallTest {
 
@@ -124,6 +133,63 @@ class DugOutWallTest {
         }
 
         assertEquals(100, mapController.getMapData().getTile(0, 0).getHealth());
+    }
+
+    @Test
+    void takingAnEnemyFloorDestroysTheTrapsOnIt() {
+        short floorId = 10;
+        Terrain floor = TerrainFixtures.terrain(floorId, flags(Terrain.TerrainFlag.OWNABLE), 0, 1000, 1000, floorId);
+        Terrain path = TerrainFixtures.terrain((short) 0, flags(), 0, 10, 10, (short) 0);
+        GameMap map = new GameMap(2, 1);
+        for (int x = 0; x < 2; x++) {
+            map.getTiles()[x][0] = new Tile() {
+
+                @Override
+                public short getTerrainId() {
+                    return floorId;
+                }
+
+                @Override
+                public short getPlayerId() {
+                    return KEEPER_ID;
+                }
+            };
+        }
+        IKwdFile kwdFile = proxy(IKwdFile.class, (name, args) -> switch (name) {
+            case "getMap" ->
+                map;
+            case "getTerrain" ->
+                (short) args[0] == floorId ? floor : path;
+            case "getThings" ->
+                List.of();
+            case "getGameLevel" ->
+                CreatureSleepFixtures.level(4);
+            default ->
+                throw new UnsupportedOperationException(name);
+        });
+        ILevelInfo levelInfo = proxy(ILevelInfo.class, (name, args) -> Map.of(KEEPER_ID, new Keeper(false, KEEPER_ID)));
+        EntityData entityData = new DefaultEntityData();
+        EntityId trapOnTheFloor = trap(entityData, 0);
+        EntityId trapNextToIt = trap(entityData, 1);
+        MapController mapController = new MapController(kwdFile, null,
+                Map.of(MiscType.ATTACK_TILE_HEALTH, CreatureSleepFixtures.variable(MiscType.ATTACK_TILE_HEALTH, 100)),
+                null, entityData, levelInfo, proxy(GameEventService.class, (name, args) -> null));
+
+        mapController.damageTile(new Point(0, 0), HERO_ID, null);
+        assertNull(entityData.getComponent(trapOnTheFloor, Damage.class));
+        while (mapController.getMapData().getTile(0, 0).getOwnerId() == KEEPER_ID) {
+            mapController.damageTile(new Point(0, 0), HERO_ID, null);
+        }
+
+        assertEquals(50, entityData.getComponent(trapOnTheFloor, Damage.class).damage);
+        assertNull(entityData.getComponent(trapNextToIt, Damage.class));
+    }
+
+    private static EntityId trap(EntityData entityData, int x) {
+        EntityId trap = entityData.createEntity();
+        entityData.setComponents(trap, new TrapComponent((short) 1), new Health(50, 50),
+                new Position(0, new Vector3f(x, 0, 0)));
+        return trap;
     }
 
     @Test

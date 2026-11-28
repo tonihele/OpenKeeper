@@ -24,7 +24,6 @@ import com.simsilica.es.EntityId;
 import java.util.Objects;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.game.component.TrapViewState;
-import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -135,9 +134,8 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
         currentState = target;
         if (constructionChanged) {
             playAnimation();
-            if (current != null && !target.blueprint && spatial.getCullHint() != Spatial.CullHint.Always) {
-                ThingSounds.play(getDataObject().getSoundCategory(), ThingSounds.MANUFACTURED, spatial.getWorldTranslation());
-            }
+
+            // When the trap got armed, the worker that armed it makes the sound
         }
     }
 

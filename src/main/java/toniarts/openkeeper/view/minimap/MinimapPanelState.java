@@ -96,6 +96,7 @@ public final class MinimapPanelState extends AbstractAppState {
     private final float dungeonHeartReportingDistanceTiles;
     private final Set<Short> guardPostTrapIds;
     private final float guardPostReportingDistanceTiles;
+    private final float guardRoomReportingDistanceTiles;
 
     private AppStateManager stateManager;
     private MinimapAssets assets;
@@ -130,7 +131,8 @@ public final class MinimapPanelState extends AbstractAppState {
     public MinimapPanelState(Main app, IMapInformation<? extends IMapTileInformation> mapInformation,
             IFogOfWarInformation fogOfWarInformation, IRoomsInformation<? extends IRoomInformation> roomsInformation,
             EntityData entityData, Keeper localKeeper, float dungeonHeartReportingDistanceTiles,
-            Set<Short> guardPostTrapIds, float guardPostReportingDistanceTiles) {
+            Set<Short> guardPostTrapIds, float guardPostReportingDistanceTiles,
+            float guardRoomReportingDistanceTiles) {
         this.app = app;
         this.mapInformation = mapInformation;
         this.fogOfWarInformation = fogOfWarInformation;
@@ -139,6 +141,7 @@ public final class MinimapPanelState extends AbstractAppState {
         this.dungeonHeartReportingDistanceTiles = dungeonHeartReportingDistanceTiles;
         this.guardPostTrapIds = guardPostTrapIds;
         this.guardPostReportingDistanceTiles = guardPostReportingDistanceTiles;
+        this.guardRoomReportingDistanceTiles = guardRoomReportingDistanceTiles;
         MapColourClassifier classifier = new MapColourClassifier(mapInformation, fogOfWarInformation, roomsInformation);
         this.grid = new MapColourGrid(mapInformation.getMapData().getWidth(), mapInformation.getMapData().getHeight(),
                 classifier, fogOfWarInformation);
@@ -161,7 +164,8 @@ public final class MinimapPanelState extends AbstractAppState {
         view = new MinimapView(app.getAssetManager(), app.getGuiNode());
         view.attach();
         markerPainter = new MinimapMarkerPainter(entityData, assets.getPalette(), localKeeper.getId(),
-                guardPostTrapIds, guardPostReportingDistanceTiles);
+                guardPostTrapIds, guardPostReportingDistanceTiles,
+                mapInformation.getMapData(), guardRoomReportingDistanceTiles);
 
         inputListener = new MinimapInputListener();
         app.getInputManager().addRawInputListener(inputListener);

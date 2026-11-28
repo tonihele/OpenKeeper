@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
 import java.util.Collection;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.listener.SpecialListener;
 import toniarts.openkeeper.utils.Point;
@@ -194,6 +195,13 @@ public interface IGameWorldController {
      * @return doors controller
      */
     public IDoorsController getDoorsController();
+
+    /**
+     * Get the game event service
+     *
+     * @return the game event service
+     */
+    public GameEventService getGameEventService();
 
     /**
      * Get the traps controller

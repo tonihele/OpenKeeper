@@ -68,6 +68,11 @@ public final class SoundState extends AbstractPauseAwareState {
 
     private static final Logger logger = System.getLogger(SoundState.class.getName());
 
+    /**
+     * How many lines of speech can wait their turn (0x568390)
+     */
+    private static final int SPEECH_QUEUE_SIZE = 16;
+
     private Main app;
     private AppStateManager stateManager;
     private int speechHandle = SoundEngine.NO_HANDLE;
@@ -262,6 +267,12 @@ public final class SoundState extends AbstractPauseAwareState {
 
         if (SoundCategory.load(soundCategory, false) == null) {
             logger.log(Level.WARNING, "Sound category {0} not found", soundCategory);
+            return;
+        }
+
+        // Like DK II (0x568390), at most 16 lines wait their turn and a line that is already waiting is not queued again
+        if (speechQueue.size() >= SPEECH_QUEUE_SIZE || speechQueue.stream()
+                .anyMatch(speech -> speech.speechId() == speechId && speech.soundCategory().equals(soundCategory))) {
             return;
         }
 

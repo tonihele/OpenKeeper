@@ -29,9 +29,12 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.ViewType;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.map.FakeFogOfWarInformation;
+import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -45,11 +48,13 @@ class MinimapMarkerPainterTest {
     private static final short ALARM_ID = 13;
 
     private EntityData entityData;
+    private FakeMapData mapData;
     private MinimapMarkerPainter painter;
 
     @BeforeEach
     void setUp() {
         entityData = new DefaultEntityData();
+        mapData = new FakeMapData(16, 16);
         BufferedImage paletteImage = new BufferedImage(64, 16, BufferedImage.TYPE_INT_RGB);
         for (int y = 0; y < 16; y++) {
             for (int x = 0; x < 64; x++) {
@@ -57,7 +62,7 @@ class MinimapMarkerPainterTest {
             }
         }
         painter = new MinimapMarkerPainter(entityData, MinimapPalette.load(paletteImage), VIEWER_ID,
-                Set.of(GUARD_POST_ID), 7);
+                Set.of(GUARD_POST_ID), 7, mapData, 2);
     }
 
     @AfterEach
@@ -146,13 +151,67 @@ class MinimapMarkerPainterTest {
         assertEquals(trapDotOnly, paintedBytes(fogOfWar)); // another keeper's guard post, only its dot
     }
 
+    @Test
+    void ownGuardRoomGetsItsBoundsWidenedByTheReportingDistance() {
+        EntityId room = entityData.createEntity();
+        mapData.getTile(8, 8).roomId = room;
+        mapData.getTile(9, 8).roomId = room;
+        entityData.setComponents(room,
+                new RoomComponent((short) 9, false, ObjectType.TRAINEE, new Point(8, 8)),
+                new Owner(VIEWER_ID, VIEWER_ID));
+        painter.update();
+        assertFalse(paintsAnything()); // not a Guard Room
+
+        entityData.setComponent(room, new RoomComponent((short) 9, false, ObjectType.GUARD, new Point(8, 8)));
+        painter.update();
+        byte[] raster = paint(new FakeFogOfWarInformation());
+        assertTrue(isPainted(raster, 6, 6)); // tiles 8..9 x 8, two tiles further out each way
+        assertTrue(isPainted(raster, 11, 6));
+        assertTrue(isPainted(raster, 6, 10));
+        assertTrue(isPainted(raster, 11, 10));
+        assertFalse(isPainted(raster, 8, 8));
+        assertFalse(isPainted(raster, 5, 6));
+        assertFalse(isPainted(raster, 12, 10));
+
+        entityData.setComponent(room, new Owner((short) (VIEWER_ID + 1), (short) (VIEWER_ID + 1)));
+        painter.update();
+        assertFalse(paintsAnything()); // another keeper's Guard Room
+    }
+
+    @Test
+    void guardRoomOutlineStopsOneTileInsideTheMapEdge() {
+        EntityId room = entityData.createEntity();
+        mapData.getTile(1, 14).roomId = room;
+        entityData.setComponents(room,
+                new RoomComponent((short) 9, false, ObjectType.GUARD, new Point(1, 14)),
+                new Owner(VIEWER_ID, VIEWER_ID));
+        painter.update();
+
+        byte[] raster = paint(new FakeFogOfWarInformation());
+        assertTrue(isPainted(raster, 1, 12));
+        assertTrue(isPainted(raster, 3, 15));
+        assertFalse(isPainted(raster, 0, 12));
+    }
+
+    private boolean isPainted(byte[] raster, int tileX, int tileY) {
+        MinimapRasteriser.FitGeometry geometry = MinimapRasteriser.FitGeometry.of(16, 16);
+        int index = (Math.round(geometry.pixelY(tileY)) * MinimapRasteriser.RASTER_SIZE
+                + Math.round(geometry.pixelX(tileX))) * 3;
+        return raster[index] != 0 || raster[index + 1] != 0 || raster[index + 2] != 0;
+    }
+
     private boolean paintsAnything(FakeFogOfWarInformation fogOfWar) {
         return paintedBytes(fogOfWar) > 0;
     }
 
-    private int paintedBytes(FakeFogOfWarInformation fogOfWar) {
+    private byte[] paint(FakeFogOfWarInformation fogOfWar) {
         byte[] raster = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
         painter.paint(raster, 16, 16, -1, 0, 0, fogOfWar, true, 0, 0, null, 0, null);
+        return raster;
+    }
+
+    private int paintedBytes(FakeFogOfWarInformation fogOfWar) {
+        byte[] raster = paint(fogOfWar);
         int painted = 0;
         for (byte b : raster) {
             if (b != 0) {

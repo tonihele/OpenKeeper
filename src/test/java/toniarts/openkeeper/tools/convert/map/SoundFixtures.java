@@ -27,4 +27,10 @@ public final class SoundFixtures {
         return room;
     }
 
+    public static Trap trap(String soundCategory) {
+        Trap trap = new Trap();
+        trap.setSoundCategory(soundCategory);
+        return trap;
+    }
+
 }

@@ -232,6 +232,17 @@ public class SoundEngine {
     }
 
     /**
+     * Stops every voice that plays on the channel, fading them out.
+     */
+    public synchronized void stopChannel(int channel) {
+        for (SoundVoice voice : voices.values()) {
+            if ((voice.getChannelMask() & (1 << channel)) != 0) {
+                voice.setStopped(true);
+            }
+        }
+    }
+
+    /**
      * Stops a looping sound, i.e. background music or an ambience bed.
      */
     public void stopLooping(SoundCategory category, int eventId) {

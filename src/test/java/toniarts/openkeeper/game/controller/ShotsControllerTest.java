@@ -42,9 +42,11 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Poisoned;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
+import toniarts.openkeeper.game.component.ShotTarget;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
@@ -84,6 +86,7 @@ class ShotsControllerTest {
     private static final short INVISIBLE_ID = 22;
     private static final short CREATE_OBJECT_ID = 2;
     private static final short CREATE_CREATURE_ID = 10;
+    private static final short CREATE_SINGLE_CREATURE_ID = 60;
     private static final short IMP_ID = 1;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short CHICKEN_OBJECT_ID = 9;
@@ -100,6 +103,7 @@ class ShotsControllerTest {
     private static final short DOOR_FIREBALL_ID = 57;
     private static final short FREEZE_ID = 45;
     private static final short ALARM_ID = 13;
+    private static final short REAPER_FIREBALL_ID = 52;
     private static final short FEAR_ID = 25;
     private static final short POISON_SPIT_ID = 62;
     private static final short REAPER_ID = 2;
@@ -114,8 +118,9 @@ class ShotsControllerTest {
     private final List<EntityId> deadBodies = new ArrayList<>();
     private final List<Object[]> raised = new ArrayList<>();
     private final List<Object[]> effects = new ArrayList<>();
-    private final Set<Point> waterTiles = new HashSet<>();
     private final List<Object[]> spawnedCreatures = new ArrayList<>();
+    private final List<EntityId> knockedDown = new ArrayList<>();
+    private final Set<Point> waterTiles = new HashSet<>();
     private final List<List<Object>> playerEvents = new ArrayList<>();
     private final List<EntityId> pickedUpThings = new ArrayList<>();
     private final ShotsController shotsController;
@@ -124,6 +129,7 @@ class ShotsControllerTest {
     ShotsControllerTest() {
         shotsById.put(ShotFixtures.THUNDERBOLT_ID, ShotFixtures.thunderbolt());
         shotsById.put(ShotFixtures.FIREBALL_ID, ShotFixtures.fireball());
+        shotsById.put(ShotFixtures.GUIDED_BOLT_ID, ShotFixtures.guidedBolt());
         shotsById.put(ShotFixtures.RAISE_DEAD_ID, ShotFixtures.raiseDead());
         shotsById.put(ShotFixtures.GAS_CLOUD_ID, ShotFixtures.gasCloud(ShotFixtures.GAS_CLOUD_ID));
         shotsById.put(ShotFixtures.GAS_MISSILE_ID, ShotFixtures.gasMissile());
@@ -136,6 +142,7 @@ class ShotsControllerTest {
         addShot(INVISIBLE_ID, Shot.ProcessType.INVISIBLE);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(CREATE_CREATURE_ID, Shot.ProcessType.CREATE_CREATURE);
+        addShot(CREATE_SINGLE_CREATURE_ID, Shot.ProcessType.CREATE_SINGLE_CREATURE);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
         // Drain does its process when it hits, as in the original data
         shotsById.put(DRAIN_ID, ShotFixtures.shot(DRAIN_ID, Shot.ProcessType.DRAIN, 0, EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING)));
@@ -145,6 +152,7 @@ class ShotsControllerTest {
         shotsById.put(DOOR_FIREBALL_ID, TrapFiringFixtures.shot(DOOR_FIREBALL_ID, Shot.ProcessType.NONE, Shot.DamageType.HIT_THING));
         shotsById.put(FREEZE_ID, TrapFiringFixtures.shot(FREEZE_ID, Shot.ProcessType.FREEZE, Shot.DamageType.NONE));
         shotsById.put(ALARM_ID, TrapFiringFixtures.shot(ALARM_ID, Shot.ProcessType.ALARM, Shot.DamageType.NONE));
+        shotsById.put(REAPER_FIREBALL_ID, TrapFiringFixtures.shot(REAPER_FIREBALL_ID, Shot.ProcessType.DECKEM, Shot.DamageType.HIT_THING));
         shotsById.put(FEAR_ID, TrapFiringFixtures.shot(FEAR_ID, Shot.ProcessType.FEAR, Shot.DamageType.NONE));
         // Poison Spit does its process when it hits, as in the original data
         shotsById.put(POISON_SPIT_ID, ShotFixtures.shot(POISON_SPIT_ID, Shot.ProcessType.POISON_SPIT, 0,
@@ -206,6 +214,16 @@ class ShotsControllerTest {
                             raised.add(args);
                         case "spawnCreature" ->
                             spawnedCreatures.add(args);
+                        case "createController" -> {
+                            EntityId creature = (EntityId) args[0];
+                            return Proxy.newProxyInstance(ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class},
+                                    (controller, controllerMethod, controllerArgs) -> {
+                                        if (controllerMethod.getName().equals("knockDown")) {
+                                            knockedDown.add(creature);
+                                        }
+                                        return null;
+                                    });
+                        }
                         default ->
                             throw new UnsupportedOperationException(method.getName());
                     }
@@ -244,6 +262,18 @@ class ShotsControllerTest {
         shotsController.createShot(HEAL_ID, 50, 0, PLAYER_ID, new Vector3f(), creature, null);
 
         assertEquals(-50, entityData.getComponent(creature, Damage.class).damage);
+    }
+
+    @Test
+    void healingDoesNothingToAHornedReaper() {
+        EntityId reaper = createCreature(PLAYER_ID, 10, 10);
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = REAPER_ID;
+        entityData.setComponent(reaper, creatureComponent);
+
+        shotsController.createShot(HEAL_ID, 50, 0, PLAYER_ID, new Vector3f(10, 1, 10), reaper, null);
+
+        assertNull(entityData.getComponent(reaper, Damage.class));
     }
 
     @Test
@@ -295,6 +325,19 @@ class ShotsControllerTest {
         assertEquals((short) 7, loadedObjects.get(0)[0]);
         assertEquals(PLAYER_ID, loadedObjects.get(0)[1]);
         assertEquals(position, loadedObjects.get(0)[2]);
+    }
+
+    @Test
+    void upgradedCreateImpCreatesALevelFourImp() {
+
+        // The upgraded Create Imp fires shot 60 (Create Single Creature) with data 1 (Imp) and 4
+        shotsController.createShot(CREATE_SINGLE_CREATURE_ID, IMP_ID, 4, PLAYER_ID, new Vector3f(4.5f, 0f, 7.5f), null, null);
+
+        assertEquals(1, spawnedCreatures.size());
+        Object[] args = spawnedCreatures.get(0);
+        assertEquals(IMP_ID, args[0]);
+        assertEquals(PLAYER_ID, args[1]);
+        assertEquals(4, args[2]);
     }
 
     @Test
@@ -386,6 +429,21 @@ class ShotsControllerTest {
                 entityData.createEntity(), 4);
 
         assertEquals(0, getShotFlight().velocity.y, DELTA);
+    }
+
+    @Test
+    void guidedBoltRemembersItsTargetAndAFireballDoesNot() {
+        EntityId target = createCreature();
+        shotsController.fireShot(ShotFixtures.GUIDED_BOLT_ID, 50, 0, PLAYER_ID, new Vector3f(1.5f, 1f, 4.5f), target,
+                entityData.createEntity(), 4);
+
+        assertEquals(target, entityData.getComponent(entityData.findEntity(null, ShotFlight.class), ShotTarget.class).target);
+
+        entityData.removeEntity(entityData.findEntity(null, ShotFlight.class));
+        shotsController.fireShot(ShotFixtures.FIREBALL_ID, 50, 0, PLAYER_ID, new Vector3f(1.5f, 1f, 4.5f), target,
+                entityData.createEntity(), 4);
+
+        assertNull(entityData.getComponent(entityData.findEntity(null, ShotFlight.class), ShotTarget.class));
     }
 
     @Test
@@ -761,6 +819,31 @@ class ShotsControllerTest {
         shotsController.createShot(FREEZE_ID, 20, 1, PLAYER_ID, new Vector3f(10, 1, 10), reaper, null);
 
         assertNull(entityData.getComponent(reaper, Frozen.class));
+    }
+
+    @Test
+    void reaperFireballKnocksItsTargetDown() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        EntityId bystander = createCreature(ENEMY_ID, 10, 10);
+
+        shotsController.createShot(REAPER_FIREBALL_ID, 50, 0, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+
+        assertEquals(List.of(target), knockedDown);
+        assertEquals(50, entityData.getComponent(target, Damage.class).damage);
+        assertNull(entityData.getComponent(bystander, Damage.class));
+    }
+
+    @Test
+    void reaperFireballLeavesAHornedReaperOnItsFeet() {
+        EntityId reaper = createCreature(ENEMY_ID, 10, 10);
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = REAPER_ID;
+        entityData.setComponent(reaper, creatureComponent);
+
+        shotsController.createShot(REAPER_FIREBALL_ID, 50, 0, PLAYER_ID, new Vector3f(10, 1, 10), reaper, null);
+
+        assertTrue(knockedDown.isEmpty());
+        assertEquals(50, entityData.getComponent(reaper, Damage.class).damage);
     }
 
     @Test

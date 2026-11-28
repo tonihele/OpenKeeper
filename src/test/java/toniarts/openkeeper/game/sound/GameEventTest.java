@@ -143,6 +143,17 @@ class GameEventTest {
     }
 
     @Test
+    void storedGoldClinksWithTheGoldsDropSound() {
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> method.getName().equals("getObject") && (int) args[0] == 1 ? SoundFixtures.object("OBJECT_GOLD") : null);
+        GameEvent event = new GameEvent(GameEventType.CREATURE_STORE_GOLD, ThingFlag.CREATURE, 2, null, 0, null, new Point(4, 5));
+
+        // DK II (0x466AC0) plays the gold object's sound 0xC4 at the creature
+        assertEquals(List.of(new GameEventSounds.Sound("OBJECT_GOLD", 0xC4, new Point(4, 5))),
+                GameEventSounds.getSounds(event, kwdFile));
+    }
+
+    @Test
     void slappedObjectSquawksOnItsOwnCategory() {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> method.getName().equals("getObject") ? SoundFixtures.object("OBJECT_CHICKEN") : null);
@@ -170,6 +181,60 @@ class GameEventTest {
 
         assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.PRISN004.getId(), null)),
                 GameEventSounds.getSounds(event, null));
+    }
+
+    @Test
+    void mentorSaysThereIsNotEnoughGold() {
+
+        // DK II's message 0x37 variant 6 (0x4C3860, 0x4C33B0) has no speech of its own in the message table and takes
+        // the default one, "You do not have enough gold"
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.GOLD002.getId(), null)),
+                GameEventSounds.getSounds(new GameEvent(GameEventType.NOT_ENOUGH_GOLD, null, 0, null, 0, null, null), null));
+    }
+
+    @Test
+    void madeTrapPlaysItsMadeSoundAtTheCrate() {
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> method.getName().equals("getTrapById") ? SoundFixtures.trap("TRAP_GAS") : null);
+        GameEvent event = new GameEvent(GameEventType.WORKSHOP_ITEM_MADE, ThingFlag.TRAP, 1, null, 0, null, new Point(3, 4));
+
+        // DK II (0x4F5240) plays sound 0x10F from the trap's bank at the crate
+        assertEquals(List.of(new GameEventSounds.Sound("TRAP_GAS", 0x10F, new Point(3, 4))), GameEventSounds.getSounds(event, kwdFile));
+    }
+
+    @Test
+    void firingTrapPlaysItsTriggerSound() {
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> method.getName().equals("getTrapById") ? SoundFixtures.trap("TRAP_SENTRY") : null);
+        GameEvent event = new GameEvent(GameEventType.TRAP_FIRED, ThingFlag.TRAP, 1, null, 0, null, new Point(3, 4));
+
+        // DK II (0x4A80E0) plays sound 0xEB from the trap's bank where the trap is
+        assertEquals(List.of(new GameEventSounds.Sound("TRAP_SENTRY", 0xEB, new Point(3, 4))), GameEventSounds.getSounds(event, kwdFile));
+    }
+
+    @Test
+    void workerMakesTheSoundOfArmingATrapOrBuildingADoor() {
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> method.getName().equals("getCreature") ? SoundFixtures.creature("CREATURE_IMP") : null);
+
+        // DK II plays 0x328 (0x4671B0) and 0x327 (0x467460) from the worker's bank, not 0x10F from the trap's or door's
+        assertEquals(List.of(new GameEventSounds.Sound("CREATURE_IMP", 0x328, new Point(3, 4))), GameEventSounds.getSounds(
+                new GameEvent(GameEventType.CREATURE_ARM_TRAP, ThingFlag.CREATURE, 1, null, 0, null, new Point(3, 4)), kwdFile));
+        assertEquals(List.of(new GameEventSounds.Sound("CREATURE_IMP", 0x327, new Point(3, 4))), GameEventSounds.getSounds(
+                new GameEvent(GameEventType.CREATURE_BUILD_DOOR, ThingFlag.CREATURE, 1, null, 0, null, new Point(3, 4)), kwdFile));
+    }
+
+    @Test
+    void mentorTellsWhichTrapOrDoorWasMade() {
+
+        // DK II's message 0x1A picks the speech by the crate's object type: 5 is the Alarm Trap's crate, "An Alarm Trap
+        // has been created in your Workshop", 92 the Guard Post's
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, 1400, null)),
+                GameEventSounds.getSounds(new GameEvent(GameEventType.WORKSHOP_ITEM_MADE_MESSAGE, null, 5, null, 0, null, null), null));
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, 1487, null)),
+                GameEventSounds.getSounds(new GameEvent(GameEventType.WORKSHOP_ITEM_MADE_MESSAGE, null, 92, null, 0, null, null), null));
+        assertEquals(List.of(),
+                GameEventSounds.getSounds(new GameEvent(GameEventType.WORKSHOP_ITEM_MADE_MESSAGE, null, 1, null, 0, null, null), null));
     }
 
     @Test
