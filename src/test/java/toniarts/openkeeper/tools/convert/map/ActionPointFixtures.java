@@ -36,16 +36,56 @@ public final class ActionPointFixtures {
      * @return the action point data
      */
     public static Thing.ActionPoint actionPoint(int id, int waitDelay, int nextWaypointId) {
+        return rectangle(id, 5, 5, 5, 5, waitDelay, nextWaypointId);
+    }
+
+    /**
+     * Build a rectangular action point for trigger tests.
+     *
+     * @param id the action point ID
+     * @param startX left map coordinate, inclusive
+     * @param startY top map coordinate, inclusive
+     * @param endX right map coordinate, inclusive
+     * @param endY bottom map coordinate, inclusive
+     * @param waitDelay the wait delay in seconds
+     * @param nextWaypointId the next waypoint, 0 for none
+     * @return the action point data
+     */
+    public static Thing.ActionPoint rectangle(int id, int startX, int startY, int endX, int endY,
+            int waitDelay, int nextWaypointId) {
         Thing.ActionPoint actionPoint = new Thing.ActionPoint();
         actionPoint.setId((short) id);
-        actionPoint.setStartX(5);
-        actionPoint.setStartY(5);
-        actionPoint.setEndX(5);
-        actionPoint.setEndY(5);
+        actionPoint.setStartX(startX);
+        actionPoint.setStartY(startY);
+        actionPoint.setEndX(endX);
+        actionPoint.setEndY(endY);
         actionPoint.setWaitDelay(waitDelay);
         actionPoint.setNextWaypointId((short) nextWaypointId);
         actionPoint.setFlags(EnumSet.noneOf(Thing.ActionPoint.ActionPointFlag.class));
         return actionPoint;
+    }
+
+    /**
+     * Build a claim or slab type condition with the trigger ID 1.
+     *
+     * @param type the condition type
+     * @param comparison the comparison
+     * @param playerId the tile owner, 0 for any
+     * @param terrainId the terrain, 0 for none
+     * @param value the value to compare the tile count with
+     * @return the condition
+     */
+    public static TriggerGeneric tileCondition(TriggerGeneric.TargetType type,
+            TriggerGeneric.ComparisonType comparison, int playerId, int terrainId, int value) {
+        TriggerGeneric condition = new TriggerGeneric(null);
+        condition.setId(1);
+        condition.setRepeatTimes((short) 255);
+        condition.setType(type);
+        condition.setTargetValueComparison(comparison);
+        condition.setUserData("playerId", (short) playerId);
+        condition.setUserData("terrainId", (short) terrainId);
+        condition.setUserData("value", value);
+        return condition;
     }
 
     /**
