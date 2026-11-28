@@ -58,6 +58,11 @@ public final class ObjectController extends EntityController implements IObjectC
     }
 
     @Override
+    public GameObject getObject() {
+        return object;
+    }
+
+    @Override
     public int getPickUpPriority() {
         return object.getPickUpPriority();
     }
