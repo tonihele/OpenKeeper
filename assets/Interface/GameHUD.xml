@@ -293,6 +293,7 @@
                                 <image id="toggleButton" valign="center" filename="Textures/GUI/Icons/i-mise.png" height="64px" width="64px" filter="true" visibleToMouse="true">
                                     <interact onClick="togglePanel()" />
                                     <effect>
+                                        <onClick name="engineSound" category="GUI_BUTTON_SIZE" event="0x104" neverStopRendering="true" />
                                         <onCustom customKey="flash" name="imageOverlayPulsate" pulsateType="rectangle" period="500" filename="Textures/GUI/Icons/hilight.png" post="true" neverStopRendering="true" timeType="infinite" />
                                         <onHover name="hint" hintText="${menu.2161}" hintDelay="200" />
                                         <onHover name="simpleHintEx" hintText="${menu.2162}" targetElement="tooltip" />
