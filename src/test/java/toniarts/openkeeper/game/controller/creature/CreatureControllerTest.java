@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
@@ -611,6 +612,33 @@ class CreatureControllerTest {
                 case "isDestroyed" -> false;
                 default -> throw new UnsupportedOperationException(method);
             });
+            f.controller.shouldFleeOrAttack();
+            return f.state();
+        }
+    }
+
+    @Test
+    void scaredFighterGoesIntoTheFightFirst() {
+        assertEquals(CreatureState.FIGHT, stateWhenAttackedByAHero(250));
+    }
+
+    @Test
+    void badlyHurtFighterWithdrawsInsteadOfFighting() {
+        assertEquals(CreatureState.FLEE, stateWhenAttackedByAHero(165));
+    }
+
+    private static CreatureState stateWhenAttackedByAHero(int health) {
+        try (Fixture f = new Fixture(9)) {
+
+            // A hero with a threat well over our fear and no one of ours near
+            EntityId hero = f.data.createEntity();
+            f.data.setComponents(hero, new CreatureComponent(), new Owner((short) 1, (short) 1), new Health(1000, 1000),
+                    new Threat(100), new AttackTarget(f.entity), new Position(0, new Vector3f(4, WorldUtils.FLOOR_HEIGHT, 4)));
+            f.data.setComponents(f.entity, new Health(health, 1000), new CreatureMeleeAttack(0, 30, 1.2f, 1));
+            f.data.removeComponent(f.entity, Fearless.class);
+            f.sensed = Set.of(hero);
+            f.keeper.setDungeonHeartLocation(new Point(20, 4));
+            f.roomHere = null;
             f.controller.shouldFleeOrAttack();
             return f.state();
         }
