@@ -863,7 +863,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                     return false;
                 }
                 claim.assign(creature, true);
-                setCurrentWork(creature, TaskType.CLAIM_TILE);
+                setCurrentWork(creature, TaskType.CLAIM_TILE, null);
                 return true;
             }
         }
@@ -1478,6 +1478,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             TaskType work = lastWork != null ? lastWork.work : null;
             boolean claiming = work == TaskType.CLAIM_TILE || work == TaskType.CLAIM_ROOM;
             boolean digging = work == TaskType.DIG_TILE;
+            Point goldTile = lastWork != null ? lastWork.goldTile : null;
             List<TaskWorkerPriority> workerTasks = new ArrayList<>();
 
             // Give points by distance and priority. The distance is to the task's own tile: finding the spot to work from, and
@@ -1492,7 +1493,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
 
                 boolean sameWork = (digging && isDigging(task)) || (claiming && isClaiming(task));
-                int points = WorldUtils.calculateDistance(currentLocation, task.getTaskLocation()) + task.getPriority();
+
+                // A worker that mined gold last measures the gold from the gold tile it mined, even back from the treasury,
+                // so it follows the seam. Other digging is measured from where it stands (DKII.EXE 0x469AF0: the gold
+                // list is measured from the task tile at CState +0x8C while the task type at +0x98 is gold)
+                Point from = goldTile != null && isMiningGold(task) ? goldTile : currentLocation;
+                int points = WorldUtils.calculateDistance(from, task.getTaskLocation()) + task.getPriority();
                 int dropRing = dropArea != null ? getDropRing(task, dropArea) : Integer.MAX_VALUE;
                 workerTasks.add(new TaskWorkerPriority(task, creature, points, dropRing, sameWork, workResult));
             }
@@ -1500,7 +1506,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             // A worker whose digging is done brings home the gold it carries before it takes other work
             boolean bringsGoldHome = digging && creature.getGold() > 0 && !hasMoreDigging(taskQueue, creature);
             if (bringsGoldHome && assignGoldToTreasuryTask(creature)) {
-                setCurrentWork(creature, TaskType.CARRY_GOLD_TO_TREASURY);
+                setCurrentWork(creature, TaskType.CARRY_GOLD_TO_TREASURY, null);
                 workResult.accept(Boolean.TRUE);
                 goingHome.add(creature);
                 continue;
@@ -1530,7 +1536,8 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
                 // Assign task
                 taskWorkerPriority.task.assign(taskWorkerPriority.creature, true);
-                setCurrentWork(taskWorkerPriority.creature, taskWorkerPriority.task.getTaskType());
+                setCurrentWork(taskWorkerPriority.creature, taskWorkerPriority.task.getTaskType(),
+                        isMiningGold(taskWorkerPriority.task) ? taskWorkerPriority.task.getTaskLocation() : null);
                 taskWorkerPriority.workResult.accept(Boolean.TRUE);
 
                 // Prune list and re-sort tasks
@@ -1542,7 +1549,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         // Finally anybody without assigment will get feedback
         unemployedWorkers.forEach((t, u) -> {
-            setCurrentWork(t, null);
+            setCurrentWork(t, null, null);
             u.accept(Boolean.FALSE);
         });
     }
@@ -1554,9 +1561,23 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
      *
      * @param creature the worker
      * @param taskType the task it got, {@code null} for none
+     * @param goldTile the gold tile it is to mine, {@code null} for other work
      */
-    private void setCurrentWork(ICreatureController creature, TaskType taskType) {
-        entityData.setComponent(creature.getEntityId(), new JobPicked(taskType, null));
+    private void setCurrentWork(ICreatureController creature, TaskType taskType, Point goldTile) {
+        JobPicked jobPicked = new JobPicked(taskType, null);
+        jobPicked.goldTile = goldTile;
+        entityData.setComponent(creature.getEntityId(), jobPicked);
+    }
+
+    /**
+     * Digging out gold, the original keeps that work apart from the other
+     * digging (DKII.EXE 0x469AF0)
+     *
+     * @param task the task
+     * @return true if the task mines a tile that holds gold
+     */
+    private boolean isMiningGold(Task task) {
+        return isDigging(task) && mapController.getMapData().getTile(task.getTaskLocation()).getGold() > 0;
     }
 
     /**

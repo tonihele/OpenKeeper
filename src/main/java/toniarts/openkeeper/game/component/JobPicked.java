@@ -23,8 +23,9 @@ import toniarts.openkeeper.utils.Point;
 /**
  * What the creature's search for work remembers. A creature that got a job by
  * picking from its job list doesn't pick again for a while. A worker carries on
- * with the digging or claiming it got last, and after a drop its first search
- * takes the closest work around the spot where it landed
+ * with the digging or claiming it got last, a miner goes on along the gold, and
+ * after a drop its first search takes the closest work around the spot where
+ * it landed
  */
 public final class JobPicked implements EntityComponent {
 
@@ -44,6 +45,12 @@ public final class JobPicked implements EntityComponent {
      * the drop
      */
     public Point dropArea;
+
+    /**
+     * The gold tile a worker was last sent to mine, {@code null} when its last
+     * work was something else
+     */
+    public Point goldTile;
 
     public JobPicked() {
         // For serialization

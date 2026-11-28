@@ -50,12 +50,14 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.worker.ClaimTileTask;
 import toniarts.openkeeper.utils.Point;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -72,6 +74,7 @@ class WorkerTaskAssignmentTest {
     private final AtomicInteger targetLookups = new AtomicInteger();
     private final AtomicInteger reachabilityChecks = new AtomicInteger();
     private final Set<Point> land = new HashSet<>();
+    private final Set<Point> gold = new HashSet<>();
 
     // No tiles to scan for tasks at the start, but every tile can be looked up
     private final IMapDataInformation<?> map = stub(IMapDataInformation.class, (name, args) -> switch (name) {
@@ -295,6 +298,45 @@ class WorkerTaskAssignmentTest {
                 new AtomicReference<>(work(TaskType.FETCH_TRAP_CRATE, new Point(12, 10))))), "Not on the way to a crate");
     }
 
+    @Test
+    void minerBackFromTheTreasuryGoesOnAlongTheGold() {
+
+        // The imp mined the gold at 3,10 and stands at the treasury at 20,10. The gold next to its last gold tile comes
+        // before the gold next to it, the other digging is measured from where it stands (DKII.EXE 0x469AF0)
+        addLand(0, 20, 10);
+        TaskManager taskManager = taskManager();
+        Task alongTheSeam = task(new Point(6, 10), creature -> true);
+        Task nearTheTreasury = task(new Point(16, 10), creature -> true);
+        gold.addAll(List.of(new Point(6, 10), new Point(16, 10)));
+        taskManager.addTask(PLAYER_ID, alongTheSeam);
+        taskManager.addTask(PLAYER_ID, nearTheTreasury);
+        ICreatureController miner = imp(new Point(20, 10));
+        JobPicked mined = new JobPicked(TaskType.DIG_TILE, null);
+        mined.goldTile = new Point(3, 10);
+        entityData.setComponent(miner.getEntityId(), mined);
+        taskManager.addToUnemployedWorkerQueue(miner, gotWork -> {
+        });
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(1, ((TestTask) Proxy.getInvocationHandler(alongTheSeam)).assignees.get());
+        assertEquals(new Point(6, 10), entityData.getComponent(miner.getEntityId(), JobPicked.class).goldTile);
+
+        // Dirt two tiles from the miner comes before the gold three tiles along the seam
+        taskManager = taskManager();
+        Task dirt = task(new Point(18, 10), creature -> true);
+        taskManager.addTask(PLAYER_ID, task(new Point(9, 10), creature -> true));
+        taskManager.addTask(PLAYER_ID, dirt);
+        gold.add(new Point(9, 10));
+        taskManager.addToUnemployedWorkerQueue(miner, gotWork -> {
+        });
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(1, ((TestTask) Proxy.getInvocationHandler(dirt)).assignees.get(), "Dirt next to the miner");
+        assertNull(entityData.getComponent(miner.getEntityId(), JobPicked.class).goldTile);
+    }
+
     private void addLand(int fromX, int toX, int y) {
         for (int x = fromX; x <= toX; x++) {
             land.add(new Point(x, y));
@@ -324,16 +366,16 @@ class WorkerTaskAssignmentTest {
         return new TaskManager(entityData, gameWorldController, mapController, null, creaturesController, navigationService, List.of(player), levelInfo, null, Map.of());
     }
 
-    private static IMapTileInformation tile(Point location) {
+    private IMapTileInformation tile(Point location) {
         if (location.x < 0 || location.y < 0) {
             return null;
         }
-        return stub(IMapTileInformation.class, (name, args) -> switch (name) {
+        return stub(IMapTileController.class, (name, args) -> switch (name) {
             case "getLocation" -> location;
             case "getX" -> location.x;
             case "getY" -> location.y;
             case "isSelected" -> false;
-            case "getGold" -> 0;
+            case "getGold" -> gold.contains(location) ? 1000 : 0;
             default -> null;
         });
     }
@@ -344,6 +386,7 @@ class WorkerTaskAssignmentTest {
             case "getCreatureCoordinates" -> location;
             case "getOwnerId" -> PLAYER_ID;
             case "getEntityId" -> entityId;
+            case "getGold" -> 0;
             default -> null;
         });
     }
