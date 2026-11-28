@@ -465,6 +465,7 @@ class CreatureBackOffTest {
         });
         INavigationService navigation = proxy(INavigationService.class, (method, args) -> switch (method) {
             case "findPath" -> walkable.contains((Point) args[1]) ? new DefaultGraphPath<>() : null;
+            case "isReachable" -> walkable.contains((Point) args[1]);
             default -> throw new UnsupportedOperationException(method);
         });
         IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
@@ -515,6 +516,8 @@ class CreatureBackOffTest {
             case "canStepBack" -> stepsBack.get();
             case "isStateTimeExceeded" -> false;
             case "releaseCastShot" -> null;
+            case "castSupportSpell", "hasPendingMeleeHit" -> false;
+            case "releaseMeleeHit", "cancelMeleeHit" -> null;
             default -> throw new UnsupportedOperationException(method);
         }));
         return self.get();
