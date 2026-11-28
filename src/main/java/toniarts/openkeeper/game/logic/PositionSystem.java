@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -38,6 +39,7 @@ import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IDoorsController;
 import toniarts.openkeeper.game.controller.IEntityWrapper;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
@@ -56,6 +58,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class PositionSystem implements IGameLogicUpdatable, IEntityPositionLookup {
 
     private final EntityData entityData;
+    private final ILevelInfo levelInfo;
     private final IMapController mapController;
     private final IObjectsController objectsController;
     private final EntitySet positionedEntities;
@@ -67,7 +70,13 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
     private final Map<EntityId, Set<EntityId>> sensedEntitiesByEntity = new HashMap<>();
 
     public PositionSystem(IMapController mapController, EntityData entityData, ICreaturesController creaturesController, IDoorsController doorsController, IObjectsController objectsController) {
+        this(mapController, entityData, creaturesController, doorsController, objectsController, null);
+    }
+
+    public PositionSystem(IMapController mapController, EntityData entityData, ICreaturesController creaturesController,
+            IDoorsController doorsController, IObjectsController objectsController, ILevelInfo levelInfo) {
         this.entityData = entityData;
+        this.levelInfo = levelInfo;
         this.mapController = mapController;
         this.objectsController = objectsController;
         entityWrappers.put(ICreatureController.class, creaturesController);
@@ -340,16 +349,39 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
                 continue;
             }
 
-            if (doorComponent.locked) {
+            if (!isDoorKnown(entityId, playerId) || doorComponent.locked) {
                 return entityId;
             }
 
             Owner owner = entityData.getComponent(entityId, Owner.class);
 
-            return owner == null || owner.ownerId != playerId ? entityId : null;
+            // Read live diplomacy so alliance changes do not leave a stale route.
+            boolean canOpen = owner != null
+                    && DoorAccessRules.isFriendlyOwner(owner.ownerId, playerId, levelInfo);
+            return canOpen ? null : entityId;
         }
 
         return null;
+    }
+
+    @Override
+    public boolean isDoorKnown(EntityId door, short playerId) {
+        DoorComponent component = entityData.getComponent(door, DoorComponent.class);
+        Owner owner = entityData.getComponent(door, Owner.class);
+        return component == null || component.blueprint || !component.hidden
+                || (owner != null && owner.ownerId == playerId);
+    }
+
+    @Override
+    public boolean isDoorPhysicallyAccessible(EntityId door, short playerId) {
+        DoorComponent component = entityData.getComponent(door, DoorComponent.class);
+        Owner owner = entityData.getComponent(door, Owner.class);
+        if (component == null || component.blueprint) {
+            return true;
+        }
+        DoorViewState view = entityData.getComponent(door, DoorViewState.class);
+        return (view != null && view.open) || (!component.locked && owner != null
+                && DoorAccessRules.isFriendlyOwner(owner.ownerId, playerId, levelInfo));
     }
 
     @Override

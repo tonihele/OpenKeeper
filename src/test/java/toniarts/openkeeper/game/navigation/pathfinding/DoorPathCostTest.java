@@ -51,6 +51,7 @@ class DoorPathCostTest {
         door = new EntityId(7);
         positionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(),
                 new Class<?>[]{IEntityPositionLookup.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "isDoorKnown" -> true;
             case "getBlockingDoor" -> (int) args[0] == DOOR_TILE.x && (int) args[1] == DOOR_TILE.y ? door : null;
             default -> throw new UnsupportedOperationException(method.getName());
         });

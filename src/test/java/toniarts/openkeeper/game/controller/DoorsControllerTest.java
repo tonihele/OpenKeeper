@@ -27,6 +27,10 @@ import java.util.Map;
 import java.util.OptionalInt;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Health;
@@ -70,6 +74,12 @@ class DoorsControllerTest {
     private FakeMapData mapData;
     private MapListener mapListener;
     private DoorsController doorsController;
+    private final List<Thing.Door> placements = new ArrayList<>();
+    private IMapController mapController;
+    private IKwdFile kwdFile;
+    private IGameController gameController;
+    private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
+    private ILevelInfo levelInfo;
 
     @BeforeEach
     void setUp() {
@@ -82,7 +92,7 @@ class DoorsControllerTest {
         FakeMapInformation mapInformation = new FakeMapInformation(mapData, Map.of(
                 CLAIMED_PATH, terrain(CLAIMED_PATH, OWNABLE),
                 REINFORCED_WALL, terrain(REINFORCED_WALL, SOLID, OWNABLE)));
-        IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
+        mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
                 new Class<?>[]{IMapController.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getMapData" -> mapData;
             case "getTerrain" -> mapInformation.getTerrain((IMapTileInformation) args[0]);
@@ -92,13 +102,13 @@ class DoorsControllerTest {
             }
             default -> throw new UnsupportedOperationException(method.getName());
         });
-        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
+        kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
                 new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
-            case "getThings" -> List.of();
+            case "getThings" -> placements;
             case "getDoorById" -> ((Number) args[0]).shortValue() == barricade.getDoorId() ? barricade : woodenDoor;
             default -> throw new UnsupportedOperationException(method.getName());
         });
-        Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = Map.of(
+        gameSettings = Map.of(
                 Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST,
                 DoorFixtures.miscVariable(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST, 50),
                 Variable.MiscVariable.MiscType.DOOR_SELL_VALUE_PERCENTAGE_OF_COST,
@@ -108,12 +118,32 @@ class DoorsControllerTest {
             case "getEntitiesInLocation" -> entitiesOn((Point) args[0]);
             default -> throw new UnsupportedOperationException(method.getName());
         });
-        IGameController gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(),
+        gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(),
                 new Class<?>[]{IGameController.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getEntityLookupService" -> entityPositionLookup;
             default -> throw new UnsupportedOperationException(method.getName());
         });
-        doorsController = new DoorsController(kwdFile, entityData, gameSettings, mapController, gameController, null);
+        levelInfo = (ILevelInfo) Proxy.newProxyInstance(ILevelInfo.class.getClassLoader(),
+                new Class<?>[]{ILevelInfo.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getPlayer" -> new Keeper(false, ((Number) args[0]).shortValue());
+            default -> throw new UnsupportedOperationException(method.getName());
+        });
+        doorsController = new DoorsController(kwdFile, entityData, gameSettings, mapController, gameController, levelInfo);
+    }
+
+    @ParameterizedTest
+    @EnumSource(Thing.Door.DoorFlag.class)
+    void placedSecretDoorsStartHiddenOnlyWhenBuilt(Thing.Door.DoorFlag flag) {
+        woodenDoor.getFlags().add(Door.DoorFlag.IS_SECRET);
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        placements.add(DoorFixtures.placedDoor(woodenDoor.getDoorId(), TILE.x, TILE.y, PLAYER, flag));
+        doorsController = new DoorsController(kwdFile, entityData, gameSettings, mapController, gameController, levelInfo);
+        EntityId door = entitiesOn(TILE).getFirst();
+        boolean built = flag != Thing.Door.DoorFlag.BLUEPRINT;
+        assertEquals(built, entityData.getComponent(door, DoorComponent.class).hidden);
+        assertEquals(built, entityData.getComponent(door, DoorViewState.class).hidden);
+        assertEquals(flag == Thing.Door.DoorFlag.LOCKED, entityData.getComponent(door, DoorComponent.class).locked);
     }
 
     @Test
@@ -163,6 +193,24 @@ class DoorsControllerTest {
         assertFalse(entityData.getComponent(door, DoorComponent.class).blueprint);
         assertFalse(entityData.getComponent(door, DoorViewState.class).blueprint);
         assertEquals(800, entityData.getComponent(door, Health.class).health);
+    }
+
+    @Test
+    void secretDoorBecomesHiddenWhenBuiltAndRepeatedBuildDoesNotHideItAgain() {
+        woodenDoor.getFlags().add(Door.DoorFlag.IS_SECRET);
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+        assertFalse(entityData.getComponent(door, DoorComponent.class).hidden);
+        assertFalse(entityData.getComponent(door, DoorViewState.class).hidden);
+        doorsController.buildDoor(door);
+        assertTrue(entityData.getComponent(door, DoorComponent.class).hidden);
+        assertTrue(entityData.getComponent(door, DoorViewState.class).hidden);
+        entityData.setComponents(door, new DoorComponent(woodenDoor.getDoorId(), false, false, false),
+                new DoorViewState(woodenDoor.getDoorId(), false, false, false, false));
+        doorsController.buildDoor(door);
+        assertFalse(entityData.getComponent(door, DoorComponent.class).hidden);
+        assertFalse(entityData.getComponent(door, DoorViewState.class).hidden);
     }
 
     @Test

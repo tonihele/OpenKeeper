@@ -133,6 +133,16 @@ public interface IEntityPositionLookup {
      */
     EntityId getBlockingDoor(int x, int y, short playerId);
 
+    /** Whether the player knows a door exists, independently of permission to open it. */
+    default boolean isDoorKnown(EntityId door, short playerId) {
+        return true;
+    }
+
+    /** Owner/opening permission for manual movement, without revealing route knowledge. */
+    default boolean isDoorPhysicallyAccessible(EntityId door, short playerId) {
+        return false;
+    }
+
     /**
      * Gets all the entities around given entity that you see or hear at this
      * given moment

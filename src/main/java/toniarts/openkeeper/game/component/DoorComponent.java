@@ -28,12 +28,19 @@ public final class DoorComponent implements EntityComponent {
     public short doorId;
     public boolean locked;
     public boolean blueprint;
+    /** Shared secret-door knowledge. The owner always knows its own doors. */
+    public boolean hidden;
 
     public DoorComponent() {
         // For serialization
     }
 
     public DoorComponent(short doorId, boolean locked, boolean blueprint) {
+        this(doorId, locked, blueprint, false);
+    }
+
+    public DoorComponent(short doorId, boolean locked, boolean blueprint, boolean hidden) {
+        this.hidden = hidden;
         this.doorId = doorId;
         this.locked = locked;
         this.blueprint = blueprint;

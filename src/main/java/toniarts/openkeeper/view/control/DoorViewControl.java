@@ -21,6 +21,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.WatchedEntity;
 import java.util.Objects;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.game.component.DoorViewState;
@@ -62,6 +63,12 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
             setState(null, targetState);
             initialized = true;
         }
+    }
+
+    /** Refresh the existing client subscription so capture also affects fog-only updates immediately. */
+    public boolean isShownTo(short playerId) {
+        ((WatchedEntity) getEntity()).applyChanges();
+        return currentState.isShownTo(getOwnerId(), playerId);
     }
 
     @Override

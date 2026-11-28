@@ -59,6 +59,12 @@ public interface INavigable {
         return MapIndexedGraph.getCost(this, from, to, mapController, entityPositionLookup);
     }
 
+    /** Manual movement does not grant or require knowledge of a secret-door route. */
+    default Float getMovementCost(final IMapTileInformation from, final IMapTileInformation to,
+            final IMapController mapController, final IEntityPositionLookup entityPositionLookup) {
+        return MapIndexedGraph.getMovementCost(this, from, to, mapController, entityPositionLookup);
+    }
+
     /**
      * The owner of the entity, useful for checking can we pass the doors etc.
      *

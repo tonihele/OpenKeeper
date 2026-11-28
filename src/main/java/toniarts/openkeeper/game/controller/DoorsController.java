@@ -122,7 +122,9 @@ public final class DoorsController implements IDoorsController {
 
     private EntityId loadDoor(int x, int y, short doorId, short ownerId, Integer triggerId, boolean locked, boolean blueprint) {
         EntityId entity = entityData.createEntity();
-        entityData.setComponent(entity, new DoorComponent(doorId, locked, blueprint));
+        Door door = kwdFile.getDoorById(doorId);
+        boolean hidden = !blueprint && door.getFlags().contains(Door.DoorFlag.IS_SECRET);
+        entityData.setComponent(entity, new DoorComponent(doorId, locked, blueprint, hidden));
         entityData.setComponent(entity, new Owner(ownerId, ownerId));
 
         // Move to the center of the tile
@@ -136,7 +138,6 @@ public final class DoorsController implements IDoorsController {
         entityData.setComponent(entity, new Position(rotation, pos));
 
         // Add additional components
-        Door door = kwdFile.getDoorById(doorId);
         if (door.getTrapTypeId() > 0) {
             entityData.setComponent(entity, new TrapComponent(door.getTrapTypeId()));
         }
@@ -155,7 +156,7 @@ public final class DoorsController implements IDoorsController {
         entityData.setComponent(entity, new Interaction(true, false, false, false, false));
 
         // The visual state
-        entityData.setComponent(entity, new DoorViewState(doorId, locked, blueprint, false));
+        entityData.setComponent(entity, new DoorViewState(doorId, locked, blueprint, false, hidden));
 
         return entity;
     }
@@ -181,11 +182,13 @@ public final class DoorsController implements IDoorsController {
             return;
         }
 
-        setBuilt(blueprint, kwdFile.getDoorById(doorComponent.doorId));
-        entityData.setComponent(blueprint, new DoorComponent(doorComponent.doorId, doorComponent.locked, false));
+        Door door = kwdFile.getDoorById(doorComponent.doorId);
+        boolean hidden = door.getFlags().contains(Door.DoorFlag.IS_SECRET);
+        setBuilt(blueprint, door);
+        entityData.setComponent(blueprint, new DoorComponent(doorComponent.doorId, doorComponent.locked, false, hidden));
         DoorViewState viewState = entityData.getComponent(blueprint, DoorViewState.class);
         if (viewState != null) {
-            entityData.setComponent(blueprint, new DoorViewState(viewState.doorId, viewState.locked, false, viewState.open));
+            entityData.setComponent(blueprint, new DoorViewState(viewState.doorId, viewState.locked, false, viewState.open, hidden));
         }
     }
 
