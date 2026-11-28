@@ -50,6 +50,28 @@ class GameEventTest {
         service = new ServerGameEventService(entityData, playerService);
     }
 
+    @Test
+    void activatedSpecialSoundSurvivesRemovalOfTheCrate() {
+        EntityId special = entityData.createEntity();
+        entityData.setComponents(special, new ObjectComponent((short) 117, AbstractRoomController.ObjectType.SPECIAL),
+                new Position(0, new Vector3f(2, 1, 3)));
+        service.emit(GameEventType.SPECIAL_ACTIVATED, special);
+        entityData.removeEntity(special);
+
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{IKwdFile.class}, (proxy, method, args) ->
+                        method.getName().equals("getObject") ? SoundFixtures.object("CUSTOM_SPECIAL") : null);
+        assertEquals(1, sent.size());
+        Object[] args = sent.get(0);
+        GameEvent event = new GameEvent((GameEventType) args[0], (ThingFlag) args[1], (int) args[2],
+                (ThingFlag) args[3], (int) args[4], (EntityId) args[5], (Point) args[6]);
+        assertEquals(List.of(new GameEventSounds.Sound("CUSTOM_SPECIAL", 0x80, new Point(2, 3))),
+                GameEventSounds.getSounds(event, kwdFile));
+        assertEquals(0x84, ThingSounds.getSpecialActivationEvent(118));
+        assertEquals(0x310, ThingSounds.getSpecialActivationEvent(128));
+        assertEquals(-1, ThingSounds.getSpecialActivationEvent(1));
+    }
+
     @AfterEach
     void tearDown() {
         entityData.close();
@@ -147,6 +169,14 @@ class GameEventTest {
         GameEvent event = new GameEvent(GameEventType.PRISON_SKELETON_RISEN, null, 0, null, 0, null, null);
 
         assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.PRISN004.getId(), null)),
+                GameEventSounds.getSounds(event, null));
+    }
+
+    @Test
+    void mentorTellsOfAnAlarm() {
+        GameEvent event = new GameEvent(GameEventType.ALARM_RAISED, null, 0, null, 0, null, null);
+
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.MISC077.getId(), null)),
                 GameEventSounds.getSounds(event, null));
     }
 

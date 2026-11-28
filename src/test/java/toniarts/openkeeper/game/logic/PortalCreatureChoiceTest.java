@@ -32,6 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureTypeAttraction;
+import toniarts.openkeeper.game.component.CreatureTypePenalty;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -278,6 +279,39 @@ class PortalCreatureChoiceTest {
         Map<Creature, Double> weights = choice.getCandidateWeights(player, portalRoom, creaturesController, ALL);
 
         assertEquals(3.0, weights.get(goblin));
+    }
+
+    @Test
+    void typeThatLeftCannotComeNextAndIsThenHeldBackForNineGenerations() {
+        setAvailable(firefly, salamander);
+        build(trainingRoom, 9, 2, 0, 0);
+        choice.start(player, creaturesController, ALL);
+        entityData.setComponent(entityData.createEntity(),
+                new CreatureTypePenalty(PLAYER_ID, salamander.getCreatureId(), PortalCreatureChoice.PENALTY_GENERATIONS));
+
+        // Capacity 3: no weight on the first generation, then a ninth of it up to all of it
+        double[] expected = {0, 3 / 9d, 3 / 8d, 3 / 7d, 3 / 6d, 3 / 5d, 3 / 4d, 3 / 3d, 3 / 2d, 3, 3, 3};
+        for (double weight : expected) {
+            Map<Creature, Double> weights = choice.getCandidateWeights(player, portalRoom, creaturesController, ALL);
+            assertEquals(weight, weights.get(salamander));
+            assertEquals(1.0, weights.get(firefly));
+            assertNotNull(choice.chooseCreature(player, portalRoom, creaturesController, ALL));
+        }
+        assertTrue(entityData.findEntities(null, CreatureTypePenalty.class).isEmpty());
+    }
+
+    @Test
+    void nothingComesWhenOnlyATypeThatJustLeftCould() {
+        setAvailable(salamander);
+        build(trainingRoom, 9, 2, 0, 0);
+        choice.start(player, creaturesController, ALL);
+        entityData.setComponent(entityData.createEntity(),
+                new CreatureTypePenalty(PLAYER_ID, salamander.getCreatureId(), PortalCreatureChoice.PENALTY_GENERATIONS));
+
+        assertNull(choice.chooseCreature(player, portalRoom, creaturesController, ALL));
+
+        // The generation counted all the same
+        assertSame(salamander, choice.chooseCreature(player, portalRoom, creaturesController, ALL));
     }
 
     @Test
