@@ -39,7 +39,7 @@ class CreatureViewControlTest {
         EntityId creature = entityData.createEntity();
         entityData.setComponent(creature, new Owner((short) 4, (short) 4));
 
-        CreatureViewControl control = new CreatureViewControl(creature, entityData, new Creature(), null, null, new CreatureTextParser(null));
+        CreatureViewControl control = new CreatureViewControl(creature, entityData, new Creature(), null, null, null, new CreatureTextParser(null));
 
         assertEquals("", control.getTooltip((short) 3));
     }
@@ -49,7 +49,7 @@ class CreatureViewControlTest {
         DefaultEntityData entityData = new DefaultEntityData();
         EntityId creature = entityData.createEntity();
         entityData.setComponent(creature, new Owner((short) 3, (short) 3));
-        CreatureViewControl control = new CreatureViewControl(creature, entityData, new Creature(), null, null, new CreatureTextParser(null));
+        CreatureViewControl control = new CreatureViewControl(creature, entityData, new Creature(), null, null, null, new CreatureTextParser(null));
 
         // The game logic removes the creature while it is still under the cursor
         entityData.removeEntity(creature);
@@ -123,7 +123,7 @@ class CreatureViewControlTest {
         DefaultEntityData entityData = new DefaultEntityData();
         EntityId creature = entityData.createEntity();
         Creature data = CreatureFixtures.creatureWithAnimation(animation, 48, 20, startDistance);
-        return new CreatureViewControl(creature, entityData, data, animation, null, null);
+        return new CreatureViewControl(creature, entityData, data, animation, null, null, null);
     }
 
 }
