@@ -174,6 +174,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                 gameWorldController.getMapController(), gameTimer, gameEventService);
         controllers.add(effectGenerators);
         controllers.add(positionSystem);
+        controllers.add((IGameLogicUpdatable) navigationService);
 
         int triggerId = levelInfo.kwdFile.getGameLevel().getTriggerId();
         if (triggerId != 0) {
