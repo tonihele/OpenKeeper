@@ -53,6 +53,7 @@ import toniarts.openkeeper.game.map.WallSection;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -79,7 +80,10 @@ public final class MapController extends Container implements IMapController {
     private final Consumer<Short> enemyBreachListener;
     private final Consumer<Short> dungeonBreachListener;
 
-    private final Map<EntityId, IRoomController> roomControllers = new HashMap<>();
+    /**
+     * Synchronized, the steering loop looks up rooms while the game logic builds and sells them
+     */
+    private final Map<EntityId, IRoomController> roomControllers = Collections.synchronizedMap(new HashMap<>());
     private final SafeArrayList<MapListener> mapListeners = new SafeArrayList<>(MapListener.class);
     private final Map<Short, SafeArrayList<RoomListener>> roomListeners = new HashMap<>();
 
