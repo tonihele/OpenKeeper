@@ -16,7 +16,9 @@
  */
 package toniarts.openkeeper.game.navigation.steering;
 
+import com.badlogic.gdx.ai.steer.SteeringBehavior;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
+import com.badlogic.gdx.ai.steer.behaviors.ReachOrientation;
 import com.badlogic.gdx.math.Vector2;
 
 /**
@@ -35,6 +37,49 @@ public final class EntitySteeringBehavior extends PrioritySteering<Vector2> impl
         super(owner);
 
         this.steerableEntity = owner;
+    }
+
+    /**
+     * Sets the length of the update the steering is worked out for. The path
+     * following works out DK II's change of the velocity of a tick once an
+     * update, and the facing is not asked to turn faster than one update.
+     *
+     * @param tpf the length of the update, in seconds
+     */
+    public void setUpdateInterval(float tpf) {
+        for (var behavior : behaviors) {
+            if (behavior instanceof FollowWaypoints path) {
+                path.setUpdateInterval(tpf);
+            } else if (behavior instanceof ReachOrientation<?> orientation) {
+                orientation.setTimeToTarget(Math.max(.001f, tpf));
+                // Start braking before a full-speed turn can cross the target in one tick.
+                orientation.setDecelerationRadius(Math.max(.2f, steerableEntity.getMaxAngularSpeed() * tpf));
+            }
+        }
+    }
+
+    /**
+     * Whether the path following heads for the last waypoint
+     *
+     * @return true on the last leg of the walk
+     */
+    public boolean isOnFinalPathSegment() {
+        FollowWaypoints pathFollowing = getPathFollowing();
+        return pathFollowing != null && pathFollowing.isOnLastLeg();
+    }
+
+    /**
+     * The path following of the steering
+     *
+     * @return the path following, null if the entity only turns
+     */
+    public FollowWaypoints getPathFollowing() {
+        for (SteeringBehavior<Vector2> behavior : behaviors) {
+            if (behavior instanceof FollowWaypoints followWaypoints) {
+                return followWaypoints;
+            }
+        }
+        return null;
     }
 
     @Override
