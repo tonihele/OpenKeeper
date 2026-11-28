@@ -419,22 +419,26 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (element.isVisible()) {
             element.hide();
         } else {
-            GameLevel gameLevel = state.stateManager.getState(GameClientState.class).getLevelData().getGameLevel();
-
-            Label mainObjective = element.findNiftyControl("mainObjective", Label.class);
-            mainObjective.setText(gameLevel.getMainObjective());
-
-            Label subObjective1 = element.findNiftyControl("subObjective1", Label.class);
-            subObjective1.setText(gameLevel.getSubObjective1());
-            Label subObjective2 = element.findNiftyControl("subObjective2", Label.class);
-            subObjective2.setText(gameLevel.getSubObjective2());
-            Label subObjective3 = element.findNiftyControl("subObjective3", Label.class);
-            subObjective3.setText(gameLevel.getSubObjective3());
-
-            element.layoutElements();
-            // skipcq: JAVA-W1062
-            element.show();
+            showObjective(element);
         }
+    }
+
+    private void showObjective(Element element) {
+        GameLevel gameLevel = state.stateManager.getState(GameClientState.class).getLevelData().getGameLevel();
+
+        Label mainObjective = element.findNiftyControl("mainObjective", Label.class);
+        mainObjective.setText(gameLevel.getMainObjective());
+
+        Label subObjective1 = element.findNiftyControl("subObjective1", Label.class);
+        subObjective1.setText(gameLevel.getSubObjective1());
+        Label subObjective2 = element.findNiftyControl("subObjective2", Label.class);
+        subObjective2.setText(gameLevel.getSubObjective2());
+        Label subObjective3 = element.findNiftyControl("subObjective3", Label.class);
+        subObjective3.setText(gameLevel.getSubObjective3());
+
+        element.layoutElements();
+        // skipcq: JAVA-W1062
+        element.show();
     }
 
     @Override
@@ -1298,6 +1302,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
 //        for (final Trap trap : state.getAvailableTraps()) {
 //            contentPanel.addElement(createTrapIcon(trap));
 //        }
+
+        // DK II opens the objective box by itself at the start of a level that sets this flag (0x419180)
+        GameLevel gameLevel = state.stateManager.getState(GameClientState.class).getLevelData().getGameLevel();
+        if (gameLevel.getLvlFlags().contains(GameLevel.LevFlag.AUTO_OBJECTIVE_BOX)) {
+            showObjective(hud.findElementById("objective"));
+        }
     }
 
     public void setGold(int gold) {
