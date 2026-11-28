@@ -766,7 +766,7 @@ class KeeperAiSystemTest {
         spellControl.setTypeAvailable(heal, true, true);
         spellControl.setTypeAvailable(thunderbolt, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 60, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT)));
+        startFight(fighter, createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT));
         createCreature(PLAYER_ID, new Point(12, 9), 10, 100, CreatureState.IDLE);
         EntityId hurt = createCreature(PLAYER_ID, new Point(4, 4), 49, 100, CreatureState.IDLE);
 
@@ -781,7 +781,7 @@ class KeeperAiSystemTest {
         KeeperAiSystem system = createSystem(withBattleSpells(ai(0, 0, 9, 1, 50, 0, List.of()), 0, 4, 0), 1000);
         spellControl.setTypeAvailable(heal, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 60, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT)));
+        startFight(fighter, createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT));
         EntityId knockedOut = createCreature(PLAYER_ID, new Point(4, 4), 0, 100, CreatureState.UNCONSCIOUS);
         entityData.setComponent(knockedOut, new Unconscious(0));
 
@@ -803,7 +803,7 @@ class KeeperAiSystemTest {
         spellControl.setTypeAvailable(thunderbolt, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 40, 100, CreatureState.FIGHT);
         EntityId enemy = createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(enemy));
+        startFight(fighter, enemy);
         createCreature(ENEMY_ID, new Point(12, 9), 100, 100, CreatureState.IDLE);
 
         system.processTick(0.25f);
@@ -1181,7 +1181,7 @@ class KeeperAiSystemTest {
         spellControl.setTypeAvailable(callToArms, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
         EntityId enemy = createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(enemy));
+        startFight(fighter, enemy);
 
         // One enemy is a threat of 100
         gameTime = 10;
@@ -1216,7 +1216,7 @@ class KeeperAiSystemTest {
         KeeperAiSystem system = createSystem(withCallToArms(ai(0, 0, 9, 1, 50, 0, List.of()), 150, 240, 1, 5, 1, 90), 1000);
         spellControl.setTypeAvailable(callToArms, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT)));
+        startFight(fighter, createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT));
         createCreature(ENEMY_ID, new Point(8, 8), 100, 100, CreatureState.IDLE);
         gameTime = 10;
         system.processTick(0.25f);
@@ -1238,7 +1238,7 @@ class KeeperAiSystemTest {
         reachable = true;
         spellControl.setTypeAvailable(callToArms, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT)));
+        startFight(fighter, createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT));
         gameTime = 10;
         system.processTick(0.25f);
 
@@ -1266,7 +1266,7 @@ class KeeperAiSystemTest {
         spellControl.setTypeAvailable(callToArms, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
         EntityId enemy = createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(enemy));
+        startFight(fighter, enemy);
         gameTime = 10;
         system.processTick(0.25f);
         system.processTick(0.25f);
@@ -1287,7 +1287,7 @@ class KeeperAiSystemTest {
         reachable = true;
         spellControl.setTypeAvailable(callToArms, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT)));
+        startFight(fighter, createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT));
         EntityId second = createCreature(PLAYER_ID, new Point(3, 6), 100, 100, CreatureState.IDLE);
         gameTime = 10;
         system.processTick(0.25f);
@@ -1327,16 +1327,41 @@ class KeeperAiSystemTest {
     }
 
     @Test
-    void createsNoImpsWhileItsCreaturesFight() {
+    void createsNoImpsWhileItsCreaturesFightNorOnTheTurnItFindsTheFightOver() {
         KeeperAiSystem system = createSystem(ai(4, 10, 9, 1, 50, 0, List.of()), 1000);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
         entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT)));
+        EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(PLAYER_ID, KeeperAttacked.Target.CREATURE, new Point(8, 3)));
 
+        system.processTick(0.25f);
         system.processTick(0.25f);
 
         assertTrue(impSpells.isEmpty());
 
+        // The fight is over, it sees to the fight once more and finds none of its creatures fighting (0x503060)
         entityData.removeComponent(fighter, AttackTarget.class);
+        system.processTick(0.25f);
+
+        assertTrue(impSpells.isEmpty());
+
+        system.processTick(0.25f);
+
+        assertEquals(1, impSpells.size());
+    }
+
+    @Test
+    void anAttackWithoutAFightCostsOneTurnOfItsImps() {
+        KeeperAiSystem system = createSystem(ai(4, 10, 9, 1, 50, 0, List.of()), 1000);
+
+        // With a creature of its own there and no enemy it needs nothing dropped
+        createCreature(PLAYER_ID, new Point(8, 4), 100, 100, CreatureState.IDLE);
+        EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(PLAYER_ID, KeeperAttacked.Target.ALARM, new Point(8, 3)));
+
+        system.processTick(0.25f);
+
+        assertTrue(impSpells.isEmpty());
+        assertFalse(getKeeperAi().fighting);
+
         system.processTick(0.25f);
 
         assertEquals(1, impSpells.size());
@@ -3091,6 +3116,16 @@ class KeeperAiSystemTest {
         }
 
         return room;
+    }
+
+    /**
+     * Puts a creature of the computer player in a fight, which it hears of as
+     * the fight starts
+     */
+    private void startFight(EntityId fighter, EntityId enemy) {
+        entityData.setComponent(fighter, new AttackTarget(enemy));
+        EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(PLAYER_ID, KeeperAttacked.Target.CREATURE,
+                WorldUtils.vectorToPoint(entityData.getComponent(fighter, Position.class).position)));
     }
 
     private IRoomController createRoom(short roomId, Point corner, Point oppositeCorner) {

@@ -462,10 +462,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             actions = traps.placeTrapsAndDoors(keeperAi, playerController, ai, actions);
         }
 
-        // In a fight it sees to the fight, otherwise to its imps
-        if (battles.isFighting(keeperAi.playerId)) {
-            if (actions > 0 && (battles.callToArms(keeperAi, playerController, ai, ticksPerSecond)
-                    || battles.castBattleSpell(keeperAi, playerController, ai))) {
+        // In a fight it sees to the fight, otherwise to its imps (0x500C20). Seeing to the fight takes it out of
+        // the fight, unless one of its creatures fights (0x503060)
+        if (actions > 0 && keeperAi.fighting) {
+            keeperAi.fighting = battles.isFighting(keeperAi.playerId);
+            if (battles.callToArms(keeperAi, playerController, ai, ticksPerSecond) || battles.castBattleSpell(keeperAi, playerController, ai)) {
                 actions--;
             }
         } else if (actions > 0 && createImp(keeperAi, playerController, ai)) {
@@ -1214,8 +1215,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 holdFullRoom(keeperAi, playerController, ai, (short) value);
             case UNHAPPY, ANGRY ->
                 creatures.answerMood(keeperAi, playerController, ai, new EntityId(value), message == KeeperAi.Message.ANGRY);
-            default ->
-                battles.weighUpAttack(keeperAi, playerControllers, ai, keeperAi.messageTiles[index], message == KeeperAi.Message.ROOM_CLAIMED);
+            default -> {
+
+                // An attack puts it in a fight, weighed up or not (0x4FA400)
+                keeperAi.fighting = true;
+                yield battles.weighUpAttack(keeperAi, playerControllers, ai, keeperAi.messageTiles[index], message == KeeperAi.Message.ROOM_CLAIMED);
+            }
         };
     }
 
