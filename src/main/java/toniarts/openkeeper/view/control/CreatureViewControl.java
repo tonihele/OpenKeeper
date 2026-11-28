@@ -418,8 +418,10 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         if (creatureAi != null) {
             CreatureState state = creatureAi.getCreatureState();
 
-            // Dancing in the Casino and the jackpot celebration go on until the state changes
-            return state == CreatureState.WORK || state == CreatureState.DANCING || state == CreatureState.CELEBRATING;
+            // Dancing in the Casino, the jackpot celebration and sleeping go on until the state changes. DK II starts
+            // the sleep action again each time it ends (0x46FA60)
+            return state == CreatureState.WORK || state == CreatureState.DANCING || state == CreatureState.CELEBRATING
+                    || state == CreatureState.SLEEPING || state == CreatureState.RECUPERATING;
         }
         return false;
     }

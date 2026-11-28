@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.EnumSet;
+
 /**
  * Builds the data pay day needs in tests: creatures that get angry when they
  * are not paid, and the pay day level variables. Lives in the data classes'
@@ -36,6 +38,7 @@ public final class PayDayFixtures {
     public static Creature creature(short creatureId, int angerNoPay) {
         Creature creature = new Creature();
         creature.setCreatureId(creatureId);
+        creature.setFlags(EnumSet.noneOf(Creature.CreatureFlag.class));
         creature.getAttributes().setAngerNoPay((short) angerNoPay);
         return creature;
     }

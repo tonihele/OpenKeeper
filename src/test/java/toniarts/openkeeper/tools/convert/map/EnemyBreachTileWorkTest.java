@@ -185,6 +185,7 @@ class EnemyBreachTileWorkTest {
                 case "getTerrain" -> (short) args[0] == WALL ? wall : floor;
                 case "getTriggers" -> records;
                 case "getThings" -> List.of();
+                case "getGameLevel" -> CreatureSleepFixtures.level(4);
                 case "getPlayers" -> Map.of(ATTACKER, PlayerBreachFixtures.player(ATTACKER, 1),
                         OWNER, PlayerBreachFixtures.player(OWNER, 2),
                         Player.GOOD_PLAYER_ID, PlayerBreachFixtures.player(Player.GOOD_PLAYER_ID, 0),
@@ -202,7 +203,7 @@ class EnemyBreachTileWorkTest {
             Map<MiscType, Variable.MiscVariable> settings = new EnumMap<>(MiscType.class);
             for (MiscType type : new MiscType[]{MiscType.DIG_ENEMY_WALL_HEALTH,
                 MiscType.DIG_OWN_WALL_HEALTH, MiscType.DIG_ROCK_HEALTH, MiscType.ATTACK_TILE_HEALTH}) {
-                settings.put(type, CreatureSleepFixtures.variable(type, 5));
+                settings.put(type, CreatureSleepFixtures.variable(type, 20));
             }
             map = new MapController(kwd, null, settings, null, data, level,
                     proxy(GameEventService.class, (method, args) -> null), this::onBreach, this::onDungeonBreach);

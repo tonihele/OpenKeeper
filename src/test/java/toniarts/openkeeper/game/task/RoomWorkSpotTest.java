@@ -46,18 +46,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * DK II researches for 7 to 13 rounds of the research animation at a bookcase,
- * then goes to the closest bookcase nobody is at
+ * then goes to the closest bookcase nobody is at. In the workshop it is 6 to 12
+ * rounds of the work animation
  */
 class RoomWorkSpotTest {
 
     private static final short PLAYER_ID = 3;
 
-    // One round of the research animation takes a second
+    // One round of the work animation takes a second
     private static final Creature RESEARCHER = CreatureFixtures.creatureWithAnimation(Creature.AnimationType.RESEARCHING, 10, 10);
+    private static final Creature MANUFACTURER = CreatureFixtures.creatureWithAnimation(Creature.AnimationType.MANUFACTURING, 10, 10);
 
     @Test
     void researcherStaysForSevenRounds() {
-        IRoomController library = library(new Point(1, 1), new Point(2, 1));
+        IRoomController library = room(new Point(1, 1), new Point(2, 1));
         TaskManager taskManager = taskManager(library);
         Worker researcher = new Worker(new Point(1, 1), RESEARCHER);
         assertTrue(taskManager.assignFreeRoomTask(researcher.creature, library, ObjectType.RESEARCHER));
@@ -69,7 +71,7 @@ class RoomWorkSpotTest {
 
     @Test
     void researcherMovesToTheClosestFreeBookcaseAfterThirteenRounds() {
-        IRoomController library = library(new Point(1, 1), new Point(6, 1), new Point(2, 1), new Point(3, 1));
+        IRoomController library = room(new Point(1, 1), new Point(6, 1), new Point(2, 1), new Point(3, 1));
         TaskManager taskManager = taskManager(library);
         Worker other = new Worker(new Point(2, 1), RESEARCHER);
         Worker researcher = new Worker(new Point(1, 1), RESEARCHER);
@@ -83,7 +85,7 @@ class RoomWorkSpotTest {
 
     @Test
     void researcherStaysWhenNoOtherBookcaseIsFree() {
-        IRoomController library = library(new Point(1, 1), new Point(2, 1));
+        IRoomController library = room(new Point(1, 1), new Point(2, 1));
         TaskManager taskManager = taskManager(library);
         Worker other = new Worker(new Point(2, 1), RESEARCHER);
         Worker researcher = new Worker(new Point(1, 1), RESEARCHER);
@@ -97,7 +99,7 @@ class RoomWorkSpotTest {
 
     @Test
     void researcherWithoutResearchAnimationStays() {
-        IRoomController library = library(new Point(1, 1), new Point(2, 1));
+        IRoomController library = room(new Point(1, 1), new Point(2, 1));
         TaskManager taskManager = taskManager(library);
         Worker researcher = new Worker(new Point(1, 1), CreatureFixtures.creatureWithAnimation(Creature.AnimationType.WALK, 10, 10));
         assertTrue(taskManager.assignFreeRoomTask(researcher.creature, library, ObjectType.RESEARCHER));
@@ -105,6 +107,46 @@ class RoomWorkSpotTest {
 
         assertFalse(task.moveToOtherSpot(researcher.creature, 1000));
         assertSame(task, researcher.task);
+    }
+
+    @Test
+    void manufacturerStaysForSixRounds() {
+        IRoomController workshop = room(new Point(1, 1), new Point(2, 1));
+        TaskManager taskManager = taskManager(workshop);
+        Worker manufacturer = new Worker(new Point(1, 1), MANUFACTURER);
+        assertTrue(taskManager.assignFreeRoomTask(manufacturer.creature, workshop, ObjectType.MANUFACTURER));
+        Task task = manufacturer.task;
+
+        assertFalse(task.moveToOtherSpot(manufacturer.creature, 5.9f));
+        assertSame(task, manufacturer.task);
+    }
+
+    @Test
+    void manufacturerMovesToTheClosestFreePieceAfterTwelveRounds() {
+        IRoomController workshop = room(new Point(1, 1), new Point(6, 1), new Point(2, 1), new Point(3, 1));
+        TaskManager taskManager = taskManager(workshop);
+        Worker other = new Worker(new Point(2, 1), MANUFACTURER);
+        Worker manufacturer = new Worker(new Point(1, 1), MANUFACTURER);
+        assertTrue(taskManager.assignFreeRoomTask(other.creature, workshop, ObjectType.MANUFACTURER));
+        assertTrue(taskManager.assignFreeRoomTask(manufacturer.creature, workshop, ObjectType.MANUFACTURER));
+        assertEquals(new Point(1, 1), manufacturer.task.getTaskLocation());
+
+        assertTrue(manufacturer.task.moveToOtherSpot(manufacturer.creature, 12));
+        assertEquals(new Point(3, 1), manufacturer.task.getTaskLocation());
+    }
+
+    @Test
+    void manufacturerStaysWhenNoOtherPieceIsFree() {
+        IRoomController workshop = room(new Point(1, 1), new Point(2, 1));
+        TaskManager taskManager = taskManager(workshop);
+        Worker other = new Worker(new Point(2, 1), MANUFACTURER);
+        Worker manufacturer = new Worker(new Point(1, 1), MANUFACTURER);
+        assertTrue(taskManager.assignFreeRoomTask(other.creature, workshop, ObjectType.MANUFACTURER));
+        assertTrue(taskManager.assignFreeRoomTask(manufacturer.creature, workshop, ObjectType.MANUFACTURER));
+        Task task = manufacturer.task;
+
+        assertFalse(task.moveToOtherSpot(manufacturer.creature, 12));
+        assertSame(task, manufacturer.task);
     }
 
     private static TaskManager taskManager(IRoomController room) {
@@ -122,7 +164,8 @@ class RoomWorkSpotTest {
             default ->
                 null;
         });
-        INavigationService navigationService = proxy(INavigationService.class, (proxy, method, args) -> new DefaultGraphPath<>());
+        INavigationService navigationService = proxy(INavigationService.class,
+                (proxy, method, args) -> "isReachable".equals(method.getName()) ? true : new DefaultGraphPath<>());
         IGameWorldController gameWorldController = proxy(IGameWorldController.class, (proxy, method, args) -> null);
         Keeper keeper = new Keeper(false, PLAYER_ID);
         IPlayerController player = proxy(IPlayerController.class, (proxy, method, args) -> switch (method.getName()) {
@@ -143,9 +186,9 @@ class RoomWorkSpotTest {
     }
 
     /**
-     * A library with a researcher's place at each of the given points
+     * A room with a worker's place at each of the given points
      */
-    private static IRoomController library(Point... points) {
+    private static IRoomController room(Point... points) {
         RoomInstance roomInstance = new RoomInstance(RoomFixtures.room((short) 6, 0));
         for (Point point : points) {
             roomInstance.addCoordinate(point);

@@ -183,6 +183,18 @@ class HealthSystemDyingTest {
         assertNotNull(entityData.getComponent(creature, Death.class));
     }
 
+    @Test
+    void healOnKnockedOutCreatureIsNotKeptForLater() {
+        entityData.setComponent(creature, new Damage(-1000));
+        healthSystem.processTick(TICK);
+
+        // Imprisoned, it doesn't get the heal now
+        entityData.removeComponent(creature, Unconscious.class);
+        entityData.setComponent(creature, new Health(10, 100));
+        healthSystem.processTick(TICK);
+        assertEquals(10, entityData.getComponent(creature, Health.class).health);
+    }
+
     private void runSeconds(int seconds) {
         for (int tick = 0; tick < seconds / TICK; tick++) {
             healthSystem.processTick(TICK);

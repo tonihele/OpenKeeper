@@ -45,6 +45,9 @@ import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.game.map.MapColourClassifier;
 import toniarts.openkeeper.game.map.MapColourGrid;
 import toniarts.openkeeper.game.map.PlayerNumbers;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.GlobalType;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
@@ -507,6 +510,10 @@ public final class MinimapPanelState extends AbstractAppState {
             if (evt.getButtonIndex() == MouseInput.BUTTON_LEFT) {
                 if (evt.isPressed()) {
                     leftButtonDown = jumpCameraToClickedTile(evt.getX(), evt.getY());
+
+		    if (leftButtonDown) {
+            		SoundManager.playSound(GlobalCategory.GUI_MINIMAP, GlobalType.GUI_BUTTON_CKICK);
+        	    }
                 } else if (evt.isReleased()) {
                     leftButtonDown = false;
                 }
@@ -515,6 +522,8 @@ public final class MinimapPanelState extends AbstractAppState {
                     float localX = (evt.getX() - panelJmeX) / panelWidth;
                     float localY = (evt.getY() - panelJmeY) / panelHeight;
                     if (localX >= 0f && localX <= 1f && localY >= 0f && localY <= 1f) {
+                        SoundManager.playSound(GlobalCategory.GUI_MINIMAP, GlobalType.GUI_BUTTON_CKICK);
+
                         cancelToolAndRecompute();
                         FullscreenMapState fullscreenMap = stateManager.getState(FullscreenMapState.class);
                         if (fullscreenMap != null) {

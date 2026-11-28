@@ -84,6 +84,7 @@ class MapControllerTest {
             case "getMap" -> map;
             case "getTerrain" -> terrains.get((Short) args[0]);
             case "getThings" -> List.of();
+            case "getGameLevel" -> CreatureSleepFixtures.level(4);
             default -> throw new UnsupportedOperationException(method.getName());
         });
         Map<Short, Keeper> players = Map.of(NEUTRAL, new Keeper(false, NEUTRAL), KEEPER, new Keeper(false, KEEPER));
@@ -93,7 +94,7 @@ class MapControllerTest {
             default -> throw new UnsupportedOperationException(method.getName());
         });
         return new MapController(kwdFile, null, Map.of(MiscType.REINFORCE_WALL_HEALTH,
-                CreatureSleepFixtures.variable(MiscType.REINFORCE_WALL_HEALTH, 1000)), null, new DefaultEntityData(), levelInfo, null);
+                CreatureSleepFixtures.variable(MiscType.REINFORCE_WALL_HEALTH, 4000)), null, new DefaultEntityData(), levelInfo, null);
     }
 
 }

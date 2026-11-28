@@ -43,11 +43,12 @@ import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.flags;
 
 /**
- * Who owns a wall once it is dug out, what mining gems gives, and what is
- * left of the traps on an enemy floor that is taken
+ * Who owns a wall once it is dug out or repaired, what mining gems gives, and
+ * what is left of the traps on an enemy floor that is taken
  */
 class DugOutWallTest {
 
@@ -79,6 +80,8 @@ class DugOutWallTest {
                 map;
             case "getTerrain" ->
                 (short) args[0] == WALL_ID ? wall : rock;
+            case "getGameLevel" ->
+                CreatureSleepFixtures.level(4);
             case "getThings" ->
                 List.of();
             default ->
@@ -112,6 +115,8 @@ class DugOutWallTest {
                 map;
             case "getTerrain" ->
                 gems;
+            case "getGameLevel" ->
+                CreatureSleepFixtures.level(4);
             case "getThings" ->
                 List.of();
             default ->
@@ -157,6 +162,8 @@ class DugOutWallTest {
                 (short) args[0] == floorId ? floor : path;
             case "getThings" ->
                 List.of();
+            case "getGameLevel" ->
+                CreatureSleepFixtures.level(4);
             default ->
                 throw new UnsupportedOperationException(name);
         });
@@ -183,6 +190,52 @@ class DugOutWallTest {
         entityData.setComponents(trap, new TrapComponent((short) 1), new Health(50, 50),
                 new Position(0, new Vector3f(x, 0, 0)));
         return trap;
+    }
+
+    @Test
+    void nobodysWallIsRepairedAndStaysNobodys() {
+        Terrain wall = TerrainFixtures.terrain(WALL_ID, flags(Terrain.TerrainFlag.SOLID, Terrain.TerrainFlag.OWNABLE), 0, 400, 900, WALL_ID);
+        GameMap map = new GameMap(1, 1);
+        map.getTiles()[0][0] = new Tile() {
+
+            @Override
+            public short getTerrainId() {
+                return WALL_ID;
+            }
+
+            @Override
+            public short getPlayerId() {
+                return Player.NEUTRAL_PLAYER_ID;
+            }
+        };
+        IKwdFile kwdFile = proxy(IKwdFile.class, (name, args) -> switch (name) {
+            case "getMap" ->
+                map;
+            case "getTerrain" ->
+                wall;
+            case "getThings" ->
+                List.of();
+            case "getGameLevel" ->
+                CreatureSleepFixtures.level(4);
+            default ->
+                throw new UnsupportedOperationException(name);
+        });
+        ILevelInfo levelInfo = proxy(ILevelInfo.class, (name, args) -> Map.of(KEEPER_ID, new Keeper(false, KEEPER_ID),
+                Player.NEUTRAL_PLAYER_ID, new Keeper(false, Player.NEUTRAL_PLAYER_ID)));
+        MapController mapController = new MapController(kwdFile, null,
+                Map.of(MiscType.REINFORCE_WALL_HEALTH, CreatureSleepFixtures.variable(MiscType.REINFORCE_WALL_HEALTH, 100)),
+                null, new DefaultEntityData(), levelInfo, proxy(GameEventService.class, (name, args) -> null));
+        IMapTileController tile = mapController.getMapData().getTile(0, 0);
+
+        mapController.applyClaimTile(new Point(0, 0), KEEPER_ID, null);
+        assertTrue(tile.getHealth() > 400);
+        for (int blow = 0; blow < 100; blow++) {
+            mapController.applyClaimTile(new Point(0, 0), KEEPER_ID, null);
+        }
+
+        assertEquals(900, tile.getHealth());
+        assertEquals(WALL_ID, tile.getTerrainId());
+        assertEquals(Player.NEUTRAL_PLAYER_ID, tile.getOwnerId());
     }
 
     @FunctionalInterface
