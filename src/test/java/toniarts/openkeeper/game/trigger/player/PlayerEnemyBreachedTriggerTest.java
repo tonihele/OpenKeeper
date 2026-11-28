@@ -23,6 +23,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric.TargetType;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -196,7 +197,7 @@ class PlayerEnemyBreachedTriggerTest {
         }
 
         void bind() {
-            scripts = new PlayerTriggerLogicController(null, level, null, null, null, null);
+            scripts = new PlayerTriggerLogicController((IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(), new Class<?>[]{IGameController.class}, (p, m, a) -> null), level, null, null, null, null);
         }
 
         void dispatch(short playerId) {

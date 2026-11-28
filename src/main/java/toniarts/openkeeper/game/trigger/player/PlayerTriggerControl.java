@@ -42,7 +42,6 @@ import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.game.trigger.TriggerData;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -176,37 +175,11 @@ public class PlayerTriggerControl extends TriggerControl {
 
     /** Native breach events select matching root branches; the authored player filter is ignored. */
     void onEnemyBreached() {
-        onBreach(TriggerGeneric.TargetType.PLAYER_ENEMY_BREACHED);
+        fire(TriggerGeneric.TargetType.PLAYER_ENEMY_BREACHED);
     }
 
     void onDungeonBreached() {
-        onBreach(TriggerGeneric.TargetType.PLAYER_DUNGEON_BREACHED);
-    }
-
-    private void onBreach(TriggerGeneric.TargetType eventType) {
-        for (TriggerData child : root.getChildren().getArray()) {
-            if (child instanceof TriggerGenericData event
-                    && event.getType() == eventType) {
-                runBreachBranch(event);
-            }
-        }
-    }
-
-    private void runBreachBranch(TriggerGenericData branch) {
-        branch.subRepeatTimes();
-        for (TriggerData child : branch.getChildren().getArray()) {
-            if (child instanceof TriggerActionData action) {
-                doAction(action);
-                if (!branch.isRepeateable()) {
-                    branch.detachChild(action);
-                }
-            } else if (child instanceof TriggerGenericData condition && isActive(condition)) {
-                runBreachBranch(condition);
-            }
-        }
-        if (branch.getQuantity() == 0) {
-            branch.detachFromParent();
-        }
+        fire(TriggerGeneric.TargetType.PLAYER_DUNGEON_BREACHED);
     }
 
     @Override
@@ -249,16 +222,17 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_KILLED:
                 // Has this player been defeated, by a certain player or by anyone (0)
                 return getPlayer().isKilledBy(trigger.getUserData("playerId", short.class));
-            case PLAYER_ROOM_FURNITURE:
-                roomId = trigger.getUserData("roomId", short.class);
-                target = getPlayerController(playerId).getRoomControl().getRoomFurnitureCount(roomId);
+            case PLAYER_ROOM_FURNITURE: {
+                short roomId = trigger.getUserData("roomId", short.class);
+                int target = getPlayerController(playerId).getRoomControl().getRoomFurnitureCount(roomId);
                 // DKII ignores the value/player option and uses the stored number.
-                value = trigger.getUserData("value", int.class);
+                int value = trigger.getUserData("value", int.class);
                 if (trigger.getComparison() == null || trigger.getComparison() == TriggerGeneric.ComparisonType.NONE) {
                     return false;
                 }
                 // Many Prison counters can exceed float's exact integer range.
                 return compare(Integer.compare(target, value), trigger.getComparison(), 0);
+            }
 
             case GUI_TRANSITION_ENDS:
                 return !playerService.isInTransition();
