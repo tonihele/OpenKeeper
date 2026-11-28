@@ -43,7 +43,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Offers navigation related services
@@ -59,7 +58,7 @@ public final class NavigationService implements INavigationService, IGameLogicUp
     private final MapIndexedGraph pathFindingMap;
     private final MapPathFinder pathFinder;
     private final MapDistance heuristic;
-    private final Map<NavigableKey, Map<Point, ReachableArea>> reachableAreas = new ConcurrentHashMap<>();
+    private final Map<NavigableKey, Map<Point, ReachableArea>> reachableAreas = new HashMap<>();
 
     public NavigationService(IMapController mapController, IEntityPositionLookup entityPositionLookup) {
         this.mapController = mapController;
@@ -143,7 +142,7 @@ public final class NavigationService implements INavigationService, IGameLogicUp
 
     @Override
     public boolean isReachable(Point start, Point target, INavigable navigable) {
-        Map<Point, ReachableArea> areas = reachableAreas.computeIfAbsent(new NavigableKey(navigable), key -> new ConcurrentHashMap<>());
+        Map<Point, ReachableArea> areas = reachableAreas.computeIfAbsent(new NavigableKey(navigable), key -> new HashMap<>());
         ReachableArea area = areas.get(start);
         if (area != null && !area.isSameFor(navigable)) {
 
