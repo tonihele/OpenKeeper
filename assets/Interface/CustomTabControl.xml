@@ -27,6 +27,7 @@
                 <onHover name="hint" hintText="$hintText" hintDelay="200" />
                 <onHover name="simpleHintEx" hintText="$tooltip" targetElement="tooltip" />
                 <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
+                <onCustom customKey="flash" name="imageOverlayPulsate" pulsateType="rectangle" period="500" filename="Textures/GUI/Icons/hilight.png" post="true" neverStopRendering="true" timeType="infinite" />
             </effect>
         </image>
     </controlDefinition>

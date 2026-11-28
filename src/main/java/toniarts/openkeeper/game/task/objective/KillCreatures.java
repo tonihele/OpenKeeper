@@ -91,8 +91,8 @@ public final class KillCreatures extends AbstractObjectiveTask {
         candidates.sort(Comparator.comparingDouble(creature -> creature.getCreatureCoordinates().distance(heroLocation)));
 
         for (ICreatureController creature : candidates) {
-            if (navigationService.findPath(heroLocation, creature.getCreatureCoordinates(),
-                    hero.getParty() != null ? hero.getParty() : hero) != null) {
+            if (navigationService.isReachable(heroLocation, creature.getCreatureCoordinates(),
+                    hero.getParty() != null ? hero.getParty() : hero)) {
                 return creature;
             }
         }

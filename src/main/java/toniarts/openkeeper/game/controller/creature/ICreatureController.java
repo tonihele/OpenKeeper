@@ -149,6 +149,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void executeAttack(EntityId attackTarget);
 
     /**
+     * Casts a spell on one of our own creatures in the fight, if we have one
+     * ready and somebody needs it
+     *
+     * @return true if we cast a spell
+     */
+    public boolean castSupportSpell();
+
+    /**
      * Lets the shot of the spell being cast leave once the cast has reached
      * the spell's shot delay
      */
@@ -527,6 +535,13 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void turnIntoChicken(double duration);
 
     /**
+     * Plays an animation once from its start, such as an outburst
+     *
+     * @param animation the animation
+     */
+    public void playAnimation(Creature.AnimationType animation);
+
+    /**
      * Sets creature possession on/off
      *
      * @param possessed should the creature be posessed or AI driven
@@ -574,5 +589,11 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @param duration how long, in seconds
      */
     public void turncoat(short playerId, double duration);
+
+    /**
+     * Turns on the keeper. Like in DK II, the creature joins the heroes and
+     * goes after the keeper it served
+     */
+    public void rebel();
 
 }

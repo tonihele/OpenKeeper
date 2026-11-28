@@ -106,7 +106,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private PauseMenuSettings pauseMenuSettings;
 
     private static final String NOT_IMPLEMENTED_TEXT = "Currently not implemented";
-
+    private static final String FLASH_EFFECT_KEY = "flash";
+    
     private static final Logger logger = System.getLogger(PlayerScreenController.class.getName());
 
     public static final float SCREEN_UPDATE_INTERVAL = 0.250f;
@@ -151,6 +152,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private final DoorIconTextParser doorIconTextParser = new DoorIconTextParser();
     private final SpellIconTextParser spellIconTextParser = new SpellIconTextParser(this::getSpellManaCost);
     private final RoomIconTextParser roomIconTextParser = new RoomIconTextParser();
+    private final HudButtonFlasher buttonFlasher = new HudButtonFlasher(this::setButtonFlashing, this::playFlashSound);
+    private final Set<String> flashingButtons = new HashSet<>();
 
     public PlayerScreenController(PlayerState state, Nifty nifty) {
         this.state = state;
@@ -159,6 +162,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void update(float tpf) {
+        buttonFlasher.update(tpf);
         if (screen != null && SCREEN_HUD_ID.equals(screen.getScreenId())) {
             var tabs = screen.findNiftyControl("tabs-hud", CustomTabGroupControl.class);
             if (tabs != null) {
@@ -313,8 +317,59 @@ public final class PlayerScreenController implements IPlayerScreenController {
         this.state = state;
     }
 
+    /**
+     * Make a HUD button flash, or stop it from flashing. Can be called from
+     * any thread, the flashing is applied on the render thread.
+     *
+     * @param buttonType the button type
+     * @param targetId the room, spell, door, trap or button id
+     * @param targetButtonType the misc button type, if the type is a misc button
+     * @param enabled flash on or off
+     * @param time how many seconds to flash, 0 flashes until stopped
+     */
+    public void flashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time) {
+        buttonFlasher.flash(buttonType, targetId, targetButtonType, enabled, time);
+    }
+
+    private void playFlashSound() {
+
+        // DK II's flash sound (0x412FC0), not while the game is paused
+        if (!state.isPaused()) {
+            playSound(GlobalCategory.GUI_BUTTON_ICON, String.valueOf(GlobalType.GUI_BUTTON_FLASH.getId()));
+        }
+    }
+
+    private void setButtonFlashing(String buttonKey, boolean flashing) {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        Element button = HudButtonFlasher.CREATURE_TAB.equals(buttonKey)
+                ? getCreatureTabButton(hud) : hud.findElementById(buttonKey);
+        if (button == null) {
+            return;
+        }
+        // The flash is a custom effect of its own, so it neither starts with the button nor stops its other effects
+        if (!flashing) {
+            if (flashingButtons.remove(buttonKey)) {
+                button.resetSingleEffect(EffectEventId.onCustom, FLASH_EFFECT_KEY);
+            }
+        } else if (flashingButtons.add(buttonKey)) {
+            try {
+                button.startEffect(EffectEventId.onCustom, null, FLASH_EFFECT_KEY);
+            } catch (RuntimeException e) {
+
+                // A button whose flash can't be shown mustn't take the game down
+                logger.log(Level.WARNING, "Can't flash button " + buttonKey, e);
+            }
+        }
+    }
+
+    private static Element getCreatureTabButton(Screen hud) {
+        CustomTabGroupControl tabs = hud.findNiftyControl("tabs-hud", CustomTabGroupControl.class);
+        return tabs != null ? tabs.getTabButton(0) : null;
+    }
+
     @Override
     public void select(String iState, String id) {
+        buttonFlasher.stop(iState.trim().toLowerCase() + "_" + id.trim());
         Type type = Type.valueOf(iState.toUpperCase());
         if (type == Type.SELL) {
             this.playButtonSound(GlobalCategory.GUI_SELL);
@@ -337,6 +392,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void togglePanel() {
+        buttonFlasher.stop("toggleButton");
         // FIXME work but not properly. Map should not move with other things. Need HUD redesign
         Element element = nifty.getScreen(SCREEN_HUD_ID).findElementById("bottomPanel");
 
@@ -347,7 +403,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         boolean toggled = element.getUserData("toggle");
         if (toggled) {
             element.setMarginTop(new SizeValue(0, SizeValueType.Pixel));
-            playSound(GlobalCategory.GUI_BUTTON_TAB_ROOMS, String.valueOf(GlobalType.GUI_BUTTON_REVEAL.getId()));
+            playSound(GlobalCategory.GUI_BUTTON_SIZE, String.valueOf(GlobalType.GUI_BUTTON_SIZE_NORMIN.getId()));
         } else {
             element.setMarginTop(new SizeValue(156, SizeValueType.Pixel));
             playSound(GlobalCategory.GUI_BUTTON_SIZE, String.valueOf(GlobalType.GUI_BUTTON_SIZE_HIDE.getId()));
@@ -640,6 +696,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     @Override
     public void grabGold() {
         state.grabGold(100);
+        buttonFlasher.stop("goldButton");
     }
 
     @Override
@@ -651,6 +708,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
      * "Resize Map" button, left click zoom in one level (or into zoomed mode from fit).
      */
     public void resizeMap() {
+        buttonFlasher.stop("zoomButton");
         playButtonSound("GUI_BUTTON_ZOOM");
         MinimapPanelState minimapPanelState = state.stateManager.getState(GameClientState.class).getMinimapPanelState();
         if (minimapPanelState != null) {
@@ -666,6 +724,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (minimapPanelState != null) {
             minimapPanelState.zoomOut();
         }
+        buttonFlasher.stop("zoomButton");
     }
 
     @Override
@@ -974,6 +1033,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
     @NiftyEventSubscriber(id = "tabs-hud")
     public void onTabChange(String id, TabSelectedEvent event) {
         updateSelectedItem(state.getInteractionState());
+        if ("tab-creature".equals(event.getTab().getId())) {
+            buttonFlasher.stop(HudButtonFlasher.CREATURE_TAB);
+        }
         Tab tab = event.getTab();
         if (tab instanceof CustomTabControl) {
             String sound = ((CustomTabControl) event.getTab()).getSound();

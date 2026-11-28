@@ -25,6 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CallToArms;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMood;
@@ -34,6 +36,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.PayDayClock;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.task.TaskType;
@@ -180,6 +183,35 @@ class PayDaySystemTest {
         entityData.setComponent(mistress, new TaskComponent(1, addCreature(KEEPER, GOBLIN, 0, false), null, TaskType.TORTURE, 0, true));
         tick(FIRST_PAY_DAY + 0.5);
         assertEquals(ANGER_NO_PAY / 4, mood(mistress).noPay);
+    }
+
+    @Test
+    void aFightingCreatureDoesNotGetAngrierForNoPay() {
+        EntityId goblin = addCreature(KEEPER, GOBLIN, WAGE, false);
+        tick(0);
+        tick(FIRST_PAY_DAY);
+
+        entityData.setComponent(goblin, new CreatureAi(FIRST_PAY_DAY, CreatureState.FIGHT, GOBLIN));
+        tick(FIRST_PAY_DAY + 0.25);
+
+        assertEquals(ANGER_NO_PAY / 4, mood(goblin).noPay);
+    }
+
+    @Test
+    void nobodyIsOwedAWageWhileTheCallToArmsIsUp() {
+        EntityId goblin = addCreature(KEEPER, GOBLIN, WAGE, false);
+        EntityId banner = entityData.createEntity();
+        entityData.setComponents(banner, new CallToArms(0, 0, 0, 0, CallToArms.UP), new Owner(KEEPER, KEEPER));
+
+        tick(0);
+        tick(FIRST_PAY_DAY);
+        assertNull(entityData.getComponent(goblin, CreaturePay.class));
+        assertEquals(1, keeperStats.getPayDays());
+
+        // The pay day after the banner is gone pays again
+        entityData.removeEntity(banner);
+        tick(FIRST_PAY_DAY + FREQUENCY);
+        assertEquals(WAGE, owed(goblin));
     }
 
     @Test
