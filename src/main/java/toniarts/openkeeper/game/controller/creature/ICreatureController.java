@@ -68,6 +68,22 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void navigateToRandomPoint();
 
     /**
+     * The walk of a keeper's creature that found nothing at all to do: to one
+     * of the four tiles two tiles off each axis of its Dungeon Heart's
+     * reference tile, at random. When that tile can't be stood on, it stays
+     * where it is (DKII.EXE 0x478680)
+     */
+    public void navigateToDungeonHeart();
+
+    /**
+     * The walk of a creature under the Chicken spell: to a random spot in the
+     * nearest Hatchery of its keeper that it can get to, and with no such
+     * Hatchery a step to a neighbouring tile that is not solid, water or lava
+     * (DKII.EXE 0x463BE0)
+     */
+    public void navigateAsChicken();
+
+    /**
      * Walks to a random tile in the Combat Pit we fight in, off its edge
      */
     public void navigateToRandomPointInCombatPit();
@@ -252,6 +268,19 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @return true if dropped into a Combat Pit to fight
      */
     public boolean isCombatPitFighter();
+
+    /**
+     * Has the creature just beaten its opponent in the Combat Pit. It lets go
+     * of the beaten one, so a win is told once
+     *
+     * @return true if we just won a fight in the Combat Pit
+     */
+    public boolean hasWonCombatPitFight();
+
+    /**
+     * The winner of a Combat Pit fight cheers up when it has celebrated
+     */
+    public void cheerUpCombatPitVictor();
 
     public boolean isTimeToReEvaluate();
 

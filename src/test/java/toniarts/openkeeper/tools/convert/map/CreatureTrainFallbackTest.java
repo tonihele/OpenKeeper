@@ -68,6 +68,15 @@ class CreatureTrainFallbackTest {
     }
 
     @Test
+    void creatureThatCanNeitherTrainNorWatchAFightGambles() {
+
+        // Training, then the Combat Pit, then the Casino (0x478680)
+        assertTrue(findWork(Player.KEEPER1_ID, EnumSet.of(Creature.CreatureFlag.NOT_TRAIN_WHEN_IDLE),
+                Set.of(Creature.JobType.TRAIN, Creature.JobType.DRINK), Creature.JobType.MANUFACTURE));
+        assertEquals(List.of(Creature.JobType.DRINK), assigned);
+    }
+
+    @Test
     void noTrainingWithoutAPlaceToTrain() {
         assertFalse(findWork(Player.KEEPER1_ID, EnumSet.noneOf(Creature.CreatureFlag.class), Set.of()));
         assertTrue(assigned.isEmpty());

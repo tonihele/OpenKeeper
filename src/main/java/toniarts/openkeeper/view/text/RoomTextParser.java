@@ -19,6 +19,7 @@ package toniarts.openkeeper.view.text;
 import com.simsilica.es.EntityId;
 import java.util.Map;
 import java.util.function.ToIntFunction;
+import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IRoomInformation;
@@ -107,8 +108,8 @@ public class RoomTextParser {
             case PRISON_STATUS:
                 return Utils.getMainTextResourceBundle().getString(room.isPrisonOpen() ? "2454" : "2455"); // Open. / Closed.
             case CASINO_PAYOUT:
-                // The pay-out lever can't be pulled yet, so the Casino is a generous one
-                return Utils.getMainTextResourceBundle().getString("2508");
+                // A whole sentence by the pay out lever: generous (2508) or rigged (2509), DK II 0x4E9250
+                return Utils.getMainTextResourceBundle().getString(room.getCasinoPayOut() == Casino.PayOut.MONEY ? "2509" : "2508");
             case PATROL_ROUTE_COUNT:
                 return Integer.toString(patrolRouteCounter.applyAsInt(room.getOwnerId()));
             case DUNGEON_HEART_MANA:

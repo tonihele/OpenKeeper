@@ -194,7 +194,8 @@ public final class MapController extends Container implements IMapController {
     }
 
     /**
-     * Find the room starting from a certain point, rooms are never diagonally attached
+     * Find the room starting from a certain point, rooms are never diagonally attached. Like DK II (0x4EC900,
+     * 0x44F5D0) only the tiles of the room's own owner join it, a room of another keeper is a room of its own.
      *
      * @param p starting point
      * @param roomInstance the room instance
@@ -204,7 +205,7 @@ public final class MapController extends Container implements IMapController {
 
         // Get the terrain
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) || tile.getOwnerId() != roomInstance.getOwnerId()) {
             return;
         }
 

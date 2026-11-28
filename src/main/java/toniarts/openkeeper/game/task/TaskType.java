@@ -58,5 +58,6 @@ public enum TaskType {
     DELIVER_DOOR_CRATE,
     TORTURE,
     COLLECT_PAY,
-    EXPLORE
+    EXPLORE,
+    WATCH_COMBAT_PIT
 }

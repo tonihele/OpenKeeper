@@ -139,6 +139,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
+import java.util.random.RandomGenerator;
 
 /**
  * Controls an entity with {@link CreatureAi} component. Basically supports the
@@ -194,6 +195,10 @@ public final class CreatureController extends EntityController implements ICreat
      * How long the big winner of the Casino celebrates its jackpot, as in DK II (DKII.EXE 0x456EC0)
      */
     private static final float BIG_WINNER_CELEBRATION_SECONDS = 10f;
+    /**
+     * How long the winner of a Combat Pit fight cheers, as in DK II (DKII.EXE 0x457CF0)
+     */
+    private static final float COMBAT_PIT_VICTORY_SECONDS = 4f;
     private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
     private static final int MOOD_JOB_INTERVAL_SECONDS = 5;
     /**
@@ -227,6 +232,12 @@ public final class CreatureController extends EntityController implements ICreat
             CreatureState.WANDER, CreatureState.WORK, CreatureState.FIGHT, CreatureState.FOLLOW, CreatureState.FLEE,
             CreatureState.SLEEPING, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL, CreatureState.EATING,
             CreatureState.CHICKEN);
+
+    /**
+     * The steps of a creature under the Chicken spell that has no Hatchery to
+     * go to, in DK II's order (0x463BE0)
+     */
+    private static final int[][] CHICKEN_STEPS = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
     /**
      * The states a meal interrupts. Like in DK II, a creature busy with
@@ -547,6 +558,59 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public void navigateToDungeonHeart() {
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+        Point heart = keeper != null ? keeper.getDungeonHeartLocation() : null;
+        IRoomController room = heart != null ? mapController.getRoomControllerByCoordinates(heart) : null;
+        if (room == null || room.isDestroyed() || entityData.getComponent(entityId, Position.class) == null) {
+            return;
+        }
+
+        // DK II measures from the heart's reference tile, the one right of and below its middle (0x4E4590), and
+        // goes two tiles off it on each axis, either way at random
+        RandomGenerator random = Utils.getRandom();
+        Point corner = new Point(heart.x + (random.nextBoolean() ? -1 : 3), heart.y + (random.nextBoolean() ? -1 : 3));
+        IMapTileInformation tile = mapController.getMapData().getTile(corner);
+        if (tile != null && navigationService.isAccessible(tile, tile, this)) {
+            createNavigation(getCreatureCoordinates(), corner, null);
+        }
+    }
+
+    @Override
+    public void navigateAsChicken() {
+        if (entityData.getComponent(entityId, Position.class) == null) {
+            return;
+        }
+        Point start = getCreatureCoordinates();
+
+        // The nearest Hatchery of our keeper that we can get to, measured to its middle as in DK II (0x4C6750)
+        List<IRoomController> hatcheries = new ArrayList<>(mapController.getRoomsByFunction(AbstractRoomController.ObjectType.FOOD, getOwnerId()));
+        hatcheries.sort(Comparator.comparingInt(hatchery -> {
+            Point middle = hatchery.getRoomInstance().getCenter();
+            return (middle.x - start.x) * (middle.x - start.x) + (middle.y - start.y) * (middle.y - start.y);
+        }));
+        for (IRoomController hatchery : hatcheries) {
+            List<Point> coordinates = new ArrayList<>(hatchery.getRoomInstance().getCoordinates());
+            coordinates.removeIf(p -> !hatchery.isTileAccessible(null, p));
+            Point destination = Utils.getRandomItem(coordinates);
+            if (destination != null && !createNavigation(start, destination, null)) {
+                return;
+            }
+        }
+
+        // No Hatchery, a step east, west, south or north, starting from a random one of them
+        int first = Utils.getRandom().nextInt(CHICKEN_STEPS.length);
+        for (int i = 0; i < CHICKEN_STEPS.length; i++) {
+            int[] step = CHICKEN_STEPS[(first + i) % CHICKEN_STEPS.length];
+            Point p = new Point(start.x + step[0], start.y + step[1]);
+            if (mapController.getMapData().getTile(p) != null && !mapController.isSolid(p) && !mapController.isWater(p) && !mapController.isLava(p)) {
+                createNavigation(start, p, null);
+                return;
+            }
+        }
+    }
+
+    @Override
     public void navigateToRandomPointInCombatPit() {
         CombatPitFighter pitFighter = entityData.getComponent(entityId, CombatPitFighter.class);
         if (pitFighter != null && mapController.getRoomController(pitFighter.pit) instanceof CombatPitController pit) {
@@ -701,10 +765,21 @@ public final class CreatureController extends EntityController implements ICreat
             addNoWorkAnger();
         }
 
-        // With none of its own jobs to start, the creature trains, like in DK II. The Casino comes after this
+        // With none of its own jobs to start, the creature trains, like in DK II (0x478680)
         if (!creature.getFlags().contains(Creature.CreatureFlag.NOT_TRAIN_WHEN_IDLE)
                 && taskManager.isTaskAvailable(this, Creature.JobType.TRAIN)
                 && taskManager.assignTask(this, Creature.JobType.TRAIN)) {
+            workResult.accept(true);
+            return;
+        }
+
+        // Then it watches a fight in the Combat Pit, and then it gambles in the Casino (job 9)
+        if (taskManager.isTaskAvailable(this, Creature.JobType.COMBAT_PIT_SPECTATE)
+                && taskManager.assignTask(this, Creature.JobType.COMBAT_PIT_SPECTATE)) {
+            workResult.accept(true);
+            return;
+        }
+        if (taskManager.isTaskAvailable(this, Creature.JobType.DRINK) && taskManager.assignTask(this, Creature.JobType.DRINK)) {
             workResult.accept(true);
             return;
         }
@@ -1127,14 +1202,6 @@ public final class CreatureController extends EntityController implements ICreat
         AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
         if (attackTarget != null && isCombatPitOpponent(attackTarget.entityId, pit)) {
             return creaturesController.createController(attackTarget.entityId);
-        }
-
-        // We beat our opponent, winning cheers us up. Picking the next opponent clears the beaten one, so this is once a win
-        CombatPitFighter beaten = attackTarget != null ? entityData.getComponent(attackTarget.entityId, CombatPitFighter.class) : null;
-        CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
-        if (beaten != null && pit.equals(beaten.pit) && isIncapacitated(attackTarget.entityId) && mood != null) {
-            entityData.setComponent(entityId, mood.add(CreatureMood.REASON_OTHER,
-                    (int) gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_COMBAT_PIT_VICTOR).getValue()));
         }
 
         EntityId nearestEnemy = null;
@@ -2214,6 +2281,27 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public boolean hasWonCombatPitFight() {
+        CombatPitFighter pitFighter = entityData.getComponent(entityId, CombatPitFighter.class);
+        AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
+        CombatPitFighter beaten = attackTarget != null ? entityData.getComponent(attackTarget.entityId, CombatPitFighter.class) : null;
+        if (pitFighter == null || beaten == null || !pitFighter.pit.equals(beaten.pit) || !isIncapacitated(attackTarget.entityId)) {
+            return false;
+        }
+        setAttackTarget(null);
+        return true;
+    }
+
+    @Override
+    public void cheerUpCombatPitVictor() {
+        CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
+        if (mood != null) {
+            entityData.setComponent(entityId, mood.add(CreatureMood.REASON_OTHER,
+                    (int) gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_COMBAT_PIT_VICTOR).getValue()));
+        }
+    }
+
+    @Override
     public boolean isIncapacitated() {
         return isIncapacitated(entityData, entityId);
     }
@@ -3056,6 +3144,12 @@ public final class CreatureController extends EntityController implements ICreat
             }
             case CELEBRATING -> {
                 stateTargetTime = BIG_WINNER_CELEBRATION_SECONDS;
+            }
+            case COMBAT_PIT_VICTORY -> {
+
+                // Happy over and over, and the one still playing at the end is played out (DK II 0x457CF0)
+                double happy = getAnimationTime(creature, Creature.AnimationType.HAPPY);
+                stateTargetTime = happy > 0 ? Math.ceil(COMBAT_PIT_VICTORY_SECONDS / happy) * happy : COMBAT_PIT_VICTORY_SECONDS;
             }
             case CHICKEN -> {
                 stateTargetTime = entityData.getComponent(entityId, CreatureAi.class).stateDuration;

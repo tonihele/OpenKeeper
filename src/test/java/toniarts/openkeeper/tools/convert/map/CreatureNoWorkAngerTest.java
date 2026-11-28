@@ -139,7 +139,7 @@ class CreatureNoWorkAngerTest {
         }
         IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(IObjectsController.class.getClassLoader(),
                 new Class<?>[]{IObjectsController.class}, (proxy, method, args) -> entityData.createEntity());
-        CombatPitController pit = new CombatPitController(entityData.createEntity(), entityData, null, roomInstance, objectsController);
+        CombatPitController pit = new CombatPitController(entityData.createEntity(), entityData, null, roomInstance, objectsController, () -> 0);
         pit.construct();
         entityData.setComponent(entityId, new CombatPitFighter(pit.getEntityId()));
         IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),

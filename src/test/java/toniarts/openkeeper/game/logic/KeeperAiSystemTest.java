@@ -1478,7 +1478,7 @@ class KeeperAiSystemTest {
                 pit.addCoordinate(new Point(x, y));
             }
         }
-        roomControl.onBuild(new CombatPitController(entityData.createEntity(), entityData, null, pit, null));
+        roomControl.onBuild(new CombatPitController(entityData.createEntity(), entityData, null, pit, null, null));
         EntityId prisoner = createPrisoner(new Point(1, 4));
         for (int tick = 0; tick < 400 && dropped.isEmpty(); tick++) {
             system.processTick(0.25f);

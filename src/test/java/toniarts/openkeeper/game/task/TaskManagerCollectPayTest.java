@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.task;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationHandler;
@@ -26,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CasinoBigWinner;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -49,14 +52,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A creature that is owed pay goes to the nearest gold room of its keeper
- * that holds gold and that it can reach
+ * that holds gold and that it can reach. The big winner of the Casino goes to
+ * the nearest one it can reach that holds more than its winnings
  */
 class TaskManagerCollectPayTest {
 
     private static final short KEEPER = Player.KEEPER1_ID;
 
     private final AtomicReference<Task> assigned = new AtomicReference<>();
+    private final EntityData entityData = new DefaultEntityData();
+    private final EntityId entity = entityData.createEntity();
     private final ICreatureController creature = stub(ICreatureController.class, (proxy, method, args) -> switch (method.getName()) {
+        case "getEntityId" -> entity;
         case "getCreatureCoordinates" -> new Point(0, 2);
         case "getOwnerId" -> KEEPER;
         case "setAssignedTask" -> {
@@ -90,6 +97,28 @@ class TaskManagerCollectPayTest {
     }
 
     @Test
+    void bigWinnerGoesToTheNearestRoomThatHoldsMoreThanItsWinnings() {
+        entityData.setComponent(entity, new CasinoBigWinner(0, 1000, 0));
+        IRoomController near = goldRoom(500, 6, 7);
+        IRoomController far = goldRoom(1500, 12, 13);
+
+        assertTrue(taskManager(List.of(near, far), Set.of()).assignCollectWinningsTask(creature));
+
+        assertTrue(far.getRoomInstance().hasCoordinate(assigned.get().getTaskLocation()), assigned.get().getTaskLocation().toString());
+    }
+
+    @Test
+    void bigWinnerGoesToTheNearestRoomWhenNoneHoldsEnough() {
+        entityData.setComponent(entity, new CasinoBigWinner(0, 1000, 0));
+        IRoomController near = goldRoom(500, 6, 7);
+        IRoomController far = goldRoom(800, 12, 13);
+
+        assertTrue(taskManager(List.of(far, near), Set.of()).assignCollectWinningsTask(creature));
+
+        assertTrue(near.getRoomInstance().hasCoordinate(assigned.get().getTaskLocation()), assigned.get().getTaskLocation().toString());
+    }
+
+    @Test
     void hasNowhereToGoWithoutGold() {
         assertFalse(taskManager(List.of(goldRoom(0, 6, 7)), Set.of()).assignCollectPayTask(creature));
 
@@ -116,7 +145,7 @@ class TaskManagerCollectPayTest {
         });
     }
 
-    private static TaskManager taskManager(List<IRoomController> rooms, Set<Point> walledIn) {
+    private TaskManager taskManager(List<IRoomController> rooms, Set<Point> walledIn) {
         Keeper keeper = new Keeper(false, KEEPER);
         IPlayerController player = stub(IPlayerController.class, (proxy, method, args) -> "getKeeper".equals(method.getName()) ? keeper : null);
         IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (proxy, method, args) -> null);
@@ -127,7 +156,7 @@ class TaskManagerCollectPayTest {
         });
         INavigationService navigation = stub(INavigationService.class, (proxy, method, args)
                 -> "isReachable".equals(method.getName()) ? !walledIn.contains((Point) args[1]) : null);
-        return new TaskManager(new DefaultEntityData(), stub(IGameWorldController.class, (proxy, method, args) -> null),
+        return new TaskManager(entityData, stub(IGameWorldController.class, (proxy, method, args) -> null),
                 mapController, stub(IObjectsController.class, (proxy, method, args) -> null), stub(ICreaturesController.class, (proxy, method, args) -> null),
                 navigation, List.of(player), stub(ILevelInfo.class, (proxy, method, args) -> null),
                 stub(IEntityPositionLookup.class, (proxy, method, args) -> null), Map.of());

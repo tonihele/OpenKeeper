@@ -44,6 +44,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.flags;
@@ -54,6 +55,7 @@ import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.flags;
 class RoomWallFurnitureTest {
 
     private static final short KEEPER_ID = 3;
+    private static final short ENEMY_ID = 4;
     private static final short PATH_ID = 0;
     private static final short WALL_ID = 9;
     private static final short TORTURE_CHAMBER_TERRAIN_ID = 20;
@@ -127,6 +129,21 @@ class RoomWallFurnitureTest {
                 new Placed(WHEEL, 4, 5)), placed(room.getWallFurniture()));
     }
 
+    @Test
+    void roomOfAnotherKeeperBesideItIsARoomOfItsOwn() {
+
+        // Like DK II (0x44F5D0), the room only takes in the tiles of its own owner
+        MapController mapController = mapController(ENEMY_ID);
+        IRoomController room = mapController.getRoomControllerByCoordinates(new Point(3, 3));
+        IRoomController enemyRoom = mapController.getRoomControllerByCoordinates(new Point(4, 3));
+
+        assertNotSame(room, enemyRoom);
+        assertEquals(KEEPER_ID, room.getOwnerId());
+        assertEquals(ENEMY_ID, enemyRoom.getOwnerId());
+        assertEquals(15, room.getRoomInstance().getCoordinates().size());
+        assertEquals(10, enemyRoom.getRoomInstance().getCoordinates().size());
+    }
+
     private record Placed(short objectId, int x, int y) {
 
     }
@@ -161,10 +178,18 @@ class RoomWallFurnitureTest {
      * walls
      */
     private MapController mapController() {
+        return mapController(KEEPER_ID);
+    }
+
+    /**
+     * The 7x7 map, the tiles from x = 4 on owned by the given keeper
+     */
+    private MapController mapController(short eastOwnerId) {
         GameMap map = new GameMap(7, 7);
         for (int x = 0; x < 7; x++) {
             for (int y = 0; y < 7; y++) {
                 boolean inRoom = x > 0 && x < 6 && y > 0 && y < 6;
+                short ownerId = x < 4 ? KEEPER_ID : eastOwnerId;
                 map.getTiles()[x][y] = new Tile() {
 
                     @Override
@@ -174,7 +199,7 @@ class RoomWallFurnitureTest {
 
                     @Override
                     public short getPlayerId() {
-                        return KEEPER_ID;
+                        return ownerId;
                     }
                 };
             }
@@ -194,7 +219,7 @@ class RoomWallFurnitureTest {
         Keeper keeper = new Keeper(false, KEEPER_ID);
         ILevelInfo levelInfo = proxy(ILevelInfo.class, (name, args) -> switch (name) {
             case "getPlayers" ->
-                Map.of(KEEPER_ID, keeper);
+                Map.of(KEEPER_ID, keeper, ENEMY_ID, new Keeper(false, ENEMY_ID));
             default ->
                 keeper;
         });

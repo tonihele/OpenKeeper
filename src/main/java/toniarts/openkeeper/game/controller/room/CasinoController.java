@@ -49,6 +49,7 @@ public final class CasinoController extends NormalRoomController {
     private EntityId payOutAdjuster;
     public static final short ROULETTE_TABLE_OBJECT_ID = 87;
     public static final short ROULETTE_WHEEL_OBJECT_ID = 30;
+    public static final short ALCOVE_BARRELS_OBJECT_ID = 68;
     /**
      * How far the roulette wheels are from the centre of their table, 2000 of
      * the 4096 units of a tile in the original
