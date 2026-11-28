@@ -260,6 +260,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void setSystemMessagesEnabled(boolean enabled) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onSetSystemMessages(enabled);
+        }
+    }
+
+    @Override
     public void flashTiles(List<Point> points, boolean enabled, short playerId) {
         if (playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {

@@ -41,7 +41,7 @@ class ChangeRoomOwnerTriggerTest {
             calls.add(List.of(a));
             return null;
         });
-        var control = new TriggerControl(null, level, null, map, null, 1);
+        var control = new TriggerControl(null, level, null, map, null, null, 1);
         var action = new TriggerActionData(2, null, ActionType.CHANGE_ROOM_OWNER);
         action.setUserData("playerId", Player.KEEPER2_ID);
         action.setUserData("posX", 4);

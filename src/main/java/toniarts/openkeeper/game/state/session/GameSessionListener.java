@@ -88,6 +88,14 @@ public interface GameSessionListener extends MapListener, PlayerListener {
     public void onSetWidescreen(boolean enable);
 
     /**
+     * The level script turned the automatic system messages on or off
+     *
+     * @param enabled true if the system messages are shown
+     */
+    @Asynchronous
+    public void onSetSystemMessages(boolean enabled);
+
+    /**
      * The game has ended for the client
      *
      * @param win if true, the client won the game, if not, lost
