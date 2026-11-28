@@ -26,7 +26,9 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -36,6 +38,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.CasinoVariableFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureFixtures;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -175,5 +178,23 @@ class CreatureViewSystemTest {
                 ArtResource.ArtResourceType.ANIMATING_MESH);
 
         assertEquals(Creature.AnimationType.MELEE_ATTACK, CreatureViewSystem.getManufactureAnimation(creature));
+    }
+
+    @Test
+    void hornedReaperPicksUpThePortalGem() {
+        EntityId reaper = entityData.createEntity();
+        entityData.setComponents(reaper, new CreatureViewState((short) 27, 0, Creature.AnimationType.IDLE_1),
+                new Position(0, new Vector3f(5, 0, 5)),
+                new Navigation(new Point(5, 5), null, null));
+        CreatureViewSystem system = new CreatureViewSystem(entityData, null);
+        system.processTick(0.25f);
+        assertEquals(Creature.AnimationType.WALK, entityData.getComponent(reaper, CreatureViewState.class).state);
+
+        // He reaches the gem and takes it, his pick-up animation is in his praying slot
+        entityData.removeComponent(reaper, Navigation.class);
+        entityData.setComponent(reaper, new PortalGem());
+        system.processTick(0.25f);
+
+        assertEquals(Creature.AnimationType.PRAYING, entityData.getComponent(reaper, CreatureViewState.class).state);
     }
 }

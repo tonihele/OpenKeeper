@@ -337,6 +337,7 @@ public final class NetworkServer {
             Serializer.registerClass(SpeedChange.class, new FieldSerializer());
             Serializer.registerClass(Spellbook.class, new FieldSerializer());
             Serializer.registerClass(Spin.class, new FieldSerializer());
+            Serializer.registerClass(SummonedReaper.class, new FieldSerializer());
             Serializer.registerClass(TaskComponent.class, new FieldSerializer());
             Serializer.registerClass(TrainingBlow.class, new FieldSerializer());
             Serializer.registerClass(Tremor.class, new FieldSerializer());
