@@ -16,15 +16,16 @@
  */
 package toniarts.openkeeper.game.trigger.creature;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
+import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
-import toniarts.openkeeper.game.trigger.TriggerGenericData;
-import toniarts.openkeeper.game.trigger.TriggerLoader;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Trigger;
 import toniarts.openkeeper.tools.convert.map.TriggerFixtures;
@@ -39,34 +40,40 @@ class CreatureTriggerControlTest {
     private static final short OTHER_PLAYER_ID = 3;
 
     @Test
-    void convertedTriggerIsActiveForCreatureOfAnotherOwner() throws Exception {
-        assertTrue(convertedIsActive(creature(false, OTHER_PLAYER_ID)));
+    @SuppressWarnings("unchecked")
+    void convertedEventHoldsForCreatureOfAnotherOwner() throws Exception {
+        CreatureTriggerControl control = control();
+        Field eventStates = CreatureTriggerControl.class.getDeclaredField("eventStates");
+        eventStates.setAccessible(true);
+        Predicate<ICreatureController> converted = ((Map<TriggerGeneric.TargetType, Predicate<ICreatureController>>) eventStates.get(control))
+                .get(TriggerGeneric.TargetType.CREATURE_CONVERTED);
+
+        assertTrue(converted.test(creature(false, OTHER_PLAYER_ID)));
+        assertFalse(converted.test(creature(false, TRIGGER_PLAYER_ID)));
     }
 
     @Test
-    void convertedTriggerIgnoresCreatureThatIsGone() throws Exception {
+    void polledEventsIgnoreCreatureThatIsGone() throws Exception {
 
-        // A dead or removed creature has no Owner component, asking for its owner would throw
-        assertFalse(convertedIsActive(creature(true, (short) -1)));
+        // A dead creature has no Owner component, asking for its owner would throw
+        pollEvents(control(), creature(true, (short) -1));
     }
 
-    @Test
-    void convertedTriggerIgnoresMissingCreature() throws Exception {
-        assertFalse(convertedIsActive(null));
-    }
-
-    private boolean convertedIsActive(ICreatureController creature) throws Exception {
+    private CreatureTriggerControl control() {
         Map<Integer, Trigger> triggers = Map.of(1, TriggerFixtures.generic(1, TriggerGeneric.TargetType.CREATURE_CONVERTED));
         IKwdFile kwdFile = proxy(IKwdFile.class, (method, args) -> method.getName().equals("getTriggers") ? triggers : fail(method));
         ILevelInfo levelInfo = proxy(ILevelInfo.class, (method, args) -> method.getName().equals("getLevelData") ? kwdFile : fail(method));
-        CreatureTriggerControl control = new CreatureTriggerControl(null, levelInfo, null, null, null, 1, TRIGGER_PLAYER_ID, null);
+        IGameController gameController = proxy(IGameController.class, (method, args) -> null);
+        return new CreatureTriggerControl(gameController, levelInfo, null, null, null, 1, TRIGGER_PLAYER_ID, null, false);
+    }
 
+    private static void pollEvents(CreatureTriggerControl control, ICreatureController creature) throws Exception {
         Method setThing = AbstractThingTriggerControl.class.getDeclaredMethod("setThing", Object.class);
         setThing.setAccessible(true);
         setThing.invoke(control, creature);
-        Method isActive = CreatureTriggerControl.class.getDeclaredMethod("isActive", TriggerGenericData.class);
-        isActive.setAccessible(true);
-        return (boolean) isActive.invoke(control, new TriggerLoader(kwdFile).load(1).getChild(0));
+        Method pollEvents = CreatureTriggerControl.class.getDeclaredMethod("pollEvents");
+        pollEvents.setAccessible(true);
+        pollEvents.invoke(control);
     }
 
     private static ICreatureController creature(boolean dead, short ownerId) {
