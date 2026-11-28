@@ -516,7 +516,9 @@ public class Variable {
             PIT_PERCENTAGE_DAMAGE_TAKEN_OF_NORMAL_COMBAT(239), // value=20
             BOULDER_SLAP_DAMAGE(240), // value=400
 
-            GAME_TICKS(74), // value=4
+            // How far short of the gold it can carry a worker counts as full: it stops mining and takes the gold
+            // home, and picks up no loose gold (DK II's 0x464360, 0x488930)
+            WORKER_FULL_GOLD_MARGIN(74), // value=340
             LEVEL_RATING(241),
             AVERAGE_TIME(242),
             UNKNOWN_233(233), // value=40
@@ -535,7 +537,6 @@ public class Variable {
             private final int id;
         }
 
-        private final static int gameTicks = 1363;
         private MiscType variableId;
         private float value;
         private int unknown1;
@@ -556,9 +557,7 @@ public class Variable {
         // TODO how save int or float values ???
         protected void setValue(int value) {
             float result = value;
-            if (this.variableId == MiscType.GAME_TICKS) {
-                result = MiscVariable.gameTicks / value;
-            } else if (this.variableId == MiscType.LEVEL_RATING
+            if (this.variableId == MiscType.LEVEL_RATING
                     || this.variableId == MiscType.BOULDER_DETERIORATION_DAMAGE_PERCENTAGE_PER_SECOND
                     || this.variableId == MiscType.BOULDER_SPEED_TILES_PER_SECOND
                     || this.variableId == MiscType.TRIGGER_TRAP_TRIGGER_SPEED_TILES_PER_SECOND

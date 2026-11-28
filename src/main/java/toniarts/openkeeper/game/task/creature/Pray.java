@@ -76,6 +76,7 @@ public final class Pray extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
+        super.executeTask(creature, executionDuration);
 
         // Once a second, timed from the start of the prayer
         float lastPrayer = getExecutionDuration(creature);
