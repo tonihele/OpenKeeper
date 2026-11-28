@@ -446,7 +446,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     }
 
     public void flashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time) {
-        // TODO make flash button
+        screen.flashButton(buttonType, targetId, targetButtonType, enabled, time);
     }
 
     protected List<ResearchableEntity> getAvailableRoomsToBuild() {
@@ -654,6 +654,12 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             }
         }
 
+        // Started straight into a level for testing, no need for the outro and debriefing
+        if (win && Main.isLevelArgumentGiven()) {
+            quitToOS();
+            return;
+        }
+
         // Disable us to get rid of all interaction
         setEnabled(false);
         stateManager.attach(new EndGameState(this));
@@ -661,7 +667,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
     String getTooltipText(String text) {
         int dungeonHealth = getDungeonHeartHealth();
-        int paydayCost = 0;
+        int paydayCost = screen.getPayDayCost();
 
         return text.replaceAll("%19%", String.valueOf(dungeonHealth))
                 .replaceAll("%20", String.valueOf(paydayCost));

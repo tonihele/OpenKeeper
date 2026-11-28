@@ -18,23 +18,32 @@ package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.base.DefaultEntityData;
+import com.simsilica.es.filter.FieldFilter;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Alarm;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Decay;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Invisible;
+import toniarts.openkeeper.game.component.Invulnerable;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Poisoned;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
@@ -60,6 +69,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -68,14 +78,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ShotsControllerTest {
 
     private static final short HEAL_ID = 4;
+    private static final short HEAL_INSTANT_ID = 53;
+    private static final short ARMOUR_ID = 9;
+    private static final short INVULNERABLE_ID = 7;
+    private static final short INVISIBLE_ID = 22;
     private static final short CREATE_OBJECT_ID = 2;
     private static final short CREATE_CREATURE_ID = 10;
     private static final short IMP_ID = 1;
     private static final short GOLD_OBJECT_ID = 1;
+    private static final short CHICKEN_OBJECT_ID = 9;
+    private static final short TRAINING_DUMMY_OBJECT_ID = 14;
     private static final short SIGHT_OF_EVIL_ID = 33;
+    private static final short SKELETON_ID = 9;
+    private static final int RAISE_DEAD_EFFECT_ID = 324;
     private static final short DRAIN_ID = 42;
     private static final short SPIKE_ID = 27;
     private static final short GAS_CLOUD_ID = 58;
+    private static final short FIREBURST_ID = 14;
+    private static final short DOOR_ID = 2;
+    private static final short TRAP_ID = 1;
     private static final short DOOR_FIREBALL_ID = 57;
     private static final short FREEZE_ID = 45;
     private static final short ALARM_ID = 13;
@@ -90,6 +111,9 @@ class ShotsControllerTest {
     private final EntityData entityData = new DefaultEntityData();
     private final Map<Short, Shot> shotsById = new HashMap<>();
     private final List<Object[]> loadedObjects = new ArrayList<>();
+    private final List<EntityId> deadBodies = new ArrayList<>();
+    private final List<Object[]> raised = new ArrayList<>();
+    private final List<Object[]> effects = new ArrayList<>();
     private final Set<Point> waterTiles = new HashSet<>();
     private final List<Object[]> spawnedCreatures = new ArrayList<>();
     private final List<List<Object>> playerEvents = new ArrayList<>();
@@ -100,7 +124,16 @@ class ShotsControllerTest {
     ShotsControllerTest() {
         shotsById.put(ShotFixtures.THUNDERBOLT_ID, ShotFixtures.thunderbolt());
         shotsById.put(ShotFixtures.FIREBALL_ID, ShotFixtures.fireball());
+        shotsById.put(ShotFixtures.RAISE_DEAD_ID, ShotFixtures.raiseDead());
+        shotsById.put(ShotFixtures.GAS_CLOUD_ID, ShotFixtures.gasCloud(ShotFixtures.GAS_CLOUD_ID));
+        shotsById.put(ShotFixtures.GAS_MISSILE_ID, ShotFixtures.gasMissile());
+        shotsById.put(ShotFixtures.GAS_MISSILE_CLOUD_ID, ShotFixtures.gasCloud(ShotFixtures.GAS_MISSILE_CLOUD_ID));
+        shotsById.put(ShotFixtures.HAIL_STORM_ID, ShotFixtures.hailStorm());
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
+        shotsById.put(HEAL_INSTANT_ID, ShotFixtures.healInstantShot(HEAL_INSTANT_ID, HEAL_ID));
+        addShot(ARMOUR_ID, Shot.ProcessType.MODIFY_ARMOUR);
+        addShot(INVULNERABLE_ID, Shot.ProcessType.INVUNERABLE);
+        addShot(INVISIBLE_ID, Shot.ProcessType.INVISIBLE);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(CREATE_CREATURE_ID, Shot.ProcessType.CREATE_CREATURE);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
@@ -108,6 +141,7 @@ class ShotsControllerTest {
         shotsById.put(DRAIN_ID, ShotFixtures.shot(DRAIN_ID, Shot.ProcessType.DRAIN, 0, EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING)));
         shotsById.put(SPIKE_ID, TrapFiringFixtures.shot(SPIKE_ID, Shot.ProcessType.NONE, Shot.DamageType.CONSTANT));
         shotsById.put(GAS_CLOUD_ID, TrapFiringFixtures.shot(GAS_CLOUD_ID, Shot.ProcessType.GAS, Shot.DamageType.RANGE_FROM_ORIGIN));
+        shotsById.put(FIREBURST_ID, TrapFiringFixtures.shot(FIREBURST_ID, Shot.ProcessType.NONE, Shot.DamageType.RANGE_FROM_ORIGIN));
         shotsById.put(DOOR_FIREBALL_ID, TrapFiringFixtures.shot(DOOR_FIREBALL_ID, Shot.ProcessType.NONE, Shot.DamageType.HIT_THING));
         shotsById.put(FREEZE_ID, TrapFiringFixtures.shot(FREEZE_ID, Shot.ProcessType.FREEZE, Shot.DamageType.NONE));
         shotsById.put(ALARM_ID, TrapFiringFixtures.shot(ALARM_ID, Shot.ProcessType.ALARM, Shot.DamageType.NONE));
@@ -118,7 +152,12 @@ class ShotsControllerTest {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "getShotById" -> shotsById.get((Short) args[0]);
-                    case "getObject" -> (int) args[0] == GOLD_OBJECT_ID ? GameObjectFixtures.gameObject("Gold", GameObject.ObjectFlag.OBJECT_TYPE_GOLD) : null;
+                    case "getObject" -> switch ((int) args[0]) {
+                        case GOLD_OBJECT_ID -> GameObjectFixtures.gameObject("Gold", GameObject.ObjectFlag.OBJECT_TYPE_GOLD);
+                        case CHICKEN_OBJECT_ID -> GameObjectFixtures.gameObject("Chicken", GameObject.ObjectFlag.OBJECT_TYPE_FOOD, GameObject.ObjectFlag.DAMAGEABLE);
+                        case TRAINING_DUMMY_OBJECT_ID -> GameObjectFixtures.gameObject("Training Dummy");
+                        default -> null;
+                    };
                     case "getGameLevel" -> ShotFixtures.gameLevel(TICKS_PER_SECOND);
                     case "getCreature" -> (short) args[0] == REAPER_ID ? TrapFiringFixtures.creature(REAPER_ID, Creature.CreatureFlag.IS_HORNY) : null;
                     default -> null;
@@ -142,26 +181,37 @@ class ShotsControllerTest {
                     default -> null;
                 });
         GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> {
-            if (method.getName().equals("emitToPlayer")) {
+            if (method.getName().equals("emitEffect")) {
+                effects.add(args);
+            } else if (method.getName().equals("emitToPlayer")) {
                 playerEvents.add(List.of(args));
             }
             return null;
         });
 
+        // The things picked up this tick are still on their tiles until the lookup catches up
         IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class},
-                (proxy, method, args) -> Stream.concat(entityData.findEntities(null, Position.class).stream()
-                        .filter(entity -> new Point((int) args[0], (int) args[1]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position))),
-                        pickedUpThings.stream()).toList());
+                (proxy, method, args) -> args.length == 1 ? deadBodies.stream()
+                        .filter(entity -> ((Point) args[0]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position)))
+                        .toList()
+                        : Stream.concat(entityData.findEntities(null, Position.class).stream()
+                                .filter(entity -> new Point((int) args[0], (int) args[1]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position))),
+                                pickedUpThings.stream()).toList());
         IGameController gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(), new Class<?>[]{IGameController.class},
                 (proxy, method, args) -> method.getName().equals("getEntityLookupService") ? entityPositionLookup : null);
         ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class},
                 (proxy, method, args) -> {
-                    if (method.getName().equals("spawnCreature")) {
-                        spawnedCreatures.add(args);
-                        return null;
+                    switch (method.getName()) {
+                        case "turnCreatureIntoAnother" ->
+                            raised.add(args);
+                        case "spawnCreature" ->
+                            spawnedCreatures.add(args);
+                        default ->
+                            throw new UnsupportedOperationException(method.getName());
                     }
-                    throw new UnsupportedOperationException(method.getName());
+                    return null;
                 });
+
         shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, null, objectsController, creaturesController, gameEventService);
     }
 
@@ -194,6 +244,45 @@ class ShotsControllerTest {
         shotsController.createShot(HEAL_ID, 50, 0, PLAYER_ID, new Vector3f(), creature, null);
 
         assertEquals(-50, entityData.getComponent(creature, Damage.class).damage);
+    }
+
+    @Test
+    void creatureHealLandsThroughItsDeathShot() {
+        EntityId creature = createCreature();
+        EntityId warlock = createCreature();
+
+        // Warlock Heal Creature: an instant shot on own creatures that dies into Modify Health with the spell's value
+        shotsController.createShot(HEAL_INSTANT_ID, 3000, 0, PLAYER_ID, new Vector3f(), creature, warlock);
+
+        assertEquals(-3000, entityData.getComponent(creature, Damage.class).damage);
+    }
+
+    @Test
+    void armourShotLastsItsFirstValueInTicks() {
+        EntityId creature = createCreature();
+
+        // Cast Armour: 80 ticks, which is 20 seconds at 4 ticks a second
+        shotsController.createShot(ARMOUR_ID, 80, 50, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertEquals(20.0, entityData.getComponent(creature, Armour.class).endTime);
+    }
+
+    @Test
+    void invulnerableShotLastsItsFirstValueInSeconds() {
+        EntityId creature = createCreature();
+
+        shotsController.createShot(INVULNERABLE_ID, 5, 0, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertEquals(5.0, entityData.getComponent(creature, Invulnerable.class).endTime);
+    }
+
+    @Test
+    void invisibleShotLastsItsFirstValueInSeconds() {
+        EntityId creature = createCreature();
+
+        shotsController.createShot(INVISIBLE_ID, 15, 0, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertEquals(15.0, entityData.getComponent(creature, Invisible.class).endTime);
     }
 
     @Test
@@ -312,6 +401,19 @@ class ShotsControllerTest {
     }
 
     @Test
+    void fireballHitDoesAnInvulnerableCreatureNoHarm() {
+        EntityId target = createCreature();
+        entityData.setComponent(target, new Invulnerable(30));
+        shotsController.fireShot(ShotFixtures.FIREBALL_ID, 50, 0, PLAYER_ID, new Vector3f(1.5f, 1f, 4.5f), target,
+                entityData.createEntity(), 4);
+        EntityId shot = entityData.findEntity(null, ShotFlight.class);
+
+        shotsController.hit(shot, target);
+
+        assertNull(entityData.getComponent(target, Damage.class));
+    }
+
+    @Test
     void fireballSetsABadlyHurtCreatureAlightForTenTicks() {
         EntityId target = createCreature(ENEMY_ID, 10, 10);
         entityData.setComponent(target, new Health(20, 100));
@@ -333,6 +435,18 @@ class ShotsControllerTest {
     }
 
     @Test
+    void fireballDoesNotSetAnInvulnerableCreatureAlight() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        entityData.setComponent(target, new Health(10, 100));
+        entityData.setComponent(target, new Invulnerable(30));
+
+        hitWithFireball(target);
+
+        assertNull(entityData.getComponent(target, OnFire.class));
+        assertNull(entityData.getComponent(target, Damage.class));
+    }
+
+    @Test
     void creatureOnWaterDoesNotCatchFire() {
         EntityId target = createCreature(ENEMY_ID, 10, 10);
         entityData.setComponent(target, new Health(10, 100));
@@ -342,6 +456,51 @@ class ShotsControllerTest {
 
         assertNull(entityData.getComponent(target, OnFire.class));
         assertEquals(50, entityData.getComponent(target, Damage.class).damage);
+    }
+
+    @Test
+    void raiseDeadRaisesTheDeadBodiesOnTheTileForTheCaster() {
+        EntityId hit = createDeadBody(new Vector3f(2.8f, 1f, 4f));
+        EntityId onTheTile = createDeadBody(new Vector3f(3.2f, 1f, 3.9f));
+        createDeadBody(new Vector3f(4f, 1f, 4f));
+        EntityId living = createCreature();
+        entityData.setComponent(living, new Position(0, new Vector3f(3f, 1f, 4f)));
+        deadBodies.add(living);
+        shotsController.fireShot(ShotFixtures.RAISE_DEAD_ID, SKELETON_ID, 0, PLAYER_ID, new Vector3f(1f, 1f, 4f), hit,
+                entityData.createEntity(), 3);
+        EntityId shot = entityData.findEntity(null, ShotFlight.class);
+
+        shotsController.hit(shot, hit);
+
+        assertEquals(2, raised.size());
+        assertArrayEquals(new Object[]{hit, PLAYER_ID, SKELETON_ID}, raised.get(0));
+        assertArrayEquals(new Object[]{onTheTile, PLAYER_ID, SKELETON_ID}, raised.get(1));
+        assertEquals(2, effects.size());
+        assertEquals(RAISE_DEAD_EFFECT_ID, effects.get(0)[0]);
+        assertEquals(new Vector3f(2.8f, 1f, 4f), effects.get(0)[1]);
+    }
+
+    private EntityId createDeadBody(Vector3f position) {
+        EntityId deadBody = entityData.createEntity();
+        entityData.setComponents(deadBody, new Position(0, position), new CreatureComponent(), new Death(0));
+        deadBodies.add(deadBody);
+        return deadBody;
+    }
+
+    @Test
+    void hitDoesTheShotsProcessOnlyIfTheShotIsMadeTo() {
+        EntityId target = createCreature();
+        EntityId shot = entityData.createEntity();
+        entityData.setComponent(shot, new ShotFlight(HEAL_ID, PLAYER_ID, null, target, 50, 0, new Vector3f(), new Vector3f(), 0, 1));
+
+        shotsController.hit(shot, target);
+        assertNull(entityData.getComponent(target, Damage.class));
+
+        // Modify Health heals what it hits, as in the original data
+        shotsById.put(HEAL_ID, ShotFixtures.shot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH, 0,
+                EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING)));
+        shotsController.hit(shot, target);
+        assertEquals(-50, entityData.getComponent(target, Damage.class).damage);
     }
 
     @Test
@@ -358,19 +517,23 @@ class ShotsControllerTest {
     }
 
     @Test
-    void constantDamageShotHurtsEveryoneOnItsTileButTheOwnersCreatures() {
+    void constantDamageShotHurtsEveryoneInItsSquareButTheOwnersCreatures() {
         EntityId target = createCreature(ENEMY_ID, 10, 10);
         EntityId other = createCreature(ENEMY_ID, 10.3f, 9.8f);
         EntityId own = createCreature(PLAYER_ID, 10, 10);
+        EntityId lowerCorner = createCreature(ENEMY_ID, 9, 9);
         EntityId nextTile = createCreature(ENEMY_ID, 11, 10);
+        EntityId below = createCreature(ENEMY_ID, 10, 11);
 
-        // The Spike Trap
+        // The Spike Trap, radius 1: its own tile and the three on the lower side, all with the full damage
         shotsController.createShot(SPIKE_ID, 750, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
 
         assertEquals(750, entityData.getComponent(target, Damage.class).damage);
         assertEquals(750, entityData.getComponent(other, Damage.class).damage);
+        assertEquals(750, entityData.getComponent(lowerCorner, Damage.class).damage);
         assertNull(entityData.getComponent(own, Damage.class));
         assertNull(entityData.getComponent(nextTile, Damage.class));
+        assertNull(entityData.getComponent(below, Damage.class));
     }
 
     @Test
@@ -388,21 +551,184 @@ class ShotsControllerTest {
     }
 
     @Test
-    void damageFromOriginHurtsEveryoneWithinTheRadiusButTheOwnersCreatures() {
-        EntityId target = createCreature(ENEMY_ID, 11, 10);
+    void damageFromOriginRunsDownFromThingToThingRowByRow() {
         EntityId neutral = createCreature((short) 2, 10, 9);
-        EntityId own = createCreature(PLAYER_ID, 10, 11);
-        EntityId diagonal = createCreature(ENEMY_ID, 11, 11);
-        EntityId farAway = createCreature(ENEMY_ID, 12, 10);
+        EntityId own = createCreature(PLAYER_ID, 9, 10);
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        EntityId beside = createCreature(ENEMY_ID, 11, 10);
+        EntityId edge = createCreature(ENEMY_ID, 10, 12);
 
-        // The Gas Trap, there is no lingering cloud yet
-        shotsController.createShot(GAS_CLOUD_ID, 750, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+        // The Gas Trap, there is no lingering cloud yet. Each thing's damage is worked out from the one before it
+        shotsController.createShot(GAS_CLOUD_ID, 800, 2, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
 
-        assertEquals(750, entityData.getComponent(target, Damage.class).damage);
-        assertEquals(750, entityData.getComponent(neutral, Damage.class).damage);
+        assertEquals(400, entityData.getComponent(neutral, Damage.class).damage);
         assertNull(entityData.getComponent(own, Damage.class));
-        assertNull(entityData.getComponent(diagonal, Damage.class));
-        assertNull(entityData.getComponent(farAway, Damage.class));
+        assertEquals(400, entityData.getComponent(target, Damage.class).damage);
+        assertEquals(200, entityData.getComponent(beside, Damage.class).damage);
+        assertNull(entityData.getComponent(edge, Damage.class));
+    }
+
+    @Test
+    void damageFromOriginHitsNothingMoreOnceItHasRunDownToNothing() {
+        EntityId first = createCreature(ENEMY_ID, 10, 9);
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+
+        shotsController.createShot(GAS_CLOUD_ID, 1, 2, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+
+        assertNull(entityData.getComponent(first, Damage.class));
+        assertNull(entityData.getComponent(target, Damage.class));
+    }
+
+    @Test
+    void damageFromOriginHurtsTheObjectsDoorsAndTrapsOfOtherPlayers() {
+        EntityId object = createThing(ENEMY_ID, new ObjectComponent(CHICKEN_OBJECT_ID, null));
+        EntityId door = createThing(ENEMY_ID, new DoorComponent(DOOR_ID, false, false));
+        EntityId trap = createThing(ENEMY_ID, new TrapComponent(TRAP_ID));
+        EntityId ownDoor = createThing(PLAYER_ID, new DoorComponent(DOOR_ID, false, false));
+
+        shotsController.createShot(FIREBURST_ID, 800, 1, PLAYER_ID, new Vector3f(10, 1, 10), null, null);
+
+        assertEquals(800, entityData.getComponent(object, Damage.class).damage);
+        assertEquals(800, entityData.getComponent(door, Damage.class).damage);
+        assertEquals(800, entityData.getComponent(trap, Damage.class).damage);
+        assertNull(entityData.getComponent(ownDoor, Damage.class));
+    }
+
+    /**
+     * DK II hurts only the objects marked damageable, like chickens, not room
+     * furniture or gold (0x4B2CE0)
+     */
+    @Test
+    void damageFromOriginSparesTheObjectsThatAreNotDamageable() {
+        EntityId dummy = createThing(ENEMY_ID, new ObjectComponent(TRAINING_DUMMY_OBJECT_ID, null));
+        EntityId gold = createThing(ENEMY_ID, new ObjectComponent(GOLD_OBJECT_ID, null));
+
+        shotsController.createShot(FIREBURST_ID, 800, 1, PLAYER_ID, new Vector3f(10, 1, 10), null, null);
+
+        assertNull(entityData.getComponent(dummy, Damage.class));
+        assertNull(entityData.getComponent(gold, Damage.class));
+    }
+
+    @Test
+    void damageFromOriginPassesOverAThingPickedUpThisTick() {
+        EntityId held = createCreature(ENEMY_ID, 10, 10);
+        entityData.removeComponent(held, Position.class);
+        pickedUpThings.add(held);
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+
+        shotsController.createShot(FIREBURST_ID, 800, 1, PLAYER_ID, new Vector3f(10, 1, 10), null, null);
+
+        assertNull(entityData.getComponent(held, Damage.class));
+        assertEquals(800, entityData.getComponent(target, Damage.class).damage);
+    }
+
+    @Test
+    void gasSparesDoorsAndTraps() {
+        EntityId object = createThing(ENEMY_ID, new ObjectComponent(CHICKEN_OBJECT_ID, null));
+        EntityId door = createThing(ENEMY_ID, new DoorComponent(DOOR_ID, false, false));
+        EntityId trap = createThing(ENEMY_ID, new TrapComponent(TRAP_ID));
+
+        shotsController.createShot(ShotFixtures.GAS_CLOUD_ID, 800, 1, PLAYER_ID, new Vector3f(10, 1, 10), null, null);
+
+        assertEquals(800, entityData.getComponent(object, Damage.class).damage);
+        assertNull(entityData.getComponent(door, Damage.class));
+        assertNull(entityData.getComponent(trap, Damage.class));
+    }
+
+    @Test
+    void damageFromOriginWithoutARadiusHurtsNobody() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+
+        // Like the Firebomb's explosion, its radius is 0 in the data
+        shotsController.createShot(GAS_CLOUD_ID, 750, 0, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+
+        assertNull(entityData.getComponent(target, Damage.class));
+    }
+
+    @Test
+    void creatureGasCloudFliesAtTheTargetButATrapsDoesNot() {
+        EntityId target = createCreature();
+        EntityId bileDemon = createCreature(PLAYER_ID, 1.5f, 3.5f);
+
+        assertTrue(shotsController.fireShot(ShotFixtures.GAS_CLOUD_ID, 60, 1, PLAYER_ID, new Vector3f(1.5f, 1f, 3.5f), target,
+                bileDemon, 1));
+
+        ShotFlight flight = getShotFlight();
+        assertEquals(1f, flight.velocity.length(), DELTA);
+        assertEquals(5, flight.health);
+        assertNull(entityData.getComponent(target, Damage.class));
+
+        // A trap's shot flies only if it moves towards its target
+        assertFalse(shotsController.fireShot(ShotFixtures.GAS_CLOUD_ID, 60, 1, PLAYER_ID, new Vector3f(1.5f, 1f, 3.5f), target,
+                entityData.createEntity(), 0));
+    }
+
+    @Test
+    void creatureHailStormIsAShotThatStandsStillUntilItGoesOntoItsTarget() {
+        EntityId target = createCreature();
+        EntityId mistress = createCreature(PLAYER_ID, 1.5f, 4.5f);
+
+        assertTrue(shotsController.fireShot(ShotFixtures.HAIL_STORM_ID, 10, 2, PLAYER_ID, new Vector3f(1.5f, 1f, 4.5f), target,
+                mistress, 4));
+
+        ShotFlight flight = getShotFlight();
+        assertEquals(0, flight.velocity.length(), DELTA);
+        assertEquals(target, flight.target);
+        assertEquals(10, flight.shotData1);
+        assertEquals(2, flight.shotData2);
+        assertNull(entityData.getComponent(target, Damage.class));
+    }
+
+    @Test
+    void childShotStaysWhereItsParentIsWithTheParentsValues() {
+        EntityId target = createCreature();
+        EntityId bileDemon = createCreature(PLAYER_ID, 1.5f, 4.5f);
+        shotsController.fireShot(ShotFixtures.GAS_MISSILE_ID, 100, 1, PLAYER_ID, new Vector3f(1.5f, 1f, 4.5f), target, bileDemon, 4);
+        EntityId missile = entityData.findEntity(null, ShotFlight.class);
+
+        shotsController.createChildShot(missile, ShotFixtures.GAS_MISSILE_CLOUD_ID, new Vector3f(1.5f, 1f, 2f));
+
+        EntityId cloud = entityData.findEntity(new FieldFilter<>(ShotFlight.class, "shotId", ShotFixtures.GAS_MISSILE_CLOUD_ID), ShotFlight.class);
+        ShotFlight flight = entityData.getComponent(cloud, ShotFlight.class);
+        assertEquals(100, flight.shotData1);
+        assertEquals(1, flight.shotData2);
+        assertEquals(PLAYER_ID, flight.ownerId);
+        assertEquals(bileDemon, flight.shooter);
+        assertEquals(target, flight.target);
+        assertEquals(Vector3f.ZERO, flight.velocity);
+        assertEquals(5, flight.health);
+        assertEquals(new Vector3f(1.5f, 1f, 2f), entityData.getComponent(cloud, Position.class).position);
+        assertNull(entityData.getComponent(target, Damage.class));
+    }
+
+    @Test
+    void cloudHurtsTheEnemiesAroundItOnEveryTurnTheLessTheFurtherTheyAre() {
+        EntityId near = createCreature(ENEMY_ID, 10, 10);
+        EntityId halfway = createCreature(ENEMY_ID, 10.5f, 10);
+        EntityId own = createCreature(PLAYER_ID, 10, 10);
+        EntityId missile = entityData.createEntity();
+        entityData.setComponent(missile, new ShotFlight(ShotFixtures.GAS_MISSILE_ID, PLAYER_ID, null, null, 100, 1, new Vector3f(),
+                new Vector3f(), 0, 16));
+        shotsController.createChildShot(missile, ShotFixtures.GAS_MISSILE_CLOUD_ID, new Vector3f(10, 1, 10));
+        EntityId cloud = entityData.findEntity(new FieldFilter<>(ShotFlight.class, "shotId", ShotFixtures.GAS_MISSILE_CLOUD_ID), ShotFlight.class);
+
+        shotsController.damageArea(cloud);
+        shotsController.damageArea(cloud);
+
+        assertEquals(200, entityData.getComponent(near, Damage.class).damage);
+        assertEquals(100, entityData.getComponent(halfway, Damage.class).damage);
+        assertNull(entityData.getComponent(own, Damage.class));
+    }
+
+    @Test
+    void flyingShotThatHitsAThingDoesNoAreaDamage() {
+        EntityId target = createCreature(ENEMY_ID, 1.5f, 1.5f);
+        shotsController.fireShot(ShotFixtures.FIREBALL_ID, 50, 0, PLAYER_ID, new Vector3f(1.5f, 1f, 1.5f), target,
+                entityData.createEntity(), 4);
+
+        shotsController.damageArea(entityData.findEntity(null, ShotFlight.class));
+
+        assertNull(entityData.getComponent(target, Damage.class));
     }
 
     @Test
@@ -528,7 +854,7 @@ class ShotsControllerTest {
     private EntityId createDrainShot(EntityId shooter) {
         EntityId shot = entityData.createEntity();
         entityData.setComponents(shot, new Position(0, new Vector3f(1.5f, 1f, 1.5f)),
-                new ShotFlight(DRAIN_ID, PLAYER_ID, shooter, 25, 0, new Vector3f(), new Vector3f(), 3, 128));
+                new ShotFlight(DRAIN_ID, PLAYER_ID, shooter, null, 25, 0, new Vector3f(), new Vector3f(), 3, 128));
         return shot;
     }
 
@@ -539,10 +865,17 @@ class ShotsControllerTest {
         return creature;
     }
 
+    private EntityId createThing(short ownerId, EntityComponent component) {
+        EntityId thing = entityData.createEntity();
+        entityData.setComponents(thing, new Position(0, new Vector3f(10, 1f, 10)), new Owner(ownerId, ownerId),
+                new Health(100, 100), component);
+        return thing;
+    }
+
     private void hitWithPoisonSpit(EntityId target, int shotData1, int shotData2) {
         EntityId shot = entityData.createEntity();
         entityData.setComponents(shot, new Position(0, new Vector3f(10, 1, 10)), new ShotFlight(POISON_SPIT_ID, PLAYER_ID,
-                entityData.createEntity(), shotData1, shotData2, new Vector3f(), new Vector3f(10, 1, 10), 3, 20));
+                entityData.createEntity(), null, shotData1, shotData2, new Vector3f(), new Vector3f(10, 1, 10), 3, 20));
 
         shotsController.hit(shot, target);
     }

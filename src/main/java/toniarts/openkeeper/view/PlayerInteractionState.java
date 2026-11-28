@@ -516,17 +516,29 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         // See the results so we see what is going on
         Node object;
+        IEntityViewControl hit = null;
         for (int i = 0; i < results.size(); i++) {
 
             // TODO: Now just creature control, but all interaction objects
             object = results.getCollision(i).getGeometry().getParent().getParent();
             IEntityViewControl control = object.getControl(IEntityViewControl.class);
             if (control != null) {
-                setInteractiveControl(control);
-                return;
+
+                // A victim hanging on a wheel is hard to hit, its torture device gives it to the hand too
+                IEntityViewControl victim = playerEntityViewState.getTortureVictimOn(object);
+                hit = victim != null ? victim : control;
+                break;
             }
         }
-        setInteractiveControl(null);
+
+        // And so does the tile of the device, the cursor anywhere on it picks the victim
+        if (!(hit instanceof CreatureViewControl)) {
+            IEntityViewControl victim = playerEntityViewState.getTortureVictimOn(selectionHandler.getPointedTileIndex());
+            if (victim != null) {
+                hit = victim;
+            }
+        }
+        setInteractiveControl(hit);
     }
 
     private void setInteractiveControl(IEntityViewControl interactiveControl) {
@@ -828,7 +840,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 IEntityViewControl entityViewControl = keeperHandState.getItem();
                 if (entityViewControl != null) {
                     IMapTileInformation mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
-                    if (!isDropBlocked(entityViewControl, p)
+                    if (mapTile != null && !isDropBlocked(entityViewControl, p)
                             && entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
                         gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
 
