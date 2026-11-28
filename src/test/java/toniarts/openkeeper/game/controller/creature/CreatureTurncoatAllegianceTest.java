@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.SpellTargetFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -130,7 +131,9 @@ class CreatureTurncoatAllegianceTest {
             default -> null;
         });
 
-        return new CreatureController(entity, entityData, SpellTargetFixtures.creature((short) 1), null, null, null, Map.of(),
+        INavigationService navigationService = proxy(INavigationService.class, (method, args) -> "isReachable".equals(method));
+
+        return new CreatureController(entity, entityData, SpellTargetFixtures.creature((short) 1), navigationService, null, null, Map.of(),
                 creaturesController, entityPositionLookup, null, levelInfo, null, null, null);
     }
 
