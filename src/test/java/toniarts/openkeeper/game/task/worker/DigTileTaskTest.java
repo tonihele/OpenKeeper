@@ -98,16 +98,18 @@ class DigTileTaskTest {
     @Test
     void workerTurnsToTheTileAndSwingsOnTheTickAfter() {
 
-        // DK II's worker turns to the tile on the tick after its walk (0x4654F0) and its dig state starts the swing on
-        // the tick after that (0x4655D0). The wall above takes two ticks longer, its last swing plays out the same
+        // DK II's worker turns to the tile on the tick after its walk (0x4654F0), its dig state starts the swing on
+        // the tick after that (0x4655D0), and the swing's hit lands on the next update (0x496AA0, 0x496E00)
         Creature imp = CreatureSleepFixtures.digger("Imp", 15, 20, 0, 8);
         int damage = TileWork.perSwing(-130 / TICKS_PER_SECOND, FRESH);
 
         Dig dig = dig(imp, 1000, damage, 200, TICKS_PER_SECOND);
 
-        assertEquals(List.of(2, 5, 6, 7), dig.hits().subList(0, 4));
-        assertEquals(42, dig.hits().get(38));
+        assertEquals(List.of(3, 6, 7, 8), dig.hits().subList(0, 4));
+        assertEquals(43, dig.hits().get(38));
         assertEquals(46, dig.leaves());
+        assertEquals(new Dig(List.of(3), 7), dig(imp, DIRT_HEALTH, TileWork.perSwing(-5000 / TICKS_PER_SECOND, FRESH), 40,
+                TICKS_PER_SECOND));
     }
 
     @Test
