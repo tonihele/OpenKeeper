@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 OpenKeeper
+ * Copyright (C) 2014-2026 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,12 +21,8 @@ import com.jme3.app.state.AppStateManager;
 import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.elements.Element;
-import de.lessvoid.nifty.spi.sound.SoundHandle;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.sound.GlobalCategory;
-import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
-import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.message.SystemMessageControl;
 import toniarts.openkeeper.utils.AssetUtils;
 
@@ -110,12 +106,9 @@ public final class SystemMessageState extends AbstractPauseAwareState {
             return;
         }
         if (this.app != null) {
-            SoundHandle soundHandler = NiftyUtils.getSoundHandler(app.getNifty(),
-                        GlobalCategory.GUI_MESSAGE_BAR, GlobalType.GUI_MESSAGE_BAR_SLIDE.getId());
             this.app.enqueue(() -> {
-                this.addMessageIcon(type, text);
-                if (soundHandler != null) {
-                    soundHandler.play();
+                if (isEnabled() && isInitialized()) {
+                    this.addMessageIcon(type, text);
                 }
             });
         } else {
@@ -149,7 +142,7 @@ public final class SystemMessageState extends AbstractPauseAwareState {
         for (Element child : systemMessagesQueue.getChildren()) {
             SystemMessageControl control = child.getControl(SystemMessageControl.class);
             if (control != null && System.currentTimeMillis() - control.getCreatedAt() > MESSAGE_LIFETIME) {
-                child.markForRemoval();
+                control.remove();
             }
         }
     }
@@ -165,7 +158,12 @@ public final class SystemMessageState extends AbstractPauseAwareState {
     private void removeAllMessages() {
         if (systemMessagesQueue != null && systemMessagesQueue.getChildrenCount() > 0) {
             systemMessagesQueue.getChildren().forEach((child) -> {
-                child.markForRemoval();
+                SystemMessageControl control = child.getControl(SystemMessageControl.class);
+                if (control != null) {
+                    control.remove();
+                } else {
+                    child.markForRemoval();
+                }
             });
         }
     }

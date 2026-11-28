@@ -495,7 +495,7 @@
                 <onHover name="simpleHintEx" hintText="$text" targetElement="tooltip" />
                 <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                 <onActive name="imageOverlayPulsate" filename="$activeImage" post="true"/>
-                <onShow name="move" mode="in" direction="right" length="1000" startDelay="0"/>
+                <onShow name="messageArrival" mode="in" direction="right" length="640" startDelay="0"/>
             </effect>
             <interact onPrimaryClick="showMessage()" onSecondaryRelease="dismissMessage()"/>
         </image>
@@ -563,6 +563,7 @@
                     <effect>
                         <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Hilight.png" post="true"/>
                         <onClick name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Selected.png" post="true" neverStopRendering="true" />
+                        <onClick name="engineSound" category="GUI_BUTTON_DEFAULT" event="0x104" neverStopRendering="true" />
                     </effect>
                     <interact onClick="forward()" />
                 </image>
@@ -570,6 +571,7 @@
                     <effect>
                         <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Back-Hilight.png" post="true"/>
                         <onClick name="imageOverlay" filename="Textures/GUI/Pages/Page_Back-Selected.png" post="true" neverStopRendering="true" />
+                        <onClick name="engineSound" category="GUI_BUTTON_DEFAULT" event="0x104" neverStopRendering="true" />
                     </effect>
                     <interact onClick="back()" />
                 </image>

@@ -26,6 +26,7 @@ import de.lessvoid.nifty.screen.Screen;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
+import toniarts.openkeeper.gui.nifty.effect.MessageArrivalEffect;
 import static toniarts.openkeeper.game.state.IPlayerScreenController.SCREEN_HUD_ID;
 
 /**
@@ -87,6 +88,14 @@ public final class SystemMessageControl extends AbstractController {
      */
     public void dismissMessage() {
         NiftyUtils.playSound(nifty, GlobalCategory.GUI_BUTTON_DEFAULT, GlobalType.GUI_BUTTON_CKICK.getId());
+        remove();
+    }
+
+    /** Cancels arrival audio as well as removing the icon. */
+    public void remove() {
+        for (var effect : element.getEffects(EffectEventId.onShow, MessageArrivalEffect.class)) {
+            effect.getEffectImpl(MessageArrivalEffect.class).cancel();
+        }
         this.element.markForRemoval();
     }
 
