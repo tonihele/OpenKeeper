@@ -13,6 +13,7 @@
     <useStyles filename="Interface/TextFieldStyle.xml" />
     <!-- controls -->
     <useControls filename="nifty-default-controls.xml" />
+    <useControls filename="Interface/SliderControl.xml" />
     <useControls filename="Interface/CustomTabControl.xml" />
     <useControls filename="Interface/MyControls.xml" />
     <!-- inline styles -->

@@ -397,6 +397,7 @@ final class PauseMenuSettings {
         }.build(row);
         new SliderBuilder(id, false) {
             {
+                parameter("soundCategory", "OPTIONS");
                 min(min);
                 max(max);
                 initial(max);

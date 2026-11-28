@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-controls xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
+    <controlDefinition name="verticalSlider" style="nifty-vertical-slider"
+                       controller="toniarts.openkeeper.gui.nifty.SoundSliderControl"
+                       inputMapping="de.lessvoid.nifty.controls.scrollbar.ScrollbarInputMapping"
+                       soundCategory="$soundCategory">
+        <panel style="#panel" focusable="true">
+            <interact onMouseWheel="mouseWheel()"/>
+            <image style="#up">
+                <interact onClickRepeat="decrease()" onMultiClick="decrease()" onRelease="releaseArrow()"/>
+            </image>
+            <image id="#background" style="#background">
+                <interact onClick="mouseClick()" onClickMouseMove="mouseClick()"/>
+                <image id="#position" style="#position">
+                    <interact onClick="startDrag()" onMultiClick="startDrag()" onClickMouseMove="mouseClick()" onRelease="finishDrag()"/>
+                </image>
+            </image>
+            <image style="#down">
+                <interact onClickRepeat="increase()" onMultiClick="increase()" onRelease="releaseArrow()"/>
+            </image>
+        </panel>
+    </controlDefinition>
+
+    <controlDefinition name="horizontalSlider" style="nifty-horizontal-slider"
+                       controller="toniarts.openkeeper.gui.nifty.SoundSliderControl"
+                       inputMapping="de.lessvoid.nifty.controls.scrollbar.ScrollbarInputMapping"
+                       soundCategory="$soundCategory">
+        <panel style="#panel">
+            <interact onMouseWheel="mouseWheel()"/>
+            <image style="#left">
+                <interact onClickRepeat="decrease()" onMultiClick="decrease()" onRelease="releaseArrow()"/>
+            </image>
+            <image id="#background" style="#background">
+                <interact onClick="mouseClick()" onClickMouseMove="mouseClick()"/>
+                <image id="#position" style="#position">
+                    <interact onClick="startDrag()" onMultiClick="startDrag()" onClickMouseMove="mouseClick()" onRelease="finishDrag()"/>
+                </image>
+            </image>
+            <image style="#right">
+                <interact onClickRepeat="increase()" onMultiClick="increase()" onRelease="releaseArrow()"/>
+            </image>
+        </panel>
+    </controlDefinition>
+</nifty-controls>
