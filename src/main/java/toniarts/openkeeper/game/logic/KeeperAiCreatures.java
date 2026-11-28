@@ -122,14 +122,6 @@ final class KeeperAiCreatures {
     private static final int PIT_SHARE_NUMERATOR = 3;
     private static final int PIT_SHARE_DENOMINATOR = 4;
 
-    /**
-     * The states of a creature that sleeps, eats or goes to do so, DK II
-     * leaves those alone
-     */
-    private static final Set<CreatureState> RESTING = Set.of(CreatureState.SLEEPING, CreatureState.GO_TO_SLEEP,
-            CreatureState.EATING, CreatureState.RECUPERATING);
-    private static final Set<TaskType> RESTING_TASKS = Set.of(TaskType.CLAIM_LAIR, TaskType.GO_TO_SLEEP, TaskType.GO_TO_EAT);
-
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final IGameWorldController gameWorldController;
@@ -258,7 +250,7 @@ final class KeeperAiCreatures {
             return;
         }
 
-        Point tile = portal.getRoomInstance().getCenter();
+        Point tile = portal.getRoomInstance().getReferenceTile();
         decisionLog.log(keeperAi, "carry creature " + weakest.getId().getId() + " to its Portal", tile,
                 "its Portals are full and it has " + researchers + " creatures that research");
         battles.carry(weakest.getId(), tile, playerController);
@@ -290,7 +282,7 @@ final class KeeperAiCreatures {
                 Short roomId = JOB_ROOMS.get(job.getJobType());
                 IRoomController room = roomId != null ? getRoom(playerController, roomId) : null;
                 if (room != null) {
-                    tile = room.getRoomInstance().getCenter();
+                    tile = room.getRoomInstance().getReferenceTile();
                     reason = "the creature likes to " + job.getJobType().name().toLowerCase() + " there";
                     break;
                 }
@@ -304,18 +296,12 @@ final class KeeperAiCreatures {
                 if (!held.equals(playerController.getHandControl().peek())) {
                     decisionLog.log(keeperAi, "drop " + held.getId() + " from its hand", fallback,
                             reason + "; its preferred tile would not accept it");
-                    if (creatureComponent != null) {
-                        battles.leaveAlone(held);
-                    }
                     return true;
                 }
             }
         }
         if (!held.equals(playerController.getHandControl().peek())) {
             decisionLog.log(keeperAi, "drop " + held.getId() + " from its hand", tile, reason);
-            if (creatureComponent != null) {
-                battles.leaveAlone(held);
-            }
             return true;
         }
 
@@ -340,8 +326,7 @@ final class KeeperAiCreatures {
                 continue;
             }
 
-            int state = mood.getState(CreatureMood.toRuntimeThreshold(
-                    kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId).getAttributes().getUnhappyThreshold()));
+            int state = getMoodState(creature, mood);
             KeeperAiMood seen = entityData.getComponent(creature.getId(), KeeperAiMood.class);
             int seenState = seen != null ? seen.state : 0;
             if (state == seenState) {
@@ -396,7 +381,7 @@ final class KeeperAiCreatures {
             case CreatureMood.REASON_NO_LAIR -> {
                 IRoomController lair = getRoom(playerController, ROOM_LAIR);
                 if (lair != null) {
-                    Point tile = lair.getRoomInstance().getCenter();
+                    Point tile = lair.getRoomInstance().getReferenceTile();
                     decisionLog.log(keeperAi, "carry creature " + creatureId.getId() + " to the Lair", tile, "unhappy without a lair");
                     battles.carry(creatureId, tile, playerController);
                 }
@@ -411,7 +396,7 @@ final class KeeperAiCreatures {
                     Short roomId = JOB_ROOMS.get(job.getJobType());
                     IRoomController room = roomId != null ? getRoom(playerController, roomId) : null;
                     if (room != null) {
-                        Point tile = room.getRoomInstance().getCenter();
+                        Point tile = room.getRoomInstance().getReferenceTile();
                         decisionLog.log(keeperAi, "carry creature " + creatureId.getId() + " to room " + roomId, tile,
                                 "unhappy without work, it likes to " + job.getJobType().name().toLowerCase());
                         battles.carry(creatureId, tile, playerController);
@@ -442,7 +427,7 @@ final class KeeperAiCreatures {
     /**
      * Gets rid of an angry creature. A computer player that sacrifices drops
      * it on a random tile of the pool of its Temple. Any other, and one
-     * whose hand could not do that, drops it on the middle of its Temple,
+     * whose hand could not do that, drops it on the reference tile of its Temple,
      * with no Temple of a Portal, with no Portal of a Hero Portal
      */
     private void disposeOf(KeeperAi keeperAi, IPlayerController playerController, AI ai, Entity creature) {
@@ -469,7 +454,7 @@ final class KeeperAiCreatures {
             room = getRoom(playerController, ROOM_HERO_PORTAL);
         }
         if (room != null) {
-            Point tile = room.getRoomInstance().getCenter();
+            Point tile = room.getRoomInstance().getReferenceTile();
             decisionLog.log(keeperAi, "carry creature " + creature.getId().getId() + " to room " + room.getRoomInstance().getRoom().getRoomId(),
                     tile, "angry");
             battles.carry(creature.getId(), tile, playerController);
@@ -602,9 +587,9 @@ final class KeeperAiCreatures {
     }
 
     /**
-     * Carries a prisoner to a room: to its middle, to a free tile of a
-     * Torture Chamber, into the pool of a Temple, or to a tile of a Combat
-     * Pit the creatures fight on
+     * Carries a prisoner to a room: to its reference tile, which is where
+     * DK II drops one into a Combat Pit, to a free tile of a Torture Chamber,
+     * or into the pool of a Temple
      */
     private void carryPrisoner(KeeperAi keeperAi, IPlayerController playerController, Entity prisoner, IRoomController room,
             boolean freeTile, String reason) {
@@ -612,11 +597,9 @@ final class KeeperAiCreatures {
             return;
         }
 
-        Point tile = room.getRoomInstance().getCenter();
+        Point tile = room.getRoomInstance().getReferenceTile();
         if (freeTile) {
             tile = getFreeTile(room);
-        } else if (room instanceof CombatPitController) {
-            tile = getRandomTile(room, true);
         } else if (room instanceof TempleController temple) {
             for (Point p : room.getRoomInstance().getCoordinates()) {
                 if (temple.isSacrificePool(p)) {
@@ -668,12 +651,22 @@ final class KeeperAiCreatures {
     }
 
     /**
-     * A creature with nothing to do. DK II counts a fleeing fighter in too
+     * A creature with nothing to do, status 5 of DK II (0x478A20). An
+     * unhappy or angry creature has a status of its own there, so it is
+     * never idle. DK II also counts in some states OpenKeeper doesn't have,
+     * such as sulking, being hypnotised or reporting danger
      */
-    private static boolean isIdle(Entity creature) {
-        CreatureState state = creature.get(CreatureAi.class).getCreatureState();
+    private boolean isIdle(Entity creature) {
+        return creature.get(CreatureAi.class).getCreatureState() == CreatureState.IDLE
+                && getMoodState(creature, entityData.getComponent(creature.getId(), CreatureMood.class)) == 0;
+    }
 
-        return state == CreatureState.IDLE || (state == CreatureState.FLEE && !creature.get(CreatureComponent.class).worker);
+    /**
+     * @return 0 when the creature is content, 1 when unhappy, 2 when angry
+     */
+    private int getMoodState(Entity creature, CreatureMood mood) {
+        return mood == null ? 0 : mood.getState(CreatureMood.toRuntimeThreshold(
+                kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId).getAttributes().getUnhappyThreshold()));
     }
 
     private int getPortalCapacity(IPlayerController playerController) {
@@ -700,15 +693,14 @@ final class KeeperAiCreatures {
     }
 
     /**
-     * A creature the hand may take to put it to work: awake, not eating,
-     * not in a fight, not helpless and not dropped a short while ago
+     * A creature the hand may take to put it to work: not resting, not in
+     * a fight or fleeing one, not helpless and not dropped a short while ago
      */
     private boolean isFree(Entity creature) {
         CreatureState state = creature.get(CreatureAi.class).getCreatureState();
-        TaskComponent task = entityData.getComponent(creature.getId(), TaskComponent.class);
 
-        return !battles.isLeftAlone(creature) && !RESTING.contains(state) && !KeeperAiBattles.HELPLESS.contains(state)
-                && !KeeperAiBattles.FIGHTING.contains(state) && (task == null || !RESTING_TASKS.contains(task.taskType));
+        return !battles.isLeftAlone(creature) && !battles.isResting(creature) && !KeeperAiBattles.HELPLESS.contains(state)
+                && !KeeperAiBattles.FIGHTING.contains(state);
     }
 
     private boolean isTraining(Entity creature) {
