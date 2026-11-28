@@ -19,8 +19,8 @@ package toniarts.openkeeper.game.controller;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 
 /**
- * The arithmetic of tile work: digging, mining, claiming, reinforcing and
- * repairing. Measured against the original 1.70, see
+ * The rules and arithmetic of tile work: digging, mining, claiming,
+ * reinforcing and repairing. Measured against the original 1.70, see
  * <a href="https://github.com/tonihele/OpenKeeper/issues/559">#559</a>.
  */
 public final class TileWork {
@@ -48,6 +48,21 @@ public final class TileWork {
      */
     public static int perApplication(float ratePerSecond, int efficiencyPercentage) {
         return Math.round(Math.abs(ratePerSecond) * efficiencyPercentage / 100f);
+    }
+
+    /**
+     * How much one dig or mining swing does. The original keeps the work
+     * variables divided by the ticks per second as whole numbers (0x51CB80),
+     * and each swing lands one tick's worth scaled by the worker's efficiency,
+     * rounded up (0x496E00, 0x4971D0).
+     *
+     * @param ratePerTick the work variable divided by the ticks per second,
+     * the sign is ignored
+     * @param efficiencyPercentage the worker's efficiency
+     * @return the health change of one swing, never negative
+     */
+    public static int perSwing(int ratePerTick, int efficiencyPercentage) {
+        return (Math.abs(ratePerTick) * efficiencyPercentage + 99) / 100;
     }
 
     /**
@@ -105,6 +120,26 @@ public final class TileWork {
     }
 
     /**
+     * Whether a player can damage this terrain with a dig order. Solid
+     * terrain can be dug by any player; an owned tile can be attacked by a
+     * different player. Open terrain, including a taggable dirt path, cannot
+     * be damaged.
+     *
+     * @param terrain the tile terrain
+     * @param ownerId the current tile owner
+     * @param playerId the player doing the work
+     * @return whether {@code MapController.damageTile} can apply damage
+     */
+    public static boolean canDamageTile(Terrain terrain, short ownerId, short playerId) {
+        if (terrain == null) {
+            return false;
+        }
+
+        return terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                || terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && ownerId != playerId;
+    }
+
+    /**
      * Whether work that brings the terrain to full health turns it into
      * another terrain. That is the upward job of terrain nobody owns: rock is
      * reinforced into a wall, a dirt path or a mana vault is claimed. Terrain
@@ -119,6 +154,21 @@ public final class TileWork {
         return !terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
                 && terrain.getMaxHealthTypeTerrainId() != 0
                 && terrain.getMaxHealthTypeTerrainId() != terrain.getTerrainId();
+    }
+
+    /**
+     * How much one tick of claiming, reinforcing or repairing does. The
+     * original keeps the work variables divided by the ticks per second as
+     * whole numbers (0x51CB80), and each tick adds that, scaled by the
+     * worker's work modifier, with the fraction dropped (0x4974C0, 0x497960,
+     * 0x497AC0). The modifier is a 12 bit fixed point number, 0xCCC for 80%.
+     *
+     * @param ratePerTick the work variable divided by the ticks per second
+     * @param efficiencyPercentage the worker's efficiency
+     * @return the health change of one tick, never negative
+     */
+    public static int perTick(int ratePerTick, int efficiencyPercentage) {
+        return Math.abs(ratePerTick) * (efficiencyPercentage * 4096 / 100) >> 12;
     }
 
 }

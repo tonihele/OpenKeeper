@@ -108,6 +108,20 @@ public class PlayerTriggerControl extends TriggerControl {
         return playerId;
     }
 
+    /**
+     * Native breach events select matching root branches; the authored player
+     * filter is ignored. DK II raises them through its event dispatcher
+     * (DKII.EXE 0x498BB0 calls 0x4C7A50 with 0x38 and 0x39), which walks the
+     * branch like any other event, with the same repeat rule as the walk.
+     */
+    void onEnemyBreached() {
+        fire(TriggerGeneric.TargetType.PLAYER_ENEMY_BREACHED);
+    }
+
+    void onDungeonBreached() {
+        fire(TriggerGeneric.TargetType.PLAYER_DUNGEON_BREACHED);
+    }
+
     @Override
     protected void pollEvents() {
         super.pollEvents();
@@ -216,6 +230,17 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_KILLED:
                 // Has this player been defeated, by a certain player or by anyone (0)
                 return getPlayer().isKilledBy(trigger.getUserData("playerId", short.class));
+            case PLAYER_ROOM_FURNITURE: {
+                short roomId = trigger.getUserData("roomId", short.class);
+                int target = getPlayerController(playerId).getRoomControl().getRoomFurnitureCount(roomId);
+                // DKII ignores the value/player option and uses the stored number.
+                int value = trigger.getUserData("value", int.class);
+                if (trigger.getComparison() == null || trigger.getComparison() == TriggerGeneric.ComparisonType.NONE) {
+                    return false;
+                }
+                // Many Prison counters can exceed float's exact integer range.
+                return compare(Integer.compare(target, value), trigger.getComparison(), 0);
+            }
 
             case GUI_TRANSITION_ENDS:
                 return !playerService.isInTransition();
@@ -242,8 +267,6 @@ public class PlayerTriggerControl extends TriggerControl {
                 (pid, trigger) -> getRoomCount(pid, trigger.getUserData("roomId", short.class)));
         result.put(TriggerGeneric.TargetType.PLAYER_ROOM_SIZE,
                 (pid, trigger) -> getLargestRoomSize(pid, trigger.getUserData("roomId", short.class)));
-        result.put(TriggerGeneric.TargetType.PLAYER_ROOM_FURNITURE,
-                (pid, trigger) -> getFurnitureCount(pid, trigger.getUserData("roomId", short.class)));
         result.put(TriggerGeneric.TargetType.PLAYER_SLAPS, (pid, trigger) -> getSlapCount(pid));
         result.put(TriggerGeneric.TargetType.PLAYER_GOLD, (pid, trigger) -> getPlayer(pid).getGold());
         result.put(TriggerGeneric.TargetType.PLAYER_GOLD_MINED, (pid, trigger) -> getPlayer(pid).getGoldMined());
@@ -343,7 +366,7 @@ public class PlayerTriggerControl extends TriggerControl {
 
     private void followCameraPath(TriggerActionData trigger) { // gui part. Only for keeper x
         ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
-        if (ap == null) {
+        if (ap == null || isPossessing(playerId)) {
             return;
         }
         playerService.doTransition(trigger.getUserData("pathId", short.class), WorldUtils.ActionPointToVector3f(ap), playerId);
@@ -364,7 +387,7 @@ public class PlayerTriggerControl extends TriggerControl {
 
     private void rotateAroundActionPoint(TriggerActionData trigger) { // AP part
         ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
-        if (ap == null) {
+        if (ap == null || isPossessing(playerId)) {
             return;
         }
         boolean isRelative = trigger.getUserData("available", short.class) == 0;
@@ -388,6 +411,9 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     private void setWidescreenMode(TriggerActionData trigger) { // Info part
+        if (isPossessing(playerId)) {
+            return;
+        }
         boolean available = trigger.getUserData("available", short.class) != 0;
         playerService.setWidescreen(available, playerId);
     }

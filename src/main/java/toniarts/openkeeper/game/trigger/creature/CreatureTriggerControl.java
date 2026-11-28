@@ -87,7 +87,7 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
         eventStates.put(TriggerGeneric.TargetType.CREATURE_ATTACKED, ICreatureController::isAttacked);
         eventStates.put(TriggerGeneric.TargetType.CREATURE_IMPRISONED, ICreatureController::isImprisoned);
         eventStates.put(TriggerGeneric.TargetType.CREATURE_TORTURED, ICreatureController::isTortured);
-        eventStates.put(TriggerGeneric.TargetType.CREATURE_CONVERTED, creature -> creature.getOwnerId() != getPlayerId());
+        eventStates.put(TriggerGeneric.TargetType.CREATURE_CONVERTED, creature -> !creature.isDead() && creature.getOwnerId() != getPlayerId());
         eventStates.put(TriggerGeneric.TargetType.CREATURE_CLAIMED, ICreatureController::isClaimed);
         eventStates.put(TriggerGeneric.TargetType.CREATURE_STUNNED, ICreatureController::isStunned);
         eventStates.put(TriggerGeneric.TargetType.CREATURE_DYING, ICreatureController::isUnconscious);
@@ -269,7 +269,11 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 return true;
 
             case ZOOM_TO:
-                getPlayerService().zoomViewToEntity(instanceControl.getEntityId(), getPlayer().getId());
+
+                // DK II ignores the zoom while the keeper is possessing a creature, as it does the action point zooms
+                if (!getPlayer().isPossession()) {
+                    getPlayerService().zoomViewToEntity(instanceControl.getEntityId(), getPlayer().getId());
+                }
                 return true;
 
             case SET_OBJECTIVE: // Creature part. Only for Good player

@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
@@ -36,6 +37,8 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.task.worker.FetchObjectTask;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
+import toniarts.openkeeper.tools.convert.map.VariableFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -76,6 +79,22 @@ class CreaturePicksUpGoldTest {
         assertEquals(250, imp.getGold());
         assertNull(entityData.getComponent(pile, Gold.class));
         assertTrue(pileRemoved);
+    }
+
+    @Test
+    void workerIsFullTheLevelsMarginShortOfWhatItCanCarry() {
+        EntityId entityId = entityData.createEntity();
+        CreatureComponent imp = new CreatureComponent();
+        imp.worker = true;
+        entityData.setComponents(entityId, imp, new Gold(818, 1400));
+        CreatureController worker = new CreatureController(entityId, entityData, null, null, null, null,
+                Map.of(MiscType.WORKER_FULL_GOLD_MARGIN, VariableFixtures.miscVariable(MiscType.WORKER_FULL_GOLD_MARGIN, 340)),
+                null, null, null, null, null, null, null);
+
+        // Three swings at a seam of the 3000 gold kind leave an Imp short of full, the fourth takes it over 1060
+        assertFalse(worker.isTooMuchGold());
+        entityData.setComponent(entityId, new Gold(1091, 1400));
+        assertTrue(worker.isTooMuchGold());
     }
 
     @Test
