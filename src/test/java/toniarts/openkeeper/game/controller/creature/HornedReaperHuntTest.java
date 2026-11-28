@@ -303,7 +303,7 @@ class HornedReaperHuntTest {
                 }));
                 yield path;
             }
-            case "isReachable" -> true;
+            case "isReachable" -> !unreachableTiles.contains((Point) args[1]);
             default -> throw new UnsupportedOperationException(method);
         });
         ICreaturesController creaturesController = proxy(ICreaturesController.class, (method, args) -> switch (method) {
