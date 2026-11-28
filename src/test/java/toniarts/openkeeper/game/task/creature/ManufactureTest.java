@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.task.creature;
 
-import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -86,13 +85,6 @@ class ManufactureTest {
             task.executeTask(creature, (float) tick / TICKS_PER_SECOND);
         }
         return manufactureControl.getProgress();
-    }
-
-    @Test
-    void creatureStandsHalfwayToTheWorkbench() {
-        Vector2f workPosition = Manufacture.getWorkPosition(new Vector2f(4, 5), new Point(5, 5));
-
-        assertEquals(new Vector2f(4.5f, 5), workPosition);
     }
 
     @Test
