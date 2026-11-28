@@ -117,6 +117,7 @@ class ExploreJobTest {
         INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
             case "isAccessible" -> true;
             case "findPath" -> unreachable.contains((Point) args[1]) ? null : new DefaultGraphPath<IMapTileInformation>();
+            case "isReachable" -> !unreachable.contains((Point) args[1]);
             default -> null;
         });
         Keeper keeper = new Keeper(false, PLAYER_ID);
