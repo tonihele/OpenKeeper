@@ -146,9 +146,13 @@ public class TriggerControl extends Control {
      * The repeat is the one of the parent condition (or of the root chain for
      * the top level). Any value but 1 (0, 2, 10, 255...) means that the actions
      * run on every walk during which the parent holds. The original has a
-     * routine that was meant to count the repeat down and disable the
-     * condition, but nothing ever calls it, so "do it 10 times" in a map is
-     * really "do it all the time". We do what the original does.
+     * routine that counts the repeat down and disables the condition at 0
+     * (DKII.EXE 0x508640), but its callers only run it when the walk of the
+     * condition's children returns non-zero, and the walks always return 0
+     * (0x4C79A0 player, 0x49A980 creature, 0x518150 level, 0x4A3E90 and
+     * 0x4B0CC0; the event dispatchers 0x4C7A50, 0x49AA30 and 0x4A3F50 gate it
+     * the same way). So "do it 10 times" in a map is really "do it all the
+     * time", for the events too. We do what the original does.
      *
      * @param container the parent whose children are walked
      * @param repeat the repeat for the actions directly under the container

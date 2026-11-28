@@ -49,7 +49,7 @@ class PlayerTriggerControlPossessionTest {
     private final List<String> calls = new ArrayList<>();
     private final PlayerTriggerControl control = new PlayerTriggerControl(stub(IGameController.class, null),
             stub(ILevelInfo.class, keeper), stub(IGameTimer.class, null), stub(IMapController.class, null),
-            stub(ICreaturesController.class, null), TRIGGER_ID, Player.KEEPER1_ID, recordingPlayerService());
+            stub(ICreaturesController.class, null), TRIGGER_ID, Player.KEEPER1_ID, recordingPlayerService(), null);
 
     @Test
     void cameraMovesArePlayedWhenNotPossessing() {
