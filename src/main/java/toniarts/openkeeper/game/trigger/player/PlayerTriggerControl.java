@@ -409,19 +409,6 @@ public class PlayerTriggerControl extends TriggerControl {
         return super.getPlayer(playerId);
     }
 
-    /**
-     * DK II doesn't play the level's camera paths, widescreen or camera
-     * zooms and rotations while the keeper possesses a creature, the keeper
-     * just stays in the creature
-     *
-     * @param keeperId the keeper who would see the camera move
-     * @return true if the keeper is possessing a creature
-     */
-    private boolean isPossessing(short keeperId) {
-        Keeper keeper = getPlayer(keeperId);
-        return keeper != null && keeper.isPossession();
-    }
-
     private int getCreaturesCount(short playerId, short creatureId) {
         if (creatureId == 0) {
             return getPlayerController(playerId).getCreatureControl().getTypeCount();
