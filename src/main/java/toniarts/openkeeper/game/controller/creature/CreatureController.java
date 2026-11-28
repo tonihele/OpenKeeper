@@ -56,6 +56,7 @@ import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.IdleAnimation;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Invisible;
 import toniarts.openkeeper.game.component.Invulnerable;
@@ -201,10 +202,6 @@ public final class CreatureController extends EntityController implements ICreat
      * 0x4780E0)
      */
     private static final float JOB_PICK_INTERVAL_SECONDS = 5f;
-    /**
-     * How long an idle hero does nothing before it tries its objective again, as in DK II (DKII.EXE 0x477850)
-     */
-    private static final int HERO_IDLE_TICKS = 12;
 
     /**
      * Every creature's work modifier, which the attack recharges are divided
@@ -539,10 +536,34 @@ public final class CreatureController extends EntityController implements ICreat
         final Owner owner = entityData.getComponent(entityId, Owner.class);
         if (position != null && mobile != null && owner != null) {
             Point start = WorldUtils.vectorToPoint(position.position);
-            Point destination = navigationService.findRandomAccessibleTile(start, 10, this);
-            if (destination != null) {
+
+            // An idle creature walks about on its owner's land, like in DK II, a neutral one on neutral land. Others
+            // anywhere near
+            Point destination = stateMachine.isInState(CreatureState.IDLE)
+                    ? navigationService.findIdleWalkTile(start, this)
+                    : navigationService.findRandomAccessibleTile(start, 10, this);
+            if (start.equals(destination)) {
+                walkInsideTile(position.position);
+            } else if (destination != null) {
                 createNavigation(start, destination, null);
             }
+        }
+    }
+
+    /**
+     * Walks to a spot inside the tile the creature stands on. DK II does this
+     * when an idle walk finds no tile to go to (0x4808E0): it takes the
+     * creature's own tile and then one of nine spots in it.
+     *
+     * @param position where the creature is now
+     */
+    private void walkInsideTile(Vector3f position) {
+        Point tile = WorldUtils.vectorToPoint(position);
+        Vector2 spot = WorldUtils.pointToVector2(tile);
+        spot.add((FastMath.rand.nextInt(3) - 1) * 0.25f, (FastMath.rand.nextInt(3) - 1) * 0.25f);
+        Vector2 here = new Vector2(position.x, position.z);
+        if (here.dst(spot) > 0.1f) {
+            entityData.setComponent(entityId, new Navigation(tile, null, List.of(here, spot)));
         }
     }
 
@@ -655,7 +676,18 @@ public final class CreatureController extends EntityController implements ICreat
 
         // See if we have some available work
         if (isWorker()) {
-            taskManager.addToUnemployedWorkerQueue(this, workResult);
+            taskManager.addToUnemployedWorkerQueue(this, (foundWork) -> {
+
+                // DK II's worker that finds no work stays in its idle state for 240 to 479 ticks (0x463DF0). Only an
+                // idle walk that ends sooner takes it back to its job search, so after an idle animation it walks on
+                IdleAnimation idle = entityData.getComponent(entityId, IdleAnimation.class);
+                if (!foundWork && idle != null) {
+                    int ticks = 240 + FastMath.rand.nextInt(240);
+                    entityData.setComponent(entityId, new IdleAnimation(idle.animation, idle.endTime,
+                            gameTimer.getGameTime() + ticks / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()));
+                }
+                workResult.accept(foundWork);
+            });
             return;
         }
 
@@ -2405,15 +2437,46 @@ public final class CreatureController extends EntityController implements ICreat
         // See that we have been motionless for enough time, per state
         // TODO: now just 5 seconds, it is the default for imps
         // DK II's pit fighter waits four seconds' worth of ticks on each spot (0x457CF0)
-        if (getOwnerId() == Player.GOOD_PLAYER_ID && stateMachine.getCurrentState() == CreatureState.IDLE) {
-            return motionless >= HERO_IDLE_TICKS / (float) levelInfo.getLevelData().getGameLevel().getTicksPerSec();
-        }
         return motionless >= (stateMachine.getCurrentState() == CreatureState.COMBAT_PIT ? 4f : 5f);
     }
 
     @Override
     public void resetReEvaluationTimer() {
         motionless = 0;
+    }
+
+    @Override
+    public boolean playIdleAnimation() {
+
+        // DK II only lets an idle animation follow an idle walk (the flag at CState +0xA7), so the creature walks the
+        // first time and after each animation. A creature without the animation walks too. A worker makes the same
+        // roll inside its own idle state (0x464240), and a neutral creature in its own (0x4776B0)
+        IdleAnimation last = entityData.getComponent(entityId, IdleAnimation.class);
+        int roll = FastMath.rand.nextInt(100);
+        if (last != null && last.animation == null && roll >= 25) {
+            Creature.AnimationType animation = roll < 75 ? Creature.AnimationType.IDLE_1 : Creature.AnimationType.IDLE_2;
+            double time = getAnimationTime(creature, animation);
+            if (time > 0) {
+                entityData.setComponent(entityId, new IdleAnimation(animation, gameTimer.getGameTime() + time, last.lookForWorkTime));
+                return true;
+            }
+        }
+        if (last == null || last.animation != null) {
+            entityData.setComponent(entityId, new IdleAnimation(null, 0, last != null ? last.lookForWorkTime : 0));
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isWaitingToLookForWork() {
+        IdleAnimation idle = entityData.getComponent(entityId, IdleAnimation.class);
+        return isWorker() && idle != null && idle.animation != null && gameTimer.getGameTime() < idle.lookForWorkTime;
+    }
+
+    @Override
+    public boolean isPlayingIdleAnimation() {
+        IdleAnimation idle = entityData.getComponent(entityId, IdleAnimation.class);
+        return idle != null && idle.animation != null && gameTimer.getGameTime() < idle.endTime;
     }
 
     @Override
