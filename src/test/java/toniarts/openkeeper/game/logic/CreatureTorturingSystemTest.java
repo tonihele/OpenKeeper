@@ -26,10 +26,12 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Damage;
@@ -49,6 +51,7 @@ import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureFixtures;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -61,11 +64,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * What happens to the victims in a torture chamber, like in DK II
  */
+@SuppressWarnings("unchecked")
 class CreatureTorturingSystemTest {
 
     private static final short KEEPER_ID = 3;
     private static final short HERO_ID = 1;
     private static final Point CHAMBER_TILE = new Point(4, 4);
+    private static final short TROLL = 10;
+    private static final short MISTRESS = 39;
+    private static final short UNIQUE_MISTRESS = 38;
+    private static final short IMP = 1;
     private static final short TORTURE_WHEEL = 8;
     private static final short ELECTRIC_CHAIR = 61;
 
@@ -74,6 +82,29 @@ class CreatureTorturingSystemTest {
     private final Map<EntityId, Short> converted = new HashMap<>();
     private final Map<EntityId, CreatureState> states = new HashMap<>();
     private final RoomInstance chamberInstance = new RoomInstance(new Room());
+    private final RoomInstance heroGate = heroRoom(new Point(20, 20));
+    private final RoomInstance heroLair = heroRoom(new Point(30, 30));
+    private final List<List<Point>> revealed = new ArrayList<>();
+    private final Map<RoomInstance, EntityId> roomEntities = new HashMap<>();
+    private final Random firstChoice = new Random() {
+
+        @Override
+        public int nextInt(int bound) {
+            return 0;
+        }
+    };
+    private final Random lastChoice = new Random() {
+
+        @Override
+        public int nextInt(int bound) {
+            return bound - 1;
+        }
+    };
+    private final Map<Short, Creature> creatures = Map.of(
+            TROLL, CreatureFixtures.creature(TROLL, (short) 1092, Creature.JobClass.ARTISAN, false),
+            UNIQUE_MISTRESS, CreatureFixtures.creature(UNIQUE_MISTRESS, (short) -1000, Creature.JobClass.FIGHTER, false),
+            MISTRESS, CreatureFixtures.creature(MISTRESS, (short) 0, Creature.JobClass.FIGHTER, false),
+            IMP, CreatureFixtures.creature(IMP, (short) 1092, Creature.JobClass.ARTISAN, true));
     private final List<Object> playerEvents = new ArrayList<>();
 
     /**
@@ -81,7 +112,126 @@ class CreatureTorturingSystemTest {
      */
     private final List<List<Object>> soundEvents = new ArrayList<>();
     private int tick;
+    private final GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(),
+                    new Class<?>[]{GameEventService.class}, (proxy, method, args) -> switch (method.getName()) {
+                        case "emitToPlayer" -> {
+                            playerEvents.add(List.of(args));
+                            yield null;
+                        }
+                        case "emit", "emitAt" -> {
+                            soundEvents.add(List.of(tick, method.getName(), args[0], args[args.length == 2 ? 1 : 3]));
+                            yield null;
+                        }
+                        default -> throw new UnsupportedOperationException(method.getName());
+                    });
     private CreatureTorturingSystem system = createSystem(0);
+
+    @Test
+    void enemyTorturedToDeathRevealsOneOfItsKeepersRooms() {
+        torturedToDeath(HERO_ID);
+
+        assertEquals(List.of(heroGate.getCoordinates()), revealed);
+    }
+
+    @Test
+    void eachDeathRevealsAnotherRoom() {
+        torturedToDeath(HERO_ID);
+        torturedToDeath(HERO_ID);
+        torturedToDeath(HERO_ID);
+
+        assertEquals(List.of(heroGate.getCoordinates(), heroLair.getCoordinates()), revealed);
+    }
+
+    @Test
+    void victimTellsWhatTheKeeperDoesNotKnowYet() {
+
+        // An artisan has two things to tell about its keeper, every victim one more thing
+        system = createSystem(0, firstChoice);
+        torturedToDeath(HERO_ID);
+        torturedToDeath(HERO_ID);
+        torturedToDeath(HERO_ID);
+        assertTrue(revealed.isEmpty());
+
+        torturedToDeath(HERO_ID);
+        assertEquals(List.of(heroGate.getCoordinates()), revealed);
+    }
+
+    @Test
+    void roomsRevealedAreKeptInTheEntityData() {
+        torturedToDeath(HERO_ID);
+
+        // A loaded game starts with a new system on the same entities
+        system = createSystem(0, lastChoice);
+        torturedToDeath(HERO_ID);
+
+        assertEquals(List.of(heroGate.getCoordinates(), heroLair.getCoordinates()), revealed);
+    }
+
+    @Test
+    void ownVictimRevealsNothing() {
+        torturedToDeath(KEEPER_ID);
+
+        assertTrue(revealed.isEmpty());
+    }
+
+    @Test
+    void ownVictimGetsAngrierEverySecond() {
+        EntityId victim = victim(KEEPER_ID, 1000, TROLL);
+
+        tick(3);
+
+        assertEquals(3 * 1092, entityData.getComponent(victim, CreatureMood.class).get(CreatureMood.REASON_OTHER));
+    }
+
+    @Test
+    void ownUniqueMistressEnjoysItDownToZero() {
+        EntityId victim = victim(KEEPER_ID, 1000, UNIQUE_MISTRESS);
+        entityData.setComponent(victim, new CreatureMood(0, 0, 0, 0, 0, 1500));
+
+        tick(1);
+        assertEquals(500, entityData.getComponent(victim, CreatureMood.class).get(CreatureMood.REASON_OTHER));
+
+        tick(2);
+        assertEquals(0, entityData.getComponent(victim, CreatureMood.class).get(CreatureMood.REASON_OTHER));
+    }
+
+    @Test
+    void ownMistressFeelsNothing() {
+        EntityId victim = victim(KEEPER_ID, 1000, MISTRESS);
+        entityData.setComponent(victim, new CreatureMood(0, 0, 0, 0, 0, 5000));
+
+        tick(3);
+
+        assertEquals(5000, entityData.getComponent(victim, CreatureMood.class).get(CreatureMood.REASON_OTHER));
+    }
+
+    @Test
+    void ownVictimsAngerStopsAtTheCap() {
+        EntityId victim = victim(KEEPER_ID, 1000, TROLL);
+        entityData.setComponent(victim, new CreatureMood(0, 0, 0, 0, 0, CreatureMood.MAX_ANGER - 1000));
+
+        tick(2);
+
+        assertEquals(CreatureMood.MAX_ANGER, entityData.getComponent(victim, CreatureMood.class).get(CreatureMood.REASON_OTHER));
+    }
+
+    @Test
+    void emotionlessVictimFeelsNothing() {
+        EntityId victim = victim(KEEPER_ID, 1000, IMP);
+
+        tick(3);
+
+        assertEquals(0, entityData.getComponent(victim, CreatureMood.class).get(CreatureMood.REASON_OTHER));
+    }
+
+    @Test
+    void enemyVictimsMoodIsNotChanged() {
+        EntityId victim = victim(HERO_ID, 1000, TROLL);
+
+        tick(3);
+
+        assertEquals(0, entityData.getComponent(victim, CreatureMood.class).get(CreatureMood.REASON_OTHER));
+    }
 
     @Test
     void convertedEnemyLeavesTheDevice() {
@@ -91,6 +241,22 @@ class CreatureTorturingSystemTest {
 
         assertEquals(KEEPER_ID, converted.get(victim));
         assertEquals(List.of(victim), leftDevice);
+    }
+
+    @Test
+    void enemyIsConvertedAfterItsTortureTimeInStepsOfFiveTicks() {
+
+        // DK II counts the 4 ticks of a second down to 0 before each step, a second of torture is 5 ticks (0x47B590)
+        EntityId victim = victim(HERO_ID, 2);
+        entityData.setComponent(victim, new CreatureTortured(0, 0, 0));
+        for (int tick = 0; tick < 9; tick++) {
+            system.processTick(0.25f);
+        }
+        assertTrue(converted.isEmpty());
+        assertEquals(1, entityData.getComponent(victim, CreatureTortured.class).timeTortured);
+
+        system.processTick(0.25f);
+        assertEquals(KEEPER_ID, converted.get(victim));
     }
 
     @Test
@@ -205,6 +371,20 @@ class CreatureTorturingSystemTest {
     }
 
     @Test
+    void victimWithNoDeviceLeftInTheRebuiltChamberIsSetFree() {
+        EntityId victim = victimOn(TORTURE_WHEEL);
+        tick(1);
+
+        // The chamber was built again and has no free device left for the victim
+        entityData.removeComponent(victim, CreatureTortured.class);
+        tick(1);
+
+        assertEquals(List.of(victim), leftDevice);
+        assertEquals(CreatureState.IDLE, states.get(victim));
+        assertEquals(HERO_ID, entityData.getComponent(victim, Owner.class).controlId);
+    }
+
+    @Test
     void ownCreatureIsNotConverted() {
         EntityId victim = victim(KEEPER_ID, 2);
 
@@ -213,6 +393,31 @@ class CreatureTorturingSystemTest {
         assertTrue(converted.isEmpty());
         assertTrue(leftDevice.isEmpty());
         assertTrue(playerEvents.isEmpty());
+    }
+
+    private void torturedToDeath(short ownerId) {
+        EntityId victim = victim(ownerId, 1000);
+        tick(1);
+        entityData.removeComponent(victim, CreatureTortured.class);
+        entityData.setComponent(victim, new Death(1));
+        tick(1);
+    }
+
+    private static RoomInstance heroRoom(Point p) {
+        RoomInstance room = new RoomInstance(new Room());
+        room.setOwnerId(HERO_ID);
+        room.addCoordinate(p);
+        room.addCoordinate(new Point(p.x + 1, p.y));
+        return room;
+    }
+
+    private IRoomController roomController(RoomInstance roomInstance) {
+        return (IRoomController) Proxy.newProxyInstance(IRoomController.class.getClassLoader(),
+                new Class<?>[]{IRoomController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getRoomInstance" -> roomInstance;
+                    case "getEntityId" -> roomEntities.computeIfAbsent(roomInstance, room -> entityData.createEntity());
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
     }
 
     @Test
@@ -230,22 +435,15 @@ class CreatureTorturingSystemTest {
     }
 
     private CreatureTorturingSystem createSystem(int chanceOfDyingWhenConverted) {
+        return createSystem(chanceOfDyingWhenConverted, lastChoice);
+    }
+
+    private CreatureTorturingSystem createSystem(int chanceOfDyingWhenConverted, Random random) {
         Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = new EnumMap<>(Variable.MiscVariable.MiscType.class);
         gameSettings.put(Variable.MiscVariable.MiscType.TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED,
                 CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED, chanceOfDyingWhenConverted));
-        return new CreatureTorturingSystem(entityData, creaturesController(), mapController(),
-                (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(),
-                        new Class<?>[]{GameEventService.class}, (proxy, method, args) -> switch (method.getName()) {
-                            case "emitToPlayer" -> {
-                                playerEvents.add(List.of(args));
-                                yield null;
-                            }
-                            case "emit", "emitAt" -> {
-                                soundEvents.add(List.of(tick, method.getName(), args[0], args[args.length == 2 ? 1 : 3]));
-                                yield null;
-                            }
-                            default -> throw new UnsupportedOperationException(method.getName());
-                        }), gameSettings);
+        return new CreatureTorturingSystem(entityData, creaturesController(), mapController(), gameEventService,
+                gameSettings, 4, random);
     }
 
     private void tick(int seconds) {
@@ -265,9 +463,15 @@ class CreatureTorturingSystemTest {
     }
 
     private EntityId victim(short ownerId, float tortureTimeToConvert) {
+        return victim(ownerId, tortureTimeToConvert, TROLL);
+    }
+
+    private EntityId victim(short ownerId, float tortureTimeToConvert, short creatureId) {
         EntityId victim = entityData.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();
         creatureComponent.tortureTimeToConvert = tortureTimeToConvert;
+        creatureComponent.creatureId = creatureId;
+        entityData.setComponent(victim, new CreatureMood());
         entityData.setComponent(victim, creatureComponent);
         entityData.setComponent(victim, new Owner(ownerId, KEEPER_ID));
         entityData.setComponent(victim, new Position(0, WorldUtils.pointToVector3f(CHAMBER_TILE)));
@@ -291,6 +495,7 @@ class CreatureTorturingSystemTest {
                         yield null;
                     }
                     case "getStateMachine" -> stateMachine(entityId);
+                    case "getCreature" -> creatures.get(entityData.getComponent(entityId, CreatureComponent.class).creatureId);
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
     }
@@ -326,6 +531,12 @@ class CreatureTorturingSystemTest {
         return (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
                 new Class<?>[]{IMapController.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "getRoomControllerByCoordinates" -> CHAMBER_TILE.equals(args[0]) ? chamber : null;
+                    case "getRoomControllers" -> List.of(chamber, roomController(heroGate), roomController(heroLair));
+                    case "revealTiles" -> {
+                        assertEquals(KEEPER_ID, (short) (Short) args[1]);
+                        revealed.add((List<Point>) args[0]);
+                        yield null;
+                    }
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
     }

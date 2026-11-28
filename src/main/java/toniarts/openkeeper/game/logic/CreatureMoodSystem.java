@@ -18,20 +18,33 @@ package toniarts.openkeeper.game.logic;
 
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import toniarts.openkeeper.game.component.CallToArms;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureHunger;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -48,11 +61,23 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
 
     private static final Logger logger = System.getLogger(CreatureMoodSystem.class.getName());
     private static final short LAIR_ROOM_ID = 2;
+    private static final short HATCHERY_ROOM_ID = 4;
     private static final int LOG_COUNTER_INTERVAL = 1000;
+    private static final int SECONDS_IN_HAND_BEFORE_ANGER = 20;
+
+    /**
+     * Prison, torture and fight states, DKII adds no anger for the needs in
+     * them (DKII.EXE 0x478D00 skips the states with state flag 2 and the fight
+     * group 0x16, which also covers walking to a fight)
+     */
+    private static final Set<CreatureState> NEED_ANGER_HELD_STATES = EnumSet.of(CreatureState.FIGHT,
+            CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL, CreatureState.BACK_OFF,
+            CreatureState.IMPRISONED, CreatureState.TORTURED, CreatureState.ENTERING_DUNGEON);
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final Room lair;
+    private final Room hatchery;
     private final IGameTimer gameTimer;
     private final int angerRecoveryInLairPerSecond;
     private final Map<Short, IPlayerController> playerControllersById;
@@ -67,6 +92,7 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
         angerRecoveryInLairPerSecond = (int) gameSettings.get(
                 Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND).getValue();
         lair = kwdFile.getRoomById(LAIR_ROOM_ID);
+        hatchery = kwdFile.getRoomById(HATCHERY_ROOM_ID);
         playerControllersById = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {
             playerControllersById.put(playerController.getKeeper().getId(), playerController);
@@ -93,9 +119,14 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
             if (creature == null) {
                 continue;
             }
+            mood = applyInHandAnger(entity, mood, creature, tpf);
 
             int unhappyThreshold = CreatureMood.toRuntimeThreshold(
                     creature.getAttributes().getUnhappyThreshold());
+            boolean needAngerHeld = isNeedAngerHeld(entityData, entity.getId(), creature);
+            if (!needAngerHeld) {
+                mood = applyNoFoodAnger(entity, mood, creature, owner.ownerId);
+            }
 
             // DKII clears reason 2 immediately after a bed is successfully assigned.
             if (hasAssignedLair(sleep)) {
@@ -116,8 +147,8 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
                 continue;
             }
 
-            if (creature.getLairObjectId() == 0
-                    || !isLairAvailableOrOwned(owner.ownerId)) {
+            if (needAngerHeld || creature.getLairObjectId() == 0
+                    || !isRoomAvailableOrOwned(owner.ownerId, lair)) {
                 continue;
             }
 
@@ -163,6 +194,93 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
         return mood.add(CreatureMood.REASON_OTHER, angerChange);
     }
 
+    /**
+     * Whether DKII adds no anger for the creature's needs, no lair, no food
+     * and no pay, this tick. The creature tick (DKII.EXE 0x476FC0) only adds
+     * it (0x478D00) for the keepers' creatures that aren't workers, and a
+     * possessed creature doesn't get the tick at all (0x488930). 0x478D00 then
+     * adds none to a Horned Reaper (creature flag 0x4000), a creature held
+     * back by the Call to Arms (0x4888C0), a prisoner (creature +0x3CB), and a
+     * creature in a prison, torture or fight state.
+     *
+     * @param entityData the entity data
+     * @param entityId the creature
+     * @param creature the creature's type
+     * @return true when the creature gets no anger for its needs
+     */
+    public static boolean isNeedAngerHeld(EntityData entityData, EntityId entityId, Creature creature) {
+        CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
+        return creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER)
+                || creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)
+                || entityData.getComponent(entityId, Possessed.class) != null
+                || entityData.getComponent(entityId, CreatureImprisoned.class) != null
+                || entityData.getComponent(entityId, CreatureTortured.class) != null
+                || creatureAi != null && NEED_ANGER_HELD_STATES.contains(creatureAi.getCreatureState())
+                || isTorturingItself(entityData, entityId)
+                || isHeldByCallToArms(entityData, entityId);
+    }
+
+    /**
+     * Whether the Call to Arms holds the creature back (DKII.EXE 0x4888C0):
+     * while its keeper's banner is up (CPlayer +0x76 bit 2, set by 0x4BDDA0
+     * when the banner goes up and cleared by 0x4BDFC0 when it goes), and while
+     * the creature answers the call. Such a creature gets no wage on pay day
+     * (0x4BE1A0), no anger for its needs (0x478D00) and picks no mood job
+     * (0x476FC0).
+     *
+     * @param entityData the entity data
+     * @param entityId the creature
+     * @return true while the Call to Arms holds the creature back
+     */
+    public static boolean isHeldByCallToArms(EntityData entityData, EntityId entityId) {
+        CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
+        if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.CALL_TO_ARMS) {
+            return true;
+        }
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        for (EntityId banner : entityData.findEntities(null, CallToArms.class)) {
+            Owner bannerOwner = entityData.getComponent(banner, Owner.class);
+            if (owner != null && bannerOwner != null && bannerOwner.ownerId == owner.ownerId
+                    && entityData.getComponent(banner, CallToArms.class).isUp()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * A creature that is on a torture device because it likes it. DKII's on
+     * device state 0x83 has state flag 2.
+     */
+    private static boolean isTorturingItself(EntityData entityData, EntityId entityId) {
+        TaskComponent task = entityData.getComponent(entityId, TaskComponent.class);
+        return task != null && task.taskType == TaskType.TORTURE && task.taskStarted
+                && (task.targetEntity == null || entityData.getComponent(task.targetEntity, CreatureComponent.class) == null);
+    }
+
+    /**
+     * DKII changes the shared "other" anger of a creature held in the hand for
+     * over 20 seconds once every game second. The 20 seconds are fixed, the
+     * level's TIME_IN_HAND_BEFORE_CREATURES_BECOME_ANGRY_SECONDS isn't read.
+     * Most creatures calm down in the hand, a few get angrier.
+     */
+    private CreatureMood applyInHandAnger(Entity entity, CreatureMood mood, Creature creature, float tpf) {
+        InHand inHand = entityData.getComponent(entity.getId(), InHand.class);
+        double gameTime = gameTimer.getGameTime();
+        if (inHand == null || gameTime - inHand.startTime <= SECONDS_IN_HAND_BEFORE_ANGER
+                || Math.floor(gameTime) == Math.floor(gameTime - tpf)) {
+            return mood;
+        }
+
+        CreatureMood updatedMood = mood.add(CreatureMood.REASON_OTHER,
+                CreatureMood.toRuntimeValue(creature.getAttributes().getAngerInHand()));
+        if (updatedMood.other == mood.other) {
+            return mood;
+        }
+        entityData.setComponent(entity.getId(), updatedMood);
+        return updatedMood;
+    }
+
     private static String stateName(int state) {
         return switch (state) {
             case 0 -> "normal";
@@ -186,11 +304,32 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
                 && entityData.getComponent(sleep.lairObjectId, Position.class) != null;
     }
 
-    private boolean isLairAvailableOrOwned(short playerId) {
+    /**
+     * DKII adds no-food anger every tick while a creature still waits for its
+     * whole fill of chickens and its keeper can build or has a Hatchery.
+     */
+    private CreatureMood applyNoFoodAnger(Entity entity, CreatureMood mood, Creature creature, short ownerId) {
+        CreatureHunger hunger = entityData.getComponent(entity.getId(), CreatureHunger.class);
+        int hungerFill = entity.get(CreatureComponent.class).hungerFill;
+        if (hunger == null || hungerFill == 0 || hunger.amountNeeded < hungerFill
+                || !isRoomAvailableOrOwned(ownerId, hatchery)) {
+            return mood;
+        }
+
+        CreatureMood updatedMood = mood.add(CreatureMood.REASON_NO_FOOD,
+                CreatureMood.toRuntimeValue(creature.getAttributes().getAngerNoFood()));
+        if (updatedMood.noFood == mood.noFood) {
+            return mood;
+        }
+        entityData.setComponent(entity.getId(), updatedMood);
+        return updatedMood;
+    }
+
+    private boolean isRoomAvailableOrOwned(short playerId, Room room) {
         IPlayerController playerController = playerControllersById.get(playerId);
-        return playerController != null && lair != null
-                && (playerController.getRoomControl().getTypesAvailable().contains(lair)
-                || playerController.getRoomControl().getTypeCount(lair) > 0);
+        return playerController != null && room != null
+                && (playerController.getRoomControl().getTypesAvailable().contains(room)
+                || playerController.getRoomControl().getTypeCount(room) > 0);
     }
 
     @Override

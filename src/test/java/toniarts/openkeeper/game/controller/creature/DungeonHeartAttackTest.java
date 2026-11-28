@@ -51,6 +51,7 @@ import toniarts.openkeeper.game.map.IMapData;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.HeartAttackFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -279,7 +280,11 @@ class DungeonHeartAttackTest {
 
     private CreatureController createController(EntityId entity) {
         Map<Short, Keeper> keepers = Map.of(KEEPER, new Keeper(false, KEEPER), HERO, new Keeper(false, HERO));
-        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> "getCreature".equals(name) ? creatures.get((Short) args[0]) : null);
+        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
+            case "getCreature" -> creatures.get((Short) args[0]);
+            case "getGameLevel" -> CreatureSleepFixtures.level(4);
+            default -> null;
+        });
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> switch (name) {
             case "getLevelData" -> kwdFile;
             case "getPlayer" -> keepers.get((Short) args[0]);
@@ -301,7 +306,7 @@ class DungeonHeartAttackTest {
 
         // The centre 3x3 of the heart can't be walked on, or only its corners
         INavigationService navigationService = stub(INavigationService.class, (name, args) -> {
-            if (!"findPath".equals(name)) {
+            if (!"findPath".equals(name) && !"isReachable".equals(name)) {
                 return null;
             }
             pathSearches++;
@@ -309,7 +314,11 @@ class DungeonHeartAttackTest {
             int dx = Math.abs(to.x - HEART_TILE.x);
             int dy = Math.abs(to.y - HEART_TILE.y);
             boolean onHeart = dx <= 1 && dy <= 1 && !(cornersWalkable && dx + dy == 2);
-            return onHeart || walledOff ? null : new DefaultGraphPath<>();
+            boolean reachable = !onHeart && !walledOff;
+            if ("isReachable".equals(name)) {
+                return reachable;
+            }
+            return reachable ? new DefaultGraphPath<>() : null;
         });
         IMapData mapData = stub(IMapData.class, (name, args) -> "getTile".equals(name) && args.length == 1
                 ? stub(IMapTileController.class, (method, params) -> args[0]) : null);
