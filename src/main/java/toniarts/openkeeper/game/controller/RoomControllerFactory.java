@@ -69,7 +69,7 @@ public final class RoomControllerFactory {
             case _3_BY_3 -> {
                 return new ThreeByThreeController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
             }
-            case HERO_GATE -> {
+            case HERO_GATE, HERO_GATE_3_BY_1 -> {
                 return new HeroGateController(entity, entityData, kwdFile, roomInstance, objectsController);
             }
             case HERO_GATE_FRONT_END -> {

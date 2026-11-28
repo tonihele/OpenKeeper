@@ -23,9 +23,10 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
- * The in-game hero gate (Level20). Unlike the front end version, it has no gem
- * holder, banners or candles. The room data lists no objects for it, and the
- * portal gem on it is placed by the level itself.
+ * The in-game hero gates, the final one (Level20) and the 3 x 1 one. Unlike
+ * the front end version, they have no gem holder, banners or candles. The room
+ * data lists no objects for them, and the portal gem on the final gate is
+ * placed by the level itself.
  */
 public final class HeroGateController extends NormalRoomController {
 
