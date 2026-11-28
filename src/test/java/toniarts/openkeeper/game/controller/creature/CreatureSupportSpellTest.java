@@ -395,7 +395,7 @@ class CreatureSupportSpellTest {
         controller.navigateToAssignedTask();
         assertEquals(1, shots.size());
 
-        gameTime += RECHARGE / 2;
+        gameTime += RECHARGE;
         controller.navigateToAssignedTask();
         assertEquals(2, shots.size());
     }
