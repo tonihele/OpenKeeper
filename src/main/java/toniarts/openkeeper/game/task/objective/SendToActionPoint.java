@@ -84,7 +84,7 @@ public final class SendToActionPoint extends GoToTask {
             if (!tile.equals(start) && isSolid(mapController, tile)) {
                 continue;
             }
-            if (navigationService.findPath(start, tile, creature) != null) {
+            if (navigationService.isReachable(start, tile, creature)) {
                 return tile;
             }
         }
@@ -143,7 +143,7 @@ public final class SendToActionPoint extends GoToTask {
             int[] offset = SIDE_NEIGHBOURS[(start + i) % SIDE_NEIGHBOURS.length];
             Point neighbour = new Point(spot.x + offset[0], spot.y + offset[1]);
             if (mapController.getMapData().getTile(neighbour) != null && !isSolid(mapController, neighbour)
-                    && navigationService.findPath(spot, neighbour, creature) != null) {
+                    && navigationService.isReachable(spot, neighbour, creature)) {
                 spot = neighbour;
                 spotPosition = WorldUtils.pointToVector2f(neighbour).addLocal((Utils.getRandom().nextInt(3) - 1) * WorldUtils.TILE_WIDTH / 3,
                         (Utils.getRandom().nextInt(3) - 1) * WorldUtils.TILE_WIDTH / 3);

@@ -71,7 +71,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
      * A creature pushed away from a taken end point stops this close to it.
      * DK II plans the walk again when it makes no headway (0x4D3C40).
      */
-    private static final float END_TOLERANCE = 0x6148 / 65536f;
+    public static final float END_TOLERANCE = 0x6148 / 65536f;
 
     /**
      * The radius of what has no creature width
@@ -479,11 +479,16 @@ public final class MovementSystem implements IGameLogicUpdatable {
         for (Entity entity : changedEntities) {
 
             // Dirty trick to try to see if the navigation has changed. A walk
-            // to the tile the creature only turned on needs path following too
+            // to the tile the creature only turned on needs path following too,
+            // and so does a new walk to the same tile after the last one ended:
+            // the logic tick asks for it before we see the old one removed
             Navigation navigation = entity.get(Navigation.class);
             ISteerableEntity steerableEntity = steerableEntitiesByEntityId.get(entity.getId());
+            // A walk with nothing to do was dropped without any steering
+            EntitySteeringBehavior steeringBehavior = steeringBehaviorsBySteerableEntity.get(steerableEntity);
+            FollowWaypoints pathFollowing = steeringBehavior != null ? steeringBehavior.getPathFollowing() : null;
             if (!navigation.target.equals(targetPointsByEntityId.get(entity.getId()))
-                    || navigation.navigationPath.size() > 1 && steeringBehaviorsBySteerableEntity.get(steerableEntity).getPathFollowing() == null) {
+                    || navigation.navigationPath.size() > 1 && (pathFollowing == null || pathFollowing.isFinished())) {
                 deleteEntity(entity);
                 addEntity(entity);
                 continue;

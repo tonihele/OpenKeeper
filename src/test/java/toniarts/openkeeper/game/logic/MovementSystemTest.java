@@ -171,6 +171,56 @@ class MovementSystemTest {
     }
 
     /**
+     * A creature that stopped short of the spot its task wants it on walks to
+     * it again. The logic tick that asks for the new walk to the same tile
+     * hasn't yet seen that the last walk ended
+     */
+    @Test
+    void aNewWalkToTheSameTileAfterTheLastOneEndedIsWalked() {
+        EntityData data = new DefaultEntityData();
+        EntityId id = data.createEntity();
+        data.setComponents(id, new Position(0, new Vector3f(3, 0, 3)), new Mobile(false, false, false, 1),
+                new Navigation(new Point(3, 3), null, List.of(new Vector2(3, 3), new Vector2(3.25f, 3))));
+        MovementSystem movement = new MovementSystem(data, map(false, false));
+        try {
+            for (int tick = 0; tick < 20 && data.getComponent(id, Navigation.class) != null; tick++) {
+                movement.processTick(.25f);
+            }
+            assertNull(data.getComponent(id, Navigation.class), "the first walk never finished");
+
+            data.setComponent(id, new Navigation(new Point(3, 3), null, List.of(new Vector2(3.25f, 3), new Vector2(2.75f, 3))));
+            for (int tick = 0; tick < 20 && data.getComponent(id, Navigation.class) != null; tick++) {
+                movement.processTick(.25f);
+            }
+            assertEquals(2.75f, data.getComponent(id, Position.class).position.x, .1f, "the new walk wasn't walked");
+        } finally {
+            movement.stop();
+        }
+    }
+
+    /**
+     * A walk with nothing to do is dropped without any steering. A new walk
+     * asked for before the movement has seen the old one removed is walked
+     */
+    @Test
+    void aNewWalkAfterOneWithNothingToDoIsWalked() {
+        EntityData data = new DefaultEntityData();
+        EntityId id = data.createEntity();
+        data.setComponents(id, new Position(0, new Vector3f(3, 0, 3)), new Mobile(false, false, false, 1),
+                new Navigation(new Point(3, 3), null, List.of(new Vector2(3, 3))));
+        MovementSystem movement = new MovementSystem(data, map(false, false));
+        try {
+            data.setComponent(id, new Navigation(new Point(3, 3), null, List.of(new Vector2(3, 3), new Vector2(3.5f, 3))));
+            for (int tick = 0; tick < 20 && data.getComponent(id, Navigation.class) != null; tick++) {
+                movement.processTick(.25f);
+            }
+            assertEquals(3.5f, data.getComponent(id, Position.class).position.x, .1f, "the new walk wasn't walked");
+        } finally {
+            movement.stop();
+        }
+    }
+
+    /**
      * A creature standing on 15,23 turns on the spot to face 16,25. Facing is
      * (sin r, cos r) on x, z for the Position rotation r.
      */

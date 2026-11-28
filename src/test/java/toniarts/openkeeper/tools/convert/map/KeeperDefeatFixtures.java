@@ -63,7 +63,7 @@ public final class KeeperDefeatFixtures {
     }
 
     /**
-     * The level settings
+     * The level settings, at 4 turns a second
      *
      * @param flags the level flags
      * @return the level
@@ -76,6 +76,7 @@ public final class KeeperDefeatFixtures {
 
         GameLevel level = new GameLevel();
         level.setLvlFlags(set);
+        level.setTicksPerSec(4);
         return level;
     }
 

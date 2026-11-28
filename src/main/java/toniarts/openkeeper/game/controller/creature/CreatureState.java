@@ -390,6 +390,11 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // Our own creatures come first
+            if (entity.castSupportSpell()) {
+                return;
+            }
+
             // If we have reached the target, stop and fight!
             if (entity.isWithinAttackDistance(attackTarget.getEntityId())) {
 
@@ -769,14 +774,17 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
-            if (entity.isStateTimeExceeded()) {
+
+            // The swing lasts until both the animation is over and the hit has landed
+            entity.releaseMeleeHit();
+            if (entity.isStateTimeExceeded() && !entity.hasPendingMeleeHit()) {
                 entity.getStateMachine().changeState(FIGHT);
             }
         }
 
         @Override
         public void exit(ICreatureController entity) {
-
+            entity.cancelMeleeHit();
         }
 
         @Override
