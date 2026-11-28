@@ -17,6 +17,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.data.CampaignLevel;
+import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.event.GameEventType;
@@ -562,10 +563,10 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
-    public void endGame(boolean win, short playerId) {
+    public void endGame(GameResult result, short playerId) {
         if (playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {
-                listener.onGameEnded(win);
+                listener.onGameEnded(result);
             }
         }
     }

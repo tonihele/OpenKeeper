@@ -61,7 +61,8 @@ class CapturedGoldRoomTest {
     void capturedGoldIsNotMined() {
         keeperGold.onCaptured(room(true, 27000, 3000));
 
-        assertEquals(4270, keeper.getGoldMined());
+        // Only gold dug out of the ground counts as mined, not gold added to the keeper or brought by a room
+        assertEquals(0, keeper.getGoldMined());
     }
 
     @Test

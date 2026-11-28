@@ -195,6 +195,7 @@ class EnemyBreachTileWorkTest {
             ILevelInfo level = proxy(ILevelInfo.class, (method, args) -> switch (method) {
                 case "getLevelData" -> kwd;
                 case "getPlayers" -> keepers;
+                case "getPlayer" -> keepers.get(args[0]);
                 case "getFlag" -> flags[((Number) args[0]).intValue()];
                 case "setFlag" -> { flags[((Number) args[0]).intValue()] = (int) args[1]; yield null; }
                 default -> throw new UnsupportedOperationException(method);

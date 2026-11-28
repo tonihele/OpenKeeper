@@ -43,7 +43,6 @@ public final class PlayerGoldControl implements RoomListener {
         }
 
         keeper.setGold(Math.min(keeper.getGold() + value, goldMax));
-        keeper.setGoldMined(keeper.getGoldMined() + value); // Nope, need to get this some other way
         updateListeners();
     }
 

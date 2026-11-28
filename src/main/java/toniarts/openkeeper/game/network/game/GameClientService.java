@@ -29,6 +29,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.client.EntityDataClientService;
 import toniarts.openkeeper.game.event.GameEvent;
+import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.event.GameEventType;
@@ -380,9 +381,9 @@ public final class GameClientService extends AbstractClientService
         }
 
         @Override
-        public void onGameEnded(boolean win) {
+        public void onGameEnded(GameResult result) {
             for (GameSessionListener l : listeners.getArray()) {
-                l.onGameEnded(win);
+                l.onGameEnded(result);
             }
         }
 

@@ -1050,6 +1050,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
+        playerControllers.get(playerId).getStatsControl().specialFound();
         gameEventService.emit(GameEventType.SPECIAL_ACTIVATED, entity, position.position);
 
         // Also frees the room storage slot, if the special was stored in a room

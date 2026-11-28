@@ -557,9 +557,8 @@ public class Variable {
         // TODO how save int or float values ???
         protected void setValue(int value) {
             float result = value;
-            if (this.variableId == MiscType.LEVEL_RATING) {
-                result = value >> 12; // FIXME Why ???
-            } else if (this.variableId == MiscType.BOULDER_DETERIORATION_DAMAGE_PERCENTAGE_PER_SECOND
+            if (this.variableId == MiscType.LEVEL_RATING
+                    || this.variableId == MiscType.BOULDER_DETERIORATION_DAMAGE_PERCENTAGE_PER_SECOND
                     || this.variableId == MiscType.BOULDER_SPEED_TILES_PER_SECOND
                     || this.variableId == MiscType.TRIGGER_TRAP_TRIGGER_SPEED_TILES_PER_SECOND
                     || this.variableId == MiscType.DEFAULT_TORCH_LIGHT_RADIUS_TILES

@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.controller.creature.CreatureController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -47,15 +48,18 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
 
     private final PlayerManufactureControl manufactureControl;
     private final IObjectsController objectsController;
+    private final PlayerStatsControl statsControl;
     private final int manufactureRounds = 6 + Utils.getRandom().nextInt(7);
     private Vector2f workPosition;
 
     public Manufacture(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room,
-            TaskManager taskManager, PlayerManufactureControl manufactureControl, IObjectsController objectsController) {
+            TaskManager taskManager, PlayerManufactureControl manufactureControl, IObjectsController objectsController,
+            PlayerStatsControl statsControl) {
         super(navigationService, mapController, p, playerId, room, taskManager);
 
         this.manufactureControl = manufactureControl;
         this.objectsController = objectsController;
+        this.statsControl = statsControl;
     }
 
     @Override
@@ -128,6 +132,9 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
         EntityId crate = objectsController.addRoomCrate(order.crateObjectId(), Player.NEUTRAL_PLAYER_ID, getTaskLocation().x, getTaskLocation().y,
                 order.type(), order.typeId());
         getRoomObjectControl().addItem(crate, null);
+
+        // DK II counts the item for the keeper either way (0x4F5240)
+        statsControl.itemManufactured();
     }
 
     @Override

@@ -43,6 +43,14 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     private int gold;
     private int goldMined;
+    private int enemyCreaturesKilled;
+    private int heroesDestroyed;
+    private int roomsCaptured;
+    private int roomsCapturedValue;
+    private int specialsFound;
+    private int itemsManufactured;
+    private int creaturesConverted;
+    private int ownCreaturesKilled;
     private int mana;
     private int manaGain;
     private int manaLoose;
@@ -98,6 +106,82 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     public void setGoldMined(int goldMined) {
         this.goldMined = goldMined;
+    }
+
+    public int getEnemyCreaturesKilled() {
+        return enemyCreaturesKilled;
+    }
+
+    public void setEnemyCreaturesKilled(int enemyCreaturesKilled) {
+        this.enemyCreaturesKilled = enemyCreaturesKilled;
+    }
+
+    public int getHeroesDestroyed() {
+        return heroesDestroyed;
+    }
+
+    public void setHeroesDestroyed(int heroesDestroyed) {
+        this.heroesDestroyed = heroesDestroyed;
+    }
+
+    public int getRoomsCaptured() {
+        return roomsCaptured;
+    }
+
+    public void setRoomsCaptured(int roomsCaptured) {
+        this.roomsCaptured = roomsCaptured;
+    }
+
+    /**
+     * Get the worth of the rooms the keeper has captured, a hundredth of
+     * their size times their cost per tile, bridges included (DKII.EXE
+     * 0x4E5650, CPlayer +0x152)
+     *
+     * @return the worth of the captured rooms
+     */
+    public int getRoomsCapturedValue() {
+        return roomsCapturedValue;
+    }
+
+    /**
+     * Set the worth of the rooms the keeper has captured
+     *
+     * @param roomsCapturedValue the worth of the captured rooms
+     */
+    public void setRoomsCapturedValue(int roomsCapturedValue) {
+        this.roomsCapturedValue = roomsCapturedValue;
+    }
+
+    public int getSpecialsFound() {
+        return specialsFound;
+    }
+
+    public void setSpecialsFound(int specialsFound) {
+        this.specialsFound = specialsFound;
+    }
+
+    public int getItemsManufactured() {
+        return itemsManufactured;
+    }
+
+    public void setItemsManufactured(int itemsManufactured) {
+        this.itemsManufactured = itemsManufactured;
+    }
+
+    public int getCreaturesConverted() {
+        return creaturesConverted;
+    }
+
+    public void setCreaturesConverted(int creaturesConverted) {
+        this.creaturesConverted = creaturesConverted;
+    }
+
+    public int getOwnCreaturesKilled() {
+        return ownCreaturesKilled;
+    }
+
+    public void setOwnCreaturesKilled(int ownCreaturesKilled) {
+        this.ownCreaturesKilled = ownCreaturesKilled;
     }
 
     public void setManaGain(int manaGain) {
@@ -339,6 +423,14 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         out.write(aiType, "aiType", null);
         out.write(gold, "gold", 0);
         out.write(goldMined, "goldMined", 0);
+        out.write(enemyCreaturesKilled, "enemyCreaturesKilled", 0);
+        out.write(heroesDestroyed, "heroesDestroyed", 0);
+        out.write(roomsCaptured, "roomsCaptured", 0);
+        out.write(roomsCapturedValue, "roomsCapturedValue", 0);
+        out.write(specialsFound, "specialsFound", 0);
+        out.write(itemsManufactured, "itemsManufactured", 0);
+        out.write(creaturesConverted, "creaturesConverted", 0);
+        out.write(ownCreaturesKilled, "ownCreaturesKilled", 0);
         out.write(mana, "mana", 0);
         out.write(manaGain, "manaGain", 0);
         out.write(manaLoose, "manaLoose", 0);
@@ -363,6 +455,14 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         aiType = in.readEnum("aiType", AIType.class, aiType);
         gold = in.readInt("gold", gold);
         goldMined = in.readInt("goldMined", goldMined);
+        enemyCreaturesKilled = in.readInt("enemyCreaturesKilled", enemyCreaturesKilled);
+        heroesDestroyed = in.readInt("heroesDestroyed", heroesDestroyed);
+        roomsCaptured = in.readInt("roomsCaptured", roomsCaptured);
+        roomsCapturedValue = in.readInt("roomsCapturedValue", roomsCapturedValue);
+        specialsFound = in.readInt("specialsFound", specialsFound);
+        itemsManufactured = in.readInt("itemsManufactured", itemsManufactured);
+        creaturesConverted = in.readInt("creaturesConverted", creaturesConverted);
+        ownCreaturesKilled = in.readInt("ownCreaturesKilled", ownCreaturesKilled);
         mana = in.readInt("mana", mana);
         manaGain = in.readInt("manaGain", manaGain);
         manaLoose = in.readInt("manaLoose", manaLoose);

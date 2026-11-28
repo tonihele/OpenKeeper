@@ -43,11 +43,14 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -106,6 +109,7 @@ class CreatureTorturingSystemTest {
             MISTRESS, CreatureFixtures.creature(MISTRESS, (short) 0, Creature.JobClass.FIGHTER, false),
             IMP, CreatureFixtures.creature(IMP, (short) 1092, Creature.JobClass.ARTISAN, true));
     private final List<Object> playerEvents = new ArrayList<>();
+    private final PlayerStatsControl stats = new PlayerStatsControl(new Keeper());
 
     /**
      * The sounds of the victims, with the tick they were sent on
@@ -241,6 +245,15 @@ class CreatureTorturingSystemTest {
 
         assertEquals(KEEPER_ID, converted.get(victim));
         assertEquals(List.of(victim), leftDevice);
+    }
+
+    @Test
+    void conversionCountsForTheTorturersKeeper() {
+        victim(HERO_ID, 2);
+
+        tick(3);
+
+        assertEquals(1, stats.getCreaturesConverted());
     }
 
     @Test
@@ -393,6 +406,7 @@ class CreatureTorturingSystemTest {
         assertTrue(converted.isEmpty());
         assertTrue(leftDevice.isEmpty());
         assertTrue(playerEvents.isEmpty());
+        assertEquals(0, stats.getCreaturesConverted());
     }
 
     private void torturedToDeath(short ownerId) {
@@ -430,6 +444,7 @@ class CreatureTorturingSystemTest {
 
         // The torture starts over, the health system lets the victim die
         assertTrue(converted.isEmpty());
+        assertEquals(0, stats.getCreaturesConverted());
         assertEquals(300, entityData.getComponent(victim, Damage.class).damage);
         assertTrue(entityData.getComponent(victim, CreatureTortured.class).timeTortured < 2);
     }
@@ -442,8 +457,12 @@ class CreatureTorturingSystemTest {
         Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = new EnumMap<>(Variable.MiscVariable.MiscType.class);
         gameSettings.put(Variable.MiscVariable.MiscType.TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED,
                 CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED, chanceOfDyingWhenConverted));
-        return new CreatureTorturingSystem(entityData, creaturesController(), mapController(), gameEventService,
-                gameSettings, 4, random);
+        return new CreatureTorturingSystem(entityData, creaturesController(), mapController(), gameEventService, gameSettings,
+                Map.of(KEEPER_ID, (IPlayerController) Proxy.newProxyInstance(IPlayerController.class.getClassLoader(),
+                        new Class<?>[]{IPlayerController.class}, (proxy, method, args) -> switch (method.getName()) {
+                            case "getStatsControl" -> stats;
+                            default -> throw new UnsupportedOperationException(method.getName());
+                        })), 4, random);
     }
 
     private void tick(int seconds) {

@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
@@ -80,6 +81,7 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
     private final EntityData entityData;
     private final ICreaturesController creaturesController;
     private final IMapController mapController;
+    private final Map<Short, IPlayerController> playerControllers;
     private final GameEventService gameEventService;
     private final int chanceOfDyingWhenConverted;
     private final EntitySet torturedEntities;
@@ -96,17 +98,19 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
      * @param mapController the map, for the chambers
      * @param gameEventService the game events
      * @param gameSettings the level variables
+     * @param playerControllers the players, for their statistics
      * @param ticksPerSecond the level's ticks per second
      */
     public CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapController mapController,
             GameEventService gameEventService, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            int ticksPerSecond) {
-        this(entityData, creaturesController, mapController, gameEventService, gameSettings, ticksPerSecond, new Random());
+            Map<Short, IPlayerController> playerControllers, int ticksPerSecond) {
+        this(entityData, creaturesController, mapController, gameEventService, gameSettings, playerControllers, ticksPerSecond, new Random());
     }
 
     CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapController mapController,
             GameEventService gameEventService, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            int ticksPerSecond, Random random) {
+            Map<Short, IPlayerController> playerControllers, int ticksPerSecond, Random random) {
+        this.playerControllers = playerControllers;
         this.random = random;
         tortureInterval = getTortureInterval(ticksPerSecond);
         this.entityData = entityData;
@@ -165,6 +169,7 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
                     entityData.removeComponent(entity.getId(), CreatureTortured.class);
                     leaveDevice(entity.getId());
                     creaturesController.createController(entity.getId()).convertCreature(playerId);
+                    playerControllers.get(playerId).getStatsControl().creatureConverted();
 
                     // The mentor tells both keepers, like DK II (CRoom_sub_4F2800)
                     gameEventService.emitToPlayer(GameEventType.TORTURE_CONVERTED_BY_ENEMY, owner.ownerId);

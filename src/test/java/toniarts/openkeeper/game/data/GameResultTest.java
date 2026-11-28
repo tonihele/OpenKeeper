@@ -17,12 +17,15 @@
 package toniarts.openkeeper.game.data;
 
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.data.GameResult.ResultType;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The debriefing tells a won level from a lost one by the game result
+ * The debriefing tells a won level from a lost one by the game result, and the Evil Rating and the
+ * level rating of a level are calculated from its statistics
  */
 class GameResultTest {
 
@@ -45,5 +48,139 @@ class GameResultTest {
     @Test
     void resultWithoutOutcomeIsNoWin() {
         assertFalse(new GameResult().isLevelWon());
+    }
+
+    @Test
+    void evilRatingIsZeroWithoutStatistics() {
+        assertEquals(0, new GameResult().calculateEvilRating());
+    }
+
+    @Test
+    void evilRatingWeighsEachStatistic() {
+        assertEquals(1000, rating(ResultType.ENEMY_KEEPERS_VANQUISHED, 1));
+        assertEquals(40, rating(ResultType.ENEMY_CREATURES_KILLED, 1));
+        assertEquals(50, rating(ResultType.HEROES_DESTROYED, 1));
+        assertEquals(5, rating(ResultType.ROOMS_CAPTURED, 1));
+        assertEquals(5, rating(ResultType.LAND_OWNED, 1));
+        assertEquals(1, rating(ResultType.GOLD_MINED, 1));
+        assertEquals(2, rating(ResultType.MANA_STORED, 1));
+        assertEquals(5, rating(ResultType.ITEMS_MANUFACTURED, 1));
+        assertEquals(20, rating(ResultType.CREATURES_COMMANDED, 1));
+        assertEquals(40, rating(ResultType.CREATURES_CONVERTED, 1));
+        assertEquals(1, rating(ResultType.ROOMS_CAPTURED_VALUE, 1));
+    }
+
+    @Test
+    void evilRatingCountsTrainingWithTwoDecimals() {
+        assertEquals(100, rating(ResultType.CREATURE_TRAINING, 2f));
+        assertEquals(125, rating(ResultType.CREATURE_TRAINING, 2.5f));
+
+        // 3.333... levels are 3 levels and 33 hundredths
+        assertEquals(166, rating(ResultType.CREATURE_TRAINING, 10f / 3));
+    }
+
+    @Test
+    void evilRatingIncludesItemsAndConvertedCreatures() {
+        GameResult result = new GameResult();
+        result.setData(ResultType.ITEMS_MANUFACTURED, 3);
+        result.setData(ResultType.CREATURES_CONVERTED, 2);
+
+        assertEquals(5 * 3 + 40 * 2, result.calculateEvilRating());
+    }
+
+    @Test
+    void evilRatingIgnoresWinAndTime() {
+        GameResult result = new GameResult();
+        result.setData(ResultType.LEVEL_WON, true);
+        result.setData(ResultType.TIME_TAKEN, 1234.5);
+        result.setData(ResultType.GOLD_MINED, 3000);
+        result.setData(ResultType.LAND_OWNED, 200);
+        result.setData(ResultType.CREATURES_COMMANDED, 12);
+
+        assertEquals(3000 + 5 * 200 + 20 * 12, result.calculateEvilRating());
+    }
+
+    @Test
+    void levelRatingWithoutStatistics() {
+
+        // 50, -1 for no training, -10 each for no kills, creatures, rooms, items and conversions,
+        // +10 for no creatures lost and +10 for no time taken
+        assertEquals(19, new GameResult().calculateLevelRating(1, 60, 4));
+    }
+
+    @Test
+    void levelRatingWeighsEachStatistic() {
+        GameResult result = goodGame();
+
+        // 50 + 3 training - 5 kills - 6 creatures - 6 rooms - 6 items - 6 conversions + 9 lost + 10 won
+        assertEquals(43, result.calculateLevelRating(1, 60, 4));
+    }
+
+    @Test
+    void levelRatingIsMultipliedAndCapped() {
+        assertEquals(86, goodGame().calculateLevelRating(2, 60, 4));
+
+        // Level 1's multiplier is 6501 / 4096: 43 * 1.587 = 68.2
+        assertEquals(68, goodGame().calculateLevelRating(6501 / 4096f, 60, 4));
+
+        GameResult quickGame = goodGame(0);
+        assertEquals(100, quickGame.calculateLevelRating(2, 60, 4));
+    }
+
+    @Test
+    void levelRatingCountsEnemyKeepersVanquished() {
+        assertEquals(0, keepersBonus(0));
+        assertEquals(6, keepersBonus(1));
+        assertEquals(8, keepersBonus(2));
+        assertEquals(9, keepersBonus(3));
+        assertEquals(10, keepersBonus(4));
+
+        // DK II's table stops at 4 keepers
+        assertEquals(0, keepersBonus(5));
+    }
+
+    @Test
+    void levelRatingTimeBonus() {
+
+        // The time counts as game ticks times ticks per second, 60 minutes on average:
+        // full bonus up to 1200, none from 7200
+        assertEquals(10, timeBonus(75));
+        assertEquals(8, timeBonus(150));
+        assertEquals(1, timeBonus(449));
+        assertEquals(0, timeBonus(450));
+    }
+
+    private static int timeBonus(double seconds) {
+        return goodGame(seconds).calculateLevelRating(1, 60, 4) - goodGame().calculateLevelRating(1, 60, 4);
+    }
+
+    private static int keepersBonus(int keepers) {
+        GameResult result = goodGame();
+        result.setData(ResultType.ENEMY_KEEPERS_VANQUISHED, keepers);
+        return result.calculateLevelRating(1, 60, 4) - goodGame().calculateLevelRating(1, 60, 4);
+    }
+
+    private static GameResult goodGame() {
+        return goodGame(1800);
+    }
+
+    private static GameResult goodGame(double seconds) {
+        GameResult result = new GameResult();
+        result.setData(ResultType.LEVEL_WON, true);
+        result.setData(ResultType.TIME_TAKEN, seconds);
+        result.setData(ResultType.ENEMY_CREATURES_KILLED, 10);
+        result.setData(ResultType.CREATURES_COMMANDED, 5);
+        result.setData(ResultType.ROOMS_CAPTURED, 2);
+        result.setData(ResultType.ITEMS_MANUFACTURED, 3);
+        result.setData(ResultType.CREATURES_CONVERTED, 2);
+        result.setData(ResultType.OWN_CREATURES_KILLED, 1);
+        result.setData(ResultType.CREATURE_TRAINING, 4.5f);
+        return result;
+    }
+
+    private static int rating(ResultType type, Number value) {
+        GameResult result = new GameResult();
+        result.setData(type, value);
+        return result.calculateEvilRating();
     }
 }
