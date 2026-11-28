@@ -56,7 +56,6 @@ class RoomCaptureAnnouncementTest {
                     case "getMap" -> map;
                     case "getGameLevel" -> CreatureSleepFixtures.level(1);
                     case "getTerrain" -> (short) args[0] == 1 ? floor : roomTerrain;
-                    case "getGameLevel" -> CreatureSleepFixtures.level(1);
                     case "getThings" -> List.of();
                     default -> null;
                 });
