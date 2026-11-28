@@ -188,6 +188,7 @@ class TrainingSpotTest {
         });
         INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
             case "findPath" -> new DefaultGraphPath<>();
+            case "isReachable" -> true;
             default -> null;
         });
         Keeper keeper = new Keeper(false, PLAYER_ID);

@@ -1424,7 +1424,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                     || !TileWork.canDamageTile(terrain, tile.getOwnerId(), keeperAi.playerId)) {
 
                 // On open land the path is done as soon as a creature can walk the rest
-                if (navigationService.findPath(keeperAi.target, keeperAi.current, getWalker(keeperAi.playerId)) != null) {
+                if (navigationService.isReachable(keeperAi.target, keeperAi.current, getWalker(keeperAi.playerId))) {
                     keeperAi.current = keeperAi.target;
                     finishPath(keeperAi, true, "there is a way to walk from here");
                     return actions;
