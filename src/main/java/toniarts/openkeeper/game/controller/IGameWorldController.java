@@ -148,6 +148,14 @@ public interface IGameWorldController {
     public void interact(EntityId entity, short playerId);
 
     /**
+     * Limits how many times each keeper may slap from now on, the
+     * SET_SLAPS_LIMIT script action
+     *
+     * @param limit the number of slaps, 0 for no limit
+     */
+    public void setSlapsLimit(int limit);
+
+    /**
      * Pick up the given entity
      *
      * @param entity the entity to pick up

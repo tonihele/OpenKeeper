@@ -27,7 +27,11 @@ import toniarts.openkeeper.tools.convert.map.Creature;
  */
 public final class PlayerStatsControl {
 
+    private static final int NO_SLAPS_LIMIT = 0;
+
     private int payDays;
+    private int slapsLimit = NO_SLAPS_LIMIT;
+    private int slapsSinceLimit;
     private final Map<Creature, Integer> slapsMap = new HashMap<>();
     private final Map<Creature, Integer> pickUpsMap = new HashMap<>();
     private final Map<Creature, Integer> dropsMap = new HashMap<>();
@@ -58,6 +62,34 @@ public final class PlayerStatsControl {
 
     public void creatureSlapped(Creature creature) {
         increaseMapCount(creature, slapsMap);
+    }
+
+    /**
+     * Sets how many times the player may slap from now on
+     *
+     * @param limit the number of slaps, 0 for no limit
+     */
+    public void setSlapsLimit(int limit) {
+
+        // An unsigned limit too big for an int comes in negative, take it as no limit
+        slapsLimit = Math.max(NO_SLAPS_LIMIT, limit);
+        slapsSinceLimit = 0;
+    }
+
+    /**
+     * Uses one slap of the player, if the limit allows it
+     *
+     * @return whether the player may slap
+     */
+    public boolean tryUseSlap() {
+        if (slapsLimit == NO_SLAPS_LIMIT) {
+            return true;
+        }
+        if (slapsSinceLimit >= slapsLimit) {
+            return false;
+        }
+        slapsSinceLimit++;
+        return true;
     }
 
     private void increaseMapCount(Creature creature, Map<Creature, Integer> map) {
