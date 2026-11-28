@@ -226,7 +226,10 @@ public abstract class KeeperHandState extends AbstractAppState {
         KeeperHandItem handItem = new KeeperHandItem();
         handItem.index = index;
         handItem.item = item;
-        handItem.picture = getIcon(item.getInHandIcon());
+
+        // Some things that can be picked up have no icon, like the Pet Dungeon's level indicator
+        ArtResource icon = item.getInHandIcon();
+        handItem.picture = icon != null ? getIcon(icon) : new Node("No icon");
         queue.add(handItem);
 
         return handItem;
@@ -415,7 +418,7 @@ public abstract class KeeperHandState extends AbstractAppState {
 
         private int index;
         private IEntityViewControl item;
-        private Picture picture;
+        private Spatial picture;
 
         @Override
         public int compareTo(KeeperHandItem o) {

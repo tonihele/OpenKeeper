@@ -124,6 +124,14 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     void levelUpCreatures(short playerId, int level);
 
     /**
+     * Sets the level of the Hero Toolbox creatures ("I am a tool") that are
+     * still standing in the toolbox, on the Hero Lair
+     *
+     * @param level the level to set to the tools
+     */
+    void levelUpTools(int level);
+
+    /**
      * Increases the experience level of all of the player's creatures by the given amount, capped at the
      * maximum creature level
      *
@@ -140,6 +148,13 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
      * @param creatureId the creature to turn into
      */
     public void turnCreatureIntoAnother(EntityId entityId, short playerId, short creatureId);
+
+    /**
+     * The creature leaves the dungeon through a portal and is gone for good
+     *
+     * @param entityId the leaving creature
+     */
+    void leaveDungeon(EntityId entityId);
 
     /**
      * Gets the creature currently possessed by the given player

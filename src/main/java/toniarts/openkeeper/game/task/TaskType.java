@@ -46,7 +46,10 @@ public enum TaskType {
     PRAY,
     GUARD,
     GAMBLE,
+    SULK,
+    LEAVE,
     COLLECT_WINNINGS,
+    REBEL,
     FETCH_CORPSE,
     CARRY_CORPSE_TO_GRAVEYARD,
     FETCH_TRAP_CRATE,
@@ -54,5 +57,6 @@ public enum TaskType {
     FETCH_DOOR_CRATE,
     DELIVER_DOOR_CRATE,
     TORTURE,
-    COLLECT_PAY
+    COLLECT_PAY,
+    EXPLORE
 }
