@@ -437,7 +437,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                     if (keeperAi.task == KeeperAi.Task.PLAN && nothingPlanned != null
                             && keeperAi.taskTicks % (NOTHING_TO_DO_LOG_SECONDS * ticksPerSecond) == 1) {
                         log(keeperAi, "nothing to do", null, (allRoomsPlaced ? "no room left to build, " : "") + nothingPlanned
-                                + ", " + playerController.getKeeper().getGold() + " gold, "
+                                + ", " + playerController.getGoldControl().getGold() + " gold, "
                                 + (keeperAi.callToArms ? "its Call to Arms is up"
                                         : keeperAi.cannotAttackTicks > 0 ? keeperAi.cannotAttackTicks / ticksPerSecond + " s before it may attack again"
                                         : "not ready to invade"));
@@ -639,7 +639,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     }
 
     private void mineGoldIfLow(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
-        if (playerController.getKeeper().getGold() < ai.getMineGoldUntilGoldHeldIsGreaterThan()
+        if (playerController.getGoldControl().getGold() < ai.getMineGoldUntilGoldHeldIsGreaterThan()
                 && !mineGold(keeperAi, playerController) && getTaggedGold(keeperAi.playerId).isEmpty()) {
 
             // No seam it knows of, it makes its own gold by the Dungeon Heart when it has the spell
@@ -651,7 +651,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 int mana = keeper.getMana();
                 gameWorldController.castKeeperSpell(SPELL_CREATE_GOLD, null, tile, WorldUtils.pointToVector2f(tile), keeper.getId());
                 if (keeper.getMana() < mana) {
-                    log(keeperAi, "cast Create Gold", tile, "low on gold with " + keeper.getGold() + " and no seam to mine");
+                    log(keeperAi, "cast Create Gold", tile, "low on gold with " + playerController.getGoldControl().getGold() + " and no seam to mine");
                 }
             }
         }
@@ -684,7 +684,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 keeperAi.goldAttemptLooked = false;
             }
             keeperAi.target = gold;
-            setTask(keeperAi, KeeperAi.Task.GO_TO_GOLD, "low on gold with " + playerController.getKeeper().getGold()
+            setTask(keeperAi, KeeperAi.Task.GO_TO_GOLD, "low on gold with " + playerController.getGoldControl().getGold()
                     + ", the nearest seam of its last look, the next look has "
                     + (keeperAi.goldDeposits[0] != null ? keeperAi.goldDeposits[0].x + "," + keeperAi.goldDeposits[0].y : "none"));
             keeperAi.goldTiles = 0;
@@ -896,7 +896,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         }
 
         // The room at its default size has to be affordable, otherwise mine gold first
-        if (room != null && room.getCost() * ai.getDefaultSize() > playerController.getKeeper().getGold()) {
+        if (room != null && room.getCost() * ai.getDefaultSize() > playerController.getGoldControl().getGold()) {
             mineGold(keeperAi, playerController);
             return "room " + roomId + " costs more than its gold and there is no gold to mine";
         }
@@ -1561,7 +1561,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 }
 
                 // DK II's gold check is inside the build call (0x4FD2B0, 0x4C5B40): short of gold the tile isn't built and is tried again next tick
-                if (playerController.getKeeper().getGold() < kwdFile.getRoomById(keeperAi.roomId).getCost()) {
+                if (playerController.getGoldControl().getGold() < kwdFile.getRoomById(keeperAi.roomId).getCost()) {
                     return actions;
                 }
 
