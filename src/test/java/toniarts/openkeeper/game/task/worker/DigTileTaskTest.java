@@ -96,6 +96,23 @@ class DigTileTaskTest {
     }
 
     @Test
+    void workerTurnsToTheTileAndSwingsOnTheTickAfter() {
+
+        // DK II's worker turns to the tile on the tick after its walk (0x4654F0), its dig state starts the swing on
+        // the tick after that (0x4655D0), and the swing's hit lands on the next update (0x496AA0, 0x496E00)
+        Creature imp = CreatureSleepFixtures.digger("Imp", 15, 20, 0, 8);
+        int damage = TileWork.perSwing(-130 / TICKS_PER_SECOND, FRESH);
+
+        Dig dig = dig(imp, 1000, damage, 200, TICKS_PER_SECOND);
+
+        assertEquals(List.of(3, 6, 7, 8), dig.hits().subList(0, 4));
+        assertEquals(43, dig.hits().get(38));
+        assertEquals(46, dig.leaves());
+        assertEquals(new Dig(List.of(3), 7), dig(imp, DIRT_HEALTH, TileWork.perSwing(-5000 / TICKS_PER_SECOND, FRESH), 40,
+                TICKS_PER_SECOND));
+    }
+
+    @Test
     void diggerStaysUntilItsSwingIsOver() {
         Creature dwarf = CreatureSleepFixtures.digger("Dwarf", 30, 30, 9, 10);
         Digging digging = new Digging(DIRT_HEALTH, DIRT_HEALTH);
@@ -129,7 +146,7 @@ class DigTileTaskTest {
             Digging digging = new Digging(DIRT_HEALTH, 1);
             EntityData entityData = new DefaultEntityData();
             IEntityPositionLookup lookup = goldPile(entityData, pile, new Point(1, 2)::equals);
-            DigTileTask task = new DigTileTask(null, digging.mapController(), new Point(1, 1), PLAYER, entityData, lookup, 2000);
+            DigTileTask task = new DigTileTask(null, digging.mapController(), new Point(1, 1), PLAYER, entityData, lookup, 2000, 0);
             List<String> calls = new ArrayList<>();
             ICreatureController digger = (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(),
                     new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
@@ -171,7 +188,7 @@ class DigTileTaskTest {
         EntityData entityData = new DefaultEntityData();
         AtomicBoolean piledUp = new AtomicBoolean();
         DigTileTask task = new DigTileTask(null, digging.mapController(), new Point(1, 1), PLAYER, entityData,
-                goldPile(entityData, 6001, p -> piledUp.get()), 2000);
+                goldPile(entityData, 6001, p -> piledUp.get()), 2000, 0);
         ICreatureController digger = creature(imp);
         task.assign(digger, false);
         task.executeTask(digger, 0);
@@ -192,8 +209,12 @@ class DigTileTaskTest {
     }
 
     private static Dig dig(Creature creature, int health, int damage, int maxTicks) {
+        return dig(creature, health, damage, maxTicks, 0);
+    }
+
+    private static Dig dig(Creature creature, int health, int damage, int maxTicks, int ticksPerSecond) {
         Digging digging = new Digging(health, damage);
-        DigTileTask task = new DigTileTask(null, digging.mapController(), new Point(1, 1), PLAYER);
+        DigTileTask task = new DigTileTask(null, digging.mapController(), new Point(1, 1), PLAYER, null, null, 0, ticksPerSecond);
         ICreatureController digger = creature(creature);
         task.assign(digger, false);
         for (int tick = 0; tick < maxTicks; tick++) {

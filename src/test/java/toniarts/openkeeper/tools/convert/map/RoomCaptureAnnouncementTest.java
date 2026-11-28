@@ -54,7 +54,6 @@ class RoomCaptureAnnouncementTest {
                 }
                 var data = proxy(IKwdFile.class, (name, args) -> switch (name) {
                     case "getMap" -> map;
-                    case "getGameLevel" -> CreatureSleepFixtures.level(1);
                     case "getTerrain" -> (short) args[0] == 1 ? floor : roomTerrain;
                     case "getThings" -> List.of();
                     default -> null;

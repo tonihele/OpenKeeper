@@ -50,7 +50,6 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
-import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.TrapDeliveries;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -787,7 +786,8 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // Dig
         if (mapController.isSelected(mapTile, playerId)) {
             addTask(playerId, new DigTileTask(navigationService, mapController, tile, playerId, entityData, entityPositionLookup,
-                    (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue()));
+                    (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue(),
+                    levelInfo.getLevelData().getGameLevel().getTicksPerSec()));
         } // Claim wall
         else if (mapController.isClaimableWall(mapTile, terrain, playerId)) {
 
