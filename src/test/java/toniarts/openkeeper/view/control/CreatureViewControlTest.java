@@ -123,7 +123,7 @@ class CreatureViewControlTest {
         DefaultEntityData entityData = new DefaultEntityData();
         EntityId creature = entityData.createEntity();
         Creature data = CreatureFixtures.creatureWithAnimation(animation, 48, 20, startDistance);
-        return new CreatureViewControl(creature, entityData, data, animation, null, null);
+        return new CreatureViewControl(creature, entityData, data, animation, null, null, null);
     }
 
 }
