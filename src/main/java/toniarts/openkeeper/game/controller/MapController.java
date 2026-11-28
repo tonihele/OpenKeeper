@@ -23,6 +23,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.event.EventBus;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
+import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.control.Container;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.map.FlashTileControl;
@@ -181,6 +182,13 @@ public final class MapController extends Container implements IMapController {
         IRoomController roomController = RoomControllerFactory.constructRoom(entityData, kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
         roomController.construct();
         roomControllers.put(roomController.getEntityId(), roomController);
+
+        // A room built, grown or cut is a new room, it got its size now
+        if (gameTimer != null) {
+            RoomComponent roomComponent = new RoomComponent(entityData.getComponent(roomController.getEntityId(), RoomComponent.class));
+            roomComponent.sizeTime = gameTimer.getGameTime();
+            entityData.setComponent(roomController.getEntityId(), roomComponent);
+        }
 
         // Set the room instance to the tiles
         for (Point roomCoordinate : roomInstance.getCoordinates()) {

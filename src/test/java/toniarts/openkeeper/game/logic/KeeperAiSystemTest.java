@@ -66,6 +66,7 @@ import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.TrapComponent;
@@ -277,6 +278,7 @@ class KeeperAiSystemTest {
     private final Map<EntityId, Point> dropped = new HashMap<>();
     private final Map<EntityId, EntityId> droppedOn = new HashMap<>();
     private final Map<Point, List<EntityId>> hatcheryFood = new HashMap<>();
+    private int roomCapacity = 2;
     private final List<Point> dropAttempts = new ArrayList<>();
     private boolean rejectPreferredHeartDrop;
     private Room dungeonHeartTileRoom;
@@ -2696,6 +2698,7 @@ class KeeperAiSystemTest {
         KeeperAiSystem system = createSystem(withMoreSpace(ai(0, 0, 9, 1, 50, 0, List.of(LAIR)), AI.RoomExpandPolicy.EXPAND_EXISTING, false), 1000);
         roomControl.setTypeAvailable(rooms.get(LAIR), true, true);
         roomControl.onBuild(createRoom(LAIR, new Point(9, 2), new Point(11, 4)));
+        gameTime = 5;
         EventBus.publish(ServerEvents.ROOM_TOO_SMALL, new RoomWanted(PLAYER_ID, ObjectType.LAIR));
 
         system.processTick(0.25f);
@@ -2719,12 +2722,29 @@ class KeeperAiSystemTest {
     }
 
     @Test
-    void growsAFullTrainingRoomToo() {
+    void growsAFullTrainingRoomOnceItWorksAndHasHeldItsSizeForFourSeconds() {
         KeeperAiSystem system = createSystem(withMoreSpace(ai(0, 0, 9, 1, 50, 0, List.of(TRAINING_ROOM)), AI.RoomExpandPolicy.EXPAND_EXISTING, false), 1000);
         roomControl.setTypeAvailable(rooms.get(TRAINING_ROOM), true, true);
         roomControl.onBuild(createRoom(TRAINING_ROOM, new Point(9, 2), new Point(11, 4)));
-        EventBus.publish(ServerEvents.ROOM_TOO_SMALL, new RoomWanted(PLAYER_ID, ObjectType.TRAINEE));
 
+        // Just built, it is not too small yet (DK II's CRoom+0x9F)
+        gameTime = 4;
+        EventBus.publish(ServerEvents.ROOM_TOO_SMALL, new RoomWanted(PLAYER_ID, ObjectType.TRAINEE));
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
+        assertTrue(Arrays.stream(getKeeperAi().messages).noneMatch(message -> message == KeeperAi.Message.ROOM_TOO_SMALL));
+
+        // Without a Training Dummy it doesn't work, and it is full but not too small (+0xA3)
+        gameTime = 10;
+        roomCapacity = 0;
+        EventBus.publish(ServerEvents.ROOM_TOO_SMALL, new RoomWanted(PLAYER_ID, ObjectType.TRAINEE));
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
+
+        roomCapacity = 2;
+        EventBus.publish(ServerEvents.ROOM_TOO_SMALL, new RoomWanted(PLAYER_ID, ObjectType.TRAINEE));
         system.processTick(0.25f);
 
         assertEquals(KeeperAi.Task.TAG_ROOM, getKeeperAi().task);
@@ -2734,6 +2754,7 @@ class KeeperAiSystemTest {
     @Test
     void buildsAnotherRoomOrNoneForAFullRoomByItsSettings() {
         IRoomController lair = createRoom(LAIR, new Point(9, 2), new Point(11, 4));
+        gameTime = 5;
         KeeperAiSystem system = createSystem(withMoreSpace(ai(0, 0, 9, 1, 50, 0, List.of(LAIR)), AI.RoomExpandPolicy.IGNORE, false), 1000);
         roomControl.setTypeAvailable(rooms.get(LAIR), true, true);
         roomControl.onBuild(lair);
@@ -3083,8 +3104,14 @@ class KeeperAiSystemTest {
             }
         }
 
+        EntityId entityId = entityData.createEntity();
+        RoomComponent roomComponent = new RoomComponent(roomId, false, roomInstance.getCenter());
+        roomComponent.sizeTime = gameTime;
+        entityData.setComponent(entityId, roomComponent);
+
         return (IRoomController) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{IRoomController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getEntityId" -> entityId;
             case "getRoom" -> rooms.get(roomId);
             case "isDungeonHeart" -> roomId == DUNGEON_HEART;
             case "getRoomInstance" -> roomInstance;
@@ -3096,7 +3123,8 @@ class KeeperAiSystemTest {
             case "getAccessibleTile" -> InvocationHandler.invokeDefault(proxy, method, args);
             case "hasObjectControl" -> roomId == HATCHERY;
             case "getObjectControl" -> Proxy.newProxyInstance(getClass().getClassLoader(),
-            new Class<?>[]{IRoomObjectControl.class}, (control, controlMethod, controlArgs) -> hatcheryFood.get((Point) controlArgs[0]));
+            new Class<?>[]{IRoomObjectControl.class}, (control, controlMethod, controlArgs) -> controlMethod.getName().equals("getMaxCapacity")
+                    ? roomCapacity : hatcheryFood.get((Point) controlArgs[0]));
             case "hashCode" -> System.identityHashCode(proxy);
             case "equals" -> proxy == args[0];
             default -> throw new UnsupportedOperationException(method.getName());
@@ -3140,6 +3168,11 @@ class KeeperAiSystemTest {
                         }
                         case "getRoomControllers" -> {
                             return neutralRooms;
+                        }
+                        case "getRoomsByFunction" -> {
+                            short roomId = args[0] == ObjectType.LAIR ? LAIR : TRAINING_ROOM;
+                            return roomControl.getRoomControllers().values().stream().flatMap(Set::stream)
+                                    .filter(room -> room.getRoom().getRoomId() == roomId).toList();
                         }
                         case "getRoomControllerByCoordinates" -> {
                             Point p = (Point) args[0];
