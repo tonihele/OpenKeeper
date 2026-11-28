@@ -160,10 +160,10 @@ class PossessedSpellTest {
 
         cast(controller, 1);
         entityData.setComponent(us, new PossessedAbility(Creature.SpecialAbility.SNIPER_MODE, gameTime));
-        gameTime += RECHARGE;
+        gameTime += 2 * RECHARGE;
         cast(controller, 1);
         entityData.removeComponent(us, PossessedAbility.class);
-        gameTime += RECHARGE;
+        gameTime += 2 * RECHARGE;
         cast(controller, 1);
 
         assertEquals(List.of(PossessionFixtures.SHOT_DAMAGE, PossessionFixtures.SHOT_DAMAGE * 2, PossessionFixtures.SHOT_DAMAGE), shotDamages);
@@ -188,13 +188,13 @@ class PossessedSpellTest {
         createCreature(HERO, new Vector3f(10, 0, 7));
         CreatureController controller = createController();
 
-        // 2 seconds, 25 % slower and then halved
+        // 2 seconds, 25 % slower and then halved, divided by the 0.8 work modifier: 1.5625
         cast(controller, 1);
-        gameTime += 1.2;
+        gameTime += 1.5;
         cast(controller, 1);
         assertEquals(1, shotTargets.size());
 
-        gameTime += 0.05;
+        gameTime += 0.1;
         cast(controller, 1);
         assertEquals(2, shotTargets.size());
         assertEquals(RECHARGE, getSpell(FIREBALL).rechargeTime);
