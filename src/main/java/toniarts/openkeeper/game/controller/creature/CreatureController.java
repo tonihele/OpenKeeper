@@ -54,6 +54,7 @@ import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
+import toniarts.openkeeper.game.component.GamblingAfterPay;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
@@ -3221,6 +3222,20 @@ public final class CreatureController extends EntityController implements ICreat
                 && entityData.getComponent(entityId, CasinoBigWinner.class) == null && getGold() > Math.abs(
                 gameSettings.get(Variable.MiscVariable.MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND).getValue())
                 && taskManager.assignTask(this, Creature.JobType.DRINK);
+    }
+
+    @Override
+    public boolean goGamblingAfterPay() {
+        if (entityData.getComponent(entityId, GamblingAfterPay.class) == null) {
+            return false;
+        }
+        entityData.removeComponent(entityId, GamblingAfterPay.class);
+
+        // Only the duties that fatigue interrupts too, not what the creature has to see through
+        Task task = getAssignedTask();
+        return task != null && (task.getTaskType() == TaskType.TRAIN || task.getTaskType() == TaskType.RESEARCH
+                || task.getTaskType() == TaskType.COLLECT_PAY)
+                && goGambling();
     }
 
     @Override

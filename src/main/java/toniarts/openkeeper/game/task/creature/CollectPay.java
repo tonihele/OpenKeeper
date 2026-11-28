@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.task.creature;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
 import toniarts.openkeeper.game.component.CreaturePay;
+import toniarts.openkeeper.game.component.GamblingAfterPay;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -110,6 +111,11 @@ public final class CollectPay extends AbstractRoomTask {
             Gold gold = entityData.getComponent(creature.getEntityId(), Gold.class);
             if (gold != null && collected > 1) {
                 entityData.setComponent(creature.getEntityId(), new Gold(Math.min(gold.gold + collected / 2, gold.maxGold), gold.maxGold));
+            }
+
+            // As in DKII.EXE (0x472740) it may go gambling with its pay straight away
+            if (collected > 0) {
+                entityData.setComponent(creature.getEntityId(), new GamblingAfterPay());
             }
         }
 

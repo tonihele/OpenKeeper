@@ -113,7 +113,7 @@ class CreaturePicksUpGoldTest {
             calls.add(method.getName());
             return switch (method.getName()) {
                 case "isAssignedTaskValid", "isAtAssignedTaskTarget", "isTooMuchGold" -> true;
-                case "shouldFleeOrAttack", "dropGoldToTreasury" -> false;
+                case "shouldFleeOrAttack", "dropGoldToTreasury", "goGamblingAfterPay" -> false;
                 default -> null;
             };
         });

@@ -303,6 +303,12 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // A creature that has just taken its pay goes gambling with it, as in the original
+            if (entity.goGamblingAfterPay()) {
+                entity.navigateToAssignedTask();
+                return;
+            }
+
             // Hunger, then fatigue, then pay day interrupt a room job, including travel to it. DK II gives the three
             // one mask of job groups (0x800A3C3B, set in 0x4798F0 and checked in 0x477C20): research, the Workshop,
             // guard duty, the Temple, training and the Casino, but not the Prison, the Torture Chamber or a fight
