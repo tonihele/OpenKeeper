@@ -17,19 +17,24 @@
 package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
+import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Health;
@@ -37,11 +42,16 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
@@ -64,6 +74,12 @@ class CreatureBackOffTest {
     private final Set<EntityId> creatures = new HashSet<>();
     private final Keeper keeper = new Keeper(false, Player.KEEPER1_ID);
     private final Map<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
+    private final AtomicReference<Boolean> cornered = new AtomicReference<>(false);
+    private final AtomicReference<Boolean> enemyAtGuardRoom = new AtomicReference<>(false);
+    private final List<IRoomController> guardRooms = new ArrayList<>();
+    private final AtomicReference<Boolean> withdraws = new AtomicReference<>(false);
+    private final AtomicReference<Boolean> findsSomewhereToWithdrawTo = new AtomicReference<>(true);
+    private final Set<Point> walkable = new HashSet<>();
     private double time;
 
     CreatureBackOffTest() {
@@ -124,6 +140,30 @@ class CreatureBackOffTest {
         }
         assertTrue(targetController.isScared());
         assertFalse(controller(giant).isScared());
+    }
+
+    @Test
+    void workerIsScaredAtOnceWhenAnEnemyFighterTurnsOnIt() {
+        EntityId imp = creature(Player.KEEPER1_ID, 10, 5, 2, 1.84f);
+        EntityId giant = creature(Player.GOOD_PLAYER_ID, 11, 400, GIANT_THREAT, 0.9f);
+        CreatureController controller = controller(imp, CreatureSleepFixtures.worker());
+
+        assertFalse(controller.isScared());
+        fight(giant, imp);
+        assertTrue(controller.isScared());
+    }
+
+    @Test
+    void workerIsNotScaredAtOnceByAnEnemyImp() {
+        EntityId imp = creature(Player.KEEPER1_ID, 10, 5, 2, 1.84f);
+        EntityId enemyImp = creature(Player.GOOD_PLAYER_ID, 11, 5, 2, 1.84f);
+        data.getComponent(enemyImp, CreatureComponent.class).creatureId = 1;
+        fight(enemyImp, imp);
+        CreatureController controller = controller(imp, CreatureSleepFixtures.worker());
+
+        for (int i = 0; i < 5; i++) {
+            assertFalse(controller.isScared());
+        }
     }
 
     @Test
@@ -196,13 +236,66 @@ class CreatureBackOffTest {
     }
 
     @Test
-    void scaredCasterBacksOffWithoutFinishingTheSpell() {
+    void tooScaredToStepBackWalksAway() {
+
+        // The Knight's threat is four times the Warlock's fear, DK II's Warlocks walk away at once
+        EntityId warlock = creature(Player.KEEPER1_ID, 10, 50, 20, 1.08f);
+        EntityId knight = creature(Player.GOOD_PLAYER_ID, 11, 533, 213, 0.9f);
+        fight(warlock, knight);
+        fight(knight, warlock);
+        EntityId goblin = creature(Player.KEEPER1_ID, 12, GOBLIN_FEAR, 37, 1.26f);
+        EntityId giant = creature(Player.GOOD_PLAYER_ID, 13, 400, GIANT_THREAT, 0.9f);
+        fight(goblin, giant);
+        fight(giant, goblin);
+
+        assertFalse(controller(warlock).canStepBack());
+        assertTrue(controller(goblin).canStepBack());
+    }
+
+    @Test
+    void creatureThatWalkedAwayTakesNoShare() {
+
+        // Two Warlocks cast at a Knight and one has walked away, so the other takes the Knight's whole threat
+        EntityId warlock = creature(Player.KEEPER1_ID, 10, 50, 20, 1.08f);
+        EntityId walkedAway = creature(Player.KEEPER1_ID, 12, 50, 20, 1.08f);
+        EntityId knight = creature(Player.GOOD_PLAYER_ID, 11, 533, 213, 0.9f);
+        fight(warlock, knight);
+        fight(walkedAway, knight);
+        fight(knight, warlock);
+        CreatureController controller = controller(warlock);
+        assertTrue(controller.canStepBack());
+
+        data.setComponent(walkedAway, new CreatureAi(0, CreatureState.FLEE, (short) 5));
+        assertFalse(controller.canStepBack());
+    }
+
+    @Test
+    void scaredCasterStepsBackCastingOrWalksAwayCuttingItShort() {
         AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.CAST_SPELL);
+        AtomicReference<Boolean> stepsBack = new AtomicReference<>(true);
         ICreatureController creature = creature(state, new AtomicReference<>(true), new AtomicReference<>(false),
-                new AtomicReference<>(true));
+                new AtomicReference<>(true), stepsBack);
 
         CreatureState.CAST_SPELL.update(creature);
+        assertEquals(CreatureState.CAST_SPELL, state.get());
 
+        stepsBack.set(false);
+        CreatureState.CAST_SPELL.update(creature);
+        assertEquals(CreatureState.BACK_OFF, state.get());
+    }
+
+    @Test
+    void scaredFighterStepsBackSwingingOrWalksAwayCuttingItShort() {
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.MELEE_ATTACK);
+        AtomicReference<Boolean> stepsBack = new AtomicReference<>(true);
+        ICreatureController creature = creature(state, new AtomicReference<>(true), new AtomicReference<>(false),
+                new AtomicReference<>(true), stepsBack);
+
+        CreatureState.MELEE_ATTACK.update(creature);
+        assertEquals(CreatureState.MELEE_ATTACK, state.get());
+
+        stepsBack.set(false);
+        CreatureState.MELEE_ATTACK.update(creature);
         assertEquals(CreatureState.BACK_OFF, state.get());
     }
 
@@ -212,7 +305,7 @@ class CreatureBackOffTest {
         AtomicReference<Boolean> scared = new AtomicReference<>(true);
         AtomicReference<Boolean> over = new AtomicReference<>(false);
         AtomicReference<Boolean> canBackOff = new AtomicReference<>(true);
-        ICreatureController creature = creature(state, scared, over, canBackOff);
+        ICreatureController creature = creature(state, scared, over, canBackOff, new AtomicReference<>(true));
 
         CreatureState.FIGHT.update(creature);
         assertEquals(CreatureState.BACK_OFF, state.get());
@@ -237,6 +330,159 @@ class CreatureBackOffTest {
         assertEquals(CreatureState.FIGHT, state.get());
     }
 
+    @Test
+    void scaredCreatureDoesNotWithdrawFromAnEnemyAtItsGuardRoom() {
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.BACK_OFF);
+        AtomicReference<Boolean> scared = new AtomicReference<>(true);
+        ICreatureController creature = creature(state, scared, new AtomicReference<>(true), new AtomicReference<>(true),
+                new AtomicReference<>(true));
+        enemyAtGuardRoom.set(true);
+
+        // The back-off time is up, but it stays, and fights again once it isn't scared
+        CreatureState.BACK_OFF.update(creature);
+        assertEquals(CreatureState.BACK_OFF, state.get());
+
+        scared.set(false);
+        CreatureState.BACK_OFF.update(creature);
+        assertEquals(CreatureState.FIGHT, state.get());
+    }
+
+    @Test
+    void enemyIsAtOurGuardRoomWithinItsReportingDistanceOfTheRoomsBounds() {
+        settings.put(MiscType.GUARD_ROOM_REPORTING_DISTANCE_TILES, CreatureSleepFixtures.variable(MiscType.GUARD_ROOM_REPORTING_DISTANCE_TILES, 7));
+        EntityId goblin = creature(Player.KEEPER1_ID, 30, 100, 100, 1);
+        EntityId knight = creature(Player.GOOD_PLAYER_ID, 31, 100, 100, 1);
+        fight(goblin, knight);
+        fight(knight, goblin);
+        CreatureController controller = controller(goblin);
+        assertFalse(controller.isEnemyAtOurGuardRoom());
+
+        // A Guard Room from 20 to 24 across: the knight at 31 is just outside its bounds widened by 7
+        RoomInstance roomInstance = new RoomInstance(new Room());
+        roomInstance.addCoordinates(List.of(new Point(20, 8), new Point(24, 12)));
+        guardRooms.add(proxy(IRoomController.class, (method, args) -> switch (method) {
+            case "getRoomInstance" -> roomInstance;
+            default -> throw new UnsupportedOperationException(method);
+        }));
+        assertFalse(controller.isEnemyAtOurGuardRoom());
+
+        data.setComponent(knight, new Position(0, new Vector3f(30, WorldUtils.FLOOR_HEIGHT, 10)));
+        assertTrue(controller.isEnemyAtOurGuardRoom());
+
+        // The heroes have no Guard Rooms to hold
+        assertFalse(controller(knight).isEnemyAtOurGuardRoom());
+    }
+
+    @Test
+    void corneredCreatureFightsOnInsteadOfBackingOff() {
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.FIGHT);
+        ICreatureController creature = creature(state, new AtomicReference<>(true), new AtomicReference<>(false), new AtomicReference<>(false),
+                new AtomicReference<>(false));
+        cornered.set(true);
+
+        // DK II's fight state checks the fear only when the creature isn't cornered (0x45F030, 0x460C50)
+        CreatureState.FIGHT.update(creature);
+        assertEquals(CreatureState.FIGHT, state.get());
+
+        // Backing off with no step back, cornered it fights again (0x4602E0)
+        state.set(CreatureState.BACK_OFF);
+        CreatureState.BACK_OFF.update(creature);
+        assertEquals(CreatureState.FIGHT, state.get());
+    }
+
+    @Test
+    void corneredWhenEveryTileItCanWalkToHoldsAnEnemyFightingIt() {
+        EntityId goblin = creature(Player.KEEPER1_ID, 10, GOBLIN_FEAR, 10, 1);
+        EntityId east = creature(Player.GOOD_PLAYER_ID, 11, 100, GIANT_THREAT, 1);
+        EntityId west = creature(Player.GOOD_PLAYER_ID, 9, 100, GIANT_THREAT, 1);
+        walkable.addAll(List.of(new Point(9, 10), new Point(11, 10)));
+        fight(east, goblin);
+
+        assertFalse(controller(goblin).isCornered(), "The west tile is free");
+
+        fight(west, goblin);
+        assertTrue(controller(goblin).isCornered());
+    }
+
+    @Test
+    void badlyHurtCreatureFarFromItsHeartWithdrawsToIt() {
+
+        // Below a sixth of its health and more than 5 tiles from the heart along either axis (DK II 0x45EDA0, 0x48F250)
+        EntityId goblin = creature(Player.KEEPER1_ID, 10, GOBLIN_FEAR, 37, 1.26f);
+        keeper.setDungeonHeartLocation(new Point(4, 12));
+        data.setComponent(goblin, new Health(166, 1000));
+        assertFalse(controller(goblin).shouldWithdrawToHeart());
+
+        data.setComponent(goblin, new Health(165, 1000));
+        assertTrue(controller(goblin).shouldWithdrawToHeart());
+
+        keeper.setDungeonHeartLocation(new Point(5, 15));
+        assertFalse(controller(goblin).shouldWithdrawToHeart(), "5 tiles away");
+
+        keeper.setDungeonHeartLocation(new Point(10, 16));
+        assertTrue(controller(goblin).shouldWithdrawToHeart());
+
+        data.setComponent(goblin, new Fearless(null));
+        assertFalse(controller(goblin).shouldWithdrawToHeart());
+    }
+
+    @Test
+    void badlyHurtHeroLeavesTheHeartWithdrawToTheLairCheck() {
+        EntityId knight = creature(Player.GOOD_PLAYER_ID, 10, 533, 213, 0.9f);
+        data.setComponent(knight, new Health(1, 1000));
+
+        assertFalse(controller(knight).shouldWithdrawToHeart());
+    }
+
+    @Test
+    void badlyHurtCreatureWithdrawsFromTheFightBeforeWeighingItsFear() {
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.FIGHT);
+        ICreatureController creature = creature(state, new AtomicReference<>(true), new AtomicReference<>(false),
+                new AtomicReference<>(true), new AtomicReference<>(true));
+        withdraws.set(true);
+
+        // DK II's fight state withdraws before it weighs the fear (0x45F030 calls 0x45EDA0, then 0x45EC80)
+        CreatureState.FIGHT.update(creature);
+        assertEquals(CreatureState.FLEE, state.get());
+
+        // Cornered, it fights on (0x460C50 comes first)
+        state.set(CreatureState.FIGHT);
+        cornered.set(true);
+        CreatureState.FIGHT.update(creature);
+        assertEquals(CreatureState.FIGHT, state.get());
+    }
+
+    @Test
+    void creatureWithNowhereToWithdrawToStaysInItsFightOrBackOff() {
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.FIGHT);
+        AtomicReference<Boolean> scared = new AtomicReference<>(false);
+        AtomicReference<Boolean> over = new AtomicReference<>(false);
+        AtomicReference<Boolean> canBackOff = new AtomicReference<>(true);
+        ICreatureController creature = creature(state, scared, over, canBackOff, new AtomicReference<>(true));
+        withdraws.set(true);
+        findsSomewhereToWithdrawTo.set(false);
+
+        // DK II's fight state goes on to weigh the fear when the withdraw finds nowhere to go (0x45F030, 0x4611D0)
+        CreatureState.FIGHT.update(creature);
+        assertEquals(CreatureState.FIGHT, state.get());
+        scared.set(true);
+        CreatureState.FIGHT.update(creature);
+        assertEquals(CreatureState.BACK_OFF, state.get());
+
+        // Backing off, its time up or with no way back, it stays backing off until it finds somewhere (0x4602E0)
+        over.set(true);
+        CreatureState.BACK_OFF.update(creature);
+        assertEquals(CreatureState.BACK_OFF, state.get());
+        over.set(false);
+        canBackOff.set(false);
+        CreatureState.BACK_OFF.update(creature);
+        assertEquals(CreatureState.BACK_OFF, state.get());
+
+        findsSomewhereToWithdrawTo.set(true);
+        CreatureState.BACK_OFF.update(creature);
+        assertEquals(CreatureState.FLEE, state.get());
+    }
+
     private EntityId creature(short ownerId, float x, int fear, int threat, float runSpeed) {
         EntityId entity = data.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();
@@ -253,16 +499,27 @@ class CreatureBackOffTest {
     }
 
     private CreatureController controller(EntityId entity) {
+        return controller(entity, CreatureSleepFixtures.sleeper(1));
+    }
+
+    private CreatureController controller(EntityId entity, Creature definition) {
         IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, (method, args) -> switch (method) {
             case "getSensedEntities" -> {
                 Set<EntityId> sensed = new HashSet<>(creatures);
                 sensed.remove(entity);
                 yield sensed;
             }
+            case "getEntitiesInLocation" -> creatures.stream()
+                    .filter(creature -> WorldUtils.vectorToPoint(data.getComponent(creature, Position.class).position).equals(args[0])).toList();
+            default -> throw new UnsupportedOperationException(method);
+        });
+        INavigationService navigation = proxy(INavigationService.class, (method, args) -> switch (method) {
+            case "findPath" -> walkable.contains((Point) args[1]) ? new DefaultGraphPath<>() : null;
             default -> throw new UnsupportedOperationException(method);
         });
         IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
             case "getGameLevel" -> CreatureSleepFixtures.level(4);
+            case "getCreature" -> (Short) args[0] == 1 ? CreatureSleepFixtures.worker() : CreatureSleepFixtures.sleeper(1);
             default -> throw new UnsupportedOperationException(method);
         });
         Keeper heroes = new Keeper(false, Player.GOOD_PLAYER_ID);
@@ -271,12 +528,16 @@ class CreatureBackOffTest {
             case "getLevelData" -> kwd;
             default -> throw new UnsupportedOperationException(method);
         });
-        return new CreatureController(entity, data, CreatureSleepFixtures.sleeper(1), null, null, () -> time,
-                settings, null, lookup, null, levelInfo, null, null, null);
+        IMapController mapController = proxy(IMapController.class, (method, args) -> switch (method) {
+            case "getRoomsByFunction" -> (Short) args[1] == Player.KEEPER1_ID ? guardRooms : List.of();
+            default -> throw new UnsupportedOperationException(method);
+        });
+        return new CreatureController(entity, data, definition, navigation, null, () -> time,
+                settings, null, lookup, mapController, levelInfo, null, null, null);
     }
 
-    private static ICreatureController creature(AtomicReference<CreatureState> state, AtomicReference<Boolean> scared,
-            AtomicReference<Boolean> over, AtomicReference<Boolean> canBackOff) {
+    private ICreatureController creature(AtomicReference<CreatureState> state, AtomicReference<Boolean> scared,
+            AtomicReference<Boolean> over, AtomicReference<Boolean> canBackOff, AtomicReference<Boolean> stepsBack) {
         StateMachine<?, ?> stateMachine = proxy(StateMachine.class, (method, args) -> switch (method) {
             case "changeState" -> {
                 state.set((CreatureState) args[0]);
@@ -290,9 +551,27 @@ class CreatureBackOffTest {
             case "getStateMachine" -> stateMachine;
             case "getAttackTarget" -> self.get();
             case "isScared" -> scared.get();
+            case "isCornered" -> cornered.get();
+            case "isEnemyAtOurGuardRoom" -> enemyAtGuardRoom.get();
+            case "isWithinAttackDistance" -> true;
+            case "stopCreature", "executeAttack", "getEntityId" -> null;
+            case "isStopped", "turnToAttackTarget" -> true;
             case "isBackOffOver" -> over.get();
             case "backOff" -> canBackOff.get();
             case "withdrawToHeroLair" -> false;
+            case "shouldWithdrawToHeart" -> withdraws.get();
+            case "flee" -> {
+
+                // Like the controller, one that withdraws goes to FLEE itself
+                if (findsSomewhereToWithdrawTo.get()) {
+                    state.set(CreatureState.FLEE);
+                }
+                yield findsSomewhereToWithdrawTo.get();
+            }
+            case "canStepBack" -> stepsBack.get();
+            case "isStateTimeExceeded" -> false;
+            case "releaseCastShot", "releaseMeleeHit" -> null;
+            case "castSupportSpell", "hasPendingMeleeHit" -> false;
             default -> throw new UnsupportedOperationException(method);
         }));
         return self.get();

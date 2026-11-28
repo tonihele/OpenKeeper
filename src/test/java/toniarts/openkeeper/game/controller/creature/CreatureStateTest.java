@@ -22,9 +22,11 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import com.simsilica.es.EntityId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
@@ -113,6 +115,43 @@ class CreatureStateTest {
     }
 
     @Test
+    void fighterAttacksFromTheTurnAfterItArrivesOnceItFacesTheTarget() {
+        StateMachine<ICreatureController, CreatureState> stateMachine = stateMachine(new AtomicReference<>(CreatureState.FIGHT));
+        AtomicBoolean stopped = new AtomicBoolean();
+        AtomicBoolean facing = new AtomicBoolean();
+        AtomicInteger attacks = new AtomicInteger();
+        IEntityController target = (IEntityController) Proxy.newProxyInstance(IEntityController.class.getClassLoader(),
+                new Class<?>[]{IEntityController.class}, (proxy, method, args) -> "getEntityId".equals(method.getName())
+                ? new EntityId(5) : defaultValue(method.getReturnType()));
+        ICreatureController creature = (ICreatureController) Proxy.newProxyInstance(
+                ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getStateMachine" -> stateMachine;
+                    case "getAttackTarget" -> target;
+                    case "isWithinAttackDistance" -> true;
+                    case "isStopped" -> stopped.get();
+                    case "stopCreature" -> {
+                        stopped.set(true);
+                        yield null;
+                    }
+                    case "turnToAttackTarget" -> facing.get();
+                    case "executeAttack" -> {
+                        attacks.incrementAndGet();
+                        yield null;
+                    }
+                    default -> defaultValue(method.getReturnType());
+                });
+
+        // It stops on arriving, then turns, and swings once it faces the target
+        CreatureState.FIGHT.update(creature);
+        assertEquals(0, attacks.get());
+        CreatureState.FIGHT.update(creature);
+        assertEquals(0, attacks.get());
+        facing.set(true);
+        CreatureState.FIGHT.update(creature);
+        assertEquals(1, attacks.get());
+    }
+
+    @Test
     void knockedOutCreatureDropsItsGoldInOneToThreePiles() {
         assertEquals(List.of(800), dropGoldOnKnockout(800));
         assertEquals(List.of(1250, 1250), dropGoldOnKnockout(2500));
@@ -150,7 +189,7 @@ class CreatureStateTest {
 
         CreatureState.CAST_SPELL.update(creature);
 
-        assertEquals(List.of("isScared", "releaseCastShot", "isStateTimeExceeded", "changeState FIGHT"), calls);
+        assertEquals(List.of("isCornered", "isScared", "releaseCastShot", "isStateTimeExceeded", "changeState FIGHT"), calls);
     }
 
     @Test

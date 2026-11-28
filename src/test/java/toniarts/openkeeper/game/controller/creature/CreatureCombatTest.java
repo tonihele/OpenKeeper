@@ -63,6 +63,9 @@ class CreatureCombatTest {
 
     private static final short FIGHTER = 1;
     private static final short HORNY = 2;
+    private static final short GOOD = 3;
+    private static final short STYLED = 4;
+    private static final short SUPPORT = 5;
     private static final short KEEPER = Player.KEEPER1_ID;
     private static final short HERO = Player.GOOD_PLAYER_ID;
 
@@ -103,6 +106,42 @@ class CreatureCombatTest {
         sensed.put(us, new LinkedHashSet<>(List.of(crowded, free)));
 
         assertEquals(free, createController(us).getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void naturalEnemyIsPreferredOverASlightlyNearerOne() {
+        creatures.put(GOOD, CombatCreatureFixtures.fighter(GOOD, Creature.FightStyle.BLOCKER, Creature.CreatureFlag.IS_GOOD));
+        EntityId nearer = createCreature(HERO, FIGHTER, new Vector3f(7, 0, 4), 0);
+        EntityId good = createCreature(HERO, GOOD, new Vector3f(7.1f, 0, 4), 0);
+        sensed.put(us, new LinkedHashSet<>(List.of(nearer, good)));
+
+        assertEquals(good, createController(us).getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void flankersAndSupportGoForTheEnemyABlockerHolds() {
+        for (Creature.FightStyle fightStyle : List.of(Creature.FightStyle.FLANKER, Creature.FightStyle.SUPPORT)) {
+            creatures.put(STYLED, CombatCreatureFixtures.fighter(STYLED, fightStyle));
+            EntityId styled = createCreature(KEEPER, STYLED, new Vector3f(5, 0, 4), 0);
+            EntityId free = createCreature(HERO, FIGHTER, new Vector3f(6, 0, 4), 0);
+            EntityId held = createCreature(HERO, FIGHTER, new Vector3f(8, 0, 4), 0);
+            entityData.setComponent(createCreature(KEEPER, FIGHTER, new Vector3f(9, 0, 4), 0), new AttackTarget(held));
+            sensed.put(styled, new LinkedHashSet<>(List.of(free, held)));
+
+            assertEquals(held, createController(styled).getAttackTarget().getEntityId(), fightStyle.name());
+        }
+    }
+
+    @Test
+    void blitzerGoesPastAFighterForASupportCreature() {
+        creatures.put(STYLED, CombatCreatureFixtures.fighter(STYLED, Creature.FightStyle.BLITZER));
+        creatures.put(SUPPORT, CombatCreatureFixtures.fighter(SUPPORT, Creature.FightStyle.SUPPORT));
+        EntityId blitzer = createCreature(KEEPER, STYLED, new Vector3f(5, 0, 4), 0);
+        EntityId fighter = createCreature(HERO, FIGHTER, new Vector3f(6, 0, 4), 0);
+        EntityId support = createCreature(HERO, SUPPORT, new Vector3f(8, 0, 4), 0);
+        sensed.put(blitzer, new LinkedHashSet<>(List.of(fighter, support)));
+
+        assertEquals(support, createController(blitzer).getAttackTarget().getEntityId());
     }
 
     @Test
