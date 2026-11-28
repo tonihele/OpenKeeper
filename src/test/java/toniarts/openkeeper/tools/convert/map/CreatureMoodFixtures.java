@@ -39,4 +39,15 @@ public final class CreatureMoodFixtures {
         return creature;
     }
 
+    /**
+     * Makes a creature type emotionless, a flag no stock creature has
+     *
+     * @param creature the creature type
+     * @return the creature type
+     */
+    public static Creature emotionless(Creature creature) {
+        creature.setFlags2(EnumSet.of(Creature.CreatureFlag2.IS_EMOTIONLESS));
+        return creature;
+    }
+
 }

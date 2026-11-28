@@ -64,6 +64,50 @@ public final class KeeperAi implements EntityComponent {
         DIG_PATH
     }
 
+    /**
+     * The messages its inbox takes, as DK II's computer player reads them
+     * (0x4FA400)
+     */
+    public enum Message {
+
+        /**
+         * A creature asked for a room its keeper has none of, DK II's 0x29
+         */
+        ROOM_WANTED,
+        /**
+         * A creature found the rooms of a kind full, 0x2A
+         */
+        ROOM_TOO_SMALL,
+        /**
+         * The Dungeon Heart was hit, 1
+         */
+        HEART_ATTACKED,
+        /**
+         * A creature started a fight, 6
+         */
+        CREATURE_FIGHTING,
+        /**
+         * An enemy claims its land, 0x0C
+         */
+        LAND_CLAIMED,
+        /**
+         * An enemy claims one of its rooms, 0x22
+         */
+        ROOM_CLAIMED,
+        /**
+         * One of its Alarm Traps went off, 0x2F
+         */
+        ALARM,
+        /**
+         * A creature turned unhappy, 0x11
+         */
+        UNHAPPY,
+        /**
+         * A creature turned angry, 0x12
+         */
+        ANGRY
+    }
+
     public short playerId;
     public Task task = Task.PLAN;
     public Task nextTask = Task.PLAN;
@@ -102,17 +146,32 @@ public final class KeeperAi implements EntityComponent {
     public boolean wantedRoomExpand;
 
     /**
-     * The rooms its creatures asked for that wait their turn, the first asked
-     * first, ending with 0. DK II keeps them in its message list and tries
-     * them again each turn
+     * Its inbox, the first come first, ending with null. DK II keeps a
+     * message, seen to or not, until it runs out, and while it is there no
+     * other message like it comes in
      */
-    public short[] roomAsks = new short[32];
+    public Message[] messages = new Message[64];
 
     /**
-     * For each room by its id the game ticks until the ask for it runs out,
-     * 0 when there is none. The room isn't asked for again before then
+     * For each message its room, or the id of its creature
      */
-    public int[] roomAskTicks = new int[32];
+    public long[] messageValues = new long[64];
+
+    /**
+     * For each message the tile of the attack
+     */
+    public Point[] messageTiles = new Point[64];
+
+    /**
+     * For each message the game ticks until it runs out
+     */
+    public int[] messageTicks = new int[64];
+
+    /**
+     * For each message whether it is seen to. One that isn't is tried again
+     * each turn
+     */
+    public boolean[] messagesHandled = new boolean[64];
 
     /**
      * How many Portals it and the neutral player had when it last looked,
@@ -175,6 +234,13 @@ public final class KeeperAi implements EntityComponent {
     public Point[] goldDeposits = new Point[4];
 
     /**
+     * Whether it is in a fight, so it sees to the fight rather than its imps.
+     * Each attack message puts it in one, and seeing to the fight takes it
+     * out unless one of its creatures fights (DK II's state bit 3)
+     */
+    public boolean fighting;
+
+    /**
      * Whether its Call to Arms flag is up, and where
      */
     public boolean callToArms;
@@ -213,11 +279,6 @@ public final class KeeperAi implements EntityComponent {
      * The player that attacked it last, 0 for none
      */
     public short attackerId;
-
-    /**
-     * Game ticks until it looks for a new attack on it
-     */
-    public int attackLookTicks;
 
     /**
      * The enemy the tunnel being dug goes to, 0 for none. The tunnel stops
@@ -264,8 +325,11 @@ public final class KeeperAi implements EntityComponent {
         this.wantedRoomId = keeperAi.wantedRoomId;
         this.roomWanted = keeperAi.roomWanted;
         this.wantedRoomExpand = keeperAi.wantedRoomExpand;
-        this.roomAsks = keeperAi.roomAsks.clone();
-        this.roomAskTicks = keeperAi.roomAskTicks.clone();
+        this.messages = keeperAi.messages.clone();
+        this.messageValues = keeperAi.messageValues.clone();
+        this.messageTiles = keeperAi.messageTiles.clone();
+        this.messageTicks = keeperAi.messageTicks.clone();
+        this.messagesHandled = keeperAi.messagesHandled.clone();
         this.portals = keeperAi.portals;
         this.direction = keeperAi.direction;
         this.current = keeperAi.current;
@@ -282,6 +346,7 @@ public final class KeeperAi implements EntityComponent {
         this.goldAttemptWorkAtStart = keeperAi.goldAttemptWorkAtStart;
         this.goldAttemptLooked = keeperAi.goldAttemptLooked;
         this.goldDeposits = keeperAi.goldDeposits.clone();
+        this.fighting = keeperAi.fighting;
         this.callToArms = keeperAi.callToArms;
         this.callToArmsTile = keeperAi.callToArmsTile;
         this.callToArmsTicks = keeperAi.callToArmsTicks;
@@ -291,7 +356,6 @@ public final class KeeperAi implements EntityComponent {
         this.attackNeeds = keeperAi.attackNeeds.clone();
         this.attackTiles = keeperAi.attackTiles.clone();
         this.attackerId = keeperAi.attackerId;
-        this.attackLookTicks = keeperAi.attackLookTicks;
         this.invasionTargetId = keeperAi.invasionTargetId;
         this.rallyTile = keeperAi.rallyTile;
         this.failedTargets = keeperAi.failedTargets.clone();

@@ -20,7 +20,8 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 
 /**
  * A creature of a keeper looked for a room to do something in and the
- * keeper has no room of that kind, like DK II's "room wanted" message (0x29)
+ * keeper has no room of that kind, like DK II's "room wanted" message (0x29),
+ * or its rooms of the kind are full, like DK II's "room too small" (0x2A)
  *
  * @param playerId the keeper
  * @param objectType what the creature wanted the room for

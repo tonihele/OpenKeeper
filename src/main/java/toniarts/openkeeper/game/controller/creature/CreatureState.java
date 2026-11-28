@@ -18,8 +18,11 @@ package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.State;
 import com.badlogic.gdx.ai.msg.Telegram;
+import com.simsilica.event.EventBus;
 import java.util.function.Consumer;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
+import toniarts.openkeeper.game.event.KeeperAttacked;
+import toniarts.openkeeper.game.event.ServerEvents;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -368,6 +371,15 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void enter(ICreatureController entity) {
             entity.unassingCurrentTask();
+
+            // The keeper hears of each fight its creatures start (DK II 0x45EB20). DK II swings and casts within its
+            // fight state, so coming back from a swing or a spell is no news. Nor is a spell on a friend or on a dead
+            // body, DK II's fight mode 3 (CCreature+0x529, set by 0x45CB00), which here goes through the spell too
+            CreatureState previous = entity.getStateMachine().getPreviousState();
+            if (previous != MELEE_ATTACK && previous != CAST_SPELL) {
+                EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(entity.getOwnerId(), KeeperAttacked.Target.CREATURE,
+                        entity.getCreatureCoordinates()));
+            }
         }
 
         @Override

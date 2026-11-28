@@ -19,7 +19,10 @@ package toniarts.openkeeper.game.logic;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import com.simsilica.event.EventBus;
+import com.simsilica.event.EventListener;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -27,11 +30,14 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.KeeperAiMood;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.CreatureUpset;
+import toniarts.openkeeper.game.event.ServerEvents;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureMoodFixtures;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
@@ -54,6 +60,7 @@ public class CreatureMoodSystemTest {
     private static final short CREATURE_ID = 7;
 
     private final EntityData entityData = new DefaultEntityData();
+    private final Creature creatureType = CreatureMoodFixtures.creature(CREATURE_ID, "Knight", (short) 6, (short) 100, (short) 50);
 
     @Test
     public void keeperCreatureWithoutLairGetsAngry() {
@@ -92,6 +99,54 @@ public class CreatureMoodSystemTest {
         assertEquals(0, entityData.getComponent(creature, CreatureMood.class).noLair);
     }
 
+    @Test
+    public void keeperIsToldWhenItsCreatureTurnsUnhappyAndWhenAngryButNotWhenItCalmsDown() {
+        EntityId creature = creature(KEEPER_ID);
+        CreatureMoodSystem system = createSystem();
+        List<CreatureUpset> told = new ArrayList<>();
+        EventListener<CreatureUpset> listener = (type, event) -> told.add(event);
+        EventBus.addListener(ServerEvents.CREATURE_UPSET, listener);
+        try {
+
+            // Unhappy from half the anger scale, angry above it
+            entityData.setComponent(creature, new CreatureMood().add(CreatureMood.REASON_GENERAL, 20000));
+            system.processTick(0.25f);
+            system.processTick(0.25f);
+            assertEquals(List.of(new CreatureUpset(KEEPER_ID, creature, false)), told);
+
+            entityData.setComponent(creature, new CreatureMood().add(CreatureMood.REASON_GENERAL, 40000));
+            system.processTick(0.25f);
+            entityData.setComponent(creature, new CreatureMood().add(CreatureMood.REASON_GENERAL, 20000));
+            system.processTick(0.25f);
+            assertEquals(List.of(new CreatureUpset(KEEPER_ID, creature, false), new CreatureUpset(KEEPER_ID, creature, true)), told);
+            assertEquals(1, entityData.getComponent(creature, KeeperAiMood.class).state);
+        } finally {
+            EventBus.removeListener(ServerEvents.CREATURE_UPSET, listener);
+            system.stop();
+        }
+    }
+
+    @Test
+    public void keeperIsNotToldOfAnEmotionlessCreature() {
+        CreatureMoodFixtures.emotionless(creatureType);
+        EntityId creature = creature(KEEPER_ID);
+        CreatureMoodSystem system = createSystem();
+        List<CreatureUpset> told = new ArrayList<>();
+        EventListener<CreatureUpset> listener = (type, event) -> told.add(event);
+        EventBus.addListener(ServerEvents.CREATURE_UPSET, listener);
+        try {
+
+            // DK II leaves creature data +0x68A bit 4 out of its anger changes and messages (0x478B80)
+            entityData.setComponent(creature, new CreatureMood().add(CreatureMood.REASON_GENERAL, 40000));
+            system.processTick(0.25f);
+            system.processTick(0.25f);
+            assertEquals(List.of(), told);
+        } finally {
+            EventBus.removeListener(ServerEvents.CREATURE_UPSET, listener);
+            system.stop();
+        }
+    }
+
     private EntityId creature(short ownerId) {
         EntityId entityId = entityData.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();
@@ -102,8 +157,14 @@ public class CreatureMoodSystemTest {
     }
 
     private void tick() {
+        CreatureMoodSystem system = createSystem();
+        system.processTick(0.25f);
+        system.stop();
+    }
+
+    private CreatureMoodSystem createSystem() {
         Room lair = RoomFixtures.room((short) 2, 0, Room.RoomFlag.BUILDABLE);
-        Creature creature = CreatureMoodFixtures.creature(CREATURE_ID, "Knight", (short) 6, (short) 100, (short) 50);
+        Creature creature = creatureType;
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
                 new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getRoomById" -> lair;
@@ -125,12 +186,10 @@ public class CreatureMoodSystemTest {
             }));
         }
 
-        CreatureMoodSystem system = new CreatureMoodSystem(entityData, kwdFile, controllers, () -> 0.0,
+        return new CreatureMoodSystem(entityData, kwdFile, controllers, () -> 0.0,
                 Map.of(Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND,
                         CreatureSleepFixtures.variable(
                                 Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND, -550)));
-        system.processTick(0.25f);
-        system.stop();
     }
 
     @Test

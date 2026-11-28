@@ -21,6 +21,7 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
+import com.simsilica.event.EventBus;
 import toniarts.openkeeper.game.component.Alarm;
 import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -51,6 +52,8 @@ import toniarts.openkeeper.game.controller.shot.WindShotProcessor;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.event.KeeperAttacked;
+import toniarts.openkeeper.game.event.ServerEvents;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.GameObject;
@@ -463,6 +466,8 @@ public final class ShotsController implements IShotsController {
         entityData.setComponents(alarm, new Alarm(), new Owner(request.playerId(), request.playerId()),
                 new Position(0, new Vector3f(request.position())), new Decay(gameTimer.getGameTime(), ALARM_DURATION));
         gameEventService.emitToPlayer(GameEventType.ALARM_RAISED, request.playerId());
+        EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(request.playerId(), KeeperAttacked.Target.ALARM,
+                WorldUtils.vectorToPoint(request.position())));
     }
 
     private void notifyShotHit(Shot shot, EntityId target) {

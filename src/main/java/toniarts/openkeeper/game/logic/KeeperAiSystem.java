@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.logic;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.event.EventBus;
 import com.simsilica.event.EventListener;
@@ -28,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.KeeperAi;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -45,6 +46,8 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.event.CreatureUpset;
+import toniarts.openkeeper.game.event.KeeperAttacked;
 import toniarts.openkeeper.game.event.RoomWanted;
 import toniarts.openkeeper.game.event.ServerEvents;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -173,11 +176,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             ROOM_GUARD_ROOM, ROOM_STONE_BRIDGE, ROOM_HERO_STONE_BRIDGE);
 
     /**
-     * The rooms whose lack of space DK II tells its computer player about. For the Library, the Training Room and
-     * the Workshop that is when a creature that wants to work there finds them full (0x4E2500, 0x4F3560, 0x4F6200)
+     * The rooms whose lack of space DK II tells its computer player about with its message 0x2A. For the Library, the
+     * Training Room and the Workshop that is when a creature that wants to work there finds them full (0x4E2500,
+     * 0x4F3560, 0x4F6200)
      */
-    private static final short[] ROOMS_TO_GROW = {ROOM_TREASURY, ROOM_LAIR, ROOM_PRISON, ROOM_GRAVEYARD, ROOM_LIBRARY,
-        ROOM_TRAINING_ROOM, ROOM_WORKSHOP};
+    private static final Set<Short> ROOMS_TO_GROW = Set.of(ROOM_TREASURY, ROOM_LAIR, ROOM_PRISON, ROOM_GRAVEYARD, ROOM_LIBRARY,
+            ROOM_TRAINING_ROOM, ROOM_WORKSHOP);
 
     /**
      * The room a creature asks for, by what it wants to do there, as DK II's
@@ -192,12 +196,42 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             ObjectType.TORTUREE, ROOM_TORTURE_CHAMBER, ObjectType.WORSHIPPER, ROOM_TEMPLE, ObjectType.GAMBLER, ROOM_CASINO);
 
     /**
-     * The game minutes an ask for a room lasts, 160 for the rooms not here.
-     * DK II's message 0x29 times out by its room after 128 game ticks for
-     * each unit of its table (0x4C4600, 0x6A03D8)
+     * DK II times its messages out in units of 128 game ticks, 32 seconds at
+     * 4 ticks a second (0x4C4600, its table at 0x6A0B00)
      */
-    private static final Map<Short, Integer> ROOM_ASK_MINUTES = Map.of(ROOM_TREASURY, 224, ROOM_LAIR, 96, ROOM_HATCHERY, 96,
-            ROOM_PRISON, 320, ROOM_GRAVEYARD, 320);
+    private static final int MESSAGE_UNIT_SECONDS = 32;
+
+    /**
+     * How many units a message lasts. A creature that starts a fight is news
+     * for the turn it comes in only
+     */
+    private static final Map<KeeperAi.Message, Integer> MESSAGE_UNITS = Map.of(KeeperAi.Message.HEART_ATTACKED, 120,
+            KeeperAi.Message.LAND_CLAIMED, 50, KeeperAi.Message.ROOM_CLAIMED, 30, KeeperAi.Message.ALARM, 50,
+            KeeperAi.Message.UNHAPPY, 50, KeeperAi.Message.ANGRY, 50);
+
+    /**
+     * How many units an ask for a room lasts by the room, 300 for the rooms
+     * not here (0x6A03D8), and the same for a room that is too small
+     * (0x6A04B8)
+     */
+    private static final Map<Short, Integer> ROOM_WANTED_UNITS = Map.of(ROOM_TREASURY, 420, ROOM_LAIR, 180, ROOM_HATCHERY, 180,
+            ROOM_PRISON, 600, ROOM_GRAVEYARD, 600);
+    private static final Map<Short, Integer> ROOM_TOO_SMALL_UNITS = Map.of(ROOM_TREASURY, 240, ROOM_LAIR, 90, ROOM_HATCHERY, 240);
+    private static final int ROOM_MESSAGE_UNITS = 300;
+
+    /**
+     * A full room is too small once its size has held this long, 4 x the
+     * game ticks in a second in DK II's room searches (0x4F3560)
+     */
+    private static final double ROOM_SIZE_HELD_SECONDS = 4;
+
+    /**
+     * The message for each kind of attack
+     */
+    private static final Map<KeeperAttacked.Target, KeeperAi.Message> ATTACK_MESSAGES = Map.of(
+            KeeperAttacked.Target.HEART, KeeperAi.Message.HEART_ATTACKED, KeeperAttacked.Target.CREATURE, KeeperAi.Message.CREATURE_FIGHTING,
+            KeeperAttacked.Target.LAND, KeeperAi.Message.LAND_CLAIMED, KeeperAttacked.Target.ROOM, KeeperAi.Message.ROOM_CLAIMED,
+            KeeperAttacked.Target.ALARM, KeeperAi.Message.ALARM);
 
     /**
      * The room DK II's computer player likes to have each room next to
@@ -253,15 +287,26 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private final EntitySet objects;
 
     /**
-     * The rooms the creatures of the computer players asked for since their
-     * last turn, the first asked first
+     * The news for the computer players since their last turn, the first
+     * first. Each takes it into its inbox on its turn
      */
-    private final Set<RoomWanted> roomsWanted = new LinkedHashSet<>();
-    private final EventListener<RoomWanted> roomWantedListener = (type, event) -> {
-        if (ais.containsKey(event.playerId())) {
-            roomsWanted.add(event);
+    private final List<News> news = new ArrayList<>();
+    private final EventListener<RoomWanted> roomListener = (type, event) -> {
+        if (type == ServerEvents.ROOM_WANTED || isTooSmall(event)) {
+            addNews(event.playerId(), type == ServerEvents.ROOM_WANTED ? KeeperAi.Message.ROOM_WANTED : KeeperAi.Message.ROOM_TOO_SMALL,
+                    ROOMS_WANTED.getOrDefault(event.objectType(), (short) 0), null);
         }
     };
+    private final EventListener<KeeperAttacked> attackListener = (type, event) -> addNews(event.playerId(),
+            ATTACK_MESSAGES.get(event.target()), 0, event.tile());
+    private final EventListener<CreatureUpset> moodListener = (type, event) -> addNews(event.playerId(),
+            event.angry() ? KeeperAi.Message.ANGRY : KeeperAi.Message.UNHAPPY, event.creatureId().getId(), null);
+
+    /**
+     * A message for a computer player that waits for its turn
+     */
+    private record News(short playerId, KeeperAi.Message message, long value, Point tile) {
+    }
 
     /**
      * @param entityData the entities, the computer players keep their state
@@ -328,6 +373,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             IRoomController heart = playerController != null ? playerController.getRoomControl().getDungeonHeart() : null;
             if (heart == null || !ais.containsKey(keeperAi.playerId) || playerController.getKeeper().isDestroyed()
                     || heart.getRoomInstance().isDestroyed()) {
+                news.removeIf(item -> item.playerId() == keeperAi.playerId);
                 continue;
             }
 
@@ -376,17 +422,10 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             }
         }
 
-        // The rooms its creatures ask for wait their turn to be held for the next plan
-        askForRooms(keeperAi, playerController, ticksPerSecond);
-
-        // Its creatures that have turned unhappy or angry are seen to as the news comes in
-        creatures.answerMoods(keeperAi, playerController, ai);
+        // The news of rooms its creatures want, attacks and creatures turned unhappy or angry is seen to
+        readInbox(keeperAi, playerController, ai, ticksPerSecond);
 
         // An attack to answer takes the whole turn
-        if (keeperAi.attackLookTicks > 0) {
-            keeperAi.attackLookTicks--;
-        }
-        battles.lookForAttack(keeperAi, playerControllers, ai, ticksPerSecond);
         if (actions > 0 && battles.respondToAttack(keeperAi, playerController)) {
             actions = 0;
         }
@@ -422,10 +461,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             actions = traps.placeTrapsAndDoors(keeperAi, playerController, ai, actions);
         }
 
-        // In a fight it sees to the fight, otherwise to its imps
-        if (battles.isFighting(keeperAi.playerId)) {
-            if (actions > 0 && (battles.callToArms(keeperAi, playerController, ai, ticksPerSecond)
-                    || battles.castBattleSpell(keeperAi, playerController, ai))) {
+        // In a fight it sees to the fight, otherwise to its imps (0x500C20). Seeing to the fight takes it out of
+        // the fight, unless one of its creatures fights (0x503060)
+        if (actions > 0 && keeperAi.fighting) {
+            keeperAi.fighting = battles.isFighting(keeperAi.playerId);
+            if (battles.callToArms(keeperAi, playerController, ai, ticksPerSecond) || battles.castBattleSpell(keeperAi, playerController, ai)) {
                 actions--;
             }
         } else if (actions > 0 && createImp(keeperAi, playerController, ai)) {
@@ -446,8 +486,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             actions = creatures.pickUpIdleCreatures(keeperAi, playerController, ai, creatureLevel, actions);
         }
 
-        // Idle creatures get a slap now and then
-        if (actions > 0) {
+        // Idle creatures get a slap now and then, unless its settings say it slaps none
+        if (actions > 0 && !ai.isWillNotSlapCreatures()) {
             actions = creatures.slapIdleCreatures(keeperAi, actions);
         }
 
@@ -928,7 +968,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      */
     private String planRoom(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
         keeperAi.roomId = 0;
-        wantMoreSpace(keeperAi, playerController, ai);
+        wantBiggerLair(keeperAi, playerController, ai);
         if (!keeperAi.roomWanted) {
             Room wanted = getNextRoom(playerController, ai, true);
             keeperAi.wantedRoomId = wanted != null ? wanted.getRoomId()
@@ -1002,74 +1042,85 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     }
 
     /**
-     * Lines a room up to be planned next when it needs more space: the Lair
-     * when a Portal was taken from another player, and a Treasury, Lair, Prison, Graveyard,
-     * Library, Training Room or Workshop that is full. By its settings the room is grown or another one is
-     * built. DK II's computer player is told by the messages a player gets;
-     * here it looks at the rooms itself
+     * Lines a bigger Lair up to be planned next when a Portal was taken from
+     * another player, grown or another one built by its settings. DK II's
+     * computer player is told by its message 0x20 (0x4E5650, 0x4FA400); here
+     * it counts the Portals itself
      */
-    private void wantMoreSpace(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
+    private void wantBiggerLair(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
         AI.RoomExpandPolicy policy = ai.getWhenMoreSpaceInRoomRequired();
         if (policy == null || policy == AI.RoomExpandPolicy.IGNORE || keeperAi.roomWanted && keeperAi.wantedRoomId != ROOM_PORTAL) {
             return;
         }
 
         int portals = countPortals(playerController);
-        short roomId = portals > keeperAi.portals && ai.isBuildBiggerLairAfterClaimingPortal() ? ROOM_LAIR : 0;
+        boolean taken = portals > keeperAi.portals && ai.isBuildBiggerLairAfterClaimingPortal();
         keeperAi.portals = portals;
-        for (int i = 0; i < ROOMS_TO_GROW.length && roomId == 0; i++) {
-
-            // Gems never run out, so a full Treasury is left as it is while gems are mined
-            if (ROOMS_TO_GROW[i] == ROOM_TREASURY && getTaggedGold(keeperAi.playerId).stream().anyMatch(tile
-                    -> mapController.getTerrain(mapController.getMapData().getTile(tile)).getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE))) {
-                continue;
-            }
-            for (IRoomController room : playerController.getRoomControl().getRoomControllers().getOrDefault(kwdFile.getRoomById(ROOMS_TO_GROW[i]), Set.of())) {
-                if (!room.getRoomInstance().isDestroyed() && room.isFullCapacity()) {
-                    roomId = ROOMS_TO_GROW[i];
-                }
-            }
-        }
-        Room room = kwdFile.getRoomById(roomId);
+        Room room = kwdFile.getRoomById(ROOM_LAIR);
         ResearchableEntity availability = room != null ? playerController.getRoomControl().getTypes().get(room) : null;
-        if (availability != null && availability.isDiscovered()) {
-            keeperAi.wantedRoomId = roomId;
+        if (taken && availability != null && availability.isDiscovered()) {
+            keeperAi.wantedRoomId = ROOM_LAIR;
             keeperAi.wantedRoomExpand = policy == AI.RoomExpandPolicy.EXPAND_EXISTING;
             keeperAi.roomWanted = true;
         }
     }
 
+    private void addNews(short playerId, KeeperAi.Message message, long value, Point tile) {
+        if (ais.containsKey(playerId)) {
+            news.add(new News(playerId, message, value, tile));
+        }
+    }
+
     /**
-     * Queues the rooms its creatures asked for and goes through the queue,
-     * as DK II does with its message 0x29 (0x4C4600, 0x4C41E0, 0x4FA400). A
-     * room it has none of is asked for once while the ask lasts, and the
-     * asks wait their turn, the first asked first
+     * Tells whether rooms a creature found full are too small. DK II's room
+     * searches (0x4F3560 for the Training Room, the Lair, Library, Workshop,
+     * Temple, Torture Chamber, Casino and Combat Pit alike) only say so when
+     * a full room works, that is has its furniture (CRoom+0xA3), and has
+     * held its size for 4 seconds (+0x9F). Gold that doesn't fit (0x4BA420)
+     * and a full Prison (0x4E5A70) say so at once
      */
-    private void askForRooms(KeeperAi keeperAi, IPlayerController playerController, int ticksPerSecond) {
-        for (int i = 0; i < keeperAi.roomAskTicks.length; i++) {
-            if (keeperAi.roomAskTicks[i] > 0) {
-                keeperAi.roomAskTicks[i]--;
-            }
+    private boolean isTooSmall(RoomWanted event) {
+        if (event.objectType() == ObjectType.GOLD || event.objectType() == ObjectType.PRISONER) {
+            return true;
         }
-        List<RoomWanted> asked = new ArrayList<>();
-        roomsWanted.removeIf(ask -> ask.playerId() == keeperAi.playerId && asked.add(ask));
-        int asks = 0;
-        while (keeperAi.roomAsks[asks] != 0) {
-            asks++;
-        }
-        for (RoomWanted ask : asked) {
-            Short roomId = ROOMS_WANTED.get(ask.objectType());
-            if (roomId != null && keeperAi.roomAskTicks[roomId] == 0
-                    && playerController.getRoomControl().getTypeCount(kwdFile.getRoomById(roomId)) == 0) {
-                keeperAi.roomAskTicks[roomId] = ROOM_ASK_MINUTES.getOrDefault(roomId, 160) * 60 * ticksPerSecond;
-                keeperAi.roomAsks[asks++] = roomId;
+        for (IRoomController room : mapController.getRoomsByFunction(event.objectType(), event.playerId())) {
+            RoomComponent roomComponent = entityData.getComponent(room.getEntityId(), RoomComponent.class);
+            if (room.getObjectControl(event.objectType()).getMaxCapacity() > 0
+                    && gameTimer.getGameTime() - roomComponent.sizeTime > ROOM_SIZE_HELD_SECONDS) {
+                return true;
             }
         }
 
-        // An ask that has run out or is seen to leaves the queue
-        for (int i = 0; keeperAi.roomAsks[i] != 0;) {
-            if (keeperAi.roomAskTicks[keeperAi.roomAsks[i]] == 0 || holdWantedRoom(keeperAi, playerController, keeperAi.roomAsks[i])) {
-                System.arraycopy(keeperAi.roomAsks, i + 1, keeperAi.roomAsks, i, keeperAi.roomAsks.length - i - 1);
+        return false;
+    }
+
+    /**
+     * Reads its inbox, as DK II does on every turn (0x4FA400). The news since
+     * its last turn comes in, unless a message like it is still there
+     * (0x4C4600). Then the messages not seen to yet are seen to, the first
+     * come first, and the ones that have run out leave (0x4C41E0). So a room
+     * is asked for once while the ask lasts, and the asks wait their turn
+     */
+    private void readInbox(KeeperAi keeperAi, IPlayerController playerController, AI ai, int ticksPerSecond) {
+        List<News> received = new ArrayList<>();
+        news.removeIf(item -> item.playerId() == keeperAi.playerId && received.add(item));
+        for (News item : received) {
+            receive(keeperAi, playerController, item, ticksPerSecond);
+        }
+
+        for (int i = 0; i < keeperAi.messages.length && keeperAi.messages[i] != null; i++) {
+            if (!keeperAi.messagesHandled[i]) {
+                keeperAi.messagesHandled[i] = seeTo(keeperAi, playerController, ai, i);
+            }
+        }
+
+        // A message about a creature also leaves once the creature is gone or its mood has turned
+        for (int i = 0; i < keeperAi.messages.length && keeperAi.messages[i] != null;) {
+            keeperAi.messageTicks[i]--;
+            KeeperAi.Message message = keeperAi.messages[i];
+            if (keeperAi.messageTicks[i] <= 0 || (message == KeeperAi.Message.UNHAPPY || message == KeeperAi.Message.ANGRY)
+                    && !creatures.isUpset(new EntityId(keeperAi.messageValues[i]), message == KeeperAi.Message.ANGRY)) {
+                removeMessage(keeperAi, i);
             } else {
                 i++;
             }
@@ -1077,15 +1128,135 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     }
 
     /**
-     * Holds a room a creature asked for to be planned next, before the build
-     * order (0x4FA400, 0x4F93B0). The ask drops a Portal plan. It is held
-     * when no other room is, the room may be built and it isn't the room
-     * being planned, even when it has one of the kind by now. While another
-     * room is held the ask waits
-     *
-     * @return whether the ask is seen to, false when it waits
+     * Takes a message into the inbox, unless one like it is still there: an
+     * ask for the same room, a claim of a room of the same kind, or any other
+     * message of the same kind. So there is one message of an unhappy and one
+     * of an angry creature at a time. A creature that starts a fight is news
+     * each time. An ask for a room it has one of by now is dropped, as is a
+     * full room DK II doesn't tell it of. A full inbox makes way for it by
+     * dropping its oldest message, like DK II's list
      */
-    private boolean holdWantedRoom(KeeperAi keeperAi, IPlayerController playerController, short roomId) {
+    private void receive(KeeperAi keeperAi, IPlayerController playerController, News item, int ticksPerSecond) {
+        KeeperAi.Message message = item.message();
+        short roomId = (short) item.value();
+        long value = item.value();
+        Point tile = item.tile();
+        int units = MESSAGE_UNITS.getOrDefault(message, 0);
+        switch (message) {
+            case ROOM_WANTED -> {
+                Room room = kwdFile.getRoomById(roomId);
+                if (room == null || playerController.getRoomControl().getTypeCount(room) > 0) {
+                    return;
+                }
+                units = ROOM_WANTED_UNITS.getOrDefault(roomId, ROOM_MESSAGE_UNITS);
+            }
+            case ROOM_TOO_SMALL -> {
+                if (!ROOMS_TO_GROW.contains(roomId)) {
+                    return;
+                }
+                units = ROOM_TOO_SMALL_UNITS.getOrDefault(roomId, ROOM_MESSAGE_UNITS);
+            }
+            case ROOM_CLAIMED -> {
+                IRoomController room = mapController.getRoomControllerByCoordinates(tile);
+                if (room == null) {
+                    return;
+                }
+                value = room.getRoomInstance().getRoom().getRoomId();
+                tile = room.getRoomInstance().getReferenceTile();
+            }
+            default -> {
+            }
+        }
+        boolean byRoom = message == KeeperAi.Message.ROOM_WANTED || message == KeeperAi.Message.ROOM_TOO_SMALL
+                || message == KeeperAi.Message.ROOM_CLAIMED;
+        int count = 0;
+        while (count < keeperAi.messages.length && keeperAi.messages[count] != null) {
+            if (units > 0 && keeperAi.messages[count] == message && (!byRoom || keeperAi.messageValues[count] == value)) {
+                return;
+            }
+            count++;
+        }
+        if (count == keeperAi.messages.length) {
+            removeMessage(keeperAi, 0);
+            count--;
+        }
+        keeperAi.messages[count] = message;
+        keeperAi.messageValues[count] = value;
+        keeperAi.messageTiles[count] = tile;
+        keeperAi.messageTicks[count] = units * MESSAGE_UNIT_SECONDS * ticksPerSecond;
+        keeperAi.messagesHandled[count] = false;
+    }
+
+    private static void removeMessage(KeeperAi keeperAi, int index) {
+        int last = keeperAi.messages.length - 1;
+        System.arraycopy(keeperAi.messages, index + 1, keeperAi.messages, index, last - index);
+        System.arraycopy(keeperAi.messageValues, index + 1, keeperAi.messageValues, index, last - index);
+        System.arraycopy(keeperAi.messageTiles, index + 1, keeperAi.messageTiles, index, last - index);
+        System.arraycopy(keeperAi.messageTicks, index + 1, keeperAi.messageTicks, index, last - index);
+        System.arraycopy(keeperAi.messagesHandled, index + 1, keeperAi.messagesHandled, index, last - index);
+        keeperAi.messages[last] = null;
+    }
+
+    /**
+     * Sees to a message as DK II's inbox does (0x4FA400). An attack is
+     * weighed up, a creature that turned unhappy or angry is seen to, and a
+     * room asked for or found full is held for the next plan
+     *
+     * @return whether it is seen to, false to try it again next turn
+     */
+    private boolean seeTo(KeeperAi keeperAi, IPlayerController playerController, AI ai, int index) {
+        KeeperAi.Message message = keeperAi.messages[index];
+        long value = keeperAi.messageValues[index];
+        return switch (message) {
+            case ROOM_WANTED ->
+                holdWantedRoom(keeperAi, playerController, (short) value, false, "a creature asked for it");
+            case ROOM_TOO_SMALL ->
+                holdFullRoom(keeperAi, playerController, ai, (short) value);
+            case UNHAPPY, ANGRY ->
+                creatures.answerMood(keeperAi, playerController, ai, new EntityId(value), message == KeeperAi.Message.ANGRY);
+            default -> {
+
+                // An attack puts it in a fight, weighed up or not (0x4FA400)
+                keeperAi.fighting = true;
+                yield battles.weighUpAttack(keeperAi, playerControllers, ai, keeperAi.messageTiles[index], message == KeeperAi.Message.ROOM_CLAIMED);
+            }
+        };
+    }
+
+    /**
+     * Holds a room a creature found full to be planned next, grown or
+     * another one built by its settings, or none (0x4FA400 for message
+     * 0x2A). Gems never run out, so a full Treasury is left as it is while
+     * gems are mined (0x4FA7C0)
+     *
+     * @return whether the message is seen to, false when it waits
+     */
+    private boolean holdFullRoom(KeeperAi keeperAi, IPlayerController playerController, AI ai, short roomId) {
+        AI.RoomExpandPolicy policy = ai.getWhenMoreSpaceInRoomRequired();
+        if (policy == null || policy == AI.RoomExpandPolicy.IGNORE || roomId == ROOM_TREASURY
+                && getTaggedGold(keeperAi.playerId).stream().anyMatch(tile
+                        -> mapController.getTerrain(mapController.getMapData().getTile(tile)).getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE))) {
+            if (keeperAi.roomWanted && keeperAi.wantedRoomId == ROOM_PORTAL) {
+                keeperAi.roomWanted = false;
+            }
+            return true;
+        }
+
+        return holdWantedRoom(keeperAi, playerController, roomId, policy == AI.RoomExpandPolicy.EXPAND_EXISTING, "a creature found it full");
+    }
+
+    /**
+     * Holds a room a creature asked for or found full to be planned next,
+     * before the build order (0x4FA400, 0x4F93B0). The message drops a
+     * Portal plan. The room is held when no other room is, it may be built
+     * and it isn't the room being planned, even when it has one of the kind
+     * by now. While another room is held the message waits
+     *
+     * @param expand whether the room is to be grown rather than built anew
+     * @param reason why, for the decision log
+     * @return whether the message is seen to, false when it waits
+     */
+    private boolean holdWantedRoom(KeeperAi keeperAi, IPlayerController playerController, short roomId, boolean expand, String reason) {
         if (keeperAi.roomWanted && keeperAi.wantedRoomId == ROOM_PORTAL) {
             keeperAi.roomWanted = false;
         }
@@ -1098,9 +1269,9 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             return false;
         }
         if (keeperAi.roomId != roomId) {
-            log(keeperAi, "room " + roomId + " is next", null, "a creature asked for it");
+            log(keeperAi, "room " + roomId + " is next", null, reason);
             keeperAi.wantedRoomId = roomId;
-            keeperAi.wantedRoomExpand = false;
+            keeperAi.wantedRoomExpand = expand;
             keeperAi.roomWanted = true;
         }
         return true;
@@ -1745,12 +1916,18 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
     @Override
     public void start() {
-        EventBus.addListener(ServerEvents.ROOM_WANTED, roomWantedListener);
+        EventBus.addListener(ServerEvents.ROOM_WANTED, roomListener);
+        EventBus.addListener(ServerEvents.ROOM_TOO_SMALL, roomListener);
+        EventBus.addListener(ServerEvents.KEEPER_ATTACKED, attackListener);
+        EventBus.addListener(ServerEvents.CREATURE_UPSET, moodListener);
     }
 
     @Override
     public void stop() {
-        EventBus.removeListener(ServerEvents.ROOM_WANTED, roomWantedListener);
+        EventBus.removeListener(ServerEvents.ROOM_WANTED, roomListener);
+        EventBus.removeListener(ServerEvents.ROOM_TOO_SMALL, roomListener);
+        EventBus.removeListener(ServerEvents.KEEPER_ATTACKED, attackListener);
+        EventBus.removeListener(ServerEvents.CREATURE_UPSET, moodListener);
         keeperAis.release();
         objects.release();
         battles.release();

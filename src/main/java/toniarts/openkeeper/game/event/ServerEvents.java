@@ -29,6 +29,22 @@ public final class ServerEvents {
      */
     public static final EventType<RoomWanted> ROOM_WANTED = EventType.create("RoomWanted", RoomWanted.class);
 
+    /**
+     * A creature looked for a room and found the rooms of the kind its keeper
+     * has full
+     */
+    public static final EventType<RoomWanted> ROOM_TOO_SMALL = EventType.create("RoomTooSmall", RoomWanted.class);
+
+    /**
+     * Something of a keeper was attacked
+     */
+    public static final EventType<KeeperAttacked> KEEPER_ATTACKED = EventType.create("KeeperAttacked", KeeperAttacked.class);
+
+    /**
+     * A creature turned unhappy or angry
+     */
+    public static final EventType<CreatureUpset> CREATURE_UPSET = EventType.create("CreatureUpset", CreatureUpset.class);
+
     private ServerEvents() {
         // Just collection of events we can use with our event bus
     }

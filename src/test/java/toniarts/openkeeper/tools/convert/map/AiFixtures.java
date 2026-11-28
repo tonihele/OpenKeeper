@@ -187,6 +187,17 @@ public final class AiFixtures {
     }
 
     /**
+     * Sets that the computer player slaps none of its creatures
+     *
+     * @param ai the computer player settings
+     * @return the same settings
+     */
+    public static AI withNoSlaps(AI ai) {
+        ai.setWillNotSlapCreatures(true);
+        return ai;
+    }
+
+    /**
      * Sets how the computer player places traps and doors
      *
      * @param ai the computer player settings

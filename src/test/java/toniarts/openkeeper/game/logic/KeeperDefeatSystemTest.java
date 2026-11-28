@@ -592,6 +592,7 @@ class KeeperDefeatSystemTest {
         ICreatureController[] creature = new ICreatureController[1];
         creature[0] = stub(ICreatureController.class, (name, args) -> switch (name) {
             case "getEntityId" -> entity;
+            case "getOwnerId" -> entityData.getComponent(entity, Owner.class).ownerId;
             case "getStateMachine" -> stateMachines.computeIfAbsent(entity,
                     e -> new DefaultStateMachine<>(creature[0], CreatureState.IDLE));
             case "getAssignedTask" -> leaving.contains(entity) ? leave : null;

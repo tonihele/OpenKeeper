@@ -136,11 +136,13 @@ final class KeeperAiBattles {
 
     /**
      * DK II counts the enemy threat 10 tiles around an attack, its own 4
-     * tiles around it, and drops on or carries from 5 tiles around it
+     * tiles around it, and drops on or carries from 5 tiles around it. For a
+     * room being claimed it counts both 5 tiles around the room (0x4FA000)
      */
     private static final int ATTACK_ENEMY_THREAT_TILES = 10;
     private static final int ATTACK_OWN_THREAT_TILES = 4;
     private static final int ATTACK_DROP_TILES = 5;
+    private static final int ROOM_ATTACK_THREAT_TILES = 5;
 
     /**
      * DK II's rolls for a spell in a fight: a 4 sided die against the
@@ -150,12 +152,6 @@ final class KeeperAiBattles {
     private static final int BATTLE_SPELL_ROLL = 4;
     private static final int BATTLE_SPELL_MANA_STEP = 2499;
     private static final int BATTLE_SPELL_TARGET_ROLL = 75;
-
-    /**
-     * DK II weighs an attack up when the message of it comes in. Without
-     * the messages the computer player looks for itself, this often
-     */
-    private static final int LOOK_FOR_ATTACK_EVERY_SECONDS = 10;
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
@@ -543,62 +539,27 @@ final class KeeperAiBattles {
     }
 
     /**
-     * Looks for an attack on the computer player, every few seconds: one of
-     * its creatures in a fight, or an enemy creature that goes for something
-     * of its own. It weighs the attack up and queues it to be answered
-     *
-     * @param keeperAi the computer player
-     * @param playerControllers all the players
-     * @param ai its settings
-     * @param ticksPerSecond the game ticks in a second
-     */
-    void lookForAttack(KeeperAi keeperAi, Map<Short, IPlayerController> playerControllers, AI ai, int ticksPerSecond) {
-        if (keeperAi.attackLookTicks > 0 || keeperAi.attacks >= keeperAi.attackNeeds.length) {
-            return;
-        }
-
-        Keeper keeper = playerControllers.get(keeperAi.playerId).getKeeper();
-        Point place = null;
-        for (Entity creature : getCreatures(keeperAi.playerId)) {
-            if (isFighting(creature)) {
-                place = WorldUtils.vectorToPoint(creature.get(Position.class).position);
-                break;
-            }
-        }
-        for (IPlayerController enemy : playerControllers.values()) {
-            if (place != null || !keeper.isEnemy(enemy.getKeeper().getId())) {
-                continue;
-            }
-            for (Entity creature : getCreatures(enemy.getKeeper().getId())) {
-                AttackTarget attackTarget = entityData.getComponent(creature.getId(), AttackTarget.class);
-                Owner owner = attackTarget != null ? entityData.getComponent(attackTarget.entityId, Owner.class) : null;
-                if (owner != null && owner.ownerId == keeperAi.playerId) {
-                    place = WorldUtils.vectorToPoint(creature.get(Position.class).position);
-                    break;
-                }
-            }
-        }
-        if (place != null) {
-            keeperAi.attackLookTicks = LOOK_FOR_ATTACK_EVERY_SECONDS * ticksPerSecond;
-            weighUpAttack(keeperAi, playerControllers, ai, place);
-        }
-    }
-
-    /**
-     * Weighs an attack up, like DK II does for an attack message. With a
+     * Weighs an attack up, like DK II does for an attack message (0x4F9B90,
+     * 0x4FA000). With three attacks still to answer the message waits. With a
      * Prison it first decides anew for each enemy creature whether to take
      * it prisoner. Then it sets the enemy threat within 10 tiles against
-     * the threat it has within 4 tiles. Where it has land within 5 tiles it
-     * queues the threat it still needs there. Where it has none, and it is
-     * outnumbered, it queues its own threat to be carried away, if its
-     * settings say so.
+     * the threat it has within 4 tiles, for a room being claimed both within
+     * 5 tiles of the room. Where it has land within 5 tiles it queues the
+     * threat it still needs there. Where it has none, and it is outnumbered,
+     * it queues its own threat to be carried away, if its settings say so.
      *
      * @param keeperAi the computer player
      * @param playerControllers all the players
      * @param ai its settings
      * @param place the tile of the attack
+     * @param room whether a room is being claimed
+     * @return whether the attack is weighed up, false while three wait
      */
-    void weighUpAttack(KeeperAi keeperAi, Map<Short, IPlayerController> playerControllers, AI ai, Point place) {
+    boolean weighUpAttack(KeeperAi keeperAi, Map<Short, IPlayerController> playerControllers, AI ai, Point place, boolean room) {
+        if (keeperAi.attacks >= keeperAi.attackNeeds.length) {
+            return false;
+        }
+
         IPlayerController playerController = playerControllers.get(keeperAi.playerId);
         Keeper keeper = playerController.getKeeper();
         boolean prison = playerController.getRoomControl().getTypeCount(kwdFile.getRoomById(ROOM_PRISON)) > 0;
@@ -617,14 +578,14 @@ final class KeeperAiBattles {
                                 imprison ? players & ~(1 << keeperAi.playerId) : players | 1 << keeperAi.playerId));
                     }
                 }
-                int threat = getThreat(otherId, position, ATTACK_ENEMY_THREAT_TILES);
+                int threat = getThreat(otherId, position, room ? ROOM_ATTACK_THREAT_TILES : ATTACK_ENEMY_THREAT_TILES);
                 enemyThreat += threat;
                 if (threat > 0) {
                     keeperAi.attackerId = otherId;
                 }
             }
             if (keeper.isAlly(otherId)) {
-                ownThreat += getThreat(otherId, position, ATTACK_OWN_THREAT_TILES);
+                ownThreat += getThreat(otherId, position, room ? ROOM_ATTACK_THREAT_TILES : ATTACK_OWN_THREAT_TILES);
             }
         }
 
@@ -643,6 +604,8 @@ final class KeeperAiBattles {
             keeperAi.attackTiles[attack] = place;
             keeperAi.attacks++;
         }
+
+        return true;
     }
 
     /**

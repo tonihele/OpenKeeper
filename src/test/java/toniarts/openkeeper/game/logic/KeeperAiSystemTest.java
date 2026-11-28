@@ -27,6 +27,7 @@ import com.simsilica.event.EventBus;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -42,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.AttackTarget;
@@ -59,11 +61,15 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.KeeperAi;
 import toniarts.openkeeper.game.component.KeeperAiDropped;
 import toniarts.openkeeper.game.component.KeeperAiEnemy;
+import toniarts.openkeeper.game.component.KeeperAiMood;
 import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Threat;
@@ -88,6 +94,8 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.CreatureUpset;
+import toniarts.openkeeper.game.event.KeeperAttacked;
 import toniarts.openkeeper.game.event.RoomWanted;
 import toniarts.openkeeper.game.event.ServerEvents;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -107,6 +115,7 @@ import static toniarts.openkeeper.tools.convert.map.AiFixtures.withCallToArms;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withInvasion;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withMoodCare;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withNeutralRoomRange;
+import static toniarts.openkeeper.tools.convert.map.AiFixtures.withNoSlaps;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withPrisonerFate;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withSightOfEvil;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withMoreSpace;
@@ -170,6 +179,7 @@ class KeeperAiSystemTest {
     private static final short HERO_PORTAL = CreatureSpawnSystem.HERO_PORTAL_ROOM_ID;
     private static final short HORNY = 9;
     private static final short EATER = 8;
+    private static final short WORKER = 7;
     private static final short THUNDERBOLT = 6;
     private static final short HEAL = 10;
     private static final int ROOM_COST = 10;
@@ -272,6 +282,7 @@ class KeeperAiSystemTest {
     private final Map<EntityId, Point> dropped = new HashMap<>();
     private final Map<EntityId, EntityId> droppedOn = new HashMap<>();
     private final Map<Point, List<EntityId>> hatcheryFood = new HashMap<>();
+    private int roomCapacity = 2;
     private final List<Point> dropAttempts = new ArrayList<>();
     private boolean rejectPreferredHeartDrop;
     private Room dungeonHeartTileRoom;
@@ -284,7 +295,18 @@ class KeeperAiSystemTest {
     private boolean reachable;
     private final Set<Point> closedTiles = new HashSet<>();
     private final List<List<Point>> routesAsked = new ArrayList<>();
-    private final Set<Short> fullRooms = new HashSet<>();
+
+    /**
+     * The computer players started, to be stopped after each test
+     */
+    private final List<KeeperAiSystem> systems = new ArrayList<>();
+
+    @AfterEach
+    void stopSystems() {
+        for (KeeperAiSystem system : systems) {
+            system.stop();
+        }
+    }
 
     @Test
     void digsToANeutralPortalNearItsRoomsWhenThereIsNoRoomToBuild() {
@@ -683,6 +705,7 @@ class KeeperAiSystemTest {
         // On the map from before the computer player started, so none of them just came
         KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 175, true, 0), 1000);
         gameTime = 100;
+        attack(new Point(5, 4));
 
         // 175 % of the enemy's 200 less its own 100 near the fight, and the first one is dropped at once
         system.processTick(0.25f);
@@ -716,6 +739,7 @@ class KeeperAiSystemTest {
         entityData.setComponent(justDropped, new KeeperAiDropped(90));
         KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 175, true, 0), 1000);
         gameTime = 100;
+        attack(new Point(5, 4));
         for (int tick = 0; tick < 10; tick++) {
             system.processTick(0.25f);
         }
@@ -746,7 +770,7 @@ class KeeperAiSystemTest {
         spellControl.setTypeAvailable(heal, true, true);
         spellControl.setTypeAvailable(thunderbolt, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 60, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT)));
+        startFight(fighter, createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT));
         createCreature(PLAYER_ID, new Point(12, 9), 10, 100, CreatureState.IDLE);
         EntityId hurt = createCreature(PLAYER_ID, new Point(4, 4), 49, 100, CreatureState.IDLE);
 
@@ -761,7 +785,7 @@ class KeeperAiSystemTest {
         KeeperAiSystem system = createSystem(withBattleSpells(ai(0, 0, 9, 1, 50, 0, List.of()), 0, 4, 0), 1000);
         spellControl.setTypeAvailable(heal, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 60, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT)));
+        startFight(fighter, createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT));
         EntityId knockedOut = createCreature(PLAYER_ID, new Point(4, 4), 0, 100, CreatureState.UNCONSCIOUS);
         entityData.setComponent(knockedOut, new Unconscious(0));
 
@@ -783,7 +807,7 @@ class KeeperAiSystemTest {
         spellControl.setTypeAvailable(thunderbolt, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 40, 100, CreatureState.FIGHT);
         EntityId enemy = createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(enemy));
+        startFight(fighter, enemy);
         createCreature(ENEMY_ID, new Point(12, 9), 100, 100, CreatureState.IDLE);
 
         system.processTick(0.25f);
@@ -866,6 +890,7 @@ class KeeperAiSystemTest {
         EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 100, 100, CreatureState.WORK);
         createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
         entityData.setComponent(createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT), new AttackTarget(fighter));
+        attack(new Point(5, 4));
 
         system.processTick(0.25f);
 
@@ -881,6 +906,7 @@ class KeeperAiSystemTest {
         createCreature(ENEMY_ID, new Point(13, 4), 100, 100, CreatureState.FIGHT);
         EntityId near = createCreature(PLAYER_ID, new Point(10, 3), 100, 100, CreatureState.IDLE);
         EntityId far = createCreature(PLAYER_ID, new Point(12, 9), 100, 100, CreatureState.IDLE);
+        attack(new Point(12, 3));
 
         system.processTick(0.25f);
         assertEquals(-100, getKeeperAi().attackNeeds[0]);
@@ -900,6 +926,7 @@ class KeeperAiSystemTest {
         EntityId fighter = createCreature(PLAYER_ID, new Point(12, 3), 100, 100, CreatureState.FIGHT);
         EntityId enemy = createCreature(ENEMY_ID, new Point(13, 3), 100, 100, CreatureState.FIGHT);
         entityData.setComponent(fighter, new AttackTarget(enemy));
+        attack(new Point(12, 3));
 
         system.processTick(0.25f);
         assertEquals(0, getKeeperAi().attacks);
@@ -907,9 +934,56 @@ class KeeperAiSystemTest {
         // Outnumbered now, but told not to pull out
         entityData.removeEntity(entityData.findEntity(null, KeeperAi.class));
         system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 175, false, 0), 1000);
+        attack(new Point(12, 3));
         system.processTick(0.25f);
         assertEquals(0, getKeeperAi().attacks);
         assertTrue(dropped.isEmpty());
+    }
+
+    @Test
+    void weighsUpThreeAttacksAtATimeAndHearsOfAFightOnlyAsItStarts() {
+        KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 175, true, 0), 1000);
+        createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT);
+        for (KeeperAttacked.Target target : List.of(KeeperAttacked.Target.HEART, KeeperAttacked.Target.LAND,
+                KeeperAttacked.Target.ALARM, KeeperAttacked.Target.CREATURE)) {
+            EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(PLAYER_ID, target, new Point(5, 4)));
+        }
+
+        // Three are queued and the first is answered at once, it has no creature to drop. The fourth waits, but
+        // a fight that started is news for the turn it comes in only (DK II's message 6)
+        system.processTick(0.25f);
+
+        assertEquals(2, getKeeperAi().attacks);
+        assertEquals(List.of(KeeperAi.Message.HEART_ATTACKED, KeeperAi.Message.LAND_CLAIMED, KeeperAi.Message.ALARM),
+                Arrays.stream(getKeeperAi().messages).filter(message -> message != null).toList());
+
+        // The heart hit again is no news while the message lasts
+        EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(PLAYER_ID, KeeperAttacked.Target.HEART, new Point(5, 4)));
+        system.processTick(0.25f);
+
+        assertEquals(1, getKeeperAi().attacks);
+        assertEquals(3, Arrays.stream(getKeeperAi().messages).filter(message -> message != null).count());
+    }
+
+    @Test
+    void weighsUpAClaimOfItsRoomWithItsOwnThreatWithinFiveTilesOfTheRoom() {
+        KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 100, true, 0), 1000);
+        createCreature(ENEMY_ID, new Point(5, 7), 100, 100, CreatureState.FIGHT);
+        createCreature(PLAYER_ID, new Point(8, 5), 100, 100, CreatureState.FIGHT);
+        createCreature(PLAYER_ID, new Point(8, 9), 100, 100, CreatureState.FIGHT);
+        EntityId idle = createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
+
+        // Both its fighters are within 5 tiles of the heart's reference tile, so the heart needs no help (0x4FA000)
+        EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(PLAYER_ID, KeeperAttacked.Target.ROOM, new Point(2, 5)));
+        system.processTick(0.25f);
+
+        assertTrue(dropped.isEmpty());
+
+        // Round a fight it counts its own threat 4 tiles out only, which leaves them out
+        attack(HEART_REFERENCE);
+        system.processTick(0.25f);
+
+        assertEquals(Set.of(idle), dropped.keySet());
     }
 
     @Test
@@ -920,20 +994,21 @@ class KeeperAiSystemTest {
         entityData.setComponent(fighter, new AttackTarget(enemy));
 
         // No Prison, no decision
+        attack(new Point(5, 4));
         system.processTick(0.25f);
         assertNull(entityData.getComponent(enemy, KeeperAiNoPrisoner.class));
 
         // It never takes prisoners
         roomControl.onBuild(createRoom(PRISON, new Point(1, 4)));
-        for (int tick = 0; tick < 41; tick++) {
-            system.processTick(0.25f);
-        }
+        attack(new Point(5, 4));
+        system.processTick(0.25f);
         assertEquals(1 << PLAYER_ID, entityData.getComponent(enemy, KeeperAiNoPrisoner.class).players);
 
         // It always takes prisoners
         entityData.removeEntity(entityData.findEntity(null, KeeperAi.class));
         system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 0, false, 100), 1000);
         roomControl.onBuild(createRoom(PRISON, new Point(1, 4)));
+        attack(new Point(5, 4));
         system.processTick(0.25f);
         assertEquals(0, entityData.getComponent(enemy, KeeperAiNoPrisoner.class).players);
     }
@@ -1110,7 +1185,7 @@ class KeeperAiSystemTest {
         spellControl.setTypeAvailable(callToArms, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
         EntityId enemy = createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(enemy));
+        startFight(fighter, enemy);
 
         // One enemy is a threat of 100
         gameTime = 10;
@@ -1145,7 +1220,7 @@ class KeeperAiSystemTest {
         KeeperAiSystem system = createSystem(withCallToArms(ai(0, 0, 9, 1, 50, 0, List.of()), 150, 240, 1, 5, 1, 90), 1000);
         spellControl.setTypeAvailable(callToArms, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT)));
+        startFight(fighter, createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT));
         createCreature(ENEMY_ID, new Point(8, 8), 100, 100, CreatureState.IDLE);
         gameTime = 10;
         system.processTick(0.25f);
@@ -1167,7 +1242,7 @@ class KeeperAiSystemTest {
         reachable = true;
         spellControl.setTypeAvailable(callToArms, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT)));
+        startFight(fighter, createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT));
         gameTime = 10;
         system.processTick(0.25f);
 
@@ -1195,7 +1270,7 @@ class KeeperAiSystemTest {
         spellControl.setTypeAvailable(callToArms, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
         EntityId enemy = createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(enemy));
+        startFight(fighter, enemy);
         gameTime = 10;
         system.processTick(0.25f);
         system.processTick(0.25f);
@@ -1216,7 +1291,7 @@ class KeeperAiSystemTest {
         reachable = true;
         spellControl.setTypeAvailable(callToArms, true, true);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
-        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT)));
+        startFight(fighter, createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT));
         EntityId second = createCreature(PLAYER_ID, new Point(3, 6), 100, 100, CreatureState.IDLE);
         gameTime = 10;
         system.processTick(0.25f);
@@ -1256,16 +1331,41 @@ class KeeperAiSystemTest {
     }
 
     @Test
-    void createsNoImpsWhileItsCreaturesFight() {
+    void createsNoImpsWhileItsCreaturesFightNorOnTheTurnItFindsTheFightOver() {
         KeeperAiSystem system = createSystem(ai(4, 10, 9, 1, 50, 0, List.of()), 1000);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
         entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT)));
+        EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(PLAYER_ID, KeeperAttacked.Target.CREATURE, new Point(8, 3)));
 
+        system.processTick(0.25f);
         system.processTick(0.25f);
 
         assertTrue(impSpells.isEmpty());
 
+        // The fight is over, it sees to the fight once more and finds none of its creatures fighting (0x503060)
         entityData.removeComponent(fighter, AttackTarget.class);
+        system.processTick(0.25f);
+
+        assertTrue(impSpells.isEmpty());
+
+        system.processTick(0.25f);
+
+        assertEquals(1, impSpells.size());
+    }
+
+    @Test
+    void anAttackWithoutAFightCostsOneTurnOfItsImps() {
+        KeeperAiSystem system = createSystem(ai(4, 10, 9, 1, 50, 0, List.of()), 1000);
+
+        // With a creature of its own there and no enemy it needs nothing dropped
+        createCreature(PLAYER_ID, new Point(8, 4), 100, 100, CreatureState.IDLE);
+        EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(PLAYER_ID, KeeperAttacked.Target.ALARM, new Point(8, 3)));
+
+        system.processTick(0.25f);
+
+        assertTrue(impSpells.isEmpty());
+        assertFalse(getKeeperAi().fighting);
+
         system.processTick(0.25f);
 
         assertEquals(1, impSpells.size());
@@ -1451,6 +1551,73 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void slapsAnIdleCreatureOnlyWhileItStandsStill() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+        EntityId walking = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        entityData.setComponent(walking, new Navigation(new Point(8, 6), null, List.of()));
+        for (int tick = 0; tick < 2000; tick++) {
+            system.processTick(0.25f);
+        }
+        assertTrue(slapped.isEmpty());
+
+        // DK II's idle walk (states 86 and 87) isn't status 5, standing idle (state 1) is
+        entityData.removeComponent(walking, Navigation.class);
+        for (int tick = 0; tick < 2000 && slapped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+        assertEquals(List.of(walking), slapped);
+    }
+
+    @Test
+    void slapsAWorkerThatReinforcesAWallAsIdle() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+        EntityId digger = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.WORK);
+        EntityId reinforcer = createCreature(PLAYER_ID, new Point(8, 4), 100, 100, CreatureState.WORK);
+        CreatureComponent imp = new CreatureComponent();
+        imp.creatureId = WORKER;
+        imp.worker = true;
+        entityData.setComponent(digger, imp);
+        entityData.setComponent(reinforcer, new CreatureComponent(imp));
+        entityData.setComponent(digger, new TaskComponent(1, null, new Point(8, 2), TaskType.DIG_TILE, 0, true));
+        entityData.setComponent(reinforcer, new TaskComponent(2, null, new Point(9, 4), TaskType.CLAIM_WALL, 0, true));
+        for (int tick = 0; tick < 2000 && slapped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+
+        assertEquals(List.of(reinforcer), slapped);
+    }
+
+    @Test
+    void slapsNoCreatureWhileItsSpeedIsChanged() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+
+        // The faster work of a slap is over, the speed of it not yet
+        EntityId quick = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        entityData.setComponent(quick, new SpeedChange(100));
+        for (int tick = 0; tick < 2000; tick++) {
+            system.processTick(0.25f);
+        }
+        assertTrue(slapped.isEmpty());
+
+        entityData.removeComponent(quick, SpeedChange.class);
+        for (int tick = 0; tick < 2000 && slapped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+        assertEquals(List.of(quick), slapped);
+    }
+
+    @Test
+    void slapsNoCreatureWhenItsSettingsSaySo() {
+        KeeperAiSystem system = createSystem(withNoSlaps(ai(0, 0, 9, 1, 50, 0, List.of())), 1000);
+        createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        for (int tick = 0; tick < 2000; tick++) {
+            system.processTick(0.25f);
+        }
+
+        assertTrue(slapped.isEmpty());
+    }
+
+    @Test
     void takesAnEnemyPrisonerToTheTortureChamberNowAndThen() {
         KeeperAiSystem system = createSystem(withPrisonerFate(ai(0, 0, 9, 1, 50, 0, List.of()), AI.ImprisonedCreatureFatePolicy.TORTURE), 1000);
         roomControl.onBuild(createRoom(PRISON, new Point(1, 4)));
@@ -1535,8 +1702,10 @@ class KeeperAiSystemTest {
 
         // Happy and then unhappy again is news again
         entityData.setComponent(creature, new CreatureMood());
+        tellMood(creature, 0);
         system.processTick(0.25f);
         entityData.setComponent(creature, new CreatureMood().add(CreatureMood.REASON_GENERAL, 1000));
+        tellMood(creature, 1);
         system.processTick(0.25f);
         assertEquals(700, keeper.getGold());
     }
@@ -1594,7 +1763,20 @@ class KeeperAiSystemTest {
         roomControl.onBuild(createRoom(LIBRARY, new Point(1, 4)));
         entityData.setComponent(justDropped, new KeeperAiDropped(30));
         gameTime = 100;
+        tellMood(justDropped, 0);
+        tellMood(justDropped, 1);
+        tellMood(creature, 0);
+        tellMood(creature, 1);
 
+        // DK II has one message of an unhappy creature at a time, the second one is not news while the first lasts
+        system.processTick(0.25f);
+        assertTrue(dropped.isEmpty());
+
+        // Once the first is content again, the second is news
+        tellMood(justDropped, 0);
+        system.processTick(0.25f);
+        tellMood(creature, 0);
+        tellMood(creature, 1);
         system.processTick(0.25f);
 
         assertEquals(Map.of(creature, new Point(1, 4)), dropped);
@@ -1613,14 +1795,31 @@ class KeeperAiSystemTest {
         // Calming down to unhappy is no news, turning angry again is
         dropped.clear();
         entityData.setComponent(creature, new CreatureMood().add(CreatureMood.REASON_NO_PAY, 100));
+        tellMood(creature, 1);
         system.processTick(0.25f);
         assertTrue(dropped.isEmpty());
 
         roomControl.onBuild(createRoom(TEMPLE, new Point(5, 4)));
         entityData.setComponent(creature, new CreatureMood().add(CreatureMood.REASON_NO_PAY, 40000));
+        tellMood(creature, 2);
         gameTime = 100;
         system.processTick(0.25f);
         assertEquals(Map.of(creature, new Point(5, 4)), dropped);
+    }
+
+    @Test
+    void triesEachTurnToGetRidOfAnAngryCreatureUntilItHasARoomToDropItIn() {
+        KeeperAiSystem system = createSystem(withMoodCare(ai(0, 0, 9, 1, 50, 0, List.of()), true, true, true), 1000);
+        EntityId creature = createUnhappyCreature(CreatureMood.REASON_NO_PAY, 40000);
+
+        system.processTick(0.25f);
+        assertTrue(dropped.isEmpty());
+
+        // DK II keeps the message unhandled until the creature is gone (0x4F9520)
+        roomControl.onBuild(createRoom(PORTAL, new Point(1, 8)));
+        system.processTick(0.25f);
+
+        assertEquals(Map.of(creature, new Point(1, 8)), dropped);
     }
 
     @Test
@@ -1657,6 +1856,7 @@ class KeeperAiSystemTest {
     private EntityId createUnhappyCreature(int reason, int anger) {
         EntityId creature = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.WORK);
         entityData.setComponent(creature, new CreatureMood().add(reason, anger));
+        tellMood(creature, anger > Short.MAX_VALUE ? 2 : 1);
 
         return creature;
     }
@@ -2594,7 +2794,8 @@ class KeeperAiSystemTest {
         KeeperAiSystem system = createSystem(withMoreSpace(ai(0, 0, 9, 1, 50, 0, List.of(LAIR)), AI.RoomExpandPolicy.EXPAND_EXISTING, false), 1000);
         roomControl.setTypeAvailable(rooms.get(LAIR), true, true);
         roomControl.onBuild(createRoom(LAIR, new Point(9, 2), new Point(11, 4)));
-        fullRooms.add(LAIR);
+        gameTime = 5;
+        EventBus.publish(ServerEvents.ROOM_TOO_SMALL, new RoomWanted(PLAYER_ID, ObjectType.LAIR));
 
         system.processTick(0.25f);
 
@@ -2617,12 +2818,29 @@ class KeeperAiSystemTest {
     }
 
     @Test
-    void growsAFullTrainingRoomToo() {
+    void growsAFullTrainingRoomOnceItWorksAndHasHeldItsSizeForFourSeconds() {
         KeeperAiSystem system = createSystem(withMoreSpace(ai(0, 0, 9, 1, 50, 0, List.of(TRAINING_ROOM)), AI.RoomExpandPolicy.EXPAND_EXISTING, false), 1000);
         roomControl.setTypeAvailable(rooms.get(TRAINING_ROOM), true, true);
         roomControl.onBuild(createRoom(TRAINING_ROOM, new Point(9, 2), new Point(11, 4)));
-        fullRooms.add(TRAINING_ROOM);
 
+        // Just built, it is not too small yet (DK II's CRoom+0x9F)
+        gameTime = 4;
+        EventBus.publish(ServerEvents.ROOM_TOO_SMALL, new RoomWanted(PLAYER_ID, ObjectType.TRAINEE));
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
+        assertTrue(Arrays.stream(getKeeperAi().messages).noneMatch(message -> message == KeeperAi.Message.ROOM_TOO_SMALL));
+
+        // Without a Training Dummy it doesn't work, and it is full but not too small (+0xA3)
+        gameTime = 10;
+        roomCapacity = 0;
+        EventBus.publish(ServerEvents.ROOM_TOO_SMALL, new RoomWanted(PLAYER_ID, ObjectType.TRAINEE));
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
+
+        roomCapacity = 2;
+        EventBus.publish(ServerEvents.ROOM_TOO_SMALL, new RoomWanted(PLAYER_ID, ObjectType.TRAINEE));
         system.processTick(0.25f);
 
         assertEquals(KeeperAi.Task.TAG_ROOM, getKeeperAi().task);
@@ -2631,17 +2849,28 @@ class KeeperAiSystemTest {
 
     @Test
     void buildsAnotherRoomOrNoneForAFullRoomByItsSettings() {
-        AI ai = withMoreSpace(ai(0, 0, 9, 1, 50, 0, List.of(LAIR)), AI.RoomExpandPolicy.IGNORE, false);
-        KeeperAiSystem system = createSystem(ai, 1000);
+        IRoomController lair = createRoom(LAIR, new Point(9, 2), new Point(11, 4));
+        gameTime = 5;
+        KeeperAiSystem system = createSystem(withMoreSpace(ai(0, 0, 9, 1, 50, 0, List.of(LAIR)), AI.RoomExpandPolicy.IGNORE, false), 1000);
         roomControl.setTypeAvailable(rooms.get(LAIR), true, true);
-        roomControl.onBuild(createRoom(LAIR, new Point(9, 2), new Point(11, 4)));
-        fullRooms.add(LAIR);
+        roomControl.onBuild(lair);
+        EventBus.publish(ServerEvents.ROOM_TOO_SMALL, new RoomWanted(PLAYER_ID, ObjectType.LAIR));
 
         system.processTick(0.25f);
 
         assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
 
-        withMoreSpace(ai, AI.RoomExpandPolicy.CREATE_NEW, false);
+        // While the message it left alone lasts, the Lair is not news again
+        EventBus.publish(ServerEvents.ROOM_TOO_SMALL, new RoomWanted(PLAYER_ID, ObjectType.LAIR));
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
+
+        entityData.removeEntity(entityData.findEntity(null, KeeperAi.class));
+        system = createSystem(withMoreSpace(ai(0, 0, 9, 1, 50, 0, List.of(LAIR)), AI.RoomExpandPolicy.CREATE_NEW, false), 1000);
+        roomControl.setTypeAvailable(rooms.get(LAIR), true, true);
+        roomControl.onBuild(lair);
+        EventBus.publish(ServerEvents.ROOM_TOO_SMALL, new RoomWanted(PLAYER_ID, ObjectType.LAIR));
         system.processTick(0.25f);
 
         assertEquals(KeeperAi.Task.FIND_ROOM_SITE, getKeeperAi().task);
@@ -2674,48 +2903,58 @@ class KeeperAiSystemTest {
         roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
         roomControl.setTypeAvailable(rooms.get(LAIR), true, true);
         roomControl.setTypeAvailable(rooms.get(TRAINING_ROOM), true, true);
-        system.start();
-        try {
 
-            // The first ask is planned before the Treasury of its build order, the next one waits its turn
-            EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(PLAYER_ID, ObjectType.LAIR));
-            EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(PLAYER_ID, ObjectType.TRAINEE));
-            system.processTick(0.25f);
+        // The first ask is planned before the Treasury of its build order, the next one waits its turn
+        EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(PLAYER_ID, ObjectType.LAIR));
+        EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(PLAYER_ID, ObjectType.TRAINEE));
+        system.processTick(0.25f);
 
-            assertEquals(KeeperAi.Task.FIND_ROOM_SITE, getKeeperAi().task);
-            assertEquals(LAIR, getKeeperAi().roomId);
-            assertEquals(TRAINING_ROOM, getKeeperAi().roomAsks[0]);
+        assertEquals(KeeperAi.Task.FIND_ROOM_SITE, getKeeperAi().task);
+        assertEquals(LAIR, getKeeperAi().roomId);
+        assertEquals(List.of(TRAINING_ROOM), getWaitingRoomAsks());
 
-            // It takes the place of the Portal plan lined up next. The Lair isn't asked for again while its ask
-            // lasts, and nothing is queued for a room it may not build
-            EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(PLAYER_ID, ObjectType.GOLD));
-            EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(PLAYER_ID, ObjectType.LAIR));
-            EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(PLAYER_ID, ObjectType.WORSHIPPER));
-            system.processTick(0.25f);
+        // It takes the place of the Portal plan lined up next. The Lair isn't asked for again while its ask
+        // lasts, and the ask for a room it may not build is seen to at once
+        EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(PLAYER_ID, ObjectType.GOLD));
+        EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(PLAYER_ID, ObjectType.LAIR));
+        EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(PLAYER_ID, ObjectType.WORSHIPPER));
+        system.processTick(0.25f);
 
-            assertEquals(TRAINING_ROOM, getKeeperAi().wantedRoomId);
-            assertEquals(TREASURY, getKeeperAi().roomAsks[0]);
-            assertEquals(0, getKeeperAi().roomAsks[1]);
+        assertEquals(TRAINING_ROOM, getKeeperAi().wantedRoomId);
+        assertEquals(List.of(TREASURY), getWaitingRoomAsks());
+        assertEquals(4, Arrays.stream(getKeeperAi().messages).filter(message -> message == KeeperAi.Message.ROOM_WANTED).count());
 
-            // The Treasury asked for before it had one is planned in its turn all the same
-            roomControl.onBuild(createRoom(TREASURY, new Point(9, 2), new Point(11, 4)));
-            planAgain();
-            system.processTick(0.25f);
+        // The Treasury asked for before it had one is planned in its turn all the same
+        roomControl.onBuild(createRoom(TREASURY, new Point(9, 2), new Point(11, 4)));
+        planAgain();
+        system.processTick(0.25f);
 
-            assertEquals(TRAINING_ROOM, getKeeperAi().roomId);
+        assertEquals(TRAINING_ROOM, getKeeperAi().roomId);
 
-            system.processTick(0.25f);
+        system.processTick(0.25f);
 
-            assertEquals(TREASURY, getKeeperAi().wantedRoomId);
-            assertEquals(0, getKeeperAi().roomAsks[0]);
+        assertEquals(TREASURY, getKeeperAi().wantedRoomId);
+        assertEquals(List.of(), getWaitingRoomAsks());
 
-            planAgain();
-            system.processTick(0.25f);
+        planAgain();
+        system.processTick(0.25f);
 
-            assertEquals(TREASURY, getKeeperAi().roomId);
-        } finally {
-            system.stop();
+        assertEquals(TREASURY, getKeeperAi().roomId);
+    }
+
+    /**
+     * The rooms asked for that wait their turn, the first asked first
+     */
+    private List<Short> getWaitingRoomAsks() {
+        KeeperAi keeperAi = getKeeperAi();
+        List<Short> asks = new ArrayList<>();
+        for (int i = 0; keeperAi.messages[i] != null; i++) {
+            if (keeperAi.messages[i] == KeeperAi.Message.ROOM_WANTED && !keeperAi.messagesHandled[i]) {
+                asks.add((short) keeperAi.messageValues[i]);
+            }
         }
+
+        return asks;
     }
 
     private KeeperAi getKeeperAi() {
@@ -2784,7 +3023,9 @@ class KeeperAiSystemTest {
             case "getKeeperSpells" -> List.of(createImp, heal, thunderbolt);
             case "getCreature" -> ((Number) args[0]).shortValue() == EATER ? creatureWithJobs(EATER, Creature.JobType.RESEARCH, Creature.JobType.EAT)
                     : ((Number) args[0]).shortValue() == HORNY
-                    ? CombatExperienceFixtures.creature(HORNY, Creature.CreatureFlag.IS_HORNY) : CombatExperienceFixtures.creature((short) 0);
+                    ? CombatExperienceFixtures.creature(HORNY, Creature.CreatureFlag.IS_HORNY)
+                    : ((Number) args[0]).shortValue() == WORKER
+                    ? CombatExperienceFixtures.creature(WORKER, Creature.CreatureFlag.IS_WORKER) : CombatExperienceFixtures.creature((short) 0);
             case "getRooms" -> new ArrayList<>(rooms.values());
             case "getTraps" -> List.of(sentry);
             case "getObject" -> ((Number) args[0]).shortValue() == 1 ? GameObjectFixtures.gameObject("Gold")
@@ -2904,8 +3145,35 @@ class KeeperAiSystemTest {
                     return "isReachable".equals(method.getName()) ? path != null : path;
                 });
 
-        return new KeeperAiSystem(entityData, kwdFile, Map.of(PLAYER_ID, playerController, enemyId, enemyController), gameWorldController,
-                navigationService, () -> gameTime, logDecisions);
+        KeeperAiSystem system = new KeeperAiSystem(entityData, kwdFile, Map.of(PLAYER_ID, playerController, enemyId, enemyController),
+                gameWorldController, navigationService, () -> gameTime, logDecisions);
+        system.start();
+        systems.add(system);
+
+        return system;
+    }
+
+    /**
+     * Tells the computer player of a fight one of its creatures started
+     */
+    private static void attack(Point tile) {
+        EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(PLAYER_ID, KeeperAttacked.Target.CREATURE, tile));
+    }
+
+    /**
+     * Turns the mood its keeper was told of, and tells the keeper of a turn
+     * for the worse, as the mood system does
+     */
+    private void tellMood(EntityId creature, int state) {
+        KeeperAiMood told = entityData.getComponent(creature, KeeperAiMood.class);
+        if (state == 0) {
+            entityData.removeComponent(creature, KeeperAiMood.class);
+        } else {
+            entityData.setComponent(creature, new KeeperAiMood(state));
+        }
+        if (state > (told != null ? told.state : 0)) {
+            EventBus.publish(ServerEvents.CREATURE_UPSET, new CreatureUpset(PLAYER_ID, creature, state == 2));
+        }
     }
 
     /**
@@ -2924,6 +3192,16 @@ class KeeperAiSystemTest {
         return room;
     }
 
+    /**
+     * Puts a creature of the computer player in a fight, which it hears of as
+     * the fight starts
+     */
+    private void startFight(EntityId fighter, EntityId enemy) {
+        entityData.setComponent(fighter, new AttackTarget(enemy));
+        EventBus.publish(ServerEvents.KEEPER_ATTACKED, new KeeperAttacked(PLAYER_ID, KeeperAttacked.Target.CREATURE,
+                WorldUtils.vectorToPoint(entityData.getComponent(fighter, Position.class).position)));
+    }
+
     private IRoomController createRoom(short roomId, Point corner, Point oppositeCorner) {
         RoomInstance roomInstance = new RoomInstance(rooms.get(roomId));
         for (int x = corner.x; x <= oppositeCorner.x; x++) {
@@ -2935,8 +3213,14 @@ class KeeperAiSystemTest {
             }
         }
 
+        EntityId entityId = entityData.createEntity();
+        RoomComponent roomComponent = new RoomComponent(roomId, false, roomInstance.getCenter());
+        roomComponent.sizeTime = gameTime;
+        entityData.setComponent(entityId, roomComponent);
+
         return (IRoomController) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{IRoomController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getEntityId" -> entityId;
             case "getRoom" -> rooms.get(roomId);
             case "isDungeonHeart" -> roomId == DUNGEON_HEART;
             case "getRoomInstance" -> roomInstance;
@@ -2946,10 +3230,10 @@ class KeeperAiSystemTest {
                     || Math.abs(((Point) args[1]).x - roomInstance.getCenter().x) > 1
                     || Math.abs(((Point) args[1]).y - roomInstance.getCenter().y) > 1;
             case "getAccessibleTile" -> InvocationHandler.invokeDefault(proxy, method, args);
-            case "isFullCapacity" -> fullRooms.contains(roomId);
             case "hasObjectControl" -> roomId == HATCHERY;
             case "getObjectControl" -> Proxy.newProxyInstance(getClass().getClassLoader(),
-            new Class<?>[]{IRoomObjectControl.class}, (control, controlMethod, controlArgs) -> hatcheryFood.get((Point) controlArgs[0]));
+            new Class<?>[]{IRoomObjectControl.class}, (control, controlMethod, controlArgs) -> controlMethod.getName().equals("getMaxCapacity")
+                    ? roomCapacity : hatcheryFood.get((Point) controlArgs[0]));
             case "hashCode" -> System.identityHashCode(proxy);
             case "equals" -> proxy == args[0];
             default -> throw new UnsupportedOperationException(method.getName());
@@ -2993,6 +3277,11 @@ class KeeperAiSystemTest {
                         }
                         case "getRoomControllers" -> {
                             return neutralRooms;
+                        }
+                        case "getRoomsByFunction" -> {
+                            short roomId = args[0] == ObjectType.LAIR ? LAIR : TRAINING_ROOM;
+                            return roomControl.getRoomControllers().values().stream().flatMap(Set::stream)
+                                    .filter(room -> room.getRoom().getRoomId() == roomId).toList();
                         }
                         case "getRoomControllerByCoordinates" -> {
                             Point p = (Point) args[0];
