@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.game.controller.ILevelInfo;
 
 /**
  * Open sesame! Manages door opening and closing, on view level. We don't really
@@ -45,11 +46,17 @@ public final class DoorViewSystem implements IGameLogicUpdatable {
     private final EntitySet doorEntities;
 
     private final EntityData entityData;
+    private final ILevelInfo levelInfo;
     private final SafeArrayList<EntityId> doorEntityIds;
     private final IEntityPositionLookup entityPositionLookup;
 
     public DoorViewSystem(EntityData entityData, IEntityPositionLookup entityPositionLookup) {
+        this(entityData, entityPositionLookup, null);
+    }
+
+    public DoorViewSystem(EntityData entityData, IEntityPositionLookup entityPositionLookup, ILevelInfo levelInfo) {
         this.entityData = entityData;
+        this.levelInfo = levelInfo;
         this.entityPositionLookup = entityPositionLookup;
 
         doorEntities = entityData.getEntities(new AndFilter(DoorComponent.class,
@@ -82,10 +89,11 @@ public final class DoorViewSystem implements IGameLogicUpdatable {
                 for (EntityId entityId : entitiesInSameTile) {
                     if (doorEntityId != entityId) {
 
-                        // Should we open? Only to a creature of ours
+                        // Opening uses the live owner/alliance policy, independently of route knowledge.
                         if (entityData.getComponent(entityId, CreatureComponent.class) != null) {
                             Owner creatureOwner = entityData.getComponent(entityId, Owner.class);
-                            if (creatureOwner.ownerId == owner.ownerId) {
+                            if (creatureOwner != null && DoorAccessRules.isFriendlyOwner(
+                                    owner.ownerId, creatureOwner.ownerId, levelInfo)) {
                                 shouldBeOpen = true;
                                 break;
                             }

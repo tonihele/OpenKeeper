@@ -184,7 +184,7 @@ public final class GameLoopManager {
                 new TrainingDummySystem(entityData, levelInfo.getLevelData(), gameWorldController.getMapController(),
                         gameController.getGameTimer()),
                 new CreatureViewSystem(entityData, levelInfo.getLevelData()),
-                new DoorViewSystem(entityData, positionSystem),
+                new DoorViewSystem(entityData, positionSystem, levelInfo),
                 new BattleSystem(entityData, gameController.getGameTimer()),
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),

@@ -139,7 +139,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
         positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData,
                 gameWorldController.getCreaturesController(), gameWorldController.getDoorsController(),
-                gameWorldController.getObjectsController());
+                gameWorldController.getObjectsController(), levelInfo);
         gameWorldController.setEntityPositionLookup(positionSystem);
 
         // Navigation

@@ -38,6 +38,7 @@ import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IDoorsController;
 import toniarts.openkeeper.game.controller.IEntityWrapper;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
@@ -56,6 +57,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class PositionSystem implements IGameLogicUpdatable, IEntityPositionLookup {
 
     private final EntityData entityData;
+    private final ILevelInfo levelInfo;
     private final IMapController mapController;
     private final IObjectsController objectsController;
     private final EntitySet positionedEntities;
@@ -67,7 +69,13 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
     private final Map<EntityId, Set<EntityId>> sensedEntitiesByEntity = new HashMap<>();
 
     public PositionSystem(IMapController mapController, EntityData entityData, ICreaturesController creaturesController, IDoorsController doorsController, IObjectsController objectsController) {
+        this(mapController, entityData, creaturesController, doorsController, objectsController, null);
+    }
+
+    public PositionSystem(IMapController mapController, EntityData entityData, ICreaturesController creaturesController,
+            IDoorsController doorsController, IObjectsController objectsController, ILevelInfo levelInfo) {
         this.entityData = entityData;
+        this.levelInfo = levelInfo;
         this.mapController = mapController;
         this.objectsController = objectsController;
         entityWrappers.put(ICreatureController.class, creaturesController);
@@ -346,7 +354,10 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
             Owner owner = entityData.getComponent(entityId, Owner.class);
 
-            return owner == null || owner.ownerId != playerId ? entityId : null;
+            // Read live diplomacy so alliance changes do not leave a stale route.
+            boolean canOpen = owner != null
+                    && DoorAccessRules.isFriendlyOwner(owner.ownerId, playerId, levelInfo);
+            return canOpen ? null : entityId;
         }
 
         return null;
