@@ -20,11 +20,8 @@ import com.jme3.math.Vector2f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import com.simsilica.es.filter.AndFilter;
-import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
-import toniarts.openkeeper.game.component.DungeonBreach;
 import toniarts.openkeeper.game.control.Container;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.map.FlashTileControl;
@@ -389,30 +386,8 @@ public final class MapController extends Container implements IMapController {
     }
 
     @Override
-    public boolean takeBreach(short playerId, boolean enemy) {
-        EntityId breach = findBreach(playerId, enemy);
-        if (breach == null) {
-            return false;
-        }
-        entityData.removeEntity(breach);
-        return true;
-    }
-
-    @Override
     public void setRoomAttackMessages(RoomAttackMessages roomAttackMessages) {
         this.roomAttackMessages = roomAttackMessages;
-    }
-
-    private EntityId findBreach(short playerId, boolean enemy) {
-        return entityData.findEntity(AndFilter.create(DungeonBreach.class,
-                new FieldFilter<>(DungeonBreach.class, "playerId", playerId),
-                new FieldFilter<>(DungeonBreach.class, "enemy", enemy)), DungeonBreach.class);
-    }
-
-    private void addBreach(short playerId, boolean enemy) {
-        if (findBreach(playerId, enemy) == null) {
-            entityData.setComponent(entityData.createEntity(), new DungeonBreach(playerId, enemy));
-        }
     }
 
     @Override
@@ -600,12 +575,10 @@ public final class MapController extends Container implements IMapController {
                 enemyBreachListener.accept(playerId);
             }
 
-            // Bringing down a claimed wall of another player is a breach
+            // Bringing down a claimed wall of another player is a breach, the owner is told
             if (tile.getOwnerId() != 0 && tile.getOwnerId() != playerId
                     && terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
                     && terrain.getDestroyedTypeTerrainId() != terrain.getTerrainId()) {
-                addBreach(tile.getOwnerId(), false);
-                addBreach(playerId, true);
                 if (roomAttackMessages != null) {
                     roomAttackMessages.dungeonBreached(tile.getOwnerId(), point);
                 }

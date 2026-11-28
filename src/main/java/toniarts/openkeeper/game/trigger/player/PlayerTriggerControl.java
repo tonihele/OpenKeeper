@@ -126,17 +126,6 @@ public class PlayerTriggerControl extends TriggerControl {
     protected void pollEvents() {
         super.pollEvents();
 
-        // The map keeps the breaches the player has not heard of yet. Like in the original the
-        // player of the condition data is not looked at
-        if (isPlayerScope() && mapController != null) {
-            if (mapController.takeBreach(playerId, false)) {
-                fire(TriggerGeneric.TargetType.PLAYER_DUNGEON_BREACHED);
-            }
-            if (mapController.takeBreach(playerId, true)) {
-                fire(TriggerGeneric.TargetType.PLAYER_ENEMY_BREACHED);
-            }
-        }
-
         // The player events about the creatures are noticed from the statistics. Fire for each
         // creature type that has got more than on the previous poll
         IPlayerController playerController = getPlayerController(playerId);

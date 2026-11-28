@@ -72,7 +72,6 @@ import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.DummyRecoil;
-import toniarts.openkeeper.game.component.DungeonBreach;
 import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
@@ -246,7 +245,6 @@ public final class NetworkServer {
             Serializer.registerClass(CreatureSpells.class, new FieldSerializer());
             Serializer.registerClass(CreatureTypeAttraction.class, new FieldSerializer());
             Serializer.registerClass(CreatureTypePenalty.class, new FieldSerializer());
-            Serializer.registerClass(DungeonBreach.class, new FieldSerializer());
             Serializer.registerClass(DungeonHeart.class, new FieldSerializer());
             Serializer.registerClass(ImpGenerator.class, new FieldSerializer());
             Serializer.registerClass(MeleeHit.class, new FieldSerializer());
