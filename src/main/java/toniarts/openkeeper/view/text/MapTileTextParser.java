@@ -33,6 +33,7 @@ public final class MapTileTextParser {
     private static final short CLAIMED_PATH = 8;
     private static final short REINFORCED_WALL = 9;
     private static final short FOG_OF_WAR = 27;
+    private static final short EDGE_OF_MAP = 30;
     private static final short CLAIMED_MANA_VAULT = 32;
     private static final short CLAIM_SCAN = 38;
 
@@ -58,6 +59,8 @@ public final class MapTileTextParser {
                 return own ? 2798 : 2487;
             case REINFORCED_WALL:
                 return own ? terrain.getTooltipStringId() : 2481;
+            case EDGE_OF_MAP:
+                return 348; // Fog of War, DK II never explores the map edge (sub_42D4A0)
             case CLAIMED_MANA_VAULT:
                 return own ? 2799 : 2501;
             case FOG_OF_WAR:

@@ -23,6 +23,7 @@ import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Objects;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpells;
@@ -32,6 +33,7 @@ import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.Invulnerable;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
@@ -127,20 +129,24 @@ public class EntityController implements IEntityController {
 
     @Override
     public void removePossession() {
-        handleLootDrop();
+        dropLoot();
         handleAssociatedEntities();
     }
 
-    private void handleLootDrop() {
+    @Override
+    public void dropLoot() {
 
-        // Drop gold
+        // Drop gold, in one pile below 1000, two below 3000 and three from
+        // that up. The piles share the gold evenly, the remainder is lost (0x48F930)
         Gold gold = entityData.getComponent(entityId, Gold.class);
         if (gold != null && gold.gold > 0) {
             Position position = entityData.getComponent(entityId, Position.class);
             Point point = WorldUtils.vectorToPoint(position.position);
-            // TODO: some central place, we need to add more than one pile if it exceeds the max
-            objectsController.addLooseGold(point.x, point.y, gold.gold, gold.maxGold);
-            entityData.removeComponent(entityId, Gold.class);
+            int piles = gold.gold < 1000 ? 1 : gold.gold < 3000 ? 2 : 3;
+            for (int i = 0; i < piles; i++) {
+                objectsController.addLooseGold(point.x, point.y, gold.gold / piles, gold.maxGold);
+            }
+            entityData.setComponent(entityId, new Gold(0, gold.maxGold));
         }
 
         // Drop Portal Gem
@@ -222,7 +228,11 @@ public class EntityController implements IEntityController {
 
     @Override
     public void setDamage(EntityId entityId, int damageAmount) {
-        setDamage(entityData, entityId, damageAmount);
+
+        // Our hits and shots do an invulnerable creature no harm
+        if (damageAmount <= 0 || entityData.getComponent(entityId, Invulnerable.class) == null) {
+            setDamage(entityData, entityId, damageAmount);
+        }
     }
 
     public static void setDamage(EntityData entityData, EntityId entityId, int damageAmount) {
@@ -233,9 +243,9 @@ public class EntityController implements IEntityController {
 
     /**
      * Scales the damage a creature takes by what it is doing. DK II counts in
-     * 128ths: a possessed creature takes half, a frozen one a quarter more
-     * (DKII.EXE 0x4B2CE0), and one that lies stunned or is getting up takes
-     * double. Healing is never scaled
+     * 128ths: a possessed or armoured creature takes half, a frozen one a
+     * quarter more (DKII.EXE 0x4B2CE0), and one that lies stunned or is getting
+     * up takes double. Healing is never scaled
      *
      * @param entityData the entity data
      * @param entityId the entity that is hit
@@ -248,8 +258,8 @@ public class EntityController implements IEntityController {
         }
         int multiplier = 128;
 
-        // A possessed creature has no AI
-        if (entityData.getComponent(entityId, Possessed.class) != null) {
+        // A possessed creature has no AI. Armour on a possessed creature adds nothing
+        if (entityData.getComponent(entityId, Possessed.class) != null || entityData.getComponent(entityId, Armour.class) != null) {
             multiplier -= 64;
         }
 

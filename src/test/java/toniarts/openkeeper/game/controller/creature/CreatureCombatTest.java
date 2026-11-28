@@ -54,6 +54,7 @@ import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.CombatCreatureFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.DoorFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -502,7 +503,7 @@ class CreatureCombatTest {
     void spellStillRechargingOrOutOfRangeIsNotCast() {
         EntityId target = createCreature(HERO, FIGHTER, new Vector3f(5, 0, 7), 0);
         CreatureSpell shortRanged = new CreatureSpell(new CreatureSpell((short) 2, us, 1, 2), 1.0);
-        giveAttackSpells(us, castAt((short) 1, 5, 6.0), shortRanged, castAt((short) 3, 3, 6.5));
+        giveAttackSpells(us, castAt((short) 1, 5, 6.0), shortRanged, castAt((short) 3, 3, 6.0));
 
         createController(us).executeAttack(target);
 
@@ -543,6 +544,7 @@ class CreatureCombatTest {
         Map<Short, Keeper> keepers = Map.of(KEEPER, new Keeper(false, KEEPER), HERO, new Keeper(false, HERO));
         IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
             case "getCreature" -> creatures.get((Short) args[0]);
+            case "getGameLevel" -> CreatureSleepFixtures.level(4);
             case "getCreatureSpellById" -> (Short) args[0] == CREATURES_ONLY_SPELL
                     ? CombatCreatureFixtures.attackSpell(toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag.CAST_ONLY_ON_CREATURES)
                     : CombatCreatureFixtures.attackSpell();
