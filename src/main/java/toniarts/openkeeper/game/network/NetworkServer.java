@@ -50,6 +50,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureExperience;
+import toniarts.openkeeper.game.component.CreatureExperienceTimer;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureGenerator;
 import toniarts.openkeeper.game.component.CreatureHunger;
@@ -258,6 +259,7 @@ public final class NetworkServer {
             Serializer.registerClass(CreatureComponent.class, new FieldSerializer());
             Serializer.registerClass(CreatureEfficiency.class, new FieldSerializer());
             Serializer.registerClass(CreatureExperience.class, new FieldSerializer());
+            Serializer.registerClass(CreatureExperienceTimer.class, new FieldSerializer());
             Serializer.registerClass(CreatureFall.class, new FieldSerializer());
             Serializer.registerClass(CreatureHunger.class, new FieldSerializer());
             Serializer.registerClass(CreatureImprisoned.class, new FieldSerializer());

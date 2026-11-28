@@ -109,7 +109,7 @@ class StartAsDyingTest {
             IMapController map = proxy(IMapController.class, (method, args) -> { roomQueries++; return null; });
             factory = new CreaturesController(kwd, data,
                     Map.of(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, CreatureSleepFixtures.variable(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, 60)),
-                    () -> now, null, map, null);
+                    () -> now, null, map, null, null);
         }
         EntityId spawn(Kind kind, int health, boolean dying, int level) {
             return factory.spawnCreature(thing(kind, health, dying, level), new Vector2f(2, 3));

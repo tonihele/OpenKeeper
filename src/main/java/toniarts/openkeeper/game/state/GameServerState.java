@@ -26,7 +26,9 @@ import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.io.IOException;
 import java.lang.System.Logger.Level;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.CheatController;
@@ -45,6 +47,7 @@ import toniarts.openkeeper.game.listener.SpecialListener;
 import toniarts.openkeeper.game.state.loop.GameLoopManager;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
@@ -66,6 +69,7 @@ public final class GameServerState extends AbstractAppState {
 
     private final IKwdFile kwdFile;
     private final CampaignLevel levelObject;
+    private final SaveGame saveGame;
 
     private final boolean campaign;
     private final boolean multiplayer;
@@ -89,8 +93,26 @@ public final class GameServerState extends AbstractAppState {
      * @param campaignLevel the campaign level, or {@code null} for non-campaign
      */
     public GameServerState(IKwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService, @Nullable toniarts.openkeeper.game.data.CampaignLevel campaignLevel) {
+        this(level, players, campaign, gameService, campaignLevel, null);
+    }
+
+    /**
+     * Loads a saved game
+     *
+     * @param level the level of the saved game
+     * @param saveGame the saved game
+     * @param gameService the game service, its server entities are the saved
+     * ones
+     */
+    public GameServerState(IKwdFile level, SaveGame saveGame, GameSessionServerService gameService) {
+        this(level, saveGame.getPlayers(), saveGame.getCampaignLevel() != null, gameService, saveGame.getCampaignLevel(), saveGame);
+    }
+
+    private GameServerState(IKwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService,
+            CampaignLevel campaignLevel, SaveGame saveGame) {
         this.kwdFile = level;
         this.levelObject = campaignLevel;
+        this.saveGame = saveGame;
         this.campaign = campaign;
         this.gameService = gameService;
 
@@ -108,7 +130,9 @@ public final class GameServerState extends AbstractAppState {
         } else {
             humanPlayers = 1;
         }
-        multiplayer = (humanPlayers > 1);
+        // Only single player games are saved. The saved players are all of the
+        // level's, and the good and neutral players aren't AI ones either
+        multiplayer = saveGame == null && humanPlayers > 1;
 
         // Add the listener
         gameService.addGameSessionServiceListener(gameSessionListener);
@@ -119,6 +143,41 @@ public final class GameServerState extends AbstractAppState {
 
     public boolean isMultiplayer() {
         return multiplayer;
+    }
+
+    /**
+     * Whether the game has loaded and can be saved
+     *
+     * @return {@code true} when the game has loaded
+     */
+    public boolean isGameLoaded() {
+        return gameLoaded;
+    }
+
+    /**
+     * Gets the game time
+     *
+     * @return the game time in seconds, 0 until the game has loaded
+     */
+    public double getGameTime() {
+        return gameLoaded ? game.getGameController().getGameTimer().getGameTime() : 0;
+    }
+
+    /**
+     * Saves the game, see
+     * {@link GameLoopManager#save(Path, CampaignLevel, Object)}
+     *
+     * @param file the save file
+     * @param client the client's own part of the save, or {@code null} for
+     * none
+     * @return completes when the file is written, or right away with an
+     * exception if the game hasn't loaded yet
+     */
+    public CompletableFuture<Void> save(Path file, @Nullable Object client) {
+        if (!gameLoaded) {
+            return CompletableFuture.failedFuture(new IllegalStateException("The game hasn't loaded yet!"));
+        }
+        return game.save(file, levelObject, client);
     }
 
     private void loadGame(List<Keeper> players) {
@@ -176,7 +235,7 @@ public final class GameServerState extends AbstractAppState {
         @Override
         public void run() {
             // Create the central game controller
-            game = new GameLoopManager(kwdFile, gameService, players);
+            game = saveGame != null ? new GameLoopManager(kwdFile, gameService, saveGame) : new GameLoopManager(kwdFile, gameService, players);
 
             gameWorldController = game.getGameController().getGameWorldController();
             mapController = gameWorldController.getMapController();

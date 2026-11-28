@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.trigger;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntitySet;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Trigger;
@@ -61,6 +62,15 @@ public abstract class AbstractThingTriggerLogicController<T extends IEntityContr
 
         // Add existing entities
         processAddedEntities(entities);
+    }
+
+    /**
+     * Get the thing trigger controls
+     *
+     * @return the trigger controls
+     */
+    public Collection<AbstractThingTriggerControl<T>> getTriggerControls() {
+        return thingTriggers.values();
     }
 
     @Override

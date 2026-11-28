@@ -71,7 +71,7 @@ class RoomControllerFactoryTest {
                 roomInstance.addCoordinate(new Point(x, y));
             }
         }
-        return RoomControllerFactory.constructRoom(entityData, null, roomInstance, noObjects(),
+        return RoomControllerFactory.constructRoom(entityData.createEntity(), entityData, null, roomInstance, noObjects(),
                 Collections.emptyMap(), null);
     }
 

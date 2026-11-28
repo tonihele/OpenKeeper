@@ -292,7 +292,7 @@ class CallToArmsSystemTest {
 
     @Test
     void clickingTheIndicatorKnocksAwayTheWavingBanner() {
-        ObjectsController objectsController = new ObjectsController(kwdFile, entityData, Map.of(), () -> gameTime, null, null);
+        ObjectsController objectsController = new ObjectsController(kwdFile, entityData, Map.of(), () -> gameTime, null, null, null);
         EntityId banner = banner();
         system.processTick(0.25f);
 
@@ -318,7 +318,7 @@ class CallToArmsSystemTest {
 
     @Test
     void theBannerInTheHandCantBeTakenDownFromTheIndicator() {
-        ObjectsController objectsController = new ObjectsController(kwdFile, entityData, Map.of(), () -> gameTime, null, null);
+        ObjectsController objectsController = new ObjectsController(kwdFile, entityData, Map.of(), () -> gameTime, null, null, null);
         EntityId banner = banner();
         system.processTick(0.25f);
         gameTime = 2;

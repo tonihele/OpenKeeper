@@ -78,7 +78,7 @@ class CreatureLevelSpeedTest {
         DefaultEntityData entityData = new DefaultEntityData();
         CreaturesController creaturesController = new CreaturesController(kwdFile, entityData, Map.of(),
                 stub(IGameTimer.class, (method, args) -> 0.0), stub(IGameController.class, (method, args) -> null),
-                stub(IMapController.class, (method, args) -> null), stub(ILevelInfo.class, (method, args) -> null));
+                stub(IMapController.class, (method, args) -> null), stub(ILevelInfo.class, (method, args) -> null), null);
 
         EntityId entity = creaturesController.spawnCreature(KNIGHT, Player.GOOD_PLAYER_ID, 10, new Vector2f(5, 5),
                 ICreaturesController.SpawnType.PLACE);

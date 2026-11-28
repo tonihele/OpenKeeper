@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
 import java.util.OptionalInt;
 import java.util.Set;
 import toniarts.openkeeper.game.component.DoorComponent;
@@ -43,6 +44,7 @@ import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -81,9 +83,11 @@ public final class DoorsController implements IDoorsController {
      * @param mapController the map controller
      * @param gameController
      * @param levelInfo
+     * @param saveGame the loaded game, its doors are in the entities already.
+     * {@code null} for a new game
      */
     public DoorsController(IKwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            IMapController mapController, IGameController gameController, ILevelInfo levelInfo) {
+            IMapController mapController, IGameController gameController, ILevelInfo levelInfo, @Nullable SaveGame saveGame) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
@@ -92,7 +96,9 @@ public final class DoorsController implements IDoorsController {
         this.levelInfo = levelInfo;
 
         // Load doors
-        loadDoors();
+        if (saveGame == null) {
+            loadDoors();
+        }
 
         // The doors fall when the terrain around them changes
         mapController.addListener(new DoorFallListener());

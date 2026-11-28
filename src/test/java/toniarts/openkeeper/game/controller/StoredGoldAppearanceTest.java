@@ -56,7 +56,7 @@ class StoredGoldAppearanceTest {
     void depositsAndWithdrawalsChangeModelsAtNativeThresholds(int capacity) throws Exception {
         GameObject definition = definition();
         IKwdFile kwd = kwd(definition);
-        ObjectsController objects = new ObjectsController(kwd, data, Map.of(), null, null, null);
+        ObjectsController objects = new ObjectsController(kwd, data, Map.of(), null, null, null, null);
         RoomInstance instance = new RoomInstance(new Room());
         instance.addCoordinate(tile);
         EntityId roomEntity = data.createEntity();
@@ -110,7 +110,7 @@ class StoredGoldAppearanceTest {
 
     @Test
     void newContainersUseRandomFullTurnYawInNativeSteps() throws Exception {
-        ObjectsController objects = new ObjectsController(kwd(definition()), data, Map.of(), null, null, null);
+        ObjectsController objects = new ObjectsController(kwd(definition()), data, Map.of(), null, null, null, null);
         Set<Float> angles = new HashSet<>();
         for (int i = 0; i < 32; i++) {
             EntityId entity = objects.addRoomGold((short) 3, 5, 7, 10, 1000);

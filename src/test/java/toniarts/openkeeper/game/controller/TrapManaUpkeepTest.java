@@ -60,7 +60,7 @@ class TrapManaUpkeepTest {
             default ->
                 throw new UnsupportedOperationException(method.getName());
         });
-        trapsController = new TrapsController(kwdFile, entityData, Collections.emptyMap(), null, null);
+        trapsController = new TrapsController(kwdFile, entityData, Collections.emptyMap(), null, null, null);
     }
 
     @Test

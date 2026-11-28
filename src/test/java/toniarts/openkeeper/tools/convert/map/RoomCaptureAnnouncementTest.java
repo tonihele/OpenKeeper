@@ -76,7 +76,7 @@ class RoomCaptureAnnouncementTest {
                 var convertNeutral = Variable.MiscVariable.MiscType.CONVERT_NEUTRAL_ROOM_HEALTH;
                 var controller = new MapController(data, null,
                         Map.of(convert, CreatureSleepFixtures.variable(convert, 450),
-                                convertNeutral, CreatureSleepFixtures.variable(convertNeutral, 450)), null, entities, level, events);
+                                convertNeutral, CreatureSleepFixtures.variable(convertNeutral, 450)), null, entities, level, events, null);
                 var roomEntity = entities.createEntity();
                 var registry = MapController.class.getDeclaredField("roomControllers");
                 registry.setAccessible(true);
