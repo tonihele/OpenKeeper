@@ -102,6 +102,7 @@ import static toniarts.openkeeper.tools.convert.map.AiFixtures.creatureWithJobs;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.fighter;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.player;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withAllRoomsBeforeInvading;
+import static toniarts.openkeeper.tools.convert.map.AiFixtures.withAllSpellsBeforeInvading;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withAttackResponse;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withBattleSpells;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withBuildAreaEndX;
@@ -2100,6 +2101,29 @@ class KeeperAiSystemTest {
 
         assertEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
         assertEquals(ENEMY_ID, getKeeperAi().invasionTargetId);
+    }
+
+    @Test
+    void makesRoomForAResearcherWhenItWaitsForItsSpellsBeforeInvading() {
+
+        // Its hand only sees to research now and then, and not on this tick
+        ((Random) Utils.getRandom()).setSeed(1);
+        KeeperAiSystem system = createSystem(withAllSpellsBeforeInvading(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 1, 50,
+                AI.CallToArmsUsagePolicy.AT_HEART, 0), AI.MoveToResearchPolicy.UNLIKELY), 1000);
+        enemyRoomControl.onBuild(createRoom(DUNGEON_HEART, new Point(13, 6)));
+        roomControl.onBuild(createRoom(LIBRARY, new Point(1, 4)));
+        roomControl.onBuild(createRoom(PORTAL, new Point(5, 4)));
+        spellControl.setTypeAvailable(heal, true, false);
+        EntityId one = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        EntityId other = createCreature(PLAYER_ID, new Point(8, 4), 100, 100, CreatureState.IDLE);
+        creatureControl.onCreatureAdded(one, fighter((short) 0, 0, 0));
+        creatureControl.onCreatureAdded(other, fighter((short) 0, 0, 0));
+
+        system.processTick(0.25f);
+
+        // The army is ready but Heal is still to research: no tunnel, a creature goes back through the Portal
+        assertEquals(0, getKeeperAi().invasionTargetId);
+        assertEquals(Map.of(other, new Point(5, 4)), dropped);
     }
 
     @Test

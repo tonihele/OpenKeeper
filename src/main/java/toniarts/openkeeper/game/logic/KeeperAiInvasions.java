@@ -131,10 +131,12 @@ final class KeeperAiInvasions {
      * @param ai its settings
      * @param creatureLevel the level it wants its creatures at
      * @param ticksPerSecond the game ticks in a second
+     * @param creatures makes room for a researcher while it waits for its
+     * spells
      * @return true if it digs a tunnel to an enemy
      */
     boolean planInvasion(KeeperAi keeperAi, Map<Short, IPlayerController> playerControllers, AI ai, int creatureLevel,
-            int ticksPerSecond) {
+            int ticksPerSecond, KeeperAiCreatures creatures) {
         if (ai.isNeverAttack() || keeperAi.cannotAttackTicks > 0 || keeperAi.callToArms) {
             return false;
         }
@@ -144,6 +146,9 @@ final class KeeperAiInvasions {
         short attackerId = 0;
         if (isArmyReady(keeperAi.playerId, ai, creatureLevel) && (!ai.isRequireAllRoomTypesPlaced() || keeperAi.allRoomsBuilt)) {
             if (ai.isRequireAllKeeperSpellsResearched() && hasSpellsToResearch(playerController)) {
+
+                // DK II makes room for a researcher before it gives up (0x4FAEF0 calls 0x4FA8D0)
+                creatures.makeRoomForResearcher(keeperAi, playerController);
                 return false;
             }
             if (!ai.isOnlyAttackAttackers()) {

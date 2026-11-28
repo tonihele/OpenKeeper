@@ -467,7 +467,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
                     // An invasion first, else a room
                     String nothingPlanned = null;
-                    if (!invasions.planInvasion(keeperAi, playerControllers, ai, creatureLevel, ticksPerSecond)) {
+                    if (!invasions.planInvasion(keeperAi, playerControllers, ai, creatureLevel, ticksPerSecond, creatures)) {
                         nothingPlanned = planRoom(keeperAi, playerController, ai);
                     }
                     if (keeperAi.task == KeeperAi.Task.PLAN) {

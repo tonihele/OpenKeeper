@@ -292,6 +292,19 @@ public final class AiFixtures {
     }
 
     /**
+     * Has the computer player invade only once it has researched every spell
+     *
+     * @param ai the computer player settings
+     * @param handPolicy how likely it is to see to its research with its hand
+     * @return the same settings
+     */
+    public static AI withAllSpellsBeforeInvading(AI ai, AI.MoveToResearchPolicy handPolicy) {
+        ai.setRequireAllKeeperSpellsResearched(true);
+        ai.setLikelyhoodToMovingCreaturesToLibraryForResearching(handPolicy);
+        return ai;
+    }
+
+    /**
      * Sets when the computer player casts Call to Arms and lifts it again
      *
      * @param ai the computer player settings
