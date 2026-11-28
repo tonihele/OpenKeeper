@@ -661,7 +661,7 @@ class KeeperAiSystemTest {
     }
 
     @Test
-    void dropsRestedFightersOnAnAttackUntilTheirThreatMakesUpWhatItNeeds() {
+    void countsRestedFightersAgainstAnAttackOnItsLandWithoutDroppingThem() {
         EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 100, 100, CreatureState.FIGHT);
         entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT)));
         createCreature(ENEMY_ID, new Point(8, 4), 100, 100, CreatureState.IDLE);
@@ -676,31 +676,100 @@ class KeeperAiSystemTest {
         createCreature(PLAYER_ID, new Point(12, 8), 50, 100, CreatureState.IDLE);
         createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.SLEEPING);
         EntityId first = createCreature(PLAYER_ID, new Point(12, 8), 51, 100, CreatureState.IDLE);
-        EntityId second = createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.WORK);
-        EntityId third = createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
+        createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.WORK);
+        createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
         createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
 
         // On the map from before the computer player started, so none of them just came
-        KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 175, true, 0), 1000);
-        gameTime = 100;
+        List<String> lines = logDecisions(() -> {
+            KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 175, true, 0), 1000);
+            gameTime = 100;
 
-        // 175 % of the enemy's 200 less its own 100 near the fight, and the first one is dropped at once
-        system.processTick(0.25f);
-        assertEquals(1, getKeeperAi().attacks);
-        assertEquals(150, getKeeperAi().attackNeeds[0]);
-        assertEquals(ENEMY_ID, getKeeperAi().attackerId);
-        for (int tick = 0; tick < 10; tick++) {
+            // 175 % of the enemy's 200 less its own 100 near the fight, and the first one is counted at once
             system.processTick(0.25f);
-        }
+            assertEquals(1, getKeeperAi().attacks);
+            assertEquals(150, getKeeperAi().attackNeeds[0]);
+            assertEquals(ENEMY_ID, getKeeperAi().attackerId);
+            system.processTick(0.25f);
+        });
 
-        // Not the sleeper, it rests
-        assertEquals(Set.of(first, second, third), dropped.keySet());
-        assertEquals(new Point(5, 4), dropped.get(first));
-        assertEquals(0, getKeeperAi().attacks);
+        // The attack is on its own land, so DK II moves nobody (0x4FE0B0). Not the horny one, the worker, the one at
+        // half its health or the sleeper: the first fighter it may take makes up the 150, and as nobody moves it is
+        // the one counted again for the next attack
+        assertEquals(List.of(first.getId(), first.getId()), countedCreatures(lines));
+        assertTrue(dropped.isEmpty());
     }
 
     @Test
-    void dropsNoCreatureThatRestsFleesOrHeedsTheCallToArmsOnAnAttackButOneItJustDropped() {
+    void dropsAFighterOnItsNearestLandOnlyWhenTheLandOfTheAttackIsLost() {
+        EntityId first = createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
+        createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
+        KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 175, true, 0), 1000);
+        gameTime = 100;
+        system.processTick(0.25f);
+        EntityId entityId = entityData.findEntity(null, KeeperAi.class);
+        KeeperAi keeperAi = new KeeperAi(entityData.getComponent(entityId, KeeperAi.class));
+        keeperAi.attacks = 1;
+        keeperAi.attackNeeds[0] = 150;
+        keeperAi.attackTiles[0] = new Point(5, 4);
+        entityData.setComponent(entityId, keeperAi);
+        map[4][5] = 'E';
+
+        // The first goes onto the nearest of its land, which the second then is counted on
+        system.processTick(0.25f);
+        assertEquals(Map.of(first, new Point(4, 4)), dropped);
+        assertEquals(new Point(4, 4), getKeeperAi().attackTiles[0]);
+        system.processTick(0.25f);
+        assertEquals(Map.of(first, new Point(4, 4)), dropped);
+        assertEquals(0, getKeeperAi().attacks);
+    }
+
+    /**
+     * Runs the computer player with its decision log on
+     *
+     * @return the lines it logged
+     */
+    private List<String> logDecisions(Runnable run) {
+        List<String> lines = new ArrayList<>();
+        Handler handler = new Handler() {
+            @Override
+            public void publish(LogRecord logRecord) {
+                lines.add(logRecord.getMessage());
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+        Logger logger = Logger.getLogger(KeeperAiSystem.class.getName());
+        logger.addHandler(handler);
+        try {
+            logDecisions = true;
+            run.run();
+        } finally {
+            logger.removeHandler(handler);
+        }
+
+        return lines;
+    }
+
+    private static List<Long> countedCreatures(List<String> lines) {
+        List<Long> counted = new ArrayList<>();
+        for (String line : lines) {
+            java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("count creature (\\d+) against an attack").matcher(line);
+            if (matcher.find()) {
+                counted.add(Long.valueOf(matcher.group(1)));
+            }
+        }
+        return counted;
+    }
+
+    @Test
+    void countsNoCreatureThatRestsFleesOrHeedsTheCallToArmsAgainstAnAttackButOneItJustDropped() {
         EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 100, 100, CreatureState.FIGHT);
         entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT)));
         createCreature(ENEMY_ID, new Point(8, 4), 100, 100, CreatureState.IDLE);
@@ -714,15 +783,18 @@ class KeeperAiSystemTest {
         entityData.setComponent(createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE), new CreatureFall());
         EntityId justDropped = createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
         entityData.setComponent(justDropped, new KeeperAiDropped(90));
-        KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 175, true, 0), 1000);
-        gameTime = 100;
-        for (int tick = 0; tick < 10; tick++) {
-            system.processTick(0.25f);
-        }
+        List<String> lines = logDecisions(() -> {
+            KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 175, true, 0), 1000);
+            gameTime = 100;
+            for (int tick = 0; tick < 10; tick++) {
+                system.processTick(0.25f);
+            }
+        });
 
         // DK II's 0x4FE0B0 has no wait after a drop, unlike its other hand work
-        assertEquals(Map.of(justDropped, new Point(5, 4)), dropped);
-        assertEquals(0, getKeeperAi().attacks);
+        assertTrue(countedCreatures(lines).stream().allMatch(id -> id == justDropped.getId()));
+        assertFalse(countedCreatures(lines).isEmpty());
+        assertTrue(dropped.isEmpty());
     }
 
     @Test
@@ -869,7 +941,9 @@ class KeeperAiSystemTest {
 
         system.processTick(0.25f);
 
-        assertEquals(1, dropped.size());
+        // Counted against it where it stands, the attack being on its own land
+        assertTrue(dropped.isEmpty());
+        assertEquals(0, getKeeperAi().attacks);
         assertTrue(impSpells.isEmpty());
     }
 

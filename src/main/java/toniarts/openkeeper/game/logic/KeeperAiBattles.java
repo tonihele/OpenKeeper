@@ -647,10 +647,14 @@ final class KeeperAiBattles {
 
     /**
      * Answers the first attack in the queue, with one creature a turn. It
-     * drops fighters that have more than half their health and don't fight,
-     * flee or rest on the attack until their threat makes up what it needs
-     * there, even ones it dropped a short while ago (DK II's 0x4FE0B0 skips
-     * the state groups 3 and 7 and the fight class, but has no wait). Or it
+     * counts fighters that have more than half their health and don't fight,
+     * flee or rest against the attack until their threat makes up what it
+     * needs there, even ones it dropped a short while ago (DK II's 0x4FE0B0
+     * skips the state groups 3 and 7 and the fight class, but has no wait).
+     * As in DK II a fighter is only dropped when the land the attack was
+     * queued on is no longer its own, then on its nearest own land; on its
+     * own land it is counted where it stands (0x4FE0B0 sets the drop only
+     * after that search, at 0x4FE7F6). Or it
      * carries its creatures within 5 tiles of the attack to the Dungeon
      * Heart, until it has carried away what it had there. Never one that
      * falls from the hand or heeds the Call to Arms.
@@ -699,15 +703,18 @@ final class KeeperAiBattles {
             }
         } else {
 
-            // On its own land, the nearest there is when the land was lost
+            // Only when the land was lost, onto the nearest own land there is
             if (mapController.getMapData().getTile(keeperAi.attackTiles[attack]).getOwnerId() != keeperAi.playerId) {
                 keeperAi.attackTiles[attack] = getNearestOwnOpenTile(keeperAi.playerId, keeperAi.attackTiles[attack],
                         Math.max(mapController.getMapData().getWidth(), mapController.getMapData().getHeight()));
-            }
-            if (keeperAi.attackTiles[attack] != null) {
-                decisionLog.log(keeperAi, "drop creature " + picked.getId().getId() + " on an attack", keeperAi.attackTiles[attack],
-                        "its threat of " + threat + " of the " + keeperAi.attackNeeds[attack] + " still needed");
-                carry(picked.getId(), keeperAi.attackTiles[attack], playerController);
+                if (keeperAi.attackTiles[attack] != null) {
+                    decisionLog.log(keeperAi, "drop creature " + picked.getId().getId() + " on an attack", keeperAi.attackTiles[attack],
+                            "its threat of " + threat + " of the " + keeperAi.attackNeeds[attack] + " still needed");
+                    carry(picked.getId(), keeperAi.attackTiles[attack], playerController);
+                }
+            } else {
+                decisionLog.log(keeperAi, "count creature " + picked.getId().getId() + " against an attack", keeperAi.attackTiles[attack],
+                        "its threat of " + threat + " of the " + keeperAi.attackNeeds[attack] + " still needed, the land there is its own");
             }
             keeperAi.attackNeeds[attack] -= threat;
             if (keeperAi.attackNeeds[attack] < 1 || keeperAi.attackTiles[attack] == null) {
