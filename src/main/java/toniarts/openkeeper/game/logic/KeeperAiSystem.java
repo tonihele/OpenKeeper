@@ -26,7 +26,6 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -257,7 +256,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * The rooms the creatures of the computer players asked for since their
      * last turn, the first asked first
      */
-    private final Set<RoomWanted> roomsWanted = Collections.synchronizedSet(new LinkedHashSet<>());
+    private final Set<RoomWanted> roomsWanted = new LinkedHashSet<>();
     private final EventListener<RoomWanted> roomWantedListener = (type, event) -> {
         if (ais.containsKey(event.playerId())) {
             roomsWanted.add(event);
