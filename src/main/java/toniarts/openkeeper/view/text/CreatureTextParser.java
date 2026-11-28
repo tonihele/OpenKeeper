@@ -138,7 +138,8 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
             case SLEEPING: {
                 return Utils.getMainTextResourceBundle().getString("2672");
             }
-            case RECUPERATING: {
+            case RECUPERATING:
+            case HERO_RECUPERATING: {
                 return Utils.getMainTextResourceBundle().getString("2667");
             }
             case EATING: {
@@ -229,6 +230,15 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
             }
             case PRAY -> {
                 return Utils.getMainTextResourceBundle().getString("2632");
+            }
+            case SULK -> {
+                return Utils.getMainTextResourceBundle().getString("2673");
+            }
+            case LEAVE -> {
+                return Utils.getMainTextResourceBundle().getString("2649");
+            }
+            case REBEL -> {
+                return Utils.getMainTextResourceBundle().getString("2599");
             }
             default -> {
                 return "";

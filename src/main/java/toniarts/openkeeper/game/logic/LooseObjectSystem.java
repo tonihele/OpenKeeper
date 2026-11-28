@@ -27,7 +27,6 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
-import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
@@ -101,7 +100,12 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
                 // No position yet, we get it next time
                 continue;
             }
-            if (mapTile.getOwnerId() == Player.GOOD_PLAYER_ID || mapTile.getOwnerId() == Player.NEUTRAL_PLAYER_ID) {
+
+            // Like in DK II (0x49F730), a hero or neutral Treasury also takes in the gold lying on it
+            Entity entity = looseObjectEntities.getEntity(entityId);
+            ObjectComponent objectComponent = entity.get(ObjectComponent.class);
+            if ((mapTile.getOwnerId() == Player.GOOD_PLAYER_ID || mapTile.getOwnerId() == Player.NEUTRAL_PLAYER_ID)
+                    && objectComponent.objectType != AbstractRoomController.ObjectType.GOLD) {
                 continue;
             }
 
@@ -111,20 +115,16 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
                 continue;
             }
 
-            Entity entity = looseObjectEntities.getEntity(entityId);
-            ObjectComponent objectComponent = entity.get(ObjectComponent.class);
             if (objectComponent.objectType != null && roomController.hasObjectControl(objectComponent.objectType) && !roomController.getObjectControl(objectComponent.objectType).isFullCapacity()) {
                 short ownerId = roomController.getOwnerId();
                 if (objectComponent.objectType == AbstractRoomController.ObjectType.GOLD) {
-                    synchronized (GameWorldController.GOLD_LOCK) {
-                        Gold gold = entityData.getComponent(entityId, Gold.class);
-                        int goldLeft = (int) roomController.getObjectControl(AbstractRoomController.ObjectType.GOLD).addItem(gold.gold, point);
-                        playerControllers.get(ownerId).getGoldControl().addGold(gold.gold - goldLeft);
-                        if (goldLeft == 0) {
-                            entityData.removeEntity(entityId);
-                        } else {
-                            entityData.setComponent(entityId, new Gold(goldLeft, gold.maxGold));
-                        }
+                    Gold gold = entityData.getComponent(entityId, Gold.class);
+                    int goldLeft = (int) roomController.getObjectControl(AbstractRoomController.ObjectType.GOLD).addItem(gold.gold, point);
+                    playerControllers.get(ownerId).getGoldControl().addGold(gold.gold - goldLeft);
+                    if (goldLeft == 0) {
+                        entityData.removeEntity(entityId);
+                    } else {
+                        entityData.setComponent(entityId, new Gold(goldLeft, gold.maxGold));
                     }
                 } else {
                     roomController.getObjectControl(objectComponent.objectType).addItem(entityId, point);

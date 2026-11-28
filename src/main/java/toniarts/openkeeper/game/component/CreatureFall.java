@@ -26,8 +26,31 @@ import com.simsilica.es.EntityComponent;
  */
 public final class CreatureFall implements EntityComponent {
 
+    public enum FallType {
+
+        /**
+         * Dropped from the hand, lands stunned
+         */
+        DROPPED,
+        /**
+         * Conjured, comes down standing
+         */
+        CONJURED,
+        /**
+         * Dropped on the middle of its keeper's portal, falls through the floor
+         * and leaves the dungeon
+         */
+        PORTAL_DROP
+    }
+
+    public FallType fallType = FallType.DROPPED;
+
     public CreatureFall() {
         // For serialization
+    }
+
+    public CreatureFall(FallType fallType) {
+        this.fallType = fallType;
     }
 
 }

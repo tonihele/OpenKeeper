@@ -25,14 +25,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CallToArms;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreaturePay;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.PayDayClock;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.task.TaskType;
@@ -94,6 +98,29 @@ class PayDaySystemTest {
 
         assertEquals(WAGE, owed(goblin));
         assertEquals(1, keeperStats.getPayDays());
+    }
+
+    @Test
+    void payDayNowPaysOnTheNextTick() {
+        EntityId goblin = addCreature(KEEPER, GOBLIN, WAGE, false);
+        tick(0);
+
+        payDaySystem.payDayNow(KEEPER);
+        tick(1);
+
+        assertEquals(WAGE, owed(goblin));
+        assertEquals(1, keeperStats.getPayDays());
+    }
+
+    @Test
+    void payDayNowDoesNothingBeforeThePayDayClockStarts() {
+        addCreature(KEEPER, IMP, 0, true);
+        tick(0);
+
+        payDaySystem.payDayNow(KEEPER);
+        tick(1);
+
+        assertEquals(0, keeperStats.getPayDays());
     }
 
     @Test
@@ -159,6 +186,35 @@ class PayDaySystemTest {
     }
 
     @Test
+    void aFightingCreatureDoesNotGetAngrierForNoPay() {
+        EntityId goblin = addCreature(KEEPER, GOBLIN, WAGE, false);
+        tick(0);
+        tick(FIRST_PAY_DAY);
+
+        entityData.setComponent(goblin, new CreatureAi(FIRST_PAY_DAY, CreatureState.FIGHT, GOBLIN));
+        tick(FIRST_PAY_DAY + 0.25);
+
+        assertEquals(ANGER_NO_PAY / 4, mood(goblin).noPay);
+    }
+
+    @Test
+    void nobodyIsOwedAWageWhileTheCallToArmsIsUp() {
+        EntityId goblin = addCreature(KEEPER, GOBLIN, WAGE, false);
+        EntityId banner = entityData.createEntity();
+        entityData.setComponents(banner, new CallToArms(0, 0, 0, 0, CallToArms.UP), new Owner(KEEPER, KEEPER));
+
+        tick(0);
+        tick(FIRST_PAY_DAY);
+        assertNull(entityData.getComponent(goblin, CreaturePay.class));
+        assertEquals(1, keeperStats.getPayDays());
+
+        // The pay day after the banner is gone pays again
+        entityData.removeEntity(banner);
+        tick(FIRST_PAY_DAY + FREQUENCY);
+        assertEquals(WAGE, owed(goblin));
+    }
+
+    @Test
     void aNewPayDayLetsACreatureThatGaveUpTryAgain() {
         EntityId goblin = addCreature(KEEPER, GOBLIN, WAGE, false);
 
@@ -217,6 +273,112 @@ class PayDaySystemTest {
 
         assertNull(entityData.getComponent(knight, CreaturePay.class));
     }
+
+    @Test
+    void theClockIsEmptyBeforeItStarts() {
+        payDaySystem.start();
+        addCreature(KEEPER, IMP, 0, true);
+
+        tick(0);
+
+        assertEquals(new PayDayClock(0, 0, 0), payDayClock(KEEPER));
+        assertEquals(0f, payDayClock(KEEPER).getTimeLeftFraction());
+    }
+
+    @Test
+    void theClockCountsDownToThePayDayAndShowsItsCost() {
+        payDaySystem.start();
+        addCreature(KEEPER, GOBLIN, WAGE, false);
+        addCreature(KEEPER, GOBLIN, 300, false);
+
+        tick(0);
+        assertEquals(new PayDayClock(FIRST_PAY_DAY, FIRST_PAY_DAY, WAGE + 300), payDayClock(KEEPER));
+        assertEquals(1f, payDayClock(KEEPER).getTimeLeftFraction());
+
+        tick(FIRST_PAY_DAY / 4.0);
+        assertEquals(0.75f, payDayClock(KEEPER).getTimeLeftFraction());
+    }
+
+    @Test
+    void theClockStartsAgainOnPayDay() {
+        payDaySystem.start();
+        addCreature(KEEPER, GOBLIN, WAGE, false);
+
+        tick(0);
+        tick(FIRST_PAY_DAY - 1);
+        assertEquals(1, payDayClock(KEEPER).timeLeft);
+
+        tick(FIRST_PAY_DAY);
+        assertEquals(new PayDayClock(FREQUENCY, FREQUENCY, WAGE), payDayClock(KEEPER));
+    }
+
+    @Test
+    void theCostLeavesOutWhoIsNotPaidOnTheNextPayDay() {
+        payDaySystem.start();
+        addCreature(KEEPER, GOBLIN, WAGE, false);
+        EntityId prisoner = addCreature(KEEPER, GOBLIN, 300, false);
+        entityData.setComponent(prisoner, new CreatureImprisoned());
+        addCreature(Player.GOOD_PLAYER_ID, GOBLIN, 200, false);
+
+        tick(0);
+
+        // Joins too close to the pay day, it is paid on the one after
+        tick(FIRST_PAY_DAY - CUT_OFF + 1);
+        addCreature(KEEPER, GOBLIN, 100, false);
+        tick(FIRST_PAY_DAY - CUT_OFF + 2);
+
+        assertEquals(WAGE, payDayClock(KEEPER).cost);
+    }
+
+    @Test
+    void aCreatureComingLaterStartsTheClock() {
+        payDaySystem.start();
+        tick(0);
+        tick(30);
+        assertEquals(0, payDayClock(KEEPER).timeLeft);
+
+        // E.g. out of the portal
+        addCreature(KEEPER, GOBLIN, WAGE, false);
+        tick(31);
+
+        assertEquals(new PayDayClock(FIRST_PAY_DAY, FIRST_PAY_DAY, WAGE), payDayClock(KEEPER));
+    }
+
+    @Test
+    void aNeutralCreatureJoiningStartsTheClock() {
+        payDaySystem.start();
+        EntityId goblin = addCreature(Player.NEUTRAL_PLAYER_ID, GOBLIN, WAGE, false);
+        tick(0);
+        tick(30);
+        assertEquals(0, payDayClock(KEEPER).timeLeft);
+
+        // Found on the map, it joins the keeper
+        entityData.setComponent(goblin, new Owner(KEEPER, KEEPER));
+        tick(31);
+        assertEquals(new PayDayClock(FIRST_PAY_DAY, FIRST_PAY_DAY, WAGE), payDayClock(KEEPER));
+
+        tick(31 + FIRST_PAY_DAY);
+        assertEquals(WAGE, owed(goblin));
+    }
+
+    @Test
+    void onlyTheKeepersHaveAClock() {
+        payDaySystem.start();
+        assertEquals(1, entityData.getEntities(PayDayClock.class).size());
+
+        payDaySystem.stop();
+        assertEquals(0, entityData.getEntities(PayDayClock.class).size());
+    }
+
+    private PayDayClock payDayClock(short keeperId) {
+        for (var entity : entityData.getEntities(PayDayClock.class, Owner.class)) {
+            if (entity.get(Owner.class).ownerId == keeperId) {
+                return entity.get(PayDayClock.class);
+            }
+        }
+        return null;
+    }
+
 
     private void tick(double time) {
         gameTime = time;

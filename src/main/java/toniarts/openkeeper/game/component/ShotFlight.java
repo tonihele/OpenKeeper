@@ -28,6 +28,7 @@ public final class ShotFlight implements EntityComponent {
     public short shotId;
     public short ownerId;
     public EntityId shooter;
+    public EntityId target; // What the shot was fired at, null for nothing
     public int shotData1;
     public int shotData2;
     public Vector3f velocity; // Tiles per turn
@@ -39,11 +40,12 @@ public final class ShotFlight implements EntityComponent {
         // For serialization
     }
 
-    public ShotFlight(short shotId, short ownerId, EntityId shooter, int shotData1, int shotData2, Vector3f velocity,
-            Vector3f start, float maxRange, int health) {
+    public ShotFlight(short shotId, short ownerId, EntityId shooter, EntityId target, int shotData1, int shotData2,
+            Vector3f velocity, Vector3f start, float maxRange, int health) {
         this.shotId = shotId;
         this.ownerId = ownerId;
         this.shooter = shooter;
+        this.target = target;
         this.shotData1 = shotData1;
         this.shotData2 = shotData2;
         this.velocity = velocity;
@@ -53,8 +55,8 @@ public final class ShotFlight implements EntityComponent {
     }
 
     public ShotFlight(ShotFlight flight, int health) {
-        this(flight.shotId, flight.ownerId, flight.shooter, flight.shotData1, flight.shotData2, flight.velocity,
-                flight.start, flight.maxRange, health);
+        this(flight.shotId, flight.ownerId, flight.shooter, flight.target, flight.shotData1, flight.shotData2,
+                flight.velocity, flight.start, flight.maxRange, health);
     }
 
 }

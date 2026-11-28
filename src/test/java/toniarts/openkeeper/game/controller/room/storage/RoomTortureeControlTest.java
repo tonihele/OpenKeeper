@@ -25,6 +25,8 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
@@ -155,15 +157,35 @@ class RoomTortureeControlTest {
     }
 
     @Test
-    void creatureThatCantBeElectrocutedSkipsTheChair() {
+    void creatureThatCantBeElectrocutedDiesOnTheChair() {
         entityData.setComponent(chair, new ObjectComponent((short) 61, ObjectType.TORTUREE));
+        EntityId onChair = notElectrocutable();
+        EntityId onWheel = notElectrocutable();
+
+        // The test creature isn't flagged CAN_BE_ELECTROCUTED
+        assertEquals(chair, control.addItem(onChair, new Point(5, 3)));
+        assertEquals(1000, entityData.getComponent(onChair, Damage.class).damage);
+        assertEquals(wheel, control.addItem(onWheel, new Point(5, 3)));
+        assertNull(entityData.getComponent(onWheel, Damage.class));
+    }
+
+    private EntityId notElectrocutable() {
         CreatureComponent creature = new CreatureComponent();
         creature.creatureId = 6;
         EntityId victim = entityData.createEntity();
-        entityData.setComponent(victim, creature);
+        entityData.setComponents(victim, creature, new Health(1000, 1000));
+        return victim;
+    }
 
-        // The chair is closer, but the test creature isn't flagged CAN_BE_ELECTROCUTED
-        assertEquals(wheel, control.addItem(victim, new Point(5, 3)));
+    @Test
+    void troughUnderAWheelOnTheWallHoldsNoVictim() {
+
+        // The trough is closer, but only the wheel above it takes a victim
+        EntityId trough = device(new Point(6, 3));
+        entityData.setComponent(trough, new ObjectComponent((short) 62, ObjectType.TORTUREE));
+        devices.remove(chair);
+
+        assertEquals(wheel, control.addItem(entityData.createEntity(), new Point(6, 3)));
     }
 
     @Test

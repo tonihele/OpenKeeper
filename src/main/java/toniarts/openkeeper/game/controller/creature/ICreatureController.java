@@ -44,6 +44,21 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean shouldFleeOrAttack();
 
     /**
+     * A fighter with no enemy creature to fight goes for the nearest enemy
+     * trap it sees, as DKII.EXE does
+     *
+     * @return true if there is such a trap and we are on it
+     */
+    public boolean attackVisibleTrap();
+
+    /**
+     * An idle fighter hits an enemy door that is next to it, as DKII.EXE does
+     *
+     * @return true if there is such a door and we are on it
+     */
+    public boolean attackAdjacentDoor();
+
+    /**
      * Checks what the creature sees and hears
      */
     public void checkSurroundings();
@@ -78,6 +93,7 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     /**
      * Handles the manual rest target after landing and getting up. Rest can be
      * assigned without fatigue debt, provided the creature's bed is in that Lair.
+     * Also sends a hurt creature to bed right after it has made its home.
      *
      * @return whether a sleep task was assigned
      */
@@ -103,13 +119,42 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean isAssignedTaskValid();
 
-    public ICreatureController getAttackTarget();
+    /**
+     * Gets the creature, or the enemy Dungeon Heart, we are fighting. Picks a
+     * new target if we don't have a valid one.
+     *
+     * @return the target to attack, or {@code null} if there is none
+     */
+    public IEntityController getAttackTarget();
 
     public boolean isWithinAttackDistance(EntityId attackTarget);
+
+    /**
+     * Does the creature have an attacking spell it can cast now
+     *
+     * @return has a ranged attack ready
+     */
+    public boolean hasRangedAttackReady();
+
+    /**
+     * Casts the first attacking spell that is ready at the target, without
+     * hurting it, like a trainee at a wall target
+     *
+     * @param target what to cast at
+     */
+    public void castTrainingShot(EntityId target);
 
     public void stopCreature();
 
     public void executeAttack(EntityId attackTarget);
+
+    /**
+     * Casts a spell on one of our own creatures in the fight, if we have one
+     * ready and somebody needs it
+     *
+     * @return true if we cast a spell
+     */
+    public boolean castSupportSpell();
 
     /**
      * Lets the shot of the spell being cast leave once the cast has reached
@@ -121,6 +166,24 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * Drops the shot of an interrupted cast
      */
     public void cancelCastShot();
+
+    /**
+     * Lands the hit of the melee swing once the swing has reached the
+     * creature's shot delay
+     */
+    public void releaseMeleeHit();
+
+    /**
+     * Is the hit of the melee swing still to land
+     *
+     * @return true while the swing hasn't hit yet
+     */
+    public boolean hasPendingMeleeHit();
+
+    /**
+     * Drops the hit of an interrupted melee swing
+     */
+    public void cancelMeleeHit();
 
     public void navigateToAttackTarget(EntityId attackTarget);
 
@@ -162,6 +225,20 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @return false if we can't back away
      */
     public boolean backOff();
+
+    /**
+     * A hero set to return to the hero lair withdraws there from a fight when
+     * it is badly hurt. Starts the walk to the hero lair if so
+     *
+     * @return true if we withdraw to the hero lair
+     */
+    public boolean withdrawToHeroLair();
+
+    /**
+     * Walks to a tile of our own land some way off, as a recuperating hero
+     * does until its health is back
+     */
+    public void wanderOnOwnLand();
 
     public boolean isAttacked();
 
@@ -377,6 +454,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void makeHungry();
 
     /**
+     * Sets whether the creature will fight. One that won't doesn't start or
+     * join a fight and drops the one it is in, but it can still be attacked
+     *
+     * @param willFight true if the creature may fight
+     */
+    public void setWillFight(boolean willFight);
+
+    /**
      * Get the research points the creature makes on this game tick in the
      * library. A slapped creature makes extra points on the first tick of
      * every second.
@@ -418,6 +503,13 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void turnIntoChicken(double duration);
 
     /**
+     * Plays an animation once from its start, such as an outburst
+     *
+     * @param animation the animation
+     */
+    public void playAnimation(Creature.AnimationType animation);
+
+    /**
      * Sets creature possession on/off
      *
      * @param possessed should the creature be posessed or AI driven
@@ -455,5 +547,21 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @param playerId the new player ID
      */
     public void convertCreature(short playerId);
+
+    /**
+     * Makes the creature fight for another player for a while, as by the
+     * Turncoat spell. It stays owned by its keeper. Creatures immune to the
+     * spell stay as they are
+     *
+     * @param playerId the player the creature fights for
+     * @param duration how long, in seconds
+     */
+    public void turncoat(short playerId, double duration);
+
+    /**
+     * Turns on the keeper. Like in DK II, the creature joins the heroes and
+     * goes after the keeper it served
+     */
+    public void rebel();
 
 }
