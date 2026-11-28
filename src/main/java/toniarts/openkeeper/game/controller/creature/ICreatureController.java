@@ -197,7 +197,24 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void resetFollowTarget();
 
-    public void flee();
+    /**
+     * Withdraws, or runs from the threat when there is no heart to withdraw to,
+     * going to the flee state first. Like DK II's withdraw (0x4611D0), a
+     * keeper's creature that finds nowhere to go doesn't withdraw at all and
+     * stays in its state.
+     *
+     * @return true if we withdrew
+     */
+    public boolean flee();
+
+    /**
+     * After a withdraw, a creature other than an Imp walks back to where it
+     * withdrew from once it has over three quarters of its health, if that was
+     * less than 500 turns ago (DK II 0x4773D0). Starts the walk if so
+     *
+     * @return true if we walk back
+     */
+    public boolean goBackToWhereWeFought();
 
     /**
      * Weighs the threat of the enemies we fight against our fear. Call once on
@@ -208,9 +225,26 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean isScared();
 
     /**
+     * Whether we are cornered: no tile next to us that we can walk to is free
+     * of an enemy that fights us. A cornered creature doesn't back off or
+     * withdraw, it fights on (DK II 0x460C50)
+     *
+     * @return true if we are cornered
+     */
+    public boolean isCornered();
+
+    /**
      * Starts backing off from the attack target, sets how long we back off
      */
     public void startBackOff();
+
+    /**
+     * Tells whether a back-off would step back from the attack target, rather
+     * than walk away at once
+     *
+     * @return true if we would step back
+     */
+    public boolean canStepBack();
 
     /**
      * Checks if our time to back off is over
@@ -233,6 +267,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @return true if we withdraw to the hero lair
      */
     public boolean withdrawToHeroLair();
+
+    /**
+     * A keeper's creature withdraws from a fight towards its Dungeon Heart when
+     * it is badly hurt and far from the heart
+     *
+     * @return true if we should withdraw to our heart
+     */
+    public boolean shouldWithdrawToHeart();
 
     /**
      * Walks to a tile of our own land some way off, as a recuperating hero
