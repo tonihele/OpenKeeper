@@ -30,6 +30,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -60,7 +61,9 @@ class ShotSystemTest {
 
     private DefaultEntityData entityData;
     private final Shot fireball = ShotFixtures.fireball();
-    private final Map<Short, Shot> shotsById = Map.of(ShotFixtures.FIREBALL_ID, fireball,
+    private final Shot raiseDead = ShotFixtures.raiseDead();
+    private final Shot cyclone = ShotFixtures.cyclone();
+    private final Map<Short, Shot> shotsById = Map.of(ShotFixtures.FIREBALL_ID, fireball, ShotFixtures.RAISE_DEAD_ID, raiseDead, ShotFixtures.CYCLONE_ID, cyclone,
             ShotFixtures.GAS_MISSILE_ID, ShotFixtures.gasMissile(), ShotFixtures.GRENADE_ID, ShotFixtures.grenade(),
             ShotFixtures.HAIL_STORM_ID, ShotFixtures.hailStorm());
     private final Creature imp = ShotFixtures.creature(IMP_ID, EnumSet.noneOf(Creature.CreatureFlag.class),
@@ -68,6 +71,7 @@ class ShotSystemTest {
     private final List<EntityId> creatures = new ArrayList<>();
     private final Set<Point> solidTiles = new HashSet<>();
     private final List<EntityId[]> hits = new ArrayList<>();
+    private final List<Vector3f> turns = new ArrayList<>();
     private final List<Object[]> effects = new ArrayList<>();
     private final List<EntityId> areaDamages = new ArrayList<>();
     private final List<Object[]> childShots = new ArrayList<>();
@@ -87,6 +91,10 @@ class ShotSystemTest {
                 new Class<?>[]{IShotsController.class}, (proxy, method, args) -> {
                     if (method.getName().equals("hit")) {
                         hits.add(new EntityId[]{(EntityId) args[0], (EntityId) args[1]});
+                        return null;
+                    }
+                    if (method.getName().equals("fly")) {
+                        turns.add(positionOf((EntityId) args[0]).clone());
                         return null;
                     }
                     if (method.getName().equals("damageArea")) {
@@ -225,6 +233,39 @@ class ShotSystemTest {
     }
 
     @Test
+    void raiseDeadHitsADeadBodyAndDies() {
+        createCreature(ENEMY_ID, new Vector3f(1.5f, 1, 1));
+        EntityId deadBody = createCreature(ENEMY_ID, new Vector3f(2, 1, 1));
+        entityData.removeComponent(deadBody, Health.class);
+        entityData.setComponent(deadBody, new Death(0));
+        EntityId shot = createShot(new Vector3f(1.3f, 1.3f, 1), new Vector3f(0.5f, 0, 0), 3);
+        entityData.setComponent(shot, new ShotFlight(ShotFixtures.RAISE_DEAD_ID, PLAYER_ID, null, null, 9, 0, new Vector3f(0.5f, 0, 0),
+                new Vector3f(1.3f, 1.3f, 1), 3, raiseDead.getHealth()));
+
+        // Through the living on the first turn
+        shotSystem.processTick(0.25f);
+        assertTrue(hits.isEmpty());
+
+        shotSystem.processTick(0.25f);
+        assertEquals(1, hits.size());
+        assertEquals(deadBody, hits.get(0)[1]);
+        assertNull(positionOf(shot));
+    }
+
+    @Test
+    void shotAtCreaturesFliesThroughADeadBody() {
+        EntityId deadBody = createCreature(ENEMY_ID, new Vector3f(2, 1, 1));
+        entityData.removeComponent(deadBody, Health.class);
+        entityData.setComponent(deadBody, new Death(0));
+        EntityId shot = createShot(new Vector3f(1.8f, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertTrue(hits.isEmpty());
+        assertNotNull(positionOf(shot));
+    }
+
+    @Test
     void shotDiesAtAWall() {
         solidTiles.add(new Point(2, 1));
         EntityId shot = createShot(new Vector3f(1, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
@@ -244,6 +285,27 @@ class ShotSystemTest {
         shotSystem.processTick(0.25f);
         shotSystem.processTick(0.25f);
         assertNull(positionOf(shot));
+    }
+
+    @Test
+    void shotThatWorksEveryTurnHasItsTurnBeforeItMoves() {
+        EntityId shot = createShot(new Vector3f(1, 1.3f, 1), new Vector3f(0.25f, 0, 0), 0.4f);
+        entityData.setComponent(shot, new ShotFlight(ShotFixtures.CYCLONE_ID, PLAYER_ID, null, null, 3, 0, new Vector3f(0.25f, 0, 0),
+                new Vector3f(1, 1.3f, 1), 0.4f, cyclone.getHealth()));
+
+        shotSystem.processTick(0.25f);
+        shotSystem.processTick(0.25f);
+
+        assertEquals(List.of(new Vector3f(1, 1.3f, 1), new Vector3f(1.25f, 1.3f, 1)), turns);
+    }
+
+    @Test
+    void shotThatWorksOnAHitHasNoTurn() {
+        createShot(new Vector3f(1, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertTrue(turns.isEmpty());
     }
 
     @Test
