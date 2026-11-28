@@ -58,9 +58,13 @@ class PlayerEnemyBreachedTriggerTest {
         assertEquals(1, f.flags[0]);
     }
 
+    // DK II never counts the repeat down: 0x4C7A50 only calls the countdown
+    // 0x508640 when the walk 0x4C79A0 returns non-zero, and it always returns 0.
+    // A repeat of 1 disables each action once it has run, any other repeat
+    // leaves the actions enabled, so repeat 2 runs on every breach like 255.
     @ParameterizedTest
-    @CsvSource({"PLAYER_ENEMY_BREACHED,1,1", "PLAYER_ENEMY_BREACHED,2,2", "PLAYER_ENEMY_BREACHED,255,3",
-        "PLAYER_DUNGEON_BREACHED,1,1", "PLAYER_DUNGEON_BREACHED,2,2", "PLAYER_DUNGEON_BREACHED,255,3"})
+    @CsvSource({"PLAYER_ENEMY_BREACHED,1,1", "PLAYER_ENEMY_BREACHED,2,3", "PLAYER_ENEMY_BREACHED,255,3",
+        "PLAYER_DUNGEON_BREACHED,1,1", "PLAYER_DUNGEON_BREACHED,2,3", "PLAYER_DUNGEON_BREACHED,255,3"})
     void eachActualEventUsesTheExistingRepeatLimit(TargetType eventType, int repeat, int expected) {
         Fixture f = new Fixture(repeat, eventType);
         for (int i = 0; i < 3; i++) {
@@ -125,17 +129,20 @@ class PlayerEnemyBreachedTriggerTest {
 
     @ParameterizedTest
     @EnumSource(value = TargetType.class, names = {"PLAYER_ENEMY_BREACHED", "PLAYER_DUNGEON_BREACHED"})
-    void dispatchPreservesAPendingOrdinaryBranch(TargetType eventType) {
+    void dispatchLeavesTheOrdinaryWalkAlone(TargetType eventType) {
         Fixture f = new Fixture(255, eventType);
         f.records.put(1, PlayerBreachFixtures.condition(1, FLAG, -2, 2, 255));
         f.records.put(-2, PlayerBreachFixtures.action(-2, 1, 0));
         f.records.put(2, PlayerBreachFixtures.condition(2, eventType, -1, 0, 255));
         f.bind();
         f.flags[1] = 1;
-        f.ticks(1); // Select the ordinary branch, leaving its action pending.
+        // DK II walks the whole tree on every tick (0x4C79A0), so the ordinary
+        // branch's action runs on the tick its condition holds, nothing is left pending
+        f.ticks(1);
+        assertEquals(2, f.flags[1]);
         f.dispatch((short) 3);
         assertEquals(1, f.flags[0]);
-        assertEquals(1, f.flags[1]);
+        assertEquals(2, f.flags[1]);
         f.ticks(1);
         assertEquals(2, f.flags[1]);
         assertEquals(1, f.flags[0]);

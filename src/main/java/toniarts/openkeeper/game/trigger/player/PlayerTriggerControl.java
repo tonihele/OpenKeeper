@@ -173,7 +173,12 @@ public class PlayerTriggerControl extends TriggerControl {
         return super.eventMatches(condition, arg1, arg2);
     }
 
-    /** Native breach events select matching root branches; the authored player filter is ignored. */
+    /**
+     * Native breach events select matching root branches; the authored player
+     * filter is ignored. DK II raises them through its event dispatcher
+     * (DKII.EXE 0x498BB0 calls 0x4C7A50 with 0x38 and 0x39), which walks the
+     * branch like any other event, with the same repeat rule as the walk.
+     */
     void onEnemyBreached() {
         fire(TriggerGeneric.TargetType.PLAYER_ENEMY_BREACHED);
     }
