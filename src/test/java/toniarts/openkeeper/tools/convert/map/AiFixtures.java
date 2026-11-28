@@ -175,6 +175,22 @@ public final class AiFixtures {
     }
 
     /**
+     * A creature that likes no job
+     *
+     * @param creatureId the creature id
+     * @param threat its threat
+     * @param weakestValue its first unk3ea byte, the computer player drops
+     * the lowest on its Portal
+     * @return the creature
+     */
+    public static Creature fighter(short creatureId, int threat, int weakestValue) {
+        Creature creature = CombatExperienceFixtures.creature(creatureId);
+        creature.getAttributes().setThreat(threat);
+        creature.setUnk3ea(new short[]{(short) weakestValue, 1});
+        return creature;
+    }
+
+    /**
      * Sets when the computer player pulls a hurt creature out
      *
      * @param ai the computer player settings

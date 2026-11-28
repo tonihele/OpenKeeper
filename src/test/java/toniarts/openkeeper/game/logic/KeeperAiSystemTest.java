@@ -99,6 +99,7 @@ import toniarts.openkeeper.tools.convert.map.AI;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.ai;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.battleSpell;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.creatureWithJobs;
+import static toniarts.openkeeper.tools.convert.map.AiFixtures.fighter;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.player;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withAttackResponse;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withBattleSpells;
@@ -170,6 +171,11 @@ class KeeperAiSystemTest {
     private static final short HERO_PORTAL = CreatureSpawnSystem.HERO_PORTAL_ROOM_ID;
     private static final short HORNY = 9;
     private static final short EATER = 8;
+    /**
+     * DK II's Skeleton and Rogue: threat 60 and 80, first unk3ea byte 45 and 25
+     */
+    private static final short SKELETON = 20;
+    private static final short ROGUE = 21;
     private static final short THUNDERBOLT = 6;
     private static final short HEAL = 10;
     private static final int ROOM_COST = 10;
@@ -228,6 +234,7 @@ class KeeperAiSystemTest {
             WOODEN_BRIDGE, room(WOODEN_BRIDGE, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_WATER, Room.RoomFlag.PLACEABLE_ON_LAVA, Room.RoomFlag.BUILDABLE),
             STONE_BRIDGE, room(STONE_BRIDGE, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_WATER, Room.RoomFlag.PLACEABLE_ON_LAVA, Room.RoomFlag.BUILDABLE));
     private final List<Point> impSpells = new ArrayList<>();
+    private final Map<Short, Creature> fighters = Map.of(SKELETON, fighter(SKELETON, 60, 45), ROGUE, fighter(ROGUE, 80, 25));
 
     private final Map<Short, Room> rooms = Map.ofEntries(
             Map.entry(TREASURY, room(TREASURY, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE)),
@@ -1338,6 +1345,26 @@ class KeeperAiSystemTest {
         system.processTick(0.25f);
 
         assertEquals(Map.of(other, new Point(5, 4)), dropped);
+    }
+
+    @Test
+    void dropsTheCreatureLowestInDk2sRankingNotInThreatToMakeRoomForAResearcher() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+        roomControl.onBuild(createRoom(LIBRARY, new Point(1, 4)));
+        roomControl.onBuild(createRoom(PORTAL, new Point(5, 4)));
+        spellControl.setTypeAvailable(heal, true, false);
+        EntityId skeleton = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        EntityId rogue = createCreature(PLAYER_ID, new Point(8, 4), 100, 100, CreatureState.IDLE);
+        for (EntityId creature : List.of(skeleton, rogue)) {
+            CreatureComponent creatureComponent = new CreatureComponent();
+            creatureComponent.creatureId = creature == skeleton ? SKELETON : ROGUE;
+            entityData.setComponent(creature, creatureComponent);
+            creatureControl.onCreatureAdded(creature, fighters.get(creatureComponent.creatureId));
+        }
+        system.processTick(0.25f);
+
+        // The Skeleton has less threat, but the Rogue is the lower of the two in DK II's byte
+        assertEquals(Map.of(rogue, new Point(5, 4)), dropped);
     }
 
     @Test
@@ -2784,7 +2811,8 @@ class KeeperAiSystemTest {
             case "getKeeperSpells" -> List.of(createImp, heal, thunderbolt);
             case "getCreature" -> ((Number) args[0]).shortValue() == EATER ? creatureWithJobs(EATER, Creature.JobType.RESEARCH, Creature.JobType.EAT)
                     : ((Number) args[0]).shortValue() == HORNY
-                    ? CombatExperienceFixtures.creature(HORNY, Creature.CreatureFlag.IS_HORNY) : CombatExperienceFixtures.creature((short) 0);
+                    ? CombatExperienceFixtures.creature(HORNY, Creature.CreatureFlag.IS_HORNY)
+                    : fighters.getOrDefault(((Number) args[0]).shortValue(), fighter((short) 0, 0, 0));
             case "getRooms" -> new ArrayList<>(rooms.values());
             case "getTraps" -> List.of(sentry);
             case "getObject" -> ((Number) args[0]).shortValue() == 1 ? GameObjectFixtures.gameObject("Gold")
