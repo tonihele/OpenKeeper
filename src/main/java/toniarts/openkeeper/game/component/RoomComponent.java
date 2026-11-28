@@ -40,6 +40,12 @@ public final class RoomComponent implements EntityComponent {
      */
     public Point location;
 
+    /**
+     * The game time the room got its size: built, grown or cut. DK II keeps
+     * it for a room (CRoom+0x9F, set by 0x4E4480)
+     */
+    public double sizeTime;
+
     public RoomComponent() {
         // For serialization
     }
@@ -49,6 +55,7 @@ public final class RoomComponent implements EntityComponent {
         destroyed = roomComponent.destroyed;
         defaultStorageType = roomComponent.defaultStorageType;
         location = roomComponent.location;
+        sizeTime = roomComponent.sizeTime;
     }
 
     public RoomComponent(short roomId, boolean destroyed, Point location) {

@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.KeeperAi;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -219,6 +220,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private static final int ROOM_MESSAGE_UNITS = 300;
 
     /**
+     * A full room is too small once its size has held this long, 4 x the
+     * game ticks in a second in DK II's room searches (0x4F3560)
+     */
+    private static final double ROOM_SIZE_HELD_SECONDS = 4;
+
+    /**
      * The message for each kind of attack
      */
     private static final Map<KeeperAttacked.Target, KeeperAi.Message> ATTACK_MESSAGES = Map.of(
@@ -284,9 +291,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * first. Each takes it into its inbox on its turn
      */
     private final List<News> news = new ArrayList<>();
-    private final EventListener<RoomWanted> roomListener = (type, event) -> addNews(event.playerId(),
-            type == ServerEvents.ROOM_WANTED ? KeeperAi.Message.ROOM_WANTED : KeeperAi.Message.ROOM_TOO_SMALL,
-            ROOMS_WANTED.getOrDefault(event.objectType(), (short) 0), null);
+    private final EventListener<RoomWanted> roomListener = (type, event) -> {
+        if (type == ServerEvents.ROOM_WANTED || isTooSmall(event)) {
+            addNews(event.playerId(), type == ServerEvents.ROOM_WANTED ? KeeperAi.Message.ROOM_WANTED : KeeperAi.Message.ROOM_TOO_SMALL,
+                    ROOMS_WANTED.getOrDefault(event.objectType(), (short) 0), null);
+        }
+    };
     private final EventListener<KeeperAttacked> attackListener = (type, event) -> addNews(event.playerId(),
             ATTACK_MESSAGES.get(event.target()), 0, event.tile());
     private final EventListener<CreatureUpset> moodListener = (type, event) -> addNews(event.playerId(),
@@ -451,10 +461,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             actions = traps.placeTrapsAndDoors(keeperAi, playerController, ai, actions);
         }
 
-        // In a fight it sees to the fight, otherwise to its imps
-        if (battles.isFighting(keeperAi.playerId)) {
-            if (actions > 0 && (battles.callToArms(keeperAi, playerController, ai, ticksPerSecond)
-                    || battles.castBattleSpell(keeperAi, playerController, ai))) {
+        // In a fight it sees to the fight, otherwise to its imps (0x500C20). Seeing to the fight takes it out of
+        // the fight, unless one of its creatures fights (0x503060)
+        if (actions > 0 && keeperAi.fighting) {
+            keeperAi.fighting = battles.isFighting(keeperAi.playerId);
+            if (battles.callToArms(keeperAi, playerController, ai, ticksPerSecond) || battles.castBattleSpell(keeperAi, playerController, ai)) {
                 actions--;
             }
         } else if (actions > 0 && createImp(keeperAi, playerController, ai)) {
@@ -1061,6 +1072,29 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     }
 
     /**
+     * Tells whether rooms a creature found full are too small. DK II's room
+     * searches (0x4F3560 for the Training Room, the Lair, Library, Workshop,
+     * Temple, Torture Chamber, Casino and Combat Pit alike) only say so when
+     * a full room works, that is has its furniture (CRoom+0xA3), and has
+     * held its size for 4 seconds (+0x9F). Gold that doesn't fit (0x4BA420)
+     * and a full Prison (0x4E5A70) say so at once
+     */
+    private boolean isTooSmall(RoomWanted event) {
+        if (event.objectType() == ObjectType.GOLD || event.objectType() == ObjectType.PRISONER) {
+            return true;
+        }
+        for (IRoomController room : mapController.getRoomsByFunction(event.objectType(), event.playerId())) {
+            RoomComponent roomComponent = entityData.getComponent(room.getEntityId(), RoomComponent.class);
+            if (room.getObjectControl(event.objectType()).getMaxCapacity() > 0
+                    && gameTimer.getGameTime() - roomComponent.sizeTime > ROOM_SIZE_HELD_SECONDS) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Reads its inbox, as DK II does on every turn (0x4FA400). The news since
      * its last turn comes in, unless a message like it is still there
      * (0x4C4600). Then the messages not seen to yet are seen to, the first
@@ -1180,8 +1214,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 holdFullRoom(keeperAi, playerController, ai, (short) value);
             case UNHAPPY, ANGRY ->
                 creatures.answerMood(keeperAi, playerController, ai, new EntityId(value), message == KeeperAi.Message.ANGRY);
-            default ->
-                battles.weighUpAttack(keeperAi, playerControllers, ai, keeperAi.messageTiles[index], message == KeeperAi.Message.ROOM_CLAIMED);
+            default -> {
+
+                // An attack puts it in a fight, weighed up or not (0x4FA400)
+                keeperAi.fighting = true;
+                yield battles.weighUpAttack(keeperAi, playerControllers, ai, keeperAi.messageTiles[index], message == KeeperAi.Message.ROOM_CLAIMED);
+            }
         };
     }
 

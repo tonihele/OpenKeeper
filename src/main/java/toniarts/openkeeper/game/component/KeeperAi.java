@@ -234,6 +234,13 @@ public final class KeeperAi implements EntityComponent {
     public Point[] goldDeposits = new Point[4];
 
     /**
+     * Whether it is in a fight, so it sees to the fight rather than its imps.
+     * Each attack message puts it in one, and seeing to the fight takes it
+     * out unless one of its creatures fights (DK II's state bit 3)
+     */
+    public boolean fighting;
+
+    /**
      * Whether its Call to Arms flag is up, and where
      */
     public boolean callToArms;
@@ -339,6 +346,7 @@ public final class KeeperAi implements EntityComponent {
         this.goldAttemptWorkAtStart = keeperAi.goldAttemptWorkAtStart;
         this.goldAttemptLooked = keeperAi.goldAttemptLooked;
         this.goldDeposits = keeperAi.goldDeposits.clone();
+        this.fighting = keeperAi.fighting;
         this.callToArms = keeperAi.callToArms;
         this.callToArmsTile = keeperAi.callToArmsTile;
         this.callToArmsTicks = keeperAi.callToArmsTicks;
