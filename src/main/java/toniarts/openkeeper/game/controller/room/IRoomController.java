@@ -54,11 +54,35 @@ public interface IRoomController extends IRoomInformation {
     public RoomInstance getRoomInstance();
 
     /**
+     * Where a creature stops when it is sent to the given tile. A tile of this
+     * room that can't be stood on, like the middle of the Dungeon Heart, gives
+     * the nearest tile of the room that can. Any other tile is kept
+     *
+     * @param tile the tile
+     * @return the tile to stop on, null if no tile of the room can be stood on
+     */
+    public default Point getAccessibleTile(Point tile) {
+        if (!getRoomInstance().hasCoordinate(tile) || isTileAccessible(null, tile)) {
+            return tile;
+        }
+        Point nearest = null;
+        for (Point p : getRoomInstance().getCoordinates()) {
+            if (isTileAccessible(null, p) && (nearest == null || tile.distance(p) < tile.distance(nearest))) {
+                nearest = p;
+            }
+        }
+        return nearest;
+    }
+
+    /**
      * Get the number of floor furniture in a room
      *
      * @return floor furniture count
      */
     public int getFloorFurnitureCount();
+
+    /** Returns this room's DKII PLAYER_ROOM_FURNITURE counter, separate from gameplay capacity. */
+    int getScriptFurnitureCount();
 
     /**
      * Get the number of wall furniture in a room

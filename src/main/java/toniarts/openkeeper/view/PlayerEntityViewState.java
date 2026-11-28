@@ -21,8 +21,11 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.RenderManager;
+import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.control.AbstractControl;
 import com.jme3.system.Timer;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityContainer;
@@ -40,6 +43,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
@@ -53,9 +57,12 @@ import toniarts.openkeeper.game.event.GeneratedEffect;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.sound.SoundManager;
+import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Light;
@@ -64,10 +71,10 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
-import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.control.CreatureFlowerControl;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.DoorFlowerControl;
@@ -76,6 +83,7 @@ import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.IUnitFlowerControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import toniarts.openkeeper.view.control.SpecialObjectViewControl;
 import toniarts.openkeeper.view.control.ShotFlightControl;
 import toniarts.openkeeper.view.control.TortureWheelSpinControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
@@ -102,6 +110,16 @@ import toniarts.openkeeper.view.text.TextParser;
 public class PlayerEntityViewState extends AbstractAppState {
 
     private static final Logger logger = System.getLogger(PlayerEntityViewState.class.getName());
+
+    /**
+     * "Creature Dazed Effect", the stars over a creature lying stunned after it was dropped
+     */
+    private static final int DAZED_EFFECT_ID = 101;
+    private static final String DAZED_NODE_NAME = "Dazed";
+    /**
+     * The control point of the creature animations at the head
+     */
+    private static final int HEAD_CONTROL_POINT = 5000;
 
     /**
      * "Level up Effect", the sparkles around a creature that gained a level
@@ -166,6 +184,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final TrapModelContainer trapModelContainer;
     private final RoomEffectContainer roomEffectContainer;
     private final PortalEffectState portalEffects;
+    private final HaulingSoundState haulingSounds;
     private final ShotModelContainer shotModelContainer;
     private final EventListener<GameEvent> gameEventListener = this::onGameEvent;
     private final EventListener<GeneratedEffect> generatedEffectListener = (type, effect) ->
@@ -187,6 +206,13 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
     /** DK II lifts the victim on a torture wheel by 0x200 (1/8 tile) */
     private static final float TORTURE_WHEEL_VICTIM_LIFT = 0.125f;
+    /** The coals and water troughs under the wheels on the wall, and their effects (DK II 0x499300) */
+    private static final short TORTURE_WHEEL_OBJECT_ID = 8;
+    private static final short ELECTRIC_CHAIR_OBJECT_ID = 61;
+    private static final short TORTURE_COALS_OBJECT_ID = 62;
+    private static final short TORTURE_WATER_OBJECT_ID = 63;
+    private static final int TORTURE_COALS_EFFECT_ID = 274;
+    private static final int TORTURE_WATER_EFFECT_ID = 279;
 
     /**
      * A thing whose light is created and positioned every frame (see
@@ -246,6 +272,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer = new TrapModelContainer(entityData);
         roomEffectContainer = new RoomEffectContainer(entityData);
         portalEffects = new PortalEffectState(kwdFile, entityData, rootNode, fogOfWarInformation);
+        haulingSounds = new HaulingSoundState(kwdFile, entityData, fogOfWarInformation);
         shotModelContainer = new ShotModelContainer(entityData);
     }
 
@@ -266,6 +293,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.start();
         roomEffectContainer.start();
         stateManager.attach(portalEffects);
+        stateManager.attach(haulingSounds);
         shotModelContainer.start();
         EventBus.addListener(ClientEvents.GAME_EVENT, gameEventListener);
         EventBus.addListener(ClientEvents.GENERATED_EFFECT, generatedEffectListener);
@@ -275,6 +303,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
         portalEffects.setEnabled(enabled);
+        haulingSounds.setEnabled(enabled);
     }
 
     @Override
@@ -325,16 +354,94 @@ public class PlayerEntityViewState extends AbstractAppState {
     }
 
     /**
-     * The torture wheels spin all the time, and their victims with them. Both
-     * get the same clock, so they stay at the same angle.
+     * The torture wheels spin all the time, and their victims with them. Each
+     * gets a control, and they share the same clock so they stay at the same
+     * angle.
      */
-    private void setTortureWheelSpin(Spatial object, boolean spinning) {
+    private void setTortureWheelSpin(Spatial object, boolean spinning, boolean victim) {
         TortureWheelSpinControl control = object.getControl(TortureWheelSpinControl.class);
         if (spinning && control == null) {
-            float ticksPerSecond = kwdFile.getVariables().get(Variable.MiscVariable.MiscType.GAME_TICKS).getValue();
-            object.addControl(new TortureWheelSpinControl(timer::getTimeInSeconds, ticksPerSecond));
+            float ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
+            object.addControl(victim
+                    ? new TortureWheelSpinControl(timer::getTimeInSeconds, ticksPerSecond,
+                            () -> findObjectOnTile(object, o -> o.getCurrentState().state == GameObject.State.TORTURE_WHEEL_SPIN),
+                            () -> findObjectOnTile(object, o -> o.getCurrentState().objectId == TORTURE_COALS_OBJECT_ID
+                                    || o.getCurrentState().objectId == TORTURE_WATER_OBJECT_ID),
+                            trough -> splashTrough(object, trough))
+                    : new TortureWheelSpinControl(timer::getTimeInSeconds, ticksPerSecond));
         } else if (!spinning && control != null) {
             object.removeControl(control);
+        }
+    }
+
+    /**
+     * Gets the victim on a torture device
+     *
+     * @param device the model of an object
+     * @return the control of the creature tortured on the device, {@code null}
+     * if the object is no torture device or there is nobody on it
+     */
+    public IEntityViewControl getTortureVictimOn(Spatial device) {
+        ObjectViewControl deviceControl = device.getControl(ObjectViewControl.class);
+        if (deviceControl == null || deviceControl.getCurrentState() == null
+                || (deviceControl.getCurrentState().objectId != TORTURE_WHEEL_OBJECT_ID
+                && deviceControl.getCurrentState().objectId != ELECTRIC_CHAIR_OBJECT_ID)) {
+            return null;
+        }
+        return getTortureVictimOn(WorldUtils.vectorToPoint(device.getLocalTranslation()));
+    }
+
+    /**
+     * Gets the victim on a torture device on a tile
+     *
+     * @param tile the tile
+     * @return the control of the creature tortured on a device on the tile,
+     * {@code null} if there is nobody
+     */
+    public IEntityViewControl getTortureVictimOn(Point tile) {
+        if (tile == null) {
+            return null;
+        }
+        for (Spatial creature : creatureModelContainer.getModels()) {
+            CreatureViewControl control = creature.getControl(CreatureViewControl.class);
+            // A victim on a wheel turns with it, whatever animation its kind plays there
+            if (control != null && (creature.getControl(TortureWheelSpinControl.class) != null
+                    || control.getCurrentState() == Creature.AnimationType.TORTURED_WHEEL
+                    || control.getCurrentState() == Creature.AnimationType.TORTURED_CHAIR
+                    || control.getCurrentState() == Creature.AnimationType.TORTURED_CHAIR_SKELETON)
+                    && WorldUtils.vectorToPoint(creature.getLocalTranslation()).equals(tile)) {
+                return control;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Finds an object on the same tile as the given one
+     */
+    private Spatial findObjectOnTile(Spatial like, Predicate<ObjectViewControl> filter) {
+        Point tile = WorldUtils.vectorToPoint(like.getLocalTranslation());
+        for (Spatial object : objectModelContainer.getModels()) {
+            ObjectViewControl control = object.getControl(ObjectViewControl.class);
+            if (control != null && control.getCurrentState() != null && filter.test(control)
+                    && WorldUtils.vectorToPoint(object.getLocalTranslation()).equals(tile)) {
+                return object;
+            }
+        }
+        return null;
+    }
+
+    private void splashTrough(Spatial victim, Spatial trough) {
+        boolean coals = trough.getControl(ObjectViewControl.class).getCurrentState().objectId == TORTURE_COALS_OBJECT_ID;
+        stateManager.getState(EffectManagerState.class).load(nodeObjects, trough.getWorldTranslation().clone(),
+                coals ? TORTURE_COALS_EFFECT_ID : TORTURE_WATER_EFFECT_ID, false);
+
+        // And the victim cries out, from its own sounds (DK II 0x499300)
+        CreatureViewControl creature = victim.getControl(CreatureViewControl.class);
+        if (creature != null && creature.getDataObject() != null) {
+            SoundManager.playSound(creature.getDataObject().getSoundCategory(),
+                    coals ? ThingSounds.CREATURE_TORTURE_FIRE : ThingSounds.CREATURE_TORTURE_WATER,
+                    WorldUtils.vectorToPoint(victim.getWorldTranslation()));
         }
     }
 
@@ -353,6 +460,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.stop();
         roomEffectContainer.stop();
         stateManager.detach(portalEffects);
+        stateManager.detach(haulingSounds);
         shotModelContainer.stop();
         EventBus.removeListener(ClientEvents.GAME_EVENT, gameEventListener);
         EventBus.removeListener(ClientEvents.GENERATED_EFFECT, generatedEffectListener);
@@ -453,10 +561,17 @@ public class PlayerEntityViewState extends AbstractAppState {
                         ? kwdFile.getCreature(objectViewState.lairCreatureTypeId) : null;
                 boolean uniqueCreatureBed = lairCreatureType != null
                         && lairCreatureType.getFlags().contains(CreatureFlag.IS_UNIQUE);
-                EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
-                        kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager,
-                        textParser != null ? textParser.getObjectTextParser() : null, mapData,
-                        uniqueCreatureBed, kwdFile.getGameLevel().getTicksPerSec());
+                GameObject object = kwdFile.getObject(objectViewState.objectId);
+                var objectTextParser = textParser != null ? textParser.getObjectTextParser() : null;
+                int ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
+                ObjectViewControl control;
+                if (object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPECIAL)) {
+                    control = new SpecialObjectViewControl(e.getId(), entityData, object, objectViewState,
+                            assetManager, objectTextParser, mapData, uniqueCreatureBed, ticksPerSecond);
+                } else {
+                    control = new ObjectViewControl(e.getId(), entityData, object, objectViewState,
+                            assetManager, objectTextParser, mapData, uniqueCreatureBed, ticksPerSecond);
+                }
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
@@ -500,6 +615,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             if (result != null) {
                 CreatureViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
                 control.setWaterCheck(this::isWater);
+                control.setTicksPerSecond(kwdFile.getGameLevel().getTicksPerSec());
                 result.addControl(control);
 
                 CreatureFlowerControl flowerControl = new CreatureFlowerControl(e.getId(), entityData, creature, assetManager);
@@ -657,7 +773,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         IEntityViewControl control = object.getControl(IEntityViewControl.class);
         boolean wasAlreadyDead = control.getCurrentState() == Creature.AnimationType.DEATH_POSE;
         control.setTargetState(viewState.state);
-        setTortureWheelSpin(object, viewState.state == Creature.AnimationType.TORTURED_WHEEL);
+        setTortureWheelSpin(object, viewState.state == Creature.AnimationType.TORTURED_WHEEL, true);
+
+        updateDazedEffect(object, viewState, e.get(Position.class));
 
         // Trigger the death effect once, when the creature actually dies
         if (!wasAlreadyDead && viewState.state == Creature.AnimationType.DEATH_POSE) {
@@ -674,6 +792,78 @@ public class PlayerEntityViewState extends AbstractAppState {
             CharredOverlay.apply(object, assetManager);
         }
         applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
+    }
+
+    /**
+     * A creature that lands stunned from the hand gets the dazed stars over its head, once per landing. The
+     * creature gets a new model when it is dropped, so whether the stars were already played is remembered on the
+     * model until the creature gets up.
+     */
+    private void updateDazedEffect(Spatial object, CreatureViewState viewState, Position position) {
+        if (viewState.state != Creature.AnimationType.FALLBACK) {
+            object.setUserData(DAZED_NODE_NAME, null);
+            return;
+        }
+        Creature creature = kwdFile.getCreature(viewState.creatureId);
+        if (position.position.y > WorldUtils.FLOOR_HEIGHT || creature.getAttributes().getStunDuration() == 0
+                || object.getUserData(DAZED_NODE_NAME) != null || !(object instanceof Node creatureNode)) {
+            return;
+        }
+        object.setUserData(DAZED_NODE_NAME, true);
+        Node dazedNode = getDazedEffectNode(creatureNode, creature);
+        stateManager.getState(EffectManagerState.class).load(dazedNode, null, DAZED_EFFECT_ID, false);
+
+        // Like the original, the stars follow the head's control point while the creature falls over
+        HeadFollowControl headFollowControl = dazedNode.getControl(HeadFollowControl.class);
+        headFollowControl.setEnabled(true);
+        headFollowControl.update(0);
+    }
+
+    /**
+     * The node at the creature's head that holds its dazed stars. Changing the animation removes all the
+     * creature's children that aren't marked as kept, so the stars get a kept node of their own.
+     */
+    private static Node getDazedEffectNode(Node creatureNode, Creature creature) {
+        Node dazedNode = (Node) creatureNode.getChild(DAZED_NODE_NAME);
+        if (dazedNode == null) {
+            dazedNode = new Node(DAZED_NODE_NAME);
+            dazedNode.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
+            dazedNode.addControl(new HeadFollowControl(creature.getAttributes().getHeight()));
+            creatureNode.attachChild(dazedNode);
+        }
+        return dazedNode;
+    }
+
+    /**
+     * Keeps a node at the head's control point while the creature moves, like the original ties the dazed stars to
+     * the control point. Some creatures, like the knights, have no head point, for them the front of the fallen
+     * body is used. Stops once the effects on the node are gone.
+     */
+    private static final class HeadFollowControl extends AbstractControl {
+
+        private final float height;
+        private final Vector3f head = new Vector3f();
+
+        private HeadFollowControl(float height) {
+            this.height = height;
+        }
+
+        @Override
+        protected void controlUpdate(float tpf) {
+            if (((Node) spatial).getQuantity() == 0) {
+                setEnabled(false);
+                return;
+            }
+            if (AnimationLoader.getControlPoint(spatial.getParent(), HEAD_CONTROL_POINT, head) == null
+                    && AnimationLoader.getFrontPoint(spatial.getParent(), head) == null) {
+                head.set(0, height, 0);
+            }
+            spatial.setLocalTranslation(head);
+        }
+
+        @Override
+        protected void controlRender(RenderManager rm, ViewPort vp) {
+        }
     }
 
     private void updateDoorModelState(Spatial object, Entity e) {
@@ -695,7 +885,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
             control.setTargetState(viewState);
         }
-        setTortureWheelSpin(object, viewState.state == GameObject.State.TORTURE_WHEEL_SPIN);
+        setTortureWheelSpin(object, viewState.state == GameObject.State.TORTURE_WHEEL_SPIN, false);
         applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), viewState.visible);
 
         GameObject gameObject = kwdFile.getObject(viewState.objectId);
@@ -713,6 +903,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         VisualEffect visual = stateManager.getState(EffectManagerState.class)
                 .load(root, effect.position(), effect.effectId(), false);
         if (visual != null) {
+            if (kwdFile.getEffect(effect.effectId()).getGenerationType() == Effect.GenerationType.CUBE_GEN) {
+                visual.generateThroughoutLifetime();
+            }
             visual.getEffectNode().rotate(0, effect.yaw(), 0);
         }
     }

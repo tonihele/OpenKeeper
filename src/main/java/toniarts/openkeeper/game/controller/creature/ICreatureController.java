@@ -93,6 +93,7 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     /**
      * Handles the manual rest target after landing and getting up. Rest can be
      * assigned without fatigue debt, provided the creature's bed is in that Lair.
+     * Also sends a hurt creature to bed right after it has made its home.
      *
      * @return whether a sleep task was assigned
      */
@@ -128,9 +129,32 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean isWithinAttackDistance(EntityId attackTarget);
 
+    /**
+     * Does the creature have an attacking spell it can cast now
+     *
+     * @return has a ranged attack ready
+     */
+    public boolean hasRangedAttackReady();
+
+    /**
+     * Casts the first attacking spell that is ready at the target, without
+     * hurting it, like a trainee at a wall target
+     *
+     * @param target what to cast at
+     */
+    public void castTrainingShot(EntityId target);
+
     public void stopCreature();
 
     public void executeAttack(EntityId attackTarget);
+
+    /**
+     * Casts a spell on one of our own creatures in the fight, if we have one
+     * ready and somebody needs it
+     *
+     * @return true if we cast a spell
+     */
+    public boolean castSupportSpell();
 
     /**
      * Lets the shot of the spell being cast leave once the cast has reached
@@ -142,6 +166,24 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * Drops the shot of an interrupted cast
      */
     public void cancelCastShot();
+
+    /**
+     * Lands the hit of the melee swing once the swing has reached the
+     * creature's shot delay
+     */
+    public void releaseMeleeHit();
+
+    /**
+     * Is the hit of the melee swing still to land
+     *
+     * @return true while the swing hasn't hit yet
+     */
+    public boolean hasPendingMeleeHit();
+
+    /**
+     * Drops the hit of an interrupted melee swing
+     */
+    public void cancelMeleeHit();
 
     public void navigateToAttackTarget(EntityId attackTarget);
 
@@ -461,6 +503,13 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void turnIntoChicken(double duration);
 
     /**
+     * Plays an animation once from its start, such as an outburst
+     *
+     * @param animation the animation
+     */
+    public void playAnimation(Creature.AnimationType animation);
+
+    /**
      * Sets creature possession on/off
      *
      * @param possessed should the creature be posessed or AI driven
@@ -508,5 +557,11 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @param duration how long, in seconds
      */
     public void turncoat(short playerId, double duration);
+
+    /**
+     * Turns on the keeper. Like in DK II, the creature joins the heroes and
+     * goes after the keeper it served
+     */
+    public void rebel();
 
 }
