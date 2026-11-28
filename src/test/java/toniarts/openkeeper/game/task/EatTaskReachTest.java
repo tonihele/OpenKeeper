@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.task;
 
-import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -51,7 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * A hungry creature goes for the nearest food it can walk to. A path search
  * to food out of its reach goes through all of the creature's land before it
- * fails, so that should not happen for every such food.
+ * fails, so the food is only tested for being in reach.
  */
 class EatTaskReachTest {
 
@@ -59,7 +58,6 @@ class EatTaskReachTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final Set<Point> land = new HashSet<>();
-    private int pathSearches;
     private Task assignedTask;
     private final ICreatureController creature = stub(ICreatureController.class, (name, args) -> switch (name) {
         case "getOwnerId" -> PLAYER_ID;
@@ -83,7 +81,6 @@ class EatTaskReachTest {
         assertTrue(taskManager().assignEatTask(creature));
 
         assertEquals(new Vector2f(1, 10), assignedTask.getTarget(creature));
-        assertEquals(2, pathSearches, "The one that fails and the one to the food");
     }
 
     @Test
@@ -97,7 +94,6 @@ class EatTaskReachTest {
         assertFalse(taskManager().assignEatTask(creature));
 
         assertNull(assignedTask);
-        assertEquals(1, pathSearches);
     }
 
     @Test
@@ -109,7 +105,6 @@ class EatTaskReachTest {
         assertTrue(taskManager().assignEatTask(creature));
 
         assertEquals(new Vector2f(9, 10), assignedTask.getTarget(creature));
-        assertEquals(1, pathSearches);
     }
 
     private void addLand(int fromX, int toX) {
@@ -134,16 +129,14 @@ class EatTaskReachTest {
 
         // Walking goes over the land, tile by tile
         INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
-            case "isAccessible" -> land.contains(((IMapTileInformation) args[1]).getLocation());
-            case "findPath" -> {
-                pathSearches++;
+            case "isReachable" -> {
                 Point start = (Point) args[0];
                 Point end = (Point) args[1];
                 boolean connected = true;
                 for (int x = Math.min(start.x, end.x); x <= Math.max(start.x, end.x); x++) {
                     connected &= land.contains(new Point(x, 10));
                 }
-                yield connected ? new DefaultGraphPath<IMapTileInformation>() : null;
+                yield connected;
             }
             default -> null;
         });

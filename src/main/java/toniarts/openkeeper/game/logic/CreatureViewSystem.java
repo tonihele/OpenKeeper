@@ -132,6 +132,11 @@ public final class CreatureViewSystem extends GameTimeCounter {
                     }
                 } else if (taskComponent != null && taskComponent.taskType == TaskType.TORTURE) {
                     targetState = getTorturerAnimation(taskComponent.targetEntity, state);
+                } else if (taskComponent != null && taskComponent.taskType == TaskType.SULK) {
+
+                    // Like in DK II (0x482F80), the sulker stands and plays its angry animation once each time it sulks out loud
+                    targetState = currentState == Creature.AnimationType.ANGRY && isPlaying(state, 1)
+                            ? Creature.AnimationType.ANGRY : Creature.AnimationType.STAND_STILL;
                 } else if (taskComponent != null) {
                     targetState = taskComponent.taskType == TaskType.MANUFACTURE
                             ? getManufactureAnimation(kwdFile.getCreature(state.creatureId))
@@ -145,6 +150,10 @@ public final class CreatureViewSystem extends GameTimeCounter {
                         targetState = getTortureAnimation(tortured != null ? tortured.device : null, state);
                     } else if (aiState != null) {
                         targetState = getAnimation(aiState.getCreatureState());
+                        CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+                        if (aiState.getCreatureState() == MELEE_ATTACK && meleeAttack != null && meleeAttack.swipe) {
+                            targetState = Creature.AnimationType.SWIPE;
+                        }
                     }
                 }
             }
@@ -369,7 +378,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * @param creature the creature manufacturing
      * @return the animation to show
      */
-    static Creature.AnimationType getManufactureAnimation(Creature creature) {
+    public static Creature.AnimationType getManufactureAnimation(Creature creature) {
         ArtResource manufacturing = creature.getAnimation(Creature.AnimationType.MANUFACTURING);
         if (manufacturing != null && manufacturing.getType() != ArtResource.ArtResourceType.NONE) {
             return Creature.AnimationType.MANUFACTURING;

@@ -25,6 +25,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -32,7 +33,9 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.tools.convert.map.CasinoVariableFixtures;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.RoomFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
@@ -64,6 +67,15 @@ class RoomTaskSharingTest {
         assertFalse(taskManager.assignClosestRoomTask(creature(), ObjectType.LAIR, null));
     }
 
+    @Test
+    void casinoObjectTakesOneGambler() {
+        TaskManager taskManager = taskManager(room(2));
+
+        // DK II skips an object another gambler has (0x4D7460), the extra place in the Casino doesn't share it
+        assertTrue(taskManager.assignClosestRoomTask(creature(), ObjectType.GAMBLER, null));
+        assertFalse(taskManager.assignClosestRoomTask(creature(), ObjectType.GAMBLER, null));
+    }
+
     private static TaskManager taskManager(IRoomController room) {
         IMapDataInformation<?> mapData = proxy(IMapDataInformation.class, (proxy, method, args) -> switch (method.getName()) {
             case "getWidth", "getHeight" ->
@@ -79,14 +91,24 @@ class RoomTaskSharingTest {
             default ->
                 null;
         });
-        INavigationService navigationService = proxy(INavigationService.class, (proxy, method, args) -> new DefaultGraphPath<>());
+        INavigationService navigationService = proxy(INavigationService.class,
+                (proxy, method, args) -> "isReachable".equals(method.getName()) ? true : new DefaultGraphPath<>());
 
         IGameWorldController gameWorldController = proxy(IGameWorldController.class, (proxy, method, args) -> null);
 
         Map<MiscType, MiscVariable> gameSettings = new EnumMap<>(MiscType.class);
         gameSettings.put(MiscType.CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH, CreatureSleepFixtures.variable(MiscType.CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH, 50));
+        for (MiscType type : new MiscType[]{MiscType.GAMBLING_MODIFY_CREATURE_MONEY_SMILES_PER_SECOND,
+            MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND, MiscType.GAMBLING_MODIFY_CREATURE_ANGER_SMILES_PER_SECOND,
+            MiscType.GAMBLING_MODIFY_CREATURE_ANGER_MONEY_PER_SECOND, MiscType.GAMBLING_CREATURE_JACKPOT_CHANCE_SMILES_PER_SECOND,
+            MiscType.GAMBLING_CREATURE_JACKPOT_CHANCE_MONEY_PER_SECOND, MiscType.GAMBLING_JACKPOT_BASIC_AMOUNT,
+            MiscType.GAMBLING_JACKPOT_PAY_TIME_LIMIT, MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY}) {
+            gameSettings.put(type, CasinoVariableFixtures.miscVariable(type, 1));
+        }
 
-        return new TaskManager(new DefaultEntityData(), gameWorldController, mapController, null, null, navigationService, List.of(), null, null, gameSettings);
+        return new TaskManager(new DefaultEntityData(), gameWorldController, mapController, null, null, navigationService, List.of(),
+                proxy(ILevelInfo.class, (proxy, method, args) -> proxy(IKwdFile.class, (kwdProxy, kwdMethod, kwdArgs)
+                        -> kwdMethod.getName().equals("getGameLevel") ? CreatureSleepFixtures.level(4) : null)), null, gameSettings);
     }
 
     /**

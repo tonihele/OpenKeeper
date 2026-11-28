@@ -70,6 +70,11 @@ class MapTileTooltipTest {
     }
 
     @Test
+    void edgeOfMapIsFogOfWarNotJelly() {
+        assertEquals(348, parser.getTooltipTextId(tile(NEUTRAL), terrain(30, 931), PLAYER));
+    }
+
+    @Test
     void otherTerrainsKeepTheirOwnText() {
         assertEquals(2489, parser.getTooltipTextId(tile(NEUTRAL), terrain(4, 2489), PLAYER));
         assertEquals(0, parser.getTooltipTextId(tile(NEUTRAL), terrain(41, 0), PLAYER));

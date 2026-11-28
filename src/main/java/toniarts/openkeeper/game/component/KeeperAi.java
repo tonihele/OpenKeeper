@@ -79,6 +79,12 @@ public final class KeeperAi implements EntityComponent {
     public int untagTicks;
 
     /**
+     * The gold tiles it tagged, the newest first, as many as the spiral
+     * round a seam has. DK II keeps its dig orders in the order it gave them
+     */
+    public Point[] goldTags = new Point[49];
+
+    /**
      * The room being built
      */
     public short roomId;
@@ -96,8 +102,21 @@ public final class KeeperAi implements EntityComponent {
     public boolean wantedRoomExpand;
 
     /**
-     * How many Portals it had when it last looked, a new one may ask for a
-     * bigger Lair
+     * The rooms its creatures asked for that wait their turn, the first asked
+     * first, ending with 0. DK II keeps them in its message list and tries
+     * them again each turn
+     */
+    public short[] roomAsks = new short[32];
+
+    /**
+     * For each room by its id the game ticks until the ask for it runs out,
+     * 0 when there is none. The room isn't asked for again before then
+     */
+    public int[] roomAskTicks = new int[32];
+
+    /**
+     * How many Portals it and the neutral player had when it last looked,
+     * one taken from another player may ask for a bigger Lair
      */
     public int portals;
 
@@ -240,10 +259,13 @@ public final class KeeperAi implements EntityComponent {
         this.nextTask = keeperAi.nextTask;
         this.taskTicks = keeperAi.taskTicks;
         this.untagTicks = keeperAi.untagTicks;
+        this.goldTags = keeperAi.goldTags.clone();
         this.roomId = keeperAi.roomId;
         this.wantedRoomId = keeperAi.wantedRoomId;
         this.roomWanted = keeperAi.roomWanted;
         this.wantedRoomExpand = keeperAi.wantedRoomExpand;
+        this.roomAsks = keeperAi.roomAsks.clone();
+        this.roomAskTicks = keeperAi.roomAskTicks.clone();
         this.portals = keeperAi.portals;
         this.direction = keeperAi.direction;
         this.current = keeperAi.current;
