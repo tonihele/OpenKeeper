@@ -38,6 +38,11 @@ public final class ShotFixtures {
     public static final short FIREBALL_ID = 1;
 
     /**
+     * The Cyclone of the Wind spell
+     */
+    public static final short CYCLONE_ID = 41;
+
+    /**
      * The fireball's effect when it hits a thing, "Spot Hit 4"
      */
     public static final int FIREBALL_HIT_EFFECT_ID = 234;
@@ -110,6 +115,18 @@ public final class ShotFixtures {
     }
 
     /**
+     * The Cyclone of the Wind spell, with the values of the original data
+     */
+    public static Shot cyclone() {
+        Shot shot = shot(CYCLONE_ID, Shot.ProcessType.WIND, 128, EnumSet.of(Shot.ShotProcessFlag.CONSTANT));
+        shot.setSpeed(0.25f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.NONE);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_OVER_TIME, Shot.ShotFlag.MOVE_TOWARDS_TARGET));
+        return shot;
+    }
+
+    /**
      * The Gas Cloud or the Gas Missile's cloud, with the values of the
      * original data
      *
@@ -178,6 +195,10 @@ public final class ShotFixtures {
     public static void setSize(Creature creature, float width, float height) {
         creature.getAttributes().setWidth(width);
         creature.getAttributes().setHeight(height);
+    }
+
+    public static void setHealth(Creature creature, int health) {
+        creature.getAttributes().setHp(health);
     }
 
     /**

@@ -60,7 +60,8 @@ class ShotSystemTest {
 
     private DefaultEntityData entityData;
     private final Shot fireball = ShotFixtures.fireball();
-    private final Map<Short, Shot> shotsById = Map.of(ShotFixtures.FIREBALL_ID, fireball,
+    private final Shot cyclone = ShotFixtures.cyclone();
+    private final Map<Short, Shot> shotsById = Map.of(ShotFixtures.FIREBALL_ID, fireball, ShotFixtures.CYCLONE_ID, cyclone,
             ShotFixtures.GAS_MISSILE_ID, ShotFixtures.gasMissile(), ShotFixtures.GRENADE_ID, ShotFixtures.grenade(),
             ShotFixtures.HAIL_STORM_ID, ShotFixtures.hailStorm());
     private final Creature imp = ShotFixtures.creature(IMP_ID, EnumSet.noneOf(Creature.CreatureFlag.class),
@@ -68,6 +69,7 @@ class ShotSystemTest {
     private final List<EntityId> creatures = new ArrayList<>();
     private final Set<Point> solidTiles = new HashSet<>();
     private final List<EntityId[]> hits = new ArrayList<>();
+    private final List<Vector3f> turns = new ArrayList<>();
     private final List<Object[]> effects = new ArrayList<>();
     private final List<EntityId> areaDamages = new ArrayList<>();
     private final List<Object[]> childShots = new ArrayList<>();
@@ -87,6 +89,10 @@ class ShotSystemTest {
                 new Class<?>[]{IShotsController.class}, (proxy, method, args) -> {
                     if (method.getName().equals("hit")) {
                         hits.add(new EntityId[]{(EntityId) args[0], (EntityId) args[1]});
+                        return null;
+                    }
+                    if (method.getName().equals("fly")) {
+                        turns.add(positionOf((EntityId) args[0]).clone());
                         return null;
                     }
                     if (method.getName().equals("damageArea")) {
@@ -244,6 +250,27 @@ class ShotSystemTest {
         shotSystem.processTick(0.25f);
         shotSystem.processTick(0.25f);
         assertNull(positionOf(shot));
+    }
+
+    @Test
+    void shotThatWorksEveryTurnHasItsTurnBeforeItMoves() {
+        EntityId shot = createShot(new Vector3f(1, 1.3f, 1), new Vector3f(0.25f, 0, 0), 0.4f);
+        entityData.setComponent(shot, new ShotFlight(ShotFixtures.CYCLONE_ID, PLAYER_ID, null, null, 3, 0, new Vector3f(0.25f, 0, 0),
+                new Vector3f(1, 1.3f, 1), 0.4f, cyclone.getHealth()));
+
+        shotSystem.processTick(0.25f);
+        shotSystem.processTick(0.25f);
+
+        assertEquals(List.of(new Vector3f(1, 1.3f, 1), new Vector3f(1.25f, 1.3f, 1)), turns);
+    }
+
+    @Test
+    void shotThatWorksOnAHitHasNoTurn() {
+        createShot(new Vector3f(1, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertTrue(turns.isEmpty());
     }
 
     @Test
