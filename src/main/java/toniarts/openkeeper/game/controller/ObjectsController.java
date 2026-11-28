@@ -85,6 +85,7 @@ public final class ObjectsController implements IObjectsController {
     public final static short OBJECT_CHICKEN_ID = 9;
     public final static short OBJECT_CALL_TO_ARMS_ID = 10;
     public final static short OBJECT_EGG_ID = 47;
+    public final static short OBJECT_BOULDER_ID = 74;
     public final static short OBJECT_SPECIAL_INCREASE_LEVEL_ID = 117;
     public final static short OBJECT_SPECIAL_REVEAL_MAP_ID = 118;
     public final static short OBJECT_SPECIAL_MAKE_SAFE_ID = 119;

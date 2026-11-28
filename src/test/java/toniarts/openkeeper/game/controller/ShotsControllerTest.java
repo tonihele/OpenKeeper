@@ -43,8 +43,10 @@ import toniarts.openkeeper.game.component.Poisoned;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
@@ -115,6 +117,7 @@ class ShotsControllerTest {
     private final List<Object[]> raised = new ArrayList<>();
     private final List<Object[]> effects = new ArrayList<>();
     private final Set<Point> waterTiles = new HashSet<>();
+    private final Set<Vector3f> blindSpots = new HashSet<>();
     private final List<Object[]> spawnedCreatures = new ArrayList<>();
     private final List<List<Object>> playerEvents = new ArrayList<>();
     private final List<EntityId> pickedUpThings = new ArrayList<>();
@@ -140,10 +143,10 @@ class ShotsControllerTest {
         // Drain does its process when it hits, as in the original data
         shotsById.put(DRAIN_ID, ShotFixtures.shot(DRAIN_ID, Shot.ProcessType.DRAIN, 0, EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING)));
         shotsById.put(SPIKE_ID, TrapFiringFixtures.shot(SPIKE_ID, Shot.ProcessType.NONE, Shot.DamageType.CONSTANT));
-        shotsById.put(GAS_CLOUD_ID, TrapFiringFixtures.shot(GAS_CLOUD_ID, Shot.ProcessType.GAS, Shot.DamageType.RANGE_FROM_ORIGIN));
+        shotsById.put(GAS_CLOUD_ID, TrapFiringFixtures.shot(GAS_CLOUD_ID, Shot.ProcessType.GAS, Shot.DamageType.RANGE_FROM_ORIGIN, 300));
         shotsById.put(FIREBURST_ID, TrapFiringFixtures.shot(FIREBURST_ID, Shot.ProcessType.NONE, Shot.DamageType.RANGE_FROM_ORIGIN));
         shotsById.put(DOOR_FIREBALL_ID, TrapFiringFixtures.shot(DOOR_FIREBALL_ID, Shot.ProcessType.NONE, Shot.DamageType.HIT_THING));
-        shotsById.put(FREEZE_ID, TrapFiringFixtures.shot(FREEZE_ID, Shot.ProcessType.FREEZE, Shot.DamageType.NONE));
+        shotsById.put(FREEZE_ID, TrapFiringFixtures.shot(FREEZE_ID, Shot.ProcessType.FREEZE, Shot.DamageType.NONE, 200));
         shotsById.put(ALARM_ID, TrapFiringFixtures.shot(ALARM_ID, Shot.ProcessType.ALARM, Shot.DamageType.NONE));
         shotsById.put(FEAR_ID, TrapFiringFixtures.shot(FEAR_ID, Shot.ProcessType.FEAR, Shot.DamageType.NONE));
         // Poison Spit does its process when it hits, as in the original data
@@ -191,7 +194,8 @@ class ShotsControllerTest {
 
         // The things picked up this tick are still on their tiles until the lookup catches up
         IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class},
-                (proxy, method, args) -> args.length == 1 ? deadBodies.stream()
+                (proxy, method, args) -> method.getName().equals("hasLineOfSight") ? !blindSpots.contains(args[1])
+                        : args.length == 1 ? deadBodies.stream()
                         .filter(entity -> ((Point) args[0]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position)))
                         .toList()
                         : Stream.concat(entityData.findEntities(null, Position.class).stream()
@@ -199,6 +203,8 @@ class ShotsControllerTest {
                                 pickedUpThings.stream()).toList());
         IGameController gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(), new Class<?>[]{IGameController.class},
                 (proxy, method, args) -> method.getName().equals("getEntityLookupService") ? entityPositionLookup : null);
+        ILevelInfo levelInfo = (ILevelInfo) Proxy.newProxyInstance(ILevelInfo.class.getClassLoader(), new Class<?>[]{ILevelInfo.class},
+                (proxy, method, args) -> method.getName().equals("getPlayer") ? new Keeper(false, (short) args[0]) : null);
         ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class},
                 (proxy, method, args) -> {
                     switch (method.getName()) {
@@ -212,7 +218,7 @@ class ShotsControllerTest {
                     return null;
                 });
 
-        shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, null, objectsController, creaturesController, gameEventService);
+        shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, levelInfo, objectsController, creaturesController, gameEventService);
     }
 
     @Test
@@ -732,6 +738,32 @@ class ShotsControllerTest {
     }
 
     @Test
+    void gasCloudSplitsItsThreatBetweenTheEnemiesItSees() {
+        EntityId target = createCreature(ENEMY_ID, 11, 10);
+        createCreature(ENEMY_ID, 10, 11.5f);
+        createCreature(PLAYER_ID, 10, 9);
+        createCreature(ENEMY_ID, 12, 10);
+        blindSpots.add(new Vector3f(9, 1, 9));
+        createCreature(ENEMY_ID, 9, 9);
+
+        shotsController.createShot(GAS_CLOUD_ID, 750, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+
+        // Two enemies within 2 tiles in sight share the 300, those within a tile of the cloud are scared
+        Threat threat = entityData.getComponent(entityData.findEntity(null, Threat.class, Decay.class), Threat.class);
+        assertEquals(150, threat.threat);
+        assertEquals(1, threat.range, DELTA);
+    }
+
+    @Test
+    void gasCloudThatNoEnemySeesScaresNobody() {
+        EntityId own = createCreature(PLAYER_ID, 11, 10);
+
+        shotsController.createShot(GAS_CLOUD_ID, 750, 1, PLAYER_ID, new Vector3f(10, 1, 10), own, null);
+
+        assertNull(entityData.findEntity(null, Threat.class));
+    }
+
+    @Test
     void freezeShotFreezesItsTarget() {
         EntityId target = createCreature(ENEMY_ID, 10, 10);
         EntityId bystander = createCreature(ENEMY_ID, 10, 10);
@@ -749,6 +781,18 @@ class ShotsControllerTest {
         shotsController.createShot(FREEZE_ID, 20, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
 
         assertEquals(5, entityData.getComponent(target, Frozen.class).startTime);
+    }
+
+    @Test
+    void freezeShotScaresTheEnemiesAroundToo() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        createCreature(ENEMY_ID, 11, 10);
+
+        shotsController.createShot(FREEZE_ID, 20, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+
+        // The two enemies share the freeze shot's threat of 200
+        Threat threat = entityData.getComponent(entityData.findEntity(null, Threat.class, Decay.class), Threat.class);
+        assertEquals(100, threat.threat);
     }
 
     @Test

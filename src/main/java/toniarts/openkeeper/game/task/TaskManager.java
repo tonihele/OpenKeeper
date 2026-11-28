@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Food;
+import toniarts.openkeeper.game.component.GuardedRoom;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -886,8 +887,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
      * @return true if the task was assigned
      */
     private boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId targetEntity, boolean assign) {
-        return assignClosestRoomTask(creature, objectType, targetEntity, assign,
-                room -> room.getObjectControl(objectType).isFullCapacity() ? Collections.emptyList() : room.getObjectControl(objectType).getAvailableCoordinates());
+        return assignClosestRoomTask(creature, objectType, targetEntity, assign, room -> getFreeSpots(room, objectType));
+    }
+
+    private static Collection<Point> getFreeSpots(IRoomController room, ObjectType objectType) {
+        return room.getObjectControl(objectType).isFullCapacity() ? Collections.emptyList() : room.getObjectControl(objectType).getAvailableCoordinates();
     }
 
     private boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId targetEntity, boolean assign,
@@ -896,22 +900,25 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         // Get all the rooms of the given type. Without any, the keeper is told the creature wants one, as DK II's
         // room searches do (for example 0x4E0470 for the Lair and 0x4F3560 for the Training Room)
+        // A room without creatures of the other side in it comes before a nearer room with them (0x4C6AE0)
         List<IRoomController> rooms = mapController.getRoomsByFunction(objectType, creature.getOwnerId());
         if (rooms.isEmpty()) {
             EventBus.publish(ServerEvents.ROOM_WANTED, new RoomWanted(creature.getOwnerId(), objectType));
         }
         Map<Integer, IRoomController> distancesToRooms = new TreeMap<>();
+        Map<Integer, IRoomController> distancesToRoomsWithHatedCompany = new TreeMap<>();
         for (IRoomController room : rooms) {
-
             // A destroyed room serves nobody, like a claimed ruined Dungeon Heart that no longer stores gold
             if (!room.isDestroyed() && !spots.apply(room).isEmpty()) {
-                distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])), room
-                );
+                (hasHatedCompany(creature, objectType, room) ? distancesToRoomsWithHatedCompany : distancesToRooms)
+                        .put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])), room);
             }
         }
+        List<IRoomController> roomsInOrder = new ArrayList<>(distancesToRooms.values());
+        roomsInOrder.addAll(distancesToRoomsWithHatedCompany.values());
 
         // See that are they really accessible starting from the least distance one
-        for (IRoomController room : distancesToRooms.values()) {
+        for (IRoomController room : roomsInOrder) {
 
             // The whole rooms are always accessible, take a random point from the room like DK II seems to do
             IRoomObjectControl control = room.getObjectControl(objectType);
@@ -1071,6 +1078,73 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         return distance;
     }
 
+    /**
+     * Tells whether a creature of the other side has a job in the room: an
+     * evil creature for a good one, a good creature for any other. DK II's
+     * finders of the Library, Training Room, Temple, Guard Room and Casino
+     * prefer a room without such company even when it is further away
+     * (DKII.EXE 0x4C6AE0, 0x4E2500, 0x4F3560, 0x4F1A20, 0x4D75F0, with
+     * 0x45C640 for the company). The Torture Chamber's finder doesn't care
+     *
+     * @param creature the creature looking for a room
+     * @param objectType the job it is looking for
+     * @param room the room
+     * @return true if the creature would rather work elsewhere
+     */
+    private boolean hasHatedCompany(ICreatureController creature, ObjectType objectType, IRoomController room) {
+        Map<Long, Point> taskPoints = roomTasks.get(room);
+        if (taskPoints == null || creature.getCreature() == null || !(objectType == ObjectType.RESEARCHER
+                || objectType == ObjectType.TRAINEE || objectType == ObjectType.WORSHIPPER || objectType == ObjectType.GUARD
+                || objectType == ObjectType.GAMBLER)) {
+            return false;
+        }
+        Creature.CreatureFlag hated = creature.getCreature().getFlags().contains(Creature.CreatureFlag.IS_GOOD)
+                ? Creature.CreatureFlag.IS_EVIL : Creature.CreatureFlag.IS_GOOD;
+        for (Long taskId : taskPoints.keySet()) {
+            if (!(tasksByIds.get(taskId) instanceof AbstractTask task)) {
+                continue;
+            }
+            for (ICreatureController other : task.getAssignees()) {
+                if (other.getCreature() != null && other.getCreature().getFlags().contains(hated)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Tells whether a researcher would rather be in another Library: it
+     * shares its own with a creature of the other side, and its keeper has
+     * another one it can get to, with room for it and without such company.
+     * DK II asks this when the researcher picks its next spot in the Library,
+     * and the researcher leaves when its room finder comes back with another
+     * room (DKII.EXE 0x475E70, 0x476060, with 0x4E85F0 for the company and
+     * 0x4C6AE0 for the room)
+     *
+     * @param creature the researcher
+     * @param library the Library it works in
+     * @return true if it should leave for the other Library
+     */
+    public boolean isLibraryWithoutHatedCompanyInReach(ICreatureController creature, IRoomController library) {
+        if (!hasHatedCompany(creature, ObjectType.RESEARCHER, library)) {
+            return false;
+        }
+        for (IRoomController room : mapController.getRoomsByFunction(ObjectType.RESEARCHER, creature.getOwnerId())) {
+            if (room != library && !room.getObjectControl(ObjectType.RESEARCHER).isFullCapacity()
+                    && !hasHatedCompany(creature, ObjectType.RESEARCHER, room)) {
+                Collection<Point> spots = room.getObjectControl(ObjectType.RESEARCHER).getAvailableCoordinates();
+                Point spot = spots.stream().filter(p -> room.isTileAccessible(null, p)).findFirst().orElse(null);
+                if (spot != null && navigationService.isReachable(creature.getCreatureCoordinates(), spot, creature)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private AbstractTask getRoomTask(ObjectType objectType, Point target, EntityId targetEntity, ICreatureController creature, IRoomController room) {
         switch (objectType) {
             case GOLD -> {
@@ -1107,9 +1181,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new Pray(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData, gameSettings, playerControllers.get(creature.getOwnerId()).getManaControl());
             }
             case GUARD -> {
-                return new Guard(navigationService, mapController, target, creature.getOwnerId(), room, this,
-                        levelInfo.getLevelData().getGameLevel().getTicksPerSec(),
+                return new Guard(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData,
+                        levelInfo.getLevelData(), levelInfo.getLevelData().getGameLevel().getTicksPerSec(),
                         (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_TIME_IN_GUARD_ROOM_BEFORE_WANDERING_TO_GUARD_POST_SECONDS).getValue(),
+                        // DK II's guard reads this variable when the room has no furniture (0x462D00), maybe by mistake
+                        (int) gameSettings.get(Variable.MiscVariable.MiscType.IMP_IDLE_DELAY_BEFORE_REEVALUATION_SECONDS).getValue(),
                         FastMath.rand);
             }
             case GAMBLER -> {
@@ -1164,7 +1240,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case KILL_CREATURES: {
                 task = KillCreatures.create(navigationService, mapController, levelInfo, creature,
-                        getCreatures(creature.getObjectiveTargetPlayerId()));
+                        () -> getCreatures(creature.getObjectiveTargetPlayerId()));
                 break;
             }
             case STEAL_GOLD: {
@@ -1257,7 +1333,13 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return assignClosestRoomTask(creature, ObjectType.WORSHIPPER, null, assign);
             }
             case GUARD: {
-                return assignClosestRoomTask(creature, ObjectType.GUARD, null, assign);
+
+                // As in the original (0x462850), back to the Guard Room it guarded last while that is still its keeper's
+                // and has space, otherwise to the nearest one
+                GuardedRoom guardedRoom = entityData.getComponent(creature.getEntityId(), GuardedRoom.class);
+                return (guardedRoom != null && assignClosestRoomTask(creature, ObjectType.GUARD, null, assign,
+                        room -> room.getEntityId().equals(guardedRoom.room) ? getFreeSpots(room, ObjectType.GUARD) : Collections.emptyList()))
+                        || assignClosestRoomTask(creature, ObjectType.GUARD, null, assign);
             }
             case DRINK: {
 

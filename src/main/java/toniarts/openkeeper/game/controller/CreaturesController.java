@@ -611,6 +611,7 @@ public final class CreaturesController implements ICreaturesController {
         }
 
         // Set the new stats
+        boolean levelGained = level > creatureExperience.level;
         creatureExperience.level = level;
         creatureExperience.experience = experience;
 
@@ -628,7 +629,10 @@ public final class CreaturesController implements ICreaturesController {
             entityData.removeComponent(entityId, Regeneration.class);
         }
 
-        gameController.getGameEventService().emit(GameEventType.CREATURE_LEVEL_UP, entityId);
+        // A creature that loses a level, like a Vampire back from the dead, gets no fanfare (DKII.EXE 0x48AFA0)
+        if (levelGained) {
+            gameController.getGameEventService().emit(GameEventType.CREATURE_LEVEL_UP, entityId);
+        }
     }
 
     private void setAttributesByLevel(CreatureComponent creatureComponent, CreatureExperience creatureExperience, Health healthComponent, Gold goldComponent, Senses sensesComponent, Threat threatComponent, CreatureMeleeAttack creatureMeleeAttack, Regeneration regeneration) {

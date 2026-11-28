@@ -16,14 +16,19 @@
  */
 package toniarts.openkeeper.view.control;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Turncoat;
+import toniarts.openkeeper.tools.convert.map.CreatureHungerFixtures;
 import toniarts.openkeeper.tools.convert.map.Player;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * The colour a creature's flower is drawn in
+ * The colour a creature's flower is drawn in, and the complaint it shows
  */
 class CreatureFlowerControlTest {
 
@@ -54,6 +59,22 @@ class CreatureFlowerControlTest {
 
         assertEquals(Player.NEUTRAL_PLAYER_ID,
                 CreatureFlowerControl.getFlowerColorPlayerId(Player.NEUTRAL_PLAYER_ID, turncoat, 333));
+    }
+
+    @Test
+    void unhappyHungryCreatureShowsTheChickenAfterItsMood() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId entityId = entityData.createEntity();
+
+        // Unhappy at 50 %: the no food anger is the biggest of the six
+        entityData.setComponent(entityId, new CreatureMood(0, 20000, 10000, 0, 0, 0));
+        CreatureFlowerControl flower = new CreatureFlowerControl(entityId, entityData,
+                CreatureHungerFixtures.creature((short) 0), null);
+
+        flower.onUpdate(0.5f);
+        assertEquals("Textures/GUI/moods/SM-Sad.png", flower.getCenterIcon());
+        flower.onUpdate(0.5f);
+        assertEquals("Textures/GUI/moods/SJ-Hungry.png", flower.getCenterIcon());
     }
 
 }

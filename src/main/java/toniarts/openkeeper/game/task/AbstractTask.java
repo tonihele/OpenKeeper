@@ -134,6 +134,15 @@ public abstract class AbstractTask implements Task {
         return assignees.size();
     }
 
+    /**
+     * Get the creatures the task is assigned to
+     *
+     * @return the creatures on the task
+     */
+    public Set<ICreatureController> getAssignees() {
+        return assignees.keySet();
+    }
+
     @Override
     public boolean isFull() {
         return getAssigneeCount() >= getMaxAllowedNumberOfAsignees();

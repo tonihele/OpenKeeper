@@ -110,6 +110,7 @@ class JobRoomOccupancyTest {
         // Unlike the other rooms, a guard on its way counts
         task.assign(guard, true);
         assertEquals(1, guardRoom.getUsedCapacity(ObjectType.GUARD));
+        task.getTarget(guard);
 
         // Once it is there, it is not counted again
         task.executeTask(guard, 0);
@@ -142,7 +143,7 @@ class JobRoomOccupancyTest {
     }
 
     private Guard guard(GuardRoomController guardRoom) {
-        return new Guard(null, null, new Point(1, 1), KEEPER, guardRoom, taskManager(), 4, 0, null);
+        return new Guard(null, null, new Point(1, 1), KEEPER, guardRoom, taskManager(), entityData, null, 4, 0, 0, null);
     }
 
     @Test

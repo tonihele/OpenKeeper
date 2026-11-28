@@ -1380,6 +1380,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 } else {
                     Vector3f pos = new Vector3f(coordinates.x, 1, coordinates.y);
                     entityData.setComponent(entity, new Position(0, pos));
+                    if (roomController instanceof PrisonController prison && entityData.getComponent(entity, Food.class) != null) {
+                        prison.foodDropped(tile);
+                    }
                 }
             }
         }

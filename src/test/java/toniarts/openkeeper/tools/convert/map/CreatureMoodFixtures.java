@@ -39,4 +39,16 @@ public final class CreatureMoodFixtures {
         return creature;
     }
 
+    /**
+     * Gives the creature its anger for having no food
+     *
+     * @param creature the creature
+     * @param angerNoFood the anger, as in the creature data
+     * @return the same creature
+     */
+    public static Creature withAngerNoFood(Creature creature, short angerNoFood) {
+        creature.getAttributes().setAngerNoFood(angerNoFood);
+        return creature;
+    }
+
 }

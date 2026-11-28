@@ -72,6 +72,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public void navigateToRandomPointInCombatPit();
 
+    /**
+     * A prisoner with nothing to do. Now and then it walks to a tile of the
+     * cage next to the one it stands on. When it is hungry, or food was
+     * dropped into the cage, it eats the food in the Prison, the nearest
+     * first
+     */
+    public void idleInPrison();
+
     public IPartyController getParty();
 
     public StateMachine<ICreatureController, CreatureState> getStateMachine();
@@ -374,6 +382,13 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean heedCallToArms();
 
     public boolean isSlapped();
+
+    /**
+     * One tick of Jack out of its box: it loses 1 health and walks on to the
+     * tile diagonally past the middle of its keeper's Dungeon Heart, and once
+     * it stands there it loses 50 health a tick (DKII.EXE 0x46E820)
+     */
+    public void walkToHeartToDie();
 
     public boolean isPortalGemInPosession();
 

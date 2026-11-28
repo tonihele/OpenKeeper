@@ -54,7 +54,10 @@ import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
+import toniarts.openkeeper.game.component.Food;
+import toniarts.openkeeper.game.component.FoodHunt;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.GuardedRoom;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Invisible;
@@ -64,6 +67,7 @@ import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.MeleeHit;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
@@ -73,6 +77,7 @@ import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.ReturnToHeroLair;
@@ -115,6 +120,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
+import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -195,6 +201,26 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private static final float BIG_WINNER_CELEBRATION_SECONDS = 10f;
     private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
+
+    /**
+     * Out of 100 each tick an idle prisoner rolls: below the first it plays
+     * an animation, below the second it moves on (DKII.EXE 0x473350)
+     */
+    private static final int PRISONER_ANIMATION_ROLL = 10;
+    private static final int PRISONER_MOVE_ROLL = 20;
+    /**
+     * The Prison objects a prisoner kicks, on every tenth tick: the Skull, the Bone and the Lavatory (DKII.EXE 0x473350)
+     */
+    private static final short PRISONER_KICKS_FIRST_OBJECT = 49;
+    private static final short PRISONER_KICKS_LAST_OBJECT = 51;
+    private static final int PRISONER_KICK_INTERVAL_TICKS = 10;
+    /**
+     * A kicked object gets a push of 0x1000, which moves it 1/16 tile a tick with no friction, and its state stops it
+     * on the fifth tick, turned 448/2048 of a circle to a random side (0x4A1A60, 0x4B2030)
+     */
+    private static final float PRISONER_KICK_DISTANCE = 0.25f;
+    private static final float PRISONER_KICK_TURN = 448 / 2048f * FastMath.TWO_PI;
+    private static final Point[] NEIGHBOUR_TILES = {new Point(0, -1), new Point(1, 0), new Point(0, 1), new Point(-1, 0)};
     private static final int MOOD_JOB_INTERVAL_SECONDS = 5;
     /**
      * How long a creature that got a job from its job list doesn't pick from the list again, as in DK II (DKII.EXE
@@ -429,20 +455,30 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void checkSurroundings() {
 
-        // Scan for neutral creatures to claim
-        short ownerId = getOwnerId();
-        if (ownerId == Player.NEUTRAL_PLAYER_ID || ownerId == Player.GOOD_PLAYER_ID) {
+        // A neutral creature looks for a creature of a keeper, not the heroes, within its sight
+        // range on both axes and with nothing in between: walls and every door but a Barricade
+        // block the sight. It joins the first one's keeper. An imprisoned one joins nobody
+        // (DKII.EXE 0x4790A0, line of sight 0x4512F0 and 0x4511A0)
+        Senses senses = entityData.getComponent(entityId, Senses.class);
+        if (getOwnerId() != Player.NEUTRAL_PLAYER_ID || senses == null || isImprisoned()) {
             return;
         }
 
-        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
-            Owner owner = entityData.getComponent(entity, Owner.class);
-
-            // We see over barricades, but the creature behind an enemy or a locked door
-            // is not ours before we get there
-            if (owner != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID
-                    && !entityPositionLookup.isBehindBlockingDoor(entityId, entity)) {
-                convertCreature(entity, ownerId);
+        Point tile = getCreatureCoordinates();
+        int range = (int) senses.distanceCanSee;
+        for (int x = tile.x - range + 1; x < tile.x + range; x++) {
+            for (int y = tile.y - range + 1; y < tile.y + range; y++) {
+                for (EntityId entity : entityPositionLookup.getEntitiesInLocation(x, y)) {
+                    Owner owner = entityData.getComponent(entity, Owner.class);
+                    Position position = entityData.getComponent(entity, Position.class);
+                    if (owner != null && owner.ownerId != Player.NEUTRAL_PLAYER_ID && owner.ownerId != Player.GOOD_PLAYER_ID
+                            && position != null && entityData.getComponent(entity, CreatureComponent.class) != null
+                            && entityPositionLookup.hasLineOfSight(getPosition(), position.position,
+                                    door -> !levelInfo.getLevelData().getDoorById(door.doorId).getFlags().contains(Door.DoorFlag.IS_BARRICADE))) {
+                        convertCreature(owner.ownerId);
+                        return;
+                    }
+                }
             }
         }
     }
@@ -557,6 +593,159 @@ public final class CreatureController extends EntityController implements ICreat
         }
     }
 
+    /**
+     * Like in DK II (DKII.EXE 0x473350, 0x4731F0, 0x4E50F0), an idle prisoner
+     * rolls 100 every tick. One in ten it moves on: starting from a random
+     * one, it takes the first of the four tiles next to it that is in the cage
+     * with it and walks there. Another one in ten, if it has the animation, it
+     * is angry instead, two to four times over, and rolls for nothing until
+     * that is done. A creature without the animation moves on then too.
+     * <br>
+     * A hungry prisoner goes after food instead of moving on, no more often
+     * than a free creature tries to eat (0x4731F0), and so does every
+     * prisoner when food is dropped into the cage. A prisoner after food
+     * walks to the nearest food in the Prison (0x473550) and eats it when it
+     * stands on its tile: one chicken fills a prisoner, gives it the health a
+     * chicken gives and takes its anger about food away (0x473750). Full, it
+     * plays its eating animation once and waits for it to end (0x473730),
+     * then it goes for the next one, and when no food is left it gets its anger for
+     * having no food and is idle again
+     */
+    @Override
+    public void idleInPrison() {
+        Point tile = getCreatureCoordinates();
+        IRoomController prison = mapController.getRoomControllerByCoordinates(tile);
+        if (prison == null) {
+            return;
+        }
+        FoodHunt foodHunt = entityData.getComponent(entityId, FoodHunt.class);
+        if (foodHunt != null) {
+            if (gameTimer.getGameTime() >= foodHunt.eatingUntil) {
+                huntFoodInPrison(prison, tile);
+            }
+            return;
+        }
+
+        // The state lasts as long as the animation plays
+        CreatureAi ai = entityData.getComponent(entityId, CreatureAi.class);
+        double gameTime = gameTimer.getGameTime();
+        if (ai != null && gameTime < ai.stateStartTime + ai.stateDuration) {
+            return;
+        }
+        if (kickPrisonObject(prison, tile, ai == null ? 0 : gameTime - ai.stateStartTime)) {
+            return;
+        }
+        int roll = Utils.getRandom().nextInt(100);
+        ArtResource angry = creature.getAnimation(Creature.AnimationType.ANGRY);
+        if (roll < PRISONER_ANIMATION_ROLL && ai != null && angry != null && angry.getType() != ArtResource.ArtResourceType.NONE) {
+            entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.IMPRISONED, ai.creatureId, ai.getTargetState(),
+                    (2 + Utils.getRandom().nextInt(3)) * getAnimationTime(creature, Creature.AnimationType.ANGRY)));
+            return;
+        }
+        if (roll >= PRISONER_MOVE_ROLL) {
+            return;
+        }
+        if (isHungry() && startEatAttempt()) {
+            entityData.setComponent(entityId, new FoodHunt());
+            huntFoodInPrison(prison, tile);
+            return;
+        }
+        int first = Utils.getRandom().nextInt(NEIGHBOUR_TILES.length);
+        for (int i = 0; i < NEIGHBOUR_TILES.length; i++) {
+            Point offset = NEIGHBOUR_TILES[(first + i) % NEIGHBOUR_TILES.length];
+            Point next = new Point(tile.x + offset.x, tile.y + offset.y);
+            if (mapController.getRoomControllerByCoordinates(next) == prison && prison.isTileAccessible(tile, next)) {
+                createNavigation(tile, next, null);
+                return;
+            }
+        }
+    }
+
+    /**
+     * Like in DK II (DKII.EXE 0x473350), on every tenth tick of its idling a
+     * prisoner that stands on the tile of a Skull, a Bone or the Lavatory of
+     * its Prison turns to it and kicks it away, the way the prisoner then
+     * faces. DK II slides the object there over four ticks, here it is moved
+     * in one step
+     *
+     * @param prison the Prison the prisoner is in
+     * @param tile the tile the prisoner stands on
+     * @param idleTime how long the prisoner has been idle, in seconds
+     * @return true if the prisoner kicked something
+     */
+    private boolean kickPrisonObject(IRoomController prison, Point tile, double idleTime) {
+        for (EntityId thing : entityPositionLookup.getEntitiesInLocation(tile)) {
+            ObjectComponent object = entityData.getComponent(thing, ObjectComponent.class);
+            if (object == null || object.objectId < PRISONER_KICKS_FIRST_OBJECT || object.objectId > PRISONER_KICKS_LAST_OBJECT
+                    || !prison.getFloorFurniture().contains(thing)) {
+                continue;
+            }
+            if (Math.round(idleTime * levelInfo.getLevelData().getGameLevel().getTicksPerSec()) % PRISONER_KICK_INTERVAL_TICKS != 0) {
+                return false;
+            }
+            Position position = entityData.getComponent(entityId, Position.class);
+            Position objectPosition = entityData.getComponent(thing, Position.class);
+            float dx = objectPosition.position.x - position.position.x;
+            float dz = objectPosition.position.z - position.position.z;
+            float rotation = dx == 0 && dz == 0 ? position.rotation : FastMath.atan2(dx, dz);
+            entityData.setComponent(entityId, new Position(rotation, position.position));
+            entityData.setComponent(thing, new Position(
+                    objectPosition.rotation + (Utils.getRandom().nextBoolean() ? PRISONER_KICK_TURN : -PRISONER_KICK_TURN),
+                    objectPosition.position.add(FastMath.sin(rotation) * PRISONER_KICK_DISTANCE, 0, FastMath.cos(rotation) * PRISONER_KICK_DISTANCE)));
+            return true;
+        }
+        return false;
+    }
+
+    private void huntFoodInPrison(IRoomController prison, Point tile) {
+        CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
+        EntityId food = getFood(tile);
+        if (food != null) {
+            entityPositionLookup.getEntityController(food).remove();
+            entityData.setComponent(entityId, new CreatureHunger(gameTimer.getGameTime(), 0));
+            setDamage(-creature.getAttributes().getHpFromChicken());
+            if (mood != null) {
+                entityData.setComponent(entityId, mood.clear(CreatureMood.REASON_NO_FOOD));
+            }
+
+            // Full, it plays its eating animation once before it looks for more food
+            ArtResource eating = creature.getAnimation(Creature.AnimationType.EATING);
+            double eatingTime = eating != null && eating.getType() != ArtResource.ArtResourceType.NONE
+                    ? getAnimationTime(creature, Creature.AnimationType.EATING) : 0;
+            entityData.setComponent(entityId, new FoodHunt(gameTimer.getGameTime() + eatingTime));
+            return;
+        }
+
+        Point nearest = null;
+        int nearestDistance = Integer.MAX_VALUE;
+        for (Point p : prison.getRoomInstance().getCoordinates()) {
+            int distance = (p.x - tile.x) * (p.x - tile.x) + (p.y - tile.y) * (p.y - tile.y);
+            if (distance < nearestDistance && getFood(p) != null) {
+                nearest = p;
+                nearestDistance = distance;
+            }
+        }
+        if (nearest != null && !createNavigation(tile, nearest, null)) {
+            return;
+        }
+
+        // No food left, or no way to it
+        entityData.removeComponent(entityId, FoodHunt.class);
+        if (nearest == null && mood != null) {
+            entityData.setComponent(entityId, mood.add(CreatureMood.REASON_NO_FOOD,
+                    CreatureMood.toRuntimeValue(creature.getAttributes().getAngerNoFood())));
+        }
+    }
+
+    private EntityId getFood(Point tile) {
+        for (EntityId thing : entityPositionLookup.getEntitiesInLocation(tile)) {
+            if (entityData.getComponent(thing, Food.class) != null) {
+                return thing;
+            }
+        }
+        return null;
+    }
+
     @Override
     public IPartyController getParty() {
         Party party = entityData.getComponent(entityId, Party.class);
@@ -659,6 +848,13 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
 
+        // DKII sends a creature that has stood guard back to guard duty before it picks from its jobs. Guard duty is the
+        // only job it returns to like that (0x4778E0 tries the job 0x462850 has set)
+        if (entityData.getComponent(entityId, GuardedRoom.class) != null && taskManager.assignTask(this, Creature.JobType.GUARD)) {
+            workResult.accept(true);
+            return;
+        }
+
         short owner = getOwnerId();
         if (owner == Player.NEUTRAL_PLAYER_ID || owner == Player.GOOD_PLAYER_ID) {
 
@@ -677,22 +873,22 @@ public final class CreatureController extends EntityController implements ICreat
         JobPicked jobPicked = entityData.getComponent(entityId, JobPicked.class);
         boolean pickedLately = jobPicked != null && gameTimer.getGameTime() - jobPicked.time < JOB_PICK_INTERVAL_SECONDS;
 
-        // See that is there a prefered job for us
+        // A job of its own: like DK II, roll 0 to 99 against the chances of all of its jobs, and when the job rolled
+        // can't be started, take the first one of the list that can (0x4780E0)
         // FIXME: moods
-        List<Creature.JobPreference> jobs = new ArrayList<>();
-        if (!pickedLately && creature.getHappyJobs() != null) {
-            for (Creature.JobPreference jobPreference : creature.getHappyJobs()) {
-                if (taskManager.isTaskAvailable(this, jobPreference.getJobType())) {
-                    jobs.add(jobPreference);
-                }
-            }
-        }
-
-        // Choose
-        if (!jobs.isEmpty() && taskManager.assignTask(this, chooseOnWeight(jobs).getJobType())) {
+        Creature.JobPreference[] jobs = pickedLately || creature.getHappyJobs() == null ? new Creature.JobPreference[0] : creature.getHappyJobs();
+        Creature.JobPreference rolled = rollJob(jobs);
+        if (rolled != null && taskManager.isTaskAvailable(this, rolled.getJobType()) && taskManager.assignTask(this, rolled.getJobType())) {
             entityData.setComponent(entityId, new JobPicked(gameTimer.getGameTime()));
             workResult.accept(true);
             return;
+        }
+        for (Creature.JobPreference job : jobs) {
+            if (job != rolled && taskManager.isTaskAvailable(this, job.getJobType()) && taskManager.assignTask(this, job.getJobType())) {
+                entityData.setComponent(entityId, new JobPicked(gameTimer.getGameTime()));
+                workResult.accept(true);
+                return;
+            }
         }
 
         // DKII angers a creature each time it looks for a job and finds none, before it goes on to its other
@@ -780,17 +976,21 @@ public final class CreatureController extends EntityController implements ICreat
         }
     }
 
-    private static Creature.JobPreference chooseOnWeight(List<Creature.JobPreference> items) {
-        double completeWeight = 0.0;
-        for (Creature.JobPreference item : items) {
-            completeWeight += item.getChance();
-        }
-        double r = FastMath.rand.nextDouble() * completeWeight;
-        double countWeight = 0.0;
-        for (Creature.JobPreference item : items) {
-            countWeight += item.getChance();
-            if (countWeight >= r) {
-                return item;
+    /**
+     * Rolls 0 to 99 against the jobs' chances laid end to end. A range takes
+     * both of its ends, so a roll on the border goes to the earlier job. With
+     * chances adding up to less than 100 the roll can miss them all
+     *
+     * @param jobs the creature's jobs
+     * @return the job rolled, {@code null} for none
+     */
+    private static Creature.JobPreference rollJob(Creature.JobPreference[] jobs) {
+        int roll = FastMath.rand.nextInt(100);
+        int end = 0;
+        for (Creature.JobPreference job : jobs) {
+            end += job.getChance();
+            if (roll <= end) {
+                return job;
             }
         }
         return null;
@@ -846,6 +1046,22 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isStopped() {
         return entityData.getComponent(entityId, Navigation.class) == null;
+    }
+
+    @Override
+    public void walkToHeartToDie() {
+        EntityController.setDamage(entityData, entityId, 1);
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+        if (keeper == null || keeper.getDungeonHeartLocation() == null) {
+            return;
+        }
+
+        Point deathbed = new Point(keeper.getDungeonHeartLocation().x + 1, keeper.getDungeonHeartLocation().y + 1);
+        if (deathbed.equals(getCreatureCoordinates())) {
+            EntityController.setDamage(entityData, entityId, 50);
+        } else if (isStopped()) {
+            createNavigation(getCreatureCoordinates(), deathbed, null);
+        }
     }
 
     @Override
@@ -3134,6 +3350,10 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean goToEat() {
+        return startEatAttempt() && taskManager.assignEatTask(this);
+    }
+
+    private boolean startEatAttempt() {
         double gameTime = gameTimer.getGameTime();
         CreatureHunger hunger = entityData.getComponent(entityId, CreatureHunger.class);
         if (hunger == null || gameTime - hunger.lastEatAttemptTime
@@ -3144,7 +3364,7 @@ public final class CreatureController extends EntityController implements ICreat
         CreatureHunger updated = new CreatureHunger(hunger.lastEatTime, hunger.amountNeeded);
         updated.lastEatAttemptTime = gameTime;
         entityData.setComponent(entityId, updated);
-        return taskManager.assignEatTask(this);
+        return true;
     }
 
     @Override
@@ -3564,7 +3784,19 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void convertCreature(short playerId) {
-        convertCreature(entityId, playerId);
+        removeFromRoomStrorage();
+
+        // Remove our lair from the last player
+        removeLair();
+
+        // Set new owner
+        entityData.setComponent(entityId, new Owner(playerId, playerId));
+
+        // Remove good player stuff
+        entityData.removeComponent(entityId, Objective.class);
+
+        // Reset AI
+        getStateMachine().changeState(CreatureState.IDLE);
     }
 
     @Override
@@ -3588,22 +3820,6 @@ public final class CreatureController extends EntityController implements ICreat
         gameEventService.emitToPlayer(GameEventType.CREATURE_REBELLED, keeperId);
 
         // Start on the objective
-        getStateMachine().changeState(CreatureState.IDLE);
-    }
-
-    private void convertCreature(EntityId entity, short playerId) {
-        removeFromRoomStrorage();
-
-        // Remove our lair from the last player
-        removeLair();
-
-        // Set new owner
-        entityData.setComponent(entity, new Owner(playerId, playerId));
-
-        // Remove good player stuff
-        entityData.removeComponent(entity, Objective.class);
-
-        // Reset AI
         getStateMachine().changeState(CreatureState.IDLE);
     }
 

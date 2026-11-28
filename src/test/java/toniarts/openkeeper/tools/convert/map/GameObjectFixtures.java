@@ -40,6 +40,30 @@ public final class GameObjectFixtures {
     }
 
     /**
+     * Gives the object its width, in tiles
+     *
+     * @param object the object
+     * @param width the width
+     * @return the same object
+     */
+    public static GameObject withWidth(GameObject object, float width) {
+        object.setWidth(width);
+        return object;
+    }
+
+    /**
+     * Gives the object its health
+     *
+     * @param object the object
+     * @param hp the health
+     * @return the same object
+     */
+    public static GameObject withHp(GameObject object, int hp) {
+        object.setHp(hp);
+        return object;
+    }
+
+    /**
      * A piece of furniture
      *
      * @param objectId the object ID

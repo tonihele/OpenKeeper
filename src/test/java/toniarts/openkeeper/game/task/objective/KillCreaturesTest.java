@@ -16,8 +16,10 @@
  */
 package toniarts.openkeeper.game.task.objective;
 
+import com.jme3.math.Vector2f;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -61,7 +63,7 @@ class KillCreaturesTest {
         ICreatureController hero = hero(KEEPER);
 
         AbstractObjectiveTask task = KillCreatures.create(navigation(Set.of(new Point(3, 2))), null, levelInfo(), hero,
-                List.of(farther, walledIn, nearestReachable));
+                () -> List.of(farther, walledIn, nearestReachable));
 
         assertInstanceOf(KillCreatures.class, task);
         assertEquals(WorldUtils.pointToVector2f(new Point(6, 2)), task.getTarget(hero));
@@ -76,7 +78,7 @@ class KillCreaturesTest {
             default -> null;
         });
         ICreatureController hero = hero(KEEPER);
-        AbstractObjectiveTask task = KillCreatures.create(navigation(Set.of()), null, levelInfo(), hero, List.of(prey));
+        AbstractObjectiveTask task = KillCreatures.create(navigation(Set.of()), null, levelInfo(), hero, () -> List.of(prey));
 
         preyTile[0] = new Point(9, 4);
 
@@ -89,31 +91,56 @@ class KillCreaturesTest {
         ICreatureController walledIn = creature(new Point(3, 2), KEEPER, false);
 
         assertNull(KillCreatures.create(navigation(Set.of(new Point(3, 2))), null, levelInfo(), hero(KEEPER),
-                List.of(walledIn)));
+                () -> List.of(walledIn)));
     }
 
     @Test
     void incapacitatedCreaturesAreLeftAlone() {
         ICreatureController knockedOut = creature(new Point(3, 2), KEEPER, true);
 
-        assertNull(KillCreatures.create(navigation(Set.of()), null, levelInfo(), hero(KEEPER), List.of(knockedOut)));
+        assertNull(KillCreatures.create(navigation(Set.of()), null, levelInfo(), hero(KEEPER), () -> List.of(knockedOut)));
     }
 
     @Test
     void heroGoesForTheHeartWhenTheKeeperHasNoCreatures() {
-        AbstractObjectiveTask task = KillCreatures.create(navigation(Set.of()), heartMap(), levelInfo(), hero(KEEPER), List.of());
+        AbstractObjectiveTask task = KillCreatures.create(navigation(Set.of()), heartMap(), levelInfo(), hero(KEEPER), () -> List.of());
 
         assertInstanceOf(KillPlayer.class, task);
     }
 
     @Test
-    void heroLooksForANewPreyOnceHeReachesIt() {
+    void heroWalksToWhereARandomCreatureOfTheKeeperStandsOnceHeReachesHisPrey() {
         ICreatureController hero = hero(KEEPER);
-        AbstractObjectiveTask task = KillCreatures.create(navigation(Set.of()), null, levelInfo(), hero,
-                List.of(creature(new Point(6, 2), KEEPER, false)));
+        Point[] preyTile = {new Point(6, 2)};
+        ICreatureController prey = stub(ICreatureController.class, (name, args) -> switch (name) {
+            case "getCreatureCoordinates" -> preyTile[0];
+            case "getOwnerId" -> KEEPER;
+            default -> null;
+        });
+        AbstractObjectiveTask task = KillCreatures.create(navigation(Set.of()), null, levelInfo(), hero, () -> List.of(prey));
 
         task.executeTask(hero, 0);
 
+        // To where it stood then, not after it (0x462560)
+        preyTile[0] = new Point(9, 9);
+        assertTrue(task.isValid(hero));
+        assertEquals(new Vector2f(6, 2), task.getTarget(hero));
+    }
+
+    @Test
+    void heroGoesForTheHeartWhenTheCreaturePickedCantBeReached() {
+        ICreatureController hero = hero(KEEPER);
+        List<ICreatureController> creatures = new ArrayList<>(List.of(creature(new Point(6, 2), KEEPER, false)));
+        AbstractObjectiveTask task = KillCreatures.create(navigation(Set.of(new Point(7, 7))), null, levelInfo(), hero, () -> creatures);
+
+        // By the time he gets there the keeper's only creature is walled in
+        creatures.set(0, creature(new Point(7, 7), KEEPER, false));
+        task.executeTask(hero, 0);
+
+        assertEquals(new Vector2f(HEART_CENTRE.x, HEART_CENTRE.y), task.getTarget(hero));
+
+        // At the heart the hunt starts over
+        task.executeTask(hero, 1);
         assertFalse(task.isValid(hero));
     }
 
@@ -127,7 +154,7 @@ class KillCreaturesTest {
             default -> null;
         });
         ICreatureController hero = hero(KEEPER);
-        AbstractObjectiveTask task = KillCreatures.create(navigation(Set.of()), null, levelInfo(), hero, List.of(prey));
+        AbstractObjectiveTask task = KillCreatures.create(navigation(Set.of()), null, levelInfo(), hero, () -> List.of(prey));
 
         knockedOut[0] = true;
 
@@ -137,7 +164,7 @@ class KillCreaturesTest {
     @Test
     void heroSentAfterAnotherKeeperDropsTheHunt() {
         AbstractObjectiveTask task = KillCreatures.create(navigation(Set.of()), null, levelInfo(), hero(KEEPER),
-                List.of(creature(new Point(6, 2), KEEPER, false)));
+                () -> List.of(creature(new Point(6, 2), KEEPER, false)));
 
         assertFalse(task.isValid(hero(OTHER_KEEPER)));
     }

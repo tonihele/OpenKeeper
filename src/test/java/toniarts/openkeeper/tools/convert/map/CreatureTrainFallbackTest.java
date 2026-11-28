@@ -21,6 +21,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.GuardedRoom;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.creature.CreatureController;
 import toniarts.openkeeper.game.task.ITaskManager;
@@ -45,6 +47,7 @@ class CreatureTrainFallbackTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final List<Creature.JobType> assigned = new ArrayList<>();
+    private boolean stoodGuard;
 
     @Test
     void creatureWithoutAJobOfItsOwnTrains() {
@@ -58,6 +61,38 @@ class CreatureTrainFallbackTest {
         assertTrue(findWork(Player.KEEPER1_ID, EnumSet.noneOf(Creature.CreatureFlag.class),
                 Set.of(Creature.JobType.MANUFACTURE, Creature.JobType.TRAIN), Creature.JobType.MANUFACTURE));
         assertEquals(List.of(Creature.JobType.MANUFACTURE), assigned);
+    }
+
+    @Test
+    void creatureThatHasStoodGuardGoesBackToGuardDutyFirst() {
+
+        // DKII tries the guard duty before the creature picks from its jobs (0x4778E0)
+        stoodGuard = true;
+        assertTrue(findWork(Player.KEEPER1_ID, EnumSet.noneOf(Creature.CreatureFlag.class),
+                Set.of(Creature.JobType.GUARD, Creature.JobType.MANUFACTURE), Creature.JobType.MANUFACTURE));
+        assertEquals(List.of(Creature.JobType.GUARD), assigned);
+    }
+
+    @Test
+    void creatureThatHasStoodGuardPicksFromItsJobsWithoutAGuardRoomToGoTo() {
+        stoodGuard = true;
+        assertTrue(findWork(Player.KEEPER1_ID, EnumSet.noneOf(Creature.CreatureFlag.class),
+                Set.of(Creature.JobType.MANUFACTURE), Creature.JobType.MANUFACTURE));
+        assertEquals(List.of(Creature.JobType.MANUFACTURE), assigned);
+    }
+
+    @Test
+    void aJobThatCantBeStartedPassesItsChanceToTheFirstJobThatCan() {
+
+        // The Warlock without a Library: research 80 falls to training, the first of its jobs that can be started,
+        // so it prays only on a roll of its own 10 (0x4780E0)
+        for (int i = 0; i < 400; i++) {
+            findWork(Player.KEEPER1_ID, EnumSet.noneOf(Creature.CreatureFlag.class), Set.of(Creature.JobType.TRAIN, Creature.JobType.PRAY),
+                    new Creature.JobType[]{Creature.JobType.RESEARCH, Creature.JobType.TRAIN, Creature.JobType.PRAY}, new short[]{80, 10, 10});
+        }
+        long prayed = assigned.stream().filter(job -> job == Creature.JobType.PRAY).count();
+        assertEquals(400, assigned.size());
+        assertTrue(prayed > 15 && prayed < 70, "prayed " + prayed + " times in 400");
     }
 
     @Test
@@ -91,18 +126,28 @@ class CreatureTrainFallbackTest {
      */
     private boolean findWork(short owner, EnumSet<Creature.CreatureFlag> flags, Set<Creature.JobType> available,
             Creature.JobType... happyJobs) {
+        short[] chances = new short[happyJobs.length];
+        Arrays.fill(chances, (short) 100);
+        return findWork(owner, flags, available, happyJobs, chances);
+    }
+
+    private boolean findWork(short owner, EnumSet<Creature.CreatureFlag> flags, Set<Creature.JobType> available,
+            Creature.JobType[] happyJobs, short[] chances) {
         Creature creature = new Creature();
         creature.setFlags(flags);
         Creature.JobPreference[] preferences = new Creature.JobPreference[happyJobs.length];
         for (int i = 0; i < happyJobs.length; i++) {
             preferences[i] = new Creature.JobPreference();
             preferences[i].setJobType(happyJobs[i]);
-            preferences[i].setChance((short) 100);
+            preferences[i].setChance(chances[i]);
         }
         creature.setHappyJobs(preferences);
 
         EntityId id = entityData.createEntity();
         entityData.setComponents(id, new CreatureComponent(), new Owner(owner, owner));
+        if (stoodGuard) {
+            entityData.setComponent(id, new GuardedRoom(entityData.createEntity()));
+        }
         ITaskManager taskManager = (ITaskManager) Proxy.newProxyInstance(
                 ITaskManager.class.getClassLoader(), new Class<?>[]{ITaskManager.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "isTaskAvailable" -> available.contains((Creature.JobType) args[1]);

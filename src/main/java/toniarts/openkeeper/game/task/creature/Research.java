@@ -60,7 +60,10 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return super.isValid(creature) && researchControl.isAnythingToReaseach();
+
+        // A researcher that shares the Library with the other side moves to another one (0x475E70, 0x476060)
+        return super.isValid(creature) && researchControl.isAnythingToReaseach()
+                && (creature == null || !taskManager.isLibraryWithoutHatedCompanyInReach(creature, getRoom()));
     }
 
     @Override

@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
@@ -453,8 +454,9 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
      * beside the corner block it too (DKII.EXE 0x4512F0).
      */
     @Override
-    public boolean hasLineOfSight(Vector3f from, Vector3f to) {
+    public boolean hasLineOfSight(Vector3f from, Vector3f to, Predicate<DoorComponent> doorBlocksSight) {
         Point startTile = WorldUtils.vectorToPoint(from);
+        Point endTile = WorldUtils.vectorToPoint(to);
         int x = startTile.x;
         int y = startTile.y;
         float dx = to.x - from.x;
@@ -481,12 +483,21 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
                 y += stepY;
                 edgeY += WorldUtils.TILE_WIDTH / Math.abs(dz);
             }
-            if (blocksSenses(mapData.getTile(x, y))) {
+            Point entered = new Point(x, y);
+            if (blocksSenses(mapData.getTile(x, y))
+                    || !entered.equals(endTile) && hasSightBlockingDoor(entered, doorBlocksSight)) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    private boolean hasSightBlockingDoor(Point tile, Predicate<DoorComponent> doorBlocksSight) {
+        return obstaclesByMapTile[tile.x][tile.y].stream().anyMatch(door -> {
+            DoorComponent doorComponent = entityData.getComponent(door, DoorComponent.class);
+            return doorComponent != null && doorBlocksSight.test(doorComponent);
+        });
     }
 
 }

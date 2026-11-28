@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
@@ -27,6 +28,7 @@ import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
@@ -60,7 +62,9 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.entity.EntityController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.TempleController;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -68,10 +72,12 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -295,6 +301,11 @@ public final class HealthSystem extends GameTimeCounter {
 
     private void processHealthDepleted(EntityId entityId, Health health) {
 
+        // A Vampire comes back in the Graveyard instead
+        if (returnToGraveyard(entityId, health)) {
+            return;
+        }
+
         // Death or destruction!!!!
         // No body, just vanish from the world
         if (!isLeaveDeadBody(entityId)) {
@@ -333,6 +344,68 @@ public final class HealthSystem extends GameTimeCounter {
 
         // Leave the entity incapacitaded and waiting for death... or rescue
         processUnconscious(entityId, health);
+    }
+
+    /**
+     * A killed creature that can be resurrected, the Vampire, doesn't die while
+     * it is above level 1 and its keeper's Graveyards have more places than the
+     * keeper has other such creatures alive. It reappears in the middle of the
+     * keeper's first Graveyard, one level lower, at full health and with no
+     * experience towards the next level, free of any Prison or Torture Chamber.
+     * One killed in the Temple's pool dies (DKII.EXE 0x48FFC0, 0x4DDCA0,
+     * 0x48AFA0)
+     *
+     * @param entityId the entity whose health ran out
+     * @param health its health
+     * @return true if it came back in the Graveyard
+     */
+    private boolean returnToGraveyard(EntityId entityId, Health health) {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        CreatureExperience experience = entityData.getComponent(entityId, CreatureExperience.class);
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (creatureComponent == null || experience == null || owner == null || experience.level <= 1
+                || !isResurrectable(creatureComponent.creatureId)) {
+            return false;
+        }
+        IMapTileInformation tile = entityPositionLookup.getEntityLocation(entityId);
+        if (tile != null && mapController.getRoomControllerByCoordinates(tile.getLocation()) instanceof TempleController temple
+                && temple.isSacrificePool(tile.getLocation())) {
+            return false;
+        }
+
+        List<IRoomController> graveyards = mapController.getRoomsByFunction(AbstractRoomController.ObjectType.CORPSE, owner.ownerId);
+        int places = 0;
+        for (IRoomController graveyard : graveyards) {
+            places += graveyard.getObjectControl(AbstractRoomController.ObjectType.CORPSE).getMaxCapacity();
+        }
+        for (Entity entity : healthEntities) {
+            CreatureComponent other = entityData.getComponent(entity.getId(), CreatureComponent.class);
+            if (other != null && !entity.getId().equals(entityId) && entity.get(Health.class).health > 0
+                    && isResurrectable(other.creatureId)
+                    && entityData.getComponent(entity.getId(), Owner.class).ownerId == owner.ownerId) {
+                places--;
+            }
+        }
+        if (places <= 0) {
+            return false;
+        }
+
+        entityData.removeComponent(entityId, CreatureImprisoned.class);
+        entityData.removeComponent(entityId, CreatureTortured.class);
+        entityData.removeComponent(entityId, AttackTarget.class);
+        entityData.removeComponent(entityId, Navigation.class);
+        Position position = entityData.getComponent(entityId, Position.class);
+        Vector3f centre = WorldUtils.pointToVector3f(graveyards.getFirst().getRoomInstance().getCenter());
+        entityData.setComponents(entityId, new Owner(owner.ownerId, owner.ownerId),
+                new Position(position.rotation, new Vector3f(centre.x, position.position.y, centre.z)),
+                new Health(health.maxHealth, health.maxHealth));
+        creaturesController.levelUpCreature(entityId, experience.level - 1, 0);
+        creaturesController.createController(entityId).getStateMachine().changeState(CreatureState.IDLE);
+        return true;
+    }
+
+    private boolean isResurrectable(short creatureId) {
+        return levelInfo.getLevelData().getCreature(creatureId).getFlags().contains(Creature.CreatureFlag.CAN_BE_RESURECTED);
     }
 
     private boolean isDiesInstantly(EntityId entityId) {

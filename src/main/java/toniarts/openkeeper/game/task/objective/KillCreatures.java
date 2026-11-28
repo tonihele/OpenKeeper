@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Supplier;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -29,26 +30,36 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Kill creatures objective for the goodly heroes. The hero goes after one of
  * the target keeper's creatures, the fighting starts when he meets his enemies.
- * Once he gets to his prey, or it is knocked out, he picks a new one. When the
- * keeper has no creatures left, the hero goes for the keeper's Dungeon Heart.
+ * Once he gets to his prey he walks to where a random creature of the keeper
+ * stands then, again and again, and to the keeper's Dungeon Heart when that
+ * creature can't be reached (DKII.EXE 0x462310, 0x462560). When his prey is
+ * knocked out he picks a new one. When the keeper has no creatures left, the
+ * hero goes for the keeper's Dungeon Heart.
  */
 public final class KillCreatures extends AbstractObjectiveTask {
 
     private final short targetPlayerId;
     private final ICreatureController prey;
+    private final Supplier<Collection<ICreatureController>> keeperCreatures;
+    private final ILevelInfo levelInfo;
+    private Point spot;
+    private boolean toHeart = false;
     private boolean executed = false;
 
-    public KillCreatures(final INavigationService navigationService, final IMapController mapController,
-            short targetPlayerId, ICreatureController prey, short playerId) {
+    private KillCreatures(final INavigationService navigationService, final IMapController mapController, ILevelInfo levelInfo,
+            short targetPlayerId, ICreatureController prey, Supplier<Collection<ICreatureController>> keeperCreatures, short playerId) {
         super(navigationService, mapController, prey.getCreatureCoordinates(), playerId);
 
+        this.levelInfo = levelInfo;
         this.targetPlayerId = targetPlayerId;
         this.prey = prey;
+        this.keeperCreatures = keeperCreatures;
     }
 
     /**
@@ -64,15 +75,16 @@ public final class KillCreatures extends AbstractObjectiveTask {
      * @return the task, or {@code null} if the hero has nothing to go after
      */
     public static AbstractObjectiveTask create(final INavigationService navigationService, final IMapController mapController,
-            final ILevelInfo levelInfo, ICreatureController hero, Collection<ICreatureController> keeperCreatures) {
+            final ILevelInfo levelInfo, ICreatureController hero, Supplier<Collection<ICreatureController>> keeperCreatures) {
         short targetPlayerId = hero.getObjectiveTargetPlayerId();
-        if (keeperCreatures.isEmpty()) {
+        if (keeperCreatures.get().isEmpty()) {
             return isHeartToAttack(levelInfo.getPlayer(targetPlayerId))
                     ? new KillPlayer(navigationService, mapController, levelInfo, targetPlayerId, hero) : null;
         }
 
-        ICreatureController prey = findPrey(navigationService, hero, keeperCreatures);
-        return prey != null ? new KillCreatures(navigationService, mapController, targetPlayerId, prey, hero.getOwnerId()) : null;
+        ICreatureController prey = findPrey(navigationService, hero, keeperCreatures.get());
+        return prey != null ? new KillCreatures(navigationService, mapController, levelInfo, targetPlayerId, prey, keeperCreatures,
+                hero.getOwnerId()) : null;
     }
 
     private static boolean isHeartToAttack(Keeper keeper) {
@@ -106,7 +118,7 @@ public final class KillCreatures extends AbstractObjectiveTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        if (executed || !isAlive(prey) || prey.getOwnerId() != targetPlayerId) {
+        if (executed || (spot == null && (!isAlive(prey) || prey.getOwnerId() != targetPlayerId))) {
             return false;
         }
 
@@ -117,14 +129,35 @@ public final class KillCreatures extends AbstractObjectiveTask {
 
     @Override
     public Vector2f getTarget(ICreatureController creature) {
-        return WorldUtils.pointToVector2f(prey.getCreatureCoordinates());
+        return WorldUtils.pointToVector2f(spot != null ? spot : prey.getCreatureCoordinates());
     }
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
+        if (toHeart) {
+            executed = true;
+            return;
+        }
 
-        // We got to our prey, look for the next one
-        executed = true;
+        // We got there: walk to where a random creature of the keeper stands now, or to the keeper's heart if the
+        // keeper has none or it can't be reached (0x462560)
+        Point from = creature.getCreatureCoordinates();
+        List<ICreatureController> creatures = new ArrayList<>(keeperCreatures.get());
+        creatures.removeIf(c -> !isAlive(c));
+        if (!creatures.isEmpty()) {
+            Point target = Utils.getRandomItem(creatures).getCreatureCoordinates();
+            if (navigationService.isReachable(from, target, creature.getParty() != null ? creature.getParty() : creature)) {
+                spot = target;
+                return;
+            }
+        }
+        Keeper keeper = levelInfo.getPlayer(targetPlayerId);
+        if (isHeartToAttack(keeper)) {
+            spot = keeper.getDungeonHeartLocation();
+            toHeart = true;
+        } else {
+            executed = true;
+        }
     }
 
     @Override

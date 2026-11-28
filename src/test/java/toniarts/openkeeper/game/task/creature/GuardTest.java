@@ -17,112 +17,170 @@
 package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.random.RandomGenerator;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.GameObject;
+import toniarts.openkeeper.tools.convert.map.GameObjectFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Guards stand at the corners of the Guard Room and walk on to another corner
- * after a while, as in DK II
+ * Guards walk round the edge of the Guard Room and now and then go to a piece
+ * of its furniture and a random tile of the room, as in DK II (DKII.EXE
+ * 0x462930, 0x462D00, 0x463190, 0x4632A0)
  */
 class GuardTest {
 
     private static final int TICKS_PER_SECOND = 4;
     private static final int MAX_EXTRA_TICKS = 60;
+    private static final int NO_FURNITURE_EXTRA_TICKS = 5;
+    private static final short GUARD_POST_TABLE = 112;
+
+    private final EntityData entityData = new DefaultEntityData();
+    private final Set<EntityId> furniture = new HashSet<>();
 
     @Test
-    void guardPostsAreTheCornersOfARectangularRoom() {
-        List<Point> posts = Guard.getGuardPosts(rectangle(10, 10, 4, 3));
+    void guardGoesToTheEdgeTileNearestToIt() {
+        Guard guard = guard(rectangle(10, 10, 5, 5), fixedRandom(0));
 
-        assertEquals(Set.of(new Point(10, 10), new Point(13, 10), new Point(10, 12), new Point(13, 12)), Set.copyOf(posts));
-    }
-
-    @Test
-    void guardPostsAreTheEndsOfAOneTileWideRoom() {
-        List<Point> posts = Guard.getGuardPosts(rectangle(5, 5, 1, 4));
-
-        assertEquals(Set.of(new Point(5, 5), new Point(5, 8)), Set.copyOf(posts));
-    }
-
-    @Test
-    void aOneTileRoomIsItsOwnGuardPost() {
-        assertEquals(List.of(new Point(3, 3)), Guard.getGuardPosts(List.of(new Point(3, 3))));
-    }
-
-    @Test
-    void guardGoesToTheGuardPostNearestToIt() {
-        Guard guard = guard(rectangle(10, 10, 4, 4), fixedRandom(0));
-
-        Vector2f target = guard.getTarget(creatureAt(new Point(15, 14)));
-
-        assertEquals(13, (int) target.x);
-        assertEquals(13, (int) target.y);
+        assertEquals(new Vector2f(14, 14), guard.getTarget(creatureAt(new Point(16, 15))));
         assertEquals(TaskType.GUARD, guard.getTaskType());
     }
 
     @Test
-    void guardStandsAtItsPostForTheGuardTimeAndThenMovesToAnotherPost() {
-        Guard guard = guard(rectangle(10, 10, 4, 4), fixedRandom(20));
-        ICreatureController creature = creatureAt(new Point(15, 14));
-        Vector2f post = guard.getTarget(creature);
+    void anInnerTileIsNotOnTheEdge() {
+        Guard guard = guard(rectangle(10, 10, 5, 5), fixedRandom(0));
 
-        // 75 + 20 ticks at four ticks a second
-        guard.executeTask(creature, 2f);
-        guard.executeTask(creature, 2f + 23.5f);
-        assertEquals(post, guard.getTarget(creature));
-
-        guard.executeTask(creature, 2f + 23.75f);
-        Vector2f nextPost = guard.getTarget(creature);
-        assertNotEquals(post, nextPost);
-        assertTrue(Guard.getGuardPosts(rectangle(10, 10, 4, 4)).contains(new Point((int) nextPost.x, (int) nextPost.y)));
+        // The tile beside it is not on the edge, the one beyond is
+        assertEquals(new Vector2f(10, 12), guard.getTarget(creatureAt(new Point(11, 12))));
     }
 
     @Test
-    void theTimerStartsAgainWhenTheGuardReachesTheNextPost() {
-        Guard guard = guard(rectangle(10, 10, 4, 4), fixedRandom(0));
-        ICreatureController creature = creatureAt(new Point(10, 10));
+    void guardWalksRoundTheEdgeAStretchAtATime() {
+        Guard guard = guard(rectangle(10, 10, 5, 4), fixedRandom(0));
+        ICreatureController creature = creatureAt(new Point(10, 9));
         guard.getTarget(creature);
-        guard.executeTask(creature, 0f);
-        guard.executeTask(creature, 18.75f);
-        Vector2f secondPost = guard.getTarget(creature);
 
-        // The walk took a while, the guard stands its full time at the new post
-        guard.executeTask(creature, 30f);
-        guard.executeTask(creature, 48f);
-        assertEquals(secondPost, guard.getTarget(creature));
+        // From the corner it walks a whole side of the room, then the next one, round and back
+        List<Vector2f> stops = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            guard.executeTask(creature, i);
+            stops.add(guard.getTarget(creature));
+        }
+        assertEquals(List.of(new Vector2f(14, 10), new Vector2f(14, 13), new Vector2f(10, 13), new Vector2f(10, 10), new Vector2f(14, 10)), stops);
     }
 
-    private static Guard guard(List<Point> roomTiles, RandomGenerator random) {
+    @Test
+    void guardGoesToTheFurnitureAndARoomTileNowAndThenAndBackToTheEdge() {
+        Guard guard = guard(rectangle(10, 10, 5, 5), fixedRandom(20));
+        post(12, 12);
+        ICreatureController creature = creatureAt(new Point(10, 9));
+        guard.getTarget(creature);
+
+        // 75 + 20 ticks at four ticks a second after it reached the edge
+        guard.executeTask(creature, 2f);
+        guard.executeTask(creature, 2f + 23.5f);
+        assertEquals(new Vector2f(14, 14), guard.getTarget(creature));
+
+        guard.executeTask(creature, 2f + 23.75f);
+        assertEquals(new Point(12, 12), WorldUtils.vectorToPoint(guard.getTarget(creature)));
+
+        // Then a random room tile, the 21st with this random number, and back to the nearest edge tile
+        guard.executeTask(creature, 30f);
+        assertEquals(new Vector2f(10, 14), guard.getTarget(creature));
+        guard.executeTask(creature, 31f);
+        assertEquals(new Vector2f(10, 14), guard.getTarget(creature));
+    }
+
+    @Test
+    void guardStopsWhereItTouchesTheFurniture() {
+        Guard guard = guard(rectangle(10, 10, 5, 5), fixedRandom(0));
+        post(12, 12);
+        ICreatureController creature = creatureAt(new Point(12, 14));
+        guard.getTarget(creature);
+
+        // The Guard Post Table is 0.9 wide and the guard 0.3, so it stops 0.6 from the table's middle, on its own side
+        guard.executeTask(creature, 0f);
+        guard.executeTask(creature, 18.75f);
+        Vector2f spot = guard.getWorkPosition(creature);
+        assertEquals(12f, spot.x, 0.001f);
+        assertEquals(12.6f, spot.y, 0.001f);
+
+        // It walks to the table's tile, and stands near enough to that target to be there
+        assertEquals(new Point(12, 12), WorldUtils.vectorToPoint(guard.getTarget(creature)));
+        assertTrue(guard.getTarget(creature).distance(spot) < 0.5f);
+    }
+
+    @Test
+    void withoutFurnitureTheGuardKeepsWalkingTheEdge() {
+        Guard guard = guard(rectangle(10, 10, 5, 4), fixedRandom(0));
+        ICreatureController creature = creatureAt(new Point(10, 9));
+        guard.getTarget(creature);
+
+        guard.executeTask(creature, 0f);
+        guard.executeTask(creature, 100f);
+
+        assertEquals(new Vector2f(14, 13), guard.getTarget(creature));
+    }
+
+    private Guard guard(List<Point> roomTiles, RandomGenerator random) {
         RoomInstance roomInstance = new RoomInstance(new Room());
         roomInstance.addCoordinates(roomTiles);
         IRoomController room = (IRoomController) Proxy.newProxyInstance(IRoomController.class.getClassLoader(), new Class<?>[]{IRoomController.class}, (proxy, method, args) -> {
-            if ("getRoomInstance".equals(method.getName())) {
-                return roomInstance;
+            return switch (method.getName()) {
+                case "getRoomInstance" -> roomInstance;
+                case "getFloorFurniture" -> furniture;
+                default -> throw new UnsupportedOperationException(method.getName());
+            };
+        });
+        GameObject table = GameObjectFixtures.withWidth(GameObjectFixtures.gameObject("Guard Post Table"), 0.9f);
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> {
+            if ("getObject".equals(method.getName()) && ((Number) args[0]).intValue() == GUARD_POST_TABLE) {
+                return table;
             }
             throw new UnsupportedOperationException(method.getName());
         });
-        return new Guard(null, null, roomTiles.get(0), (short) 3, room, null, TICKS_PER_SECOND, MAX_EXTRA_TICKS, random);
+        return new Guard(null, null, roomTiles.get(0), (short) 3, room, null, entityData, kwdFile, TICKS_PER_SECOND, MAX_EXTRA_TICKS,
+                NO_FURNITURE_EXTRA_TICKS, random);
+    }
+
+    private void post(int x, int y) {
+        EntityId post = entityData.createEntity();
+        entityData.setComponents(post, new Position(0, WorldUtils.pointToVector3f(x, y)), new ObjectComponent(GUARD_POST_TABLE, null));
+        furniture.add(post);
     }
 
     private static ICreatureController creatureAt(Point p) {
+        Creature creature = new Creature();
+        ShotFixtures.setSize(creature, 0.3f, 1);
         return (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> {
-            if ("getCreatureCoordinates".equals(method.getName())) {
-                return p;
-            }
-            throw new UnsupportedOperationException(method.getName());
+            return switch (method.getName()) {
+                case "getCreatureCoordinates" -> p;
+                case "getPosition" -> WorldUtils.pointToVector3f(p);
+                case "getCreature" -> creature;
+                default -> throw new UnsupportedOperationException(method.getName());
+            };
         });
     }
 

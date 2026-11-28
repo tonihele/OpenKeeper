@@ -96,6 +96,7 @@ class TrapSystemTest {
     private final List<Integer> effects = new ArrayList<>();
     private final List<EntityId> entities = new ArrayList<>();
     private boolean shotsFly = false;
+    private EntityId usedUpTrap;
     private final Keeper keeper = new Keeper(false, KEEPER);
     private double gameTime = 0;
     private TrapSystem trapSystem;
@@ -121,6 +122,17 @@ class TrapSystemTest {
         creatures.put(REAPER, TrapFiringFixtures.creature(REAPER, Creature.CreatureFlag.IS_HORNY));
         creatures.put(THIEF, TrapFiringFixtures.creature(THIEF, Creature.CreatureFlag.REVEALS_ADJACENT_TRAPS));
         keeper.setMana(1000);
+    }
+
+    @Test
+    void trapUsedUpByItsShotLeavesNothingBehind() {
+        usedUpTrap = addTrap(SENTRY, TRAP_TILE);
+        addCreature(IMP, ENEMY, 13, 10);
+
+        tick();
+
+        assertEquals(1, shots.size());
+        assertNull(entityData.getComponent(usedUpTrap, TrapFiring.class));
     }
 
     @Test
@@ -716,6 +728,9 @@ class TrapSystemTest {
                         // The shots that hit at once, every trap here has a shot of its own
                         Trap trap = traps.values().stream().filter(t -> t.getShotTypeId() == (Short) args[0]).findFirst().orElseThrow();
                         shots.add(new Fired(trap.getTrapId(), (EntityId) args[5]));
+                        if (usedUpTrap != null) {
+                            entityData.removeEntity(usedUpTrap);
+                        }
                         return null;
                     }
                     throw new UnsupportedOperationException(method.getName());
