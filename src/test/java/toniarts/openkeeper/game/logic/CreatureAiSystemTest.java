@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.logic;
 
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -35,6 +36,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * DK II's imps do in their idle state (0x463DF0).
  */
 class CreatureAiSystemTest {
+
+    private final EntityData entityData = new DefaultEntityData();
+    private final List<EntityId> processed = new ArrayList<>();
+
+    @Test
+    void failingCreatureDoesNotStopTheOthers() {
+        EntityId broken = createCreature();
+        EntityId healthy = createCreature();
+        EntityId healthyToo = createCreature();
+
+        CreatureAiSystem system = new CreatureAiSystem(entityData, creaturesController(broken), taskManager());
+        system.processTick(0.25f);
+
+        assertEquals(List.of(healthy, healthyToo), processed);
+    }
 
     @Test
     void workerThatWentIdleLooksForWorkOnTheNextTick() {
@@ -69,6 +85,37 @@ class CreatureAiSystemTest {
         }
 
         assertEquals(List.of(2), lookedForWork);
+    }
+
+    private EntityId createCreature() {
+        EntityId id = entityData.createEntity();
+        entityData.setComponent(id, new CreatureAi(0, CreatureState.IDLE, (short) 1));
+        return id;
+    }
+
+    private ICreaturesController creaturesController(EntityId broken) {
+        return (ICreaturesController) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{ICreaturesController.class}, (proxy, method, args) -> {
+                    EntityId id = (EntityId) args[0];
+                    return Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{ICreatureController.class},
+                            (p, m, a) -> switch (m.getName()) {
+                        case "getEntityId" -> id;
+                        case "compareTo" -> id.compareTo(((ICreatureController) a[0]).getEntityId());
+                        case "processTick" -> {
+                            if (id.equals(broken)) {
+                                throw new IllegalStateException("Test failure");
+                            }
+                            processed.add(id);
+                            yield null;
+                        }
+                        default -> null;
+                    });
+                });
+    }
+
+    private ITaskManager taskManager() {
+        return (ITaskManager) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{ITaskManager.class}, (proxy, method, args) -> null);
     }
 
 }

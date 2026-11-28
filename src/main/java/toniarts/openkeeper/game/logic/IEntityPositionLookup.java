@@ -122,6 +122,18 @@ public interface IEntityPositionLookup {
     boolean isTileBlocked(IMapTileInformation mapTile, short playerId);
 
     /**
+     * Gets the door that blocks a tile for player's entity. A door blocks
+     * everyone but its owner, and everyone if it is locked. Door blueprints
+     * block no one.
+     *
+     * @param x the x coordinate
+     * @param y the y coordinate
+     * @param playerId the player ID of which entity is wanting to know
+     * @return the door entity, or {@code null} if no door blocks the tile
+     */
+    EntityId getBlockingDoor(int x, int y, short playerId);
+
+    /**
      * Gets all the entities around given entity that you see or hear at this
      * given moment
      *
@@ -132,7 +144,7 @@ public interface IEntityPositionLookup {
 
     /**
      * Checks if an entity you sense is behind a door that blocks you, like an
-     * enemy or a locked door. You sense through doors, but you can't walk
+     * enemy or a locked door. You see over a barricade, but you can't walk
      * there
      *
      * @param entityId you, the entity
@@ -143,8 +155,8 @@ public interface IEntityPositionLookup {
 
     /**
      * Checks if there is a straight line of sight between two points on the
-     * map, with no tile that blocks the senses in between. The tiles the
-     * points are on don't count
+     * map, with no tile that blocks the senses in the way. The tile it starts
+     * on doesn't count, the tile it ends on does
      *
      * @param from the point to look from
      * @param to the point to look at

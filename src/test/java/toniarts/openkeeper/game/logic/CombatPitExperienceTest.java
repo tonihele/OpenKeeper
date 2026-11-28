@@ -22,6 +22,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -30,6 +31,7 @@ import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.tools.convert.map.CombatPitFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
@@ -64,13 +66,20 @@ class CombatPitExperienceTest {
         creatureComponent.creatureId = FIGHTER;
         entityData.setComponents(entity, creatureComponent, new CreatureExperience(level, 0, 1000, 10, 0),
                 new CreatureAi(0, CreatureState.MELEE_ATTACK, FIGHTER));
+        EntityId opponent = entityData.createEntity();
+        entityData.setComponent(opponent, new CreatureComponent());
+        entityData.setComponent(entity, new AttackTarget(opponent));
         if (inPit) {
             entityData.setComponent(entity, new CombatPitFighter(entityData.createEntity()));
         }
 
         Creature imp = CombatPitFixtures.pitCreature(IMP);
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
-                (proxy, method, args) -> "getImp".equals(method.getName()) ? imp : null);
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getImp" -> imp;
+                    case "getGameLevel" -> CreatureSleepFixtures.level(2); // Fighting teaches on every tick
+                    default -> null;
+                });
         ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(),
                 new Class<?>[]{ICreaturesController.class}, (proxy, method, args) -> null);
         Map<MiscType, MiscVariable> gameSettings = Map.of(

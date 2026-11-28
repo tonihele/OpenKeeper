@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractRoomTask;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -40,6 +41,7 @@ public final class CollectPay extends AbstractRoomTask {
     private final IGameWorldController gameWorldController;
     private final EntityData entityData;
     private boolean executed = false;
+    private Vector2f workPosition;
 
     public CollectPay(final INavigationService navigationService, final IMapController mapController, Point p, short playerId,
             final IRoomController room, final IGameWorldController gameWorldController, final EntityData entityData) {
@@ -58,6 +60,30 @@ public final class CollectPay extends AbstractRoomTask {
     @Override
     public Vector2f getTarget(ICreatureController creature) {
         return WorldUtils.pointToVector2f(getTaskLocation());
+    }
+
+    @Override
+    public Vector2f getWorkPosition(ICreatureController creature) {
+
+        // DK II stands the creature by the gold, not in it: on one of the 8 spots of a 3 by 3 grid on the tile, a
+        // third of a tile apart, without the middle, picked at random (0x472390, table 0x698C20). Picked once, the
+        // position is asked every tick
+        if (workPosition == null) {
+            int spot = Utils.getRandom().nextInt(8);
+            if (spot >= 4) {
+                spot++;
+            }
+            workPosition = WorldUtils.pointToVector2f(getTaskLocation()).addLocal((spot % 3 - 1) * WorldUtils.TILE_WIDTH / 3,
+                    (spot / 3 - 1) * WorldUtils.TILE_WIDTH / 3);
+        }
+        return workPosition;
+    }
+
+    @Override
+    public boolean isFaceTarget() {
+
+        // And turns to face the gold in the middle of the tile (0x472690)
+        return true;
     }
 
     @Override
