@@ -26,7 +26,6 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -257,7 +256,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * The rooms the creatures of the computer players asked for since their
      * last turn, the first asked first
      */
-    private final Set<RoomWanted> roomsWanted = Collections.synchronizedSet(new LinkedHashSet<>());
+    private final Set<RoomWanted> roomsWanted = new LinkedHashSet<>();
     private final EventListener<RoomWanted> roomWantedListener = (type, event) -> {
         if (ais.containsKey(event.playerId())) {
             roomsWanted.add(event);
@@ -1423,7 +1422,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                     || !TileWork.canDamageTile(terrain, tile.getOwnerId(), keeperAi.playerId)) {
 
                 // On open land the path is done as soon as a creature can walk the rest
-                if (navigationService.findPath(keeperAi.target, keeperAi.current, getWalker(keeperAi.playerId)) != null) {
+                if (navigationService.isReachable(keeperAi.target, keeperAi.current, getWalker(keeperAi.playerId))) {
                     keeperAi.current = keeperAi.target;
                     finishPath(keeperAi, true, "there is a way to walk from here");
                     return actions;
