@@ -89,6 +89,7 @@ class WorkerTaskAssignmentTest {
     });
     private final INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
         case "isAccessible" -> land.contains(((IMapTileInformation) args[1]).getLocation());
+        case "isReachable" -> isOnLand((Point) args[0], (Point) args[1]);
         case "findPath" -> new DefaultGraphPath<>();
         default -> null;
     });
@@ -341,6 +342,18 @@ class WorkerTaskAssignmentTest {
         for (int x = fromX; x <= toX; x++) {
             land.add(new Point(x, y));
         }
+    }
+
+    /**
+     * The land is a row, walking goes along it tile by tile
+     */
+    private boolean isOnLand(Point start, Point end) {
+        for (int x = Math.min(start.x, end.x); x <= Math.max(start.x, end.x); x++) {
+            if (start.y != end.y || !land.contains(new Point(x, start.y))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static int assignedCount(List<Task> tasks) {

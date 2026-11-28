@@ -168,6 +168,7 @@ class ClaimTileTaskTakeoverTest {
         return stub(INavigationService.class, (proxy, name, args) -> switch (name) {
             case "isAccessible" -> true;
             case "findPath" -> path;
+            case "isReachable" -> true;
             default -> null;
         });
     }

@@ -86,6 +86,7 @@ class FetchCorpseTaskTest {
         INavigationService navigationService = stub(INavigationService.class, (proxy, name, args) -> switch (name) {
             case "isAccessible" -> true;
             case "findPath" -> path;
+            case "isReachable" -> true;
             default -> null;
         });
         return new FetchCorpseTask(navigationService, mapController, entityData, null, corpse, KEEPER);

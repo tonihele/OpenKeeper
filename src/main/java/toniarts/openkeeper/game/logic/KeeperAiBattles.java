@@ -33,6 +33,7 @@ import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
+import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
@@ -41,7 +42,9 @@ import toniarts.openkeeper.game.component.KeeperAiDropped;
 import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.DropValidator;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IGameWorldController;
@@ -51,6 +54,8 @@ import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -92,8 +97,9 @@ final class KeeperAiBattles {
     private static final int CALL_TO_ARMS_EVERY_SECONDS = 10;
 
     /**
-     * DK II leaves a creature alone for 300 game ticks after a drop, at 4
-     * ticks a second
+     * DK II leaves a creature alone for 300 game ticks after it was made or
+     * landed from any keeper's hand, but not in the first 300 ticks of the
+     * game, at 4 ticks a second
      */
     private static final int LEAVE_ALONE_AFTER_DROP_SECONDS = 75;
 
@@ -101,7 +107,15 @@ final class KeeperAiBattles {
      * A Combat Pit fighter is taken out of the pit below this much health
      */
     private static final int PIT_FIGHTER_RETREAT_HEALTH_PERCENTAGE = 50;
-    static final Set<CreatureState> FIGHTING = Set.of(CreatureState.FIGHT, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL);
+
+    /**
+     * The states of a creature in a fight, class 0x16 of DK II's state table
+     * (0x47BBE0). Fleeing from a fight is in that class too (states 0xC9 to
+     * 0xCB, which the fight state 0x45F030 goes to when the creature is
+     * scared)
+     */
+    static final Set<CreatureState> FIGHTING = Set.of(CreatureState.FIGHT, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL,
+            CreatureState.FLEE);
 
     /**
      * The states the hand leaves a creature alone in
@@ -109,6 +123,16 @@ final class KeeperAiBattles {
     static final Set<CreatureState> HELPLESS = Set.of(CreatureState.DEAD, CreatureState.ENTERING_DUNGEON, CreatureState.PICKED_UP,
             CreatureState.UNCONSCIOUS, CreatureState.STUNNED, CreatureState.IMPRISONED, CreatureState.TORTURED, CreatureState.DRAGGED,
             CreatureState.FALLEN, CreatureState.GETTING_UP, CreatureState.COMBAT_PIT);
+
+    /**
+     * The states and tasks of a creature that looks for its Lair, goes to
+     * bed, sleeps, eats or collects its pay, group 7 of DK II's state table
+     * (0x47BBE0)
+     */
+    private static final Set<CreatureState> RESTING = Set.of(CreatureState.SLEEPING, CreatureState.GO_TO_SLEEP,
+            CreatureState.EATING, CreatureState.RECUPERATING);
+    private static final Set<TaskType> RESTING_TASKS = Set.of(TaskType.CLAIM_LAIR, TaskType.GO_TO_SLEEP, TaskType.GO_TO_EAT,
+            TaskType.COLLECT_PAY);
 
     /**
      * DK II counts the enemy threat 10 tiles around an attack, its own 4
@@ -138,29 +162,52 @@ final class KeeperAiBattles {
     private final IGameWorldController gameWorldController;
     private final IMapController mapController;
     private final IGameTimer gameTimer;
+    private final INavigationService navigationService;
     private final DecisionLog decisionLog;
     private final EntitySet creatures;
+    private final EntitySet allCreatures;
+    private final EntitySet falling;
 
     KeeperAiBattles(EntityData entityData, IKwdFile kwdFile, IGameWorldController gameWorldController, IGameTimer gameTimer,
-            DecisionLog decisionLog) {
+            INavigationService navigationService, DecisionLog decisionLog) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.gameWorldController = gameWorldController;
         this.mapController = gameWorldController.getMapController();
         this.gameTimer = gameTimer;
+        this.navigationService = navigationService;
         this.decisionLog = decisionLog;
         creatures = entityData.getEntities(CreatureComponent.class, Owner.class, Health.class, CreatureAi.class, Position.class);
+        allCreatures = entityData.getEntities(CreatureComponent.class);
+        falling = entityData.getEntities(CreatureComponent.class, CreatureFall.class);
     }
 
     /**
-     * Takes in what happened to the creatures since the last game tick
+     * Takes in what happened to the creatures since the last game tick. A
+     * creature that is new, or has landed from any keeper's hand, is marked
+     * as just dropped. DK II keeps that as a counter per creature
+     * (CCreature+0x46D): 0 when it is made (0x4872A0), up one a tick, and
+     * back to 0 on every tick it is in the state of a drop from the hand, 0x4C
+     * (0x488930, set by 0x4BC710)
      */
     void applyChanges() {
         creatures.applyChanges();
+        allCreatures.applyChanges();
+        falling.applyChanges();
+        for (Entity creature : allCreatures.getAddedEntities()) {
+            entityData.setComponent(creature.getId(), new KeeperAiDropped(gameTimer.getGameTime()));
+        }
+        for (Entity creature : falling.getRemovedEntities()) {
+            if (entityData.getComponent(creature.getId(), CreatureComponent.class) != null) {
+                entityData.setComponent(creature.getId(), new KeeperAiDropped(gameTimer.getGameTime()));
+            }
+        }
     }
 
     void release() {
         creatures.release();
+        allCreatures.release();
+        falling.release();
     }
 
     /**
@@ -215,7 +262,9 @@ final class KeeperAiBattles {
      * Casts Call to Arms on the first fighting creature that has more enemy
      * threat around it than the computer player takes on without the flag.
      * Not while a flag is up, nor for a while after one was lifted, nor on
-     * lava. It needs more mana than the spell costs.
+     * lava. It needs more mana than the spell costs, and like DK II
+     * (0x503060) a walking route from the tile 2 east of the Dungeon Heart's
+     * centre to the fighter.
      *
      * @param keeperAi the computer player
      * @param playerController its player
@@ -247,7 +296,8 @@ final class KeeperAiBattles {
             int mana = playerController.getKeeper().getMana();
             if (mana > callToArms.getManaCost()
                     && Math.round(gameTimer.getGameTime() * ticksPerSecond) % (CALL_TO_ARMS_EVERY_SECONDS * ticksPerSecond) == 0
-                    && playerController.getSpellControl().isAvailable(callToArms)) {
+                    && playerController.getSpellControl().isAvailable(callToArms)
+                    && navigationService.findPath(getHeartDropTile(playerController.getKeeper()), tile, KeeperAiSystem.getWalker(keeperAi.playerId)) != null) {
                 gameWorldController.castKeeperSpell(SPELL_CALL_TO_ARMS, null, tile, new Vector2f(position.x, position.z), keeperAi.playerId);
 
                 // The cast has its own rules, the mana tells if it went through
@@ -270,10 +320,10 @@ final class KeeperAiBattles {
      * Casts a spell for the first of its creatures in a fight that it
      * means to help, DK II rolls for each. A defensive spell goes on one of
      * its creatures within 5 tiles of the fighter that is down to less
-     * than half its health, an attacking spell on a creature of the
-     * opponent's keeper within 5 tiles. The settings say how often it
-     * casts, how often it defends rather than attacks, and how dear a
-     * spell it takes.
+     * than half its health and not knocked out, an attacking spell on a
+     * creature of the opponent's keeper within 5 tiles, knocked out or not.
+     * The settings say how often it casts, how often it defends rather than
+     * attacks, and how dear a spell it takes.
      *
      * @param keeperAi the computer player
      * @param playerController its player
@@ -298,7 +348,7 @@ final class KeeperAiBattles {
             for (Entity creature : getCreatures(defensive ? keeperAi.playerId : opponent.ownerId)) {
                 Health health = creature.get(Health.class);
                 if (isWithin(creature.get(Position.class).position, fighter.get(Position.class).position, ATTACK_DROP_TILES)
-                        && (!defensive || health.health < health.maxHealth / 2)) {
+                        && (!defensive || health.health < health.maxHealth / 2 && entityData.getComponent(creature.getId(), Unconscious.class) == null)) {
                     target = creature;
                     if (Utils.getRandom().nextInt(100) > BATTLE_SPELL_TARGET_ROLL) {
                         break;
@@ -384,7 +434,7 @@ final class KeeperAiBattles {
                     }
                 }
                 IRoomController heart = enemy.getRoomControl().getDungeonHeart();
-                if (heart != null && isWithin(WorldUtils.pointToVector3f(heart.getRoomInstance().getCenter()), flag, range)) {
+                if (heart != null && isWithin(WorldUtils.pointToVector3f(heart.getRoomInstance().getReferenceTile()), flag, range)) {
                     enemies++;
                 }
             }
@@ -482,7 +532,7 @@ final class KeeperAiBattles {
                 lair = room;
                 break;
             }
-            Point tile = lair != null ? lair.getRoomInstance().getCenter() : getHeartDropTile(playerController.getKeeper());
+            Point tile = lair != null ? lair.getRoomInstance().getReferenceTile() : getHeartDropTile(playerController.getKeeper());
             decisionLog.log(keeperAi, "carry creature " + creature.getId().getId() + " to the " + (lair != null ? "Lair" : "Dungeon Heart"), tile, reason);
             carry(creature.getId(), tile, playerController);
 
@@ -597,10 +647,13 @@ final class KeeperAiBattles {
 
     /**
      * Answers the first attack in the queue, with one creature a turn. It
-     * drops fighters that are not busy and have more than half their health
-     * on the attack until their threat makes up what it needs there. Or it
+     * drops fighters that have more than half their health and don't fight,
+     * flee or rest on the attack until their threat makes up what it needs
+     * there, even ones it dropped a short while ago (DK II's 0x4FE0B0 skips
+     * the state groups 3 and 7 and the fight class, but has no wait). Or it
      * carries its creatures within 5 tiles of the attack to the Dungeon
-     * Heart, until it has carried away what it had there.
+     * Heart, until it has carried away what it had there. Never one that
+     * falls from the hand or heeds the Call to Arms.
      *
      * @param keeperAi the computer player
      * @param playerController its player
@@ -619,10 +672,11 @@ final class KeeperAiBattles {
             CreatureState state = creature.get(CreatureAi.class).getCreatureState();
             Health health = creature.get(Health.class);
             if (!kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId).getFlags().contains(Creature.CreatureFlag.IS_HORNY)
-                    && !HELPLESS.contains(state) && !isLeftAlone(creature)
-                    && (retreat ? isWithin(creature.get(Position.class).position, position, ATTACK_DROP_TILES)
+                    && !HELPLESS.contains(state) && state != CreatureState.CALL_TO_ARMS
+                    && entityData.getComponent(creature.getId(), CreatureFall.class) == null
+                    && (retreat ? !isLeftAlone(creature) && isWithin(creature.get(Position.class).position, position, ATTACK_DROP_TILES)
                             : !creature.get(CreatureComponent.class).worker && health.health * 2 > health.maxHealth
-                            && !FIGHTING.contains(state) && state != CreatureState.FLEE)) {
+                            && !FIGHTING.contains(state) && !isResting(creature))) {
                 picked = creature;
                 break;
             }
@@ -708,18 +762,28 @@ final class KeeperAiBattles {
     }
 
     /**
-     * Leaves a creature it carries alone for a while, from now
-     *
-     * @param creature the creature
+     * Whether a creature looks for its Lair, sleeps, eats or collects its
+     * pay. The computer player drops none of those on a fight (0x4FE0B0) nor
+     * where it trains (0x4FF5C0)
      */
-    void leaveAlone(EntityId creature) {
-        entityData.setComponent(creature, new KeeperAiDropped(gameTimer.getGameTime()));
+    boolean isResting(Entity creature) {
+        TaskComponent task = entityData.getComponent(creature.getId(), TaskComponent.class);
+
+        return RESTING.contains(creature.get(CreatureAi.class).getCreatureState()) || task != null && RESTING_TASKS.contains(task.taskType);
     }
 
+    /**
+     * Whether a creature was just dropped, so the hand leaves it alone: it is
+     * still falling, or it was made or landed in the last 75 s. DK II (0x4F9710,
+     * 0x4FF260, 0x5006D0, 0x503690) doesn't count that in the first 300 ticks
+     * of the game
+     */
     boolean isLeftAlone(Entity creature) {
         KeeperAiDropped dropped = entityData.getComponent(creature.getId(), KeeperAiDropped.class);
+        double gameTime = gameTimer.getGameTime();
 
-        return dropped != null && gameTimer.getGameTime() - dropped.time < LEAVE_ALONE_AFTER_DROP_SECONDS;
+        return gameTime > LEAVE_ALONE_AFTER_DROP_SECONDS && (entityData.getComponent(creature.getId(), CreatureFall.class) != null
+                || dropped != null && gameTime - dropped.time < LEAVE_ALONE_AFTER_DROP_SECONDS);
     }
 
     /**
@@ -736,15 +800,12 @@ final class KeeperAiBattles {
     }
 
     /**
-     * Picks a creature up and drops it on a tile, with the hand. The
-     * creature is left alone for a while after that, also when the hand
-     * could not take it
+     * Picks a creature up and drops it on a tile, with the hand
      *
      * @return true if the creature was dropped
      */
     boolean carry(EntityId creature, Point tile, IPlayerController playerController) {
         short playerId = playerController.getKeeper().getId();
-        leaveAlone(creature);
         gameWorldController.pickUp(creature, playerId);
         if (!creature.equals(playerController.getHandControl().peek())) {
             return false;
