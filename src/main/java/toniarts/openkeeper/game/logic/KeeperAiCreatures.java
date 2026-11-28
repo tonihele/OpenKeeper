@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.KeeperAi;
 import toniarts.openkeeper.game.component.KeeperAiMood;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
@@ -670,11 +671,16 @@ final class KeeperAiCreatures {
     /**
      * A creature with nothing to do, status 5 of DK II (0x478A20). An
      * unhappy or angry creature has a status of its own there, so it is
-     * never idle. DK II also counts in some states OpenKeeper doesn't have,
-     * such as sulking, being hypnotised or reporting danger
+     * never idle. A creature that isn't a worker gets its status from the
+     * class of its state: standing idle (state 1) is status 5, walking about
+     * (states 86 and 87) is not, so it is idle only while it stands still. DK
+     * II also counts in some states OpenKeeper doesn't have, such as sulking,
+     * being hypnotised or reporting danger
      */
     private boolean isIdle(Entity creature) {
+        Creature type = kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId);
         return creature.get(CreatureAi.class).getCreatureState() == CreatureState.IDLE
+                && (type.getFlags().contains(Creature.CreatureFlag.IS_WORKER) || entityData.getComponent(creature.getId(), Navigation.class) == null)
                 && getMoodState(creature, entityData.getComponent(creature.getId(), CreatureMood.class)) == 0;
     }
 

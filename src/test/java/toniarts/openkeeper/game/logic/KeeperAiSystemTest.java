@@ -63,6 +63,7 @@ import toniarts.openkeeper.game.component.KeeperAiDropped;
 import toniarts.openkeeper.game.component.KeeperAiEnemy;
 import toniarts.openkeeper.game.component.KeeperAiMood;
 import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -1517,6 +1518,24 @@ class KeeperAiSystemTest {
             system.processTick(0.25f);
         }
         assertEquals(List.of(unhappy), slapped);
+    }
+
+    @Test
+    void slapsAnIdleCreatureOnlyWhileItStandsStill() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+        EntityId walking = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        entityData.setComponent(walking, new Navigation(new Point(8, 6), null, List.of()));
+        for (int tick = 0; tick < 2000; tick++) {
+            system.processTick(0.25f);
+        }
+        assertTrue(slapped.isEmpty());
+
+        // DK II's idle walk (states 86 and 87) isn't status 5, standing idle (state 1) is
+        entityData.removeComponent(walking, Navigation.class);
+        for (int tick = 0; tick < 2000 && slapped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+        assertEquals(List.of(walking), slapped);
     }
 
     @Test
