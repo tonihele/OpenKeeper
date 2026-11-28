@@ -43,6 +43,7 @@ import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
@@ -83,6 +84,8 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private float previousStepTime = -1;
     private boolean stepWarningLogged;
     private Predicate<Vector3f> waterCheck = position -> false;
+    private int ticksPerSecond;
+    private Vector3f walkedFrom;
 
     public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
             AssetManager assetManager, EntityTextParser<Creature> textParser) {
@@ -187,6 +190,66 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
         playDigSound();
         playFootsteps();
+        playWalk(tpf);
+    }
+
+    /**
+     * The walk and run play as fast as the creature walks
+     */
+    private void playWalk(float tpf) {
+        if (spatial == null) {
+            return;
+        }
+        Vector3f position = spatial.getWorldTranslation();
+        if (walkedFrom == null) {
+            walkedFrom = position.clone();
+        }
+        float speed = getWalkSpeed(position.x - walkedFrom.x, position.z - walkedFrom.z, tpf);
+        walkedFrom.set(position);
+        for (Spatial child : ((Node) spatial).getChildren()) {
+            AnimComposer animComposer = child.getControl(AnimComposer.class);
+
+            // A cycling animation keeps the direction it plays in
+            if (animComposer != null && Math.abs(animComposer.getGlobalSpeed()) != speed) {
+                animComposer.setGlobalSpeed(Math.copySign(speed, animComposer.getGlobalSpeed()));
+            }
+        }
+    }
+
+    /**
+     * How fast the shown animation plays for a step of the creature. DK II
+     * (0x48BE50, 0x4B41E0) plays the walk and the run by the speed of the
+     * creature: the start distance of the animation is the speed, in 1/4096
+     * tiles a second, at which its frames play at their own frame rate. A step
+     * is measured as its longer side plus half the shorter one, and the
+     * animation plays less than a cycle a tick. Without a start distance it
+     * doesn't play. Other animations play as they are.
+     *
+     * @param dx the step along x, in tiles
+     * @param dz the step along z, in tiles
+     * @param tpf how long the step took, in seconds
+     * @return the speed for the animation, 1 plays it at
+     * {@link KmfModelLoader#FRAMES_PER_SECOND}
+     */
+    float getWalkSpeed(float dx, float dz, float tpf) {
+        ArtResource animation = getAnimationData(currentState);
+        if ((currentState != Creature.AnimationType.WALK && currentState != Creature.AnimationType.RUN) || animation == null) {
+            return 1;
+        }
+        Number startDistance = animation.getData(ArtResource.KEY_START_DIST);
+        Number fps = animation.getData(ArtResource.KEY_FPS);
+        if (startDistance == null || startDistance.floatValue() <= 0 || fps == null || tpf <= 0) {
+            return 0;
+        }
+
+        float longer = Math.max(Math.abs(dx), Math.abs(dz));
+        float shorter = Math.min(Math.abs(dx), Math.abs(dz));
+        float framesPerSecond = fps.floatValue() * (longer + shorter / 2) * 4096 / startDistance.floatValue() / tpf;
+        Number frames = animation.getData(ArtResource.KEY_FRAMES);
+        if (frames != null && ticksPerSecond > 0) {
+            framesPerSecond = Math.min(framesPerSecond, frames.floatValue() * ticksPerSecond * 4095 / 4096);
+        }
+        return framesPerSecond / KmfModelLoader.FRAMES_PER_SECOND;
     }
 
     /**
@@ -245,6 +308,14 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
      */
     public void setWaterCheck(Predicate<Vector3f> waterCheck) {
         this.waterCheck = waterCheck;
+    }
+
+    /**
+     * @param ticksPerSecond the logic ticks a second of the level, the walk
+     * and run play less than a cycle a tick
+     */
+    public void setTicksPerSecond(int ticksPerSecond) {
+        this.ticksPerSecond = ticksPerSecond;
     }
 
     private AnimComposer getAnimComposer() {
@@ -335,8 +406,10 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         if (creatureAi != null) {
             CreatureState state = creatureAi.getCreatureState();
 
-            // Dancing in the Casino and the jackpot celebration go on until the state changes
-            return state == CreatureState.WORK || state == CreatureState.DANCING || state == CreatureState.CELEBRATING;
+            // Dancing in the Casino, the jackpot celebration and sleeping go on until the state changes. DK II starts
+            // the sleep action again each time it ends (0x46FA60)
+            return state == CreatureState.WORK || state == CreatureState.DANCING || state == CreatureState.CELEBRATING
+                    || state == CreatureState.SLEEPING || state == CreatureState.RECUPERATING;
         }
         return false;
     }

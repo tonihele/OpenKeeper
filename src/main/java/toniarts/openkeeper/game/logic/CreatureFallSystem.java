@@ -23,6 +23,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.event.GameEventService;
@@ -42,12 +43,15 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
     private final EntityData entityData;
     private final IGameTimer gameTimer;
     private final GameEventService gameEventService;
+    private final ICreaturesController creaturesController;
     private final EntitySet fallEntities;
 
-    public CreatureFallSystem(EntityData entityData, IGameTimer gameTimer, GameEventService gameEventService) {
+    public CreatureFallSystem(EntityData entityData, IGameTimer gameTimer, GameEventService gameEventService,
+            ICreaturesController creaturesController) {
         this.entityData = entityData;
         this.gameTimer = gameTimer;
         this.gameEventService = gameEventService;
+        this.creaturesController = creaturesController;
 
         fallEntities = entityData.getEntities(CreatureFall.class, Position.class, CreatureComponent.class);
     }
@@ -59,11 +63,15 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
 
         // Process ticks
         for (Entity entity : fallEntities) {
+
+            // Like in DK II, the floor in the middle of the portal is a level lower, the creature falls through
+            CreatureFall.FallType fallType = entity.get(CreatureFall.class).fallType;
+            float floorHeight = fallType == CreatureFall.FallType.PORTAL_DROP ? WorldUtils.UNDERFLOOR_HEIGHT : WorldUtils.FLOOR_HEIGHT;
             Position position = entity.get(Position.class);
             Position newPosition = new Position(position.rotation, position.position);
-            newPosition.position.y = Math.max(newPosition.position.y - tpf * GRAVITY, WorldUtils.FLOOR_HEIGHT);
+            newPosition.position.y = Math.max(newPosition.position.y - tpf * GRAVITY, floorHeight);
             entity.set(newPosition);
-            if (newPosition.position.y == WorldUtils.FLOOR_HEIGHT) {
+            if (newPosition.position.y == floorHeight) {
 
                 // We'll just remove this and add the AI
                 entityData.removeComponent(entity.getId(), CreatureFall.class);
@@ -71,11 +79,18 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
                 // The landing, on touchdown (hand drops and conjured creatures alike)
                 gameEventService.emit(GameEventType.CREATURE_LAND, entity.getId(), newPosition.position);
 
+                // A creature dropped on the middle of its keeper's portal doesn't get up, it leaves the dungeon
+                if (fallType == CreatureFall.FallType.PORTAL_DROP) {
+                    creaturesController.leaveDungeon(entity.getId());
+                    continue;
+                }
+
                 // Preserve any requested AI target through landing and get-up.
                 // The state, depending on the landing
                 CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
+                boolean stunned = fallType == CreatureFall.FallType.DROPPED && creatureComponent.stunDuration > 0f;
                 CreatureAi ai = entityData.getComponent(entity.getId(), CreatureAi.class);
-                entityData.setComponent(entity.getId(), new CreatureAi(gameTimer.getGameTime(), creatureComponent.stunDuration > 0f ? CreatureState.FALLEN : CreatureState.IDLE, creatureComponent.creatureId,
+                entityData.setComponent(entity.getId(), new CreatureAi(gameTimer.getGameTime(), stunned ? CreatureState.FALLEN : CreatureState.IDLE, creatureComponent.creatureId,
                         ai == null ? null : ai.getTargetState()));
             }
         }
