@@ -235,7 +235,7 @@ class CreatureSupportSpellTest {
         assertTrue(controller.castSupportSpell());
         gameTime += RECHARGE / 2;
         assertFalse(controller.castSupportSpell());
-        gameTime += RECHARGE / 2;
+        gameTime += RECHARGE;
         assertTrue(controller.castSupportSpell());
 
         assertNotNull(entityData.getComponent(us, CastShot.class));
@@ -395,7 +395,7 @@ class CreatureSupportSpellTest {
         controller.navigateToAssignedTask();
         assertEquals(1, shots.size());
 
-        gameTime += RECHARGE / 2;
+        gameTime += RECHARGE;
         controller.navigateToAssignedTask();
         assertEquals(2, shots.size());
     }

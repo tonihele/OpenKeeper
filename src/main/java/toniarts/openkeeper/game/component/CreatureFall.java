@@ -27,13 +27,26 @@ import com.simsilica.es.EntityComponent;
  */
 public final class CreatureFall implements EntityComponent {
 
+    public enum FallType {
+
+        /**
+         * Dropped from the hand, lands stunned
+         */
+        DROPPED,
+        /**
+         * Conjured, comes down standing
+         */
+        CONJURED,
+        /**
+         * Dropped on the middle of its keeper's portal, falls through the floor
+         * and leaves the dungeon
+         */
+        PORTAL_DROP
+    }
+
+    public FallType fallType = FallType.DROPPED;
     public Vector3f velocity; // Tiles per turn, null when just dropped
     public int damage; // Taken on landing
-
-    /**
-     * A conjured creature doesn't land stunned like a creature dropped from the hand
-     */
-    public boolean conjured;
 
     public CreatureFall() {
         // For serialization
@@ -51,13 +64,8 @@ public final class CreatureFall implements EntityComponent {
         this.damage = damage;
     }
 
-    /**
-     * A creature that drops down without being stunned when it lands
-     *
-     * @param conjured true for a conjured creature
-     */
-    public CreatureFall(boolean conjured) {
-        this.conjured = conjured;
+    public CreatureFall(FallType fallType) {
+        this.fallType = fallType;
     }
 
 }

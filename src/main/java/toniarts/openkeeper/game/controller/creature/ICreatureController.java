@@ -129,6 +129,21 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean isWithinAttackDistance(EntityId attackTarget);
 
+    /**
+     * Does the creature have an attacking spell it can cast now
+     *
+     * @return has a ranged attack ready
+     */
+    public boolean hasRangedAttackReady();
+
+    /**
+     * Casts the first attacking spell that is ready at the target, without
+     * hurting it, like a trainee at a wall target
+     *
+     * @param target what to cast at
+     */
+    public void castTrainingShot(EntityId target);
+
     public void stopCreature();
 
     public void executeAttack(EntityId attackTarget);
@@ -151,6 +166,24 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * Drops the shot of an interrupted cast
      */
     public void cancelCastShot();
+
+    /**
+     * Lands the hit of the melee swing once the swing has reached the
+     * creature's shot delay
+     */
+    public void releaseMeleeHit();
+
+    /**
+     * Is the hit of the melee swing still to land
+     *
+     * @return true while the swing hasn't hit yet
+     */
+    public boolean hasPendingMeleeHit();
+
+    /**
+     * Drops the hit of an interrupted melee swing
+     */
+    public void cancelMeleeHit();
 
     public void navigateToAttackTarget(EntityId attackTarget);
 
@@ -478,6 +511,13 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void turnIntoChicken(double duration);
 
     /**
+     * Plays an animation once from its start, such as an outburst
+     *
+     * @param animation the animation
+     */
+    public void playAnimation(Creature.AnimationType animation);
+
+    /**
      * Sets creature possession on/off
      *
      * @param possessed should the creature be posessed or AI driven
@@ -563,5 +603,11 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @param duration how long, in seconds
      */
     public void turncoat(short playerId, double duration);
+
+    /**
+     * Turns on the keeper. Like in DK II, the creature joins the heroes and
+     * goes after the keeper it served
+     */
+    public void rebel();
 
 }

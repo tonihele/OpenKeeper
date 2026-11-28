@@ -49,6 +49,7 @@ import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.CombatPitFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
@@ -215,7 +216,11 @@ class CombatPitFightTest {
 
     private CreatureController createController(EntityId entity) {
         Map<Short, Keeper> keepers = Map.of(KEEPER, new Keeper(false, KEEPER), ENEMY, new Keeper(false, ENEMY));
-        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> "getCreature".equals(name) ? creatures.get((Short) args[0]) : null);
+        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
+            case "getCreature" -> creatures.get((Short) args[0]);
+            case "getGameLevel" -> CreatureSleepFixtures.level(4);
+            default -> null;
+        });
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> switch (name) {
             case "getLevelData" -> kwdFile;
             case "getPlayer" -> keepers.get((Short) args[0]);
@@ -229,7 +234,11 @@ class CombatPitFightTest {
             case "createController" -> createController((EntityId) args[0]);
             default -> null;
         });
-        INavigationService navigationService = stub(INavigationService.class, (name, args) -> "findPath".equals(name) ? new DefaultGraphPath<>() : null);
+        INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
+            case "findPath" -> new DefaultGraphPath<>();
+            case "isReachable" -> true;
+            default -> null;
+        });
 
         return new CreatureController(entity, entityData, creatures.get(FIGHTER), navigationService,
                 null, gameTimer, gameSettings, creaturesController, positionLookup, null, levelInfo, null, null,

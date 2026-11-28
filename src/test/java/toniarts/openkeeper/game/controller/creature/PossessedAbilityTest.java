@@ -683,6 +683,9 @@ class PossessedAbilityTest {
 
     private INavigationService createNavigationService() {
         return stub(INavigationService.class, (name, args) -> {
+            if ("isReachable".equals(name)) {
+                return true;
+            }
             if (!"findPath".equals(name)) {
                 return null;
             }

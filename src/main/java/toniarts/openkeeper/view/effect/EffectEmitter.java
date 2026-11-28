@@ -146,7 +146,7 @@ public abstract class EffectEmitter extends Node {
 
     private void spawnOne(boolean cubeGen) {
         Spatial s = spatial.clone();
-        startAnimation(s);
+        startAnimation(s, 1f);
         if (effect.getFlags().contains(Effect.EffectFlag.RANDOM_DISTRIBUTION)) {
 
         } else if (effect.getFlags().contains(Effect.EffectFlag.UNIFORM_DISTRIBUTION)) {
@@ -185,7 +185,7 @@ public abstract class EffectEmitter extends Node {
      */
     private void respawnSelf(EffectElementControl dying, Vector3f location) {
         Spatial replacement = spatial.clone();
-        startAnimation(replacement);
+        startAnimation(replacement, 1f);
         replacement.setLocalTranslation(location);
         replacement.setLocalRotation(dying.getSpatial().getLocalRotation());
         replacement.addControl(new EffectElementControl(effectElement, dying.getSpinX(), dying.getSpinY(), dying.getSpinZ(), effect.getWhirlpoolRate()) {
@@ -209,13 +209,13 @@ public abstract class EffectEmitter extends Node {
     }
 
     /**
-     * Plays the baked animation of an animating mesh instance (a no-op for
-     * static meshes), the clone doesn't start it on its own
+     * Plays the baked KMF clip on a loaded effect model or spawned mesh instance.
      */
-    private static void startAnimation(Spatial instance) {
+    static void startAnimation(Spatial instance, float speed) {
         instance.breadthFirstTraversal(spatial -> {
             AnimComposer animComposer = spatial.getControl(AnimComposer.class);
             if (animComposer != null && animComposer.hasAnimClip(KmfModelLoader.DUMMY_ANIM_CLIP_NAME)) {
+                animComposer.setGlobalSpeed(speed);
                 animComposer.setCurrentAction(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
             }
         });

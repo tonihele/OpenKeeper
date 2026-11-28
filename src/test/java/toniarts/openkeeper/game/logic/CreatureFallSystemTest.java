@@ -32,9 +32,11 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.utils.Point;
@@ -43,6 +45,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CreatureFallSystemTest {
 
@@ -55,6 +58,8 @@ class CreatureFallSystemTest {
     private DefaultEntityData entityData;
     private final Set<Point> solidTiles = new HashSet<>();
     private final List<Integer> effects = new ArrayList<>();
+    private final List<EntityId> left = new ArrayList<>();
+    private final List<GameEventType> events = new ArrayList<>();
     private CreatureFallSystem fallSystem;
     private CreatureLandingSystem landingSystem;
 
@@ -78,11 +83,20 @@ class CreatureFallSystemTest {
                 new Class<?>[]{GameEventService.class}, (proxy, method, args) -> {
             if (method.getName().equals("emitEffect")) {
                 effects.add((Integer) args[0]);
+            } else if (method.getName().equals("emit")) {
+                events.add((GameEventType) args[0]);
+            }
+            return null;
+        });
+        ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(),
+                new Class<?>[]{ICreaturesController.class}, (proxy, method, args) -> {
+            if (method.getName().equals("leaveDungeon")) {
+                left.add((EntityId) args[0]);
             }
             return null;
         });
         fallSystem = new CreatureFallSystem(entityData);
-        landingSystem = new CreatureLandingSystem(entityData, mapInformation, GRAVITY_CONSTANT, gameTimer, gameEventService);
+        landingSystem = new CreatureLandingSystem(entityData, mapInformation, GRAVITY_CONSTANT, gameTimer, gameEventService, creaturesController);
     }
 
     @AfterEach
@@ -139,34 +153,61 @@ class CreatureFallSystemTest {
 
     @Test
     void droppedCreatureLandsStunned() {
-        EntityId creature = land(new CreatureFall(), 3f);
+        EntityId creature = fall(new CreatureFall(), 3f);
 
         assertEquals(CreatureState.FALLEN, entityData.getComponent(creature, CreatureAi.class).getCreatureState());
         assertNull(entityData.getComponent(creature, CreatureFall.class));
+        assertEquals(WorldUtils.FLOOR_HEIGHT, entityData.getComponent(creature, Position.class).position.y);
+        assertTrue(left.isEmpty(), "it stays");
     }
 
     @Test
     void conjuredCreatureIsNotStunned() {
-        EntityId creature = land(new CreatureFall(true), 3f);
+        EntityId creature = fall(new CreatureFall(CreatureFall.FallType.CONJURED), 3f);
 
         assertEquals(CreatureState.IDLE, entityData.getComponent(creature, CreatureAi.class).getCreatureState());
     }
 
     @Test
     void droppedCreatureWithoutStunDurationIsNotStunned() {
-        EntityId creature = land(new CreatureFall(), 0f);
+        EntityId creature = fall(new CreatureFall(), 0f);
 
         assertEquals(CreatureState.IDLE, entityData.getComponent(creature, CreatureAi.class).getCreatureState());
     }
 
-    private EntityId land(CreatureFall creatureFall, float stunDuration) {
+    @Test
+    void creatureDroppedOnThePortalLeavesWhenItLands() {
+        EntityId creature = drop(new CreatureFall(CreatureFall.FallType.PORTAL_DROP), 3f);
+
+        // Still falling
+        fallSystem.processTick(0.1f);
+        landingSystem.processTick(TURN);
+        assertTrue(left.isEmpty());
+
+        fallSystem.processTick(10f);
+        landingSystem.processTick(TURN);
+        assertEquals(List.of(GameEventType.CREATURE_LAND), events);
+        assertEquals(WorldUtils.UNDERFLOOR_HEIGHT, entityData.getComponent(creature, Position.class).position.y,
+                "it falls through the floor");
+        assertNull(entityData.getComponent(creature, CreatureAi.class), "it doesn't get up");
+        assertEquals(List.of(creature), left);
+    }
+
+    private EntityId fall(CreatureFall creatureFall, float stunDuration) {
+        EntityId creature = drop(creatureFall, stunDuration);
+        fallSystem.processTick(10f);
+        landingSystem.processTick(TURN);
+
+        return creature;
+    }
+
+    private EntityId drop(CreatureFall creatureFall, float stunDuration) {
         CreatureComponent creatureComponent = new CreatureComponent();
         creatureComponent.stunDuration = stunDuration;
 
         EntityId creature = entityData.createEntity();
         entityData.setComponents(creature, creatureComponent, creatureFall,
-                new Position(0, new Vector3f(1, WorldUtils.FLOOR_HEIGHT, 1)));
-        landingSystem.processTick(TURN);
+                new Position(0, new Vector3f(1, WorldUtils.DROP_HEIGHT, 1)));
 
         return creature;
     }

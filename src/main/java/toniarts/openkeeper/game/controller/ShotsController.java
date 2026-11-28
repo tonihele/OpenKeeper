@@ -24,6 +24,7 @@ import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Alarm;
 import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Frozen;
@@ -34,6 +35,7 @@ import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Poisoned;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
@@ -41,12 +43,14 @@ import toniarts.openkeeper.game.component.SpeedBlur;
 import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Tremor;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.IShotProcessor;
 import toniarts.openkeeper.game.controller.shot.InfernoShotProcessor;
 import toniarts.openkeeper.game.controller.shot.LightningShotProcessor;
 import toniarts.openkeeper.game.controller.shot.ShotFlightRules;
 import toniarts.openkeeper.game.controller.shot.ShotRequest;
+import toniarts.openkeeper.game.controller.shot.WindShotProcessor;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
@@ -70,6 +74,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CHICKEN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.DRAIN;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FEAR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INSTANTANEOUS_HIT;
@@ -79,11 +84,14 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_ARMOUR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_SPEED;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POISON_SPIT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.RAISE_DEAD;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SIGHT_OF_EVIL;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SUMMON_REAPER;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TREMOR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TURNCOAT;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.WIND;
 
 /**
  * Fires shots. What a shot does is decided by its process type, each
@@ -94,6 +102,11 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TURNCOAT;
 public final class ShotsController implements IShotsController {
 
     private static final Logger logger = System.getLogger(ShotsController.class.getName());
+
+    /**
+     * The effect of a dead body that rises, "Prisoner to Skel Effect"
+     */
+    private static final int RAISE_DEAD_EFFECT_ID = 324;
 
     /**
      * How long, in seconds, an alarm lasts. No new alarm is raised for the
@@ -142,8 +155,14 @@ public final class ShotsController implements IShotsController {
 
     private Map<Shot.ProcessType, IShotProcessor> createProcessors() {
         Map<Shot.ProcessType, IShotProcessor> result = new EnumMap<>(Shot.ProcessType.class);
-        result.put(CREATE_CREATURE, request -> creaturesController.spawnCreature((short) request.shotData1(), request.playerId(),
-                request.shotData2(), WorldUtils.vector3fToVector2f(request.position()), ICreaturesController.SpawnType.CONJURE));
+        result.put(CREATE_CREATURE, request -> {
+
+            // The shot's second value is how many creatures to create, each at level 1 (0x4AD7A0)
+            for (int i = 0; i < request.shotData2(); i++) {
+                creaturesController.spawnCreature((short) request.shotData1(), request.playerId(), 1,
+                        WorldUtils.vector3fToVector2f(request.position()), ICreaturesController.SpawnType.CONJURE);
+            }
+        });
         result.put(CREATE_OBJECT, request -> {
             GameObject object = kwdFile.getObject(request.shotData1());
             if (object != null && object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
@@ -232,10 +251,39 @@ public final class ShotsController implements IShotsController {
             }
         });
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
+        result.put(RAISE_DEAD, this::raiseDead);
+        result.put(WIND, new WindShotProcessor(entityData, kwdFile, gameController, mapController, creaturesController));
         result.put(FREEZE, this::freeze);
         result.put(ALARM, this::raiseAlarm);
+        result.put(POISON_SPIT, this::poison);
+
+        // The Fear Trap's shot does nothing itself: DK II's handler for it is empty (the FEAR entry of the shot table
+        // filled at 0x4AD1B0). The trap scares with the threat it makes after it fires, see TrapSystem
+        result.put(FEAR, request -> {
+        });
 
         return result;
+    }
+
+    /**
+     * Raise Dead: every dead body on the tile of the one the shot hit rises
+     * as the creature of the shot's first value, for the owner of the shot
+     * (0x4AE880)
+     *
+     * @param request the shot that hit a dead body
+     */
+    private void raiseDead(ShotRequest request) {
+        Vector3f targetPosition = EntityController.getPosition(entityData, request.target());
+        if (targetPosition == null) {
+            return;
+        }
+
+        for (EntityId entity : gameController.getEntityLookupService().getEntitiesInLocation(WorldUtils.vectorToPoint(targetPosition))) {
+            if (entityData.getComponent(entity, Death.class) != null && entityData.getComponent(entity, CreatureComponent.class) != null) {
+                gameEventService.emitEffect(RAISE_DEAD_EFFECT_ID, EntityController.getPosition(entityData, entity), 0);
+                creaturesController.turnCreatureIntoAnother(entity, request.playerId(), (short) request.shotData1());
+            }
+        }
     }
 
     @Override
@@ -271,8 +319,8 @@ public final class ShotsController implements IShotsController {
      * (0x4AC3C0). The shot's data 1 is the damage:
      * <ul>
      * <li>A shot that hits a thing (Magic Door) hurts its target.</li>
-     * <li>A shot with constant damage (Spike Trap) hurts the creatures on its
-     * tile.</li>
+     * <li>A shot with constant damage (Spike Trap) hurts the creatures in a
+     * square twice shot data 2 wide.</li>
      * <li>A shot with damage from its origin (Fireburst Trap, Gas Trap, Gas
      * Cloud) hurts the things within shot data 2 tiles, the less the further
      * they are (0x4AC6D0).</li>
@@ -285,25 +333,27 @@ public final class ShotsController implements IShotsController {
         if (damageType == Shot.DamageType.HIT_THING && request.target() != null) {
             EntityController.setDamage(entityData, request.target(), request.shotData1());
         } else if (damageType == Shot.DamageType.CONSTANT) {
-            damageCreatures(request, 0);
+            damageCreatures(request);
         } else if (damageType == Shot.DamageType.RANGE_FROM_ORIGIN && request.shotData2() > 0) {
             damageFromOrigin(request);
         }
     }
 
     /**
-     * Area damage spares only the creatures of the player that fired the shot
-     * (0x4AC5A0)
+     * Constant damage (0x4AC5A0) hurts every creature but those of the player
+     * that fired the shot in a square of tiles twice the radius (shot data 2)
+     * wide, all with the full damage. The square runs from the radius below
+     * the shot's tile to one less than the radius above it, so a radius of 1,
+     * the Spike Trap's, covers the shot's tile and the three on its lower side
      *
      * @param request the shot
-     * @param radius how far the shot reaches in tiles, 0 for just its tile
      */
-    private void damageCreatures(ShotRequest request, int radius) {
+    private void damageCreatures(ShotRequest request) {
         IEntityPositionLookup entityPositionLookup = gameController.getEntityLookupService();
-        Vector3f origin = request.position();
-        Point tile = WorldUtils.vectorToPoint(origin);
-        for (int x = tile.x - radius; x <= tile.x + radius; x++) {
-            for (int y = tile.y - radius; y <= tile.y + radius; y++) {
+        Point tile = WorldUtils.vectorToPoint(request.position());
+        int radius = request.shotData2();
+        for (int x = tile.x - radius; x < tile.x + radius; x++) {
+            for (int y = tile.y - radius; y < tile.y + radius; y++) {
                 for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
                     Owner owner = entityData.getComponent(entityId, Owner.class);
                     if (owner == null || owner.ownerId == request.playerId()
@@ -313,13 +363,7 @@ public final class ShotsController implements IShotsController {
                     }
 
                     // One picked up this tick is still in the lookup, but not on the map
-                    Vector3f position = EntityController.getPosition(entityData, entityId);
-                    if (position == null) {
-                        continue;
-                    }
-                    float dx = position.x - origin.x;
-                    float dz = position.z - origin.z;
-                    if (radius == 0 || dx * dx + dz * dz <= radius * radius) {
+                    if (EntityController.getPosition(entityData, entityId) != null) {
                         EntityController.setDamage(entityData, entityId, request.shotData1());
                     }
                 }
@@ -351,7 +395,11 @@ public final class ShotsController implements IShotsController {
                         continue;
                     }
 
+                    // One picked up this tick is still in the lookup, but not on the map
                     Vector3f position = EntityController.getPosition(entityData, entityId);
+                    if (position == null) {
+                        continue;
+                    }
                     float distance = FastMath.sqrt(FastMath.sqr(position.x - origin.x) + FastMath.sqr(position.z - origin.z));
                     if (distance >= radius) {
                         continue;
@@ -371,9 +419,14 @@ public final class ShotsController implements IShotsController {
         if (owner == null || owner.ownerId == playerId || entityData.getComponent(entityId, Health.class) == null) {
             return false;
         }
-        if (entityData.getComponent(entityId, CreatureComponent.class) != null
-                || entityData.getComponent(entityId, ObjectComponent.class) != null) {
+        if (entityData.getComponent(entityId, CreatureComponent.class) != null) {
             return true;
+        }
+
+        // Of the objects only the damageable ones are hurt, like chickens, not the furniture (0x4B2CE0)
+        ObjectComponent object = entityData.getComponent(entityId, ObjectComponent.class);
+        if (object != null) {
+            return kwdFile.getObject(object.objectId).getFlags().contains(GameObject.ObjectFlag.DAMAGEABLE);
         }
         return !gas && (entityData.getComponent(entityId, DoorComponent.class) != null
                 || entityData.getComponent(entityId, TrapComponent.class) != null);
@@ -405,8 +458,25 @@ public final class ShotsController implements IShotsController {
     }
 
     /**
-     * Raises an alarm for the player where the shot was fired, unless the
-     * player's last alarm still lasts
+     * Poisons the creature the shot hit for shot data 1 ticks, taking shot data
+     * 2 damage a tick. A new poisoning starts the poison over. A dying creature
+     * isn't poisoned (0x4B0270)
+     *
+     * @param request the shot
+     */
+    private void poison(ShotRequest request) {
+        EntityId target = request.target();
+        if (target == null || entityData.getComponent(target, CreatureComponent.class) == null
+                || entityData.getComponent(target, Unconscious.class) != null) {
+            return;
+        }
+
+        entityData.setComponent(target, new Poisoned(request.shotData1(), request.shotData2()));
+    }
+
+    /**
+     * Raises an alarm for the player where the shot was fired and tells the
+     * player of it, unless the player's last alarm still lasts
      *
      * @param request the shot
      */
@@ -418,6 +488,7 @@ public final class ShotsController implements IShotsController {
         EntityId alarm = entityData.createEntity();
         entityData.setComponents(alarm, new Alarm(), new Owner(request.playerId(), request.playerId()),
                 new Position(0, new Vector3f(request.position())), new Decay(gameTimer.getGameTime(), ALARM_DURATION));
+        gameEventService.emitToPlayer(GameEventType.ALARM_RAISED, request.playerId());
     }
 
     private void notifyShotHit(Shot shot, EntityId target) {
@@ -430,25 +501,32 @@ public final class ShotsController implements IShotsController {
     @Override
     public boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target,
             EntityId shooter, float maxRange) {
-        return fireShot(shotTypeId, shotData1, shotData2, playerId, position, getAimPoint(target), shooter, maxRange);
+        return fireShot(shotTypeId, shotData1, shotData2, playerId, position, target, getAimPoint(target), shooter, maxRange);
     }
 
     @Override
     public boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, Vector3f targetPosition,
             EntityId shooter, float maxRange) {
-        Shot shot = kwdFile.getShotById(shotTypeId);
+        return fireShot(shotTypeId, shotData1, shotData2, playerId, position, null, targetPosition, shooter, maxRange);
+    }
 
+    private boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target,
+            Vector3f targetPosition, EntityId shooter, float maxRange) {
+        Shot shot = kwdFile.getShotById(shotTypeId);
         // A trap's shot flies if it moves towards its target, a creature's whenever it has a speed, like the
-        // Bile Demon's Gas Cloud (0x4984D0)
+        // Bile Demon's Gas Cloud (0x4984D0). A creature's instant shot, like Hail Storm, is a shot too, it stands
+        // still and goes onto its target in its turn (0x498870, 0x4AFCB0)
         boolean creatureShot = shooter != null && entityData.getComponent(shooter, CreatureComponent.class) != null;
-        boolean flying = creatureShot ? shot.getSpeed() > 0 : ShotFlightRules.isFlying(shot);
+        boolean flying = creatureShot
+                ? shot.getSpeed() > 0 || shot.getProcessType() == Shot.ProcessType.INSTANTANEOUS_HIT
+                : ShotFlightRules.isFlying(shot);
         if (!flying || targetPosition == null) {
             return false;
         }
 
         Vector3f velocity = ShotFlightRules.aim(position, targetPosition, shot.getSpeed());
-        addShot(new ShotFlight(shotTypeId, playerId, shooter, shotData1, shotData2, velocity, new Vector3f(position), maxRange,
-                shot.getHealth()));
+        addShot(new ShotFlight(shotTypeId, playerId, shooter, target, shotData1, shotData2, velocity, new Vector3f(position),
+                maxRange, shot.getHealth()));
 
         return true;
     }
@@ -495,8 +573,12 @@ public final class ShotsController implements IShotsController {
             EntityController.setDamage(entityData, thing, flight.shotData1);
         }
 
-        process(new ShotRequest(shot, flight.shotData1, flight.shotData2, flight.ownerId,
-                EntityController.getPosition(entityData, shotEntity), thing, flight.shooter));
+        // Only a shot made to does its process on a hit. An instant shot's process is its move onto its target, on
+        // every turn (0x4ABD60)
+        if (shot.getShotProcessFlags().contains(Shot.ShotProcessFlag.HIT_COLLIDE_THING)) {
+            process(new ShotRequest(shot, flight.shotData1, flight.shotData2, flight.ownerId,
+                    EntityController.getPosition(entityData, shotEntity), thing, flight.shooter));
+        }
     }
 
     @Override
@@ -511,9 +593,17 @@ public final class ShotsController implements IShotsController {
     public void createChildShot(EntityId shotEntity, short shotTypeId, Vector3f position) {
         ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
 
-        // The new shot keeps the old one's values, not its own (0x4AB180)
-        addShot(new ShotFlight(shotTypeId, flight.ownerId, flight.shooter, flight.shotData1, flight.shotData2, new Vector3f(),
-                new Vector3f(position), 0, kwdFile.getShotById(shotTypeId).getHealth()));
+        // The new shot keeps the old one's values and target, not its own (0x4AB180)
+        addShot(new ShotFlight(shotTypeId, flight.ownerId, flight.shooter, flight.target, flight.shotData1, flight.shotData2,
+                new Vector3f(), new Vector3f(position), 0, kwdFile.getShotById(shotTypeId).getHealth()));
+    }
+
+    @Override
+    public void fly(EntityId shotEntity) {
+        ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
+
+        process(new ShotRequest(kwdFile.getShotById(flight.shotId), flight.shotData1, flight.shotData2, flight.ownerId,
+                EntityController.getPosition(entityData, shotEntity), null, flight.shooter));
     }
 
     /**
