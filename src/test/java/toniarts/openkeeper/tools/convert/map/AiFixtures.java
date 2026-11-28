@@ -175,6 +175,22 @@ public final class AiFixtures {
     }
 
     /**
+     * A creature that likes no job
+     *
+     * @param creatureId the creature id
+     * @param threat its threat
+     * @param weakestValue its first unk3ea byte, the computer player drops
+     * the lowest on its Portal
+     * @return the creature
+     */
+    public static Creature fighter(short creatureId, int threat, int weakestValue) {
+        Creature creature = CombatExperienceFixtures.creature(creatureId);
+        creature.getAttributes().setThreat(threat);
+        creature.setUnk3ea(new short[]{(short) weakestValue, 1});
+        return creature;
+    }
+
+    /**
      * Sets when the computer player pulls a hurt creature out
      *
      * @param ai the computer player settings
@@ -260,6 +276,31 @@ public final class AiFixtures {
         ai.setUseCallToArms(callToArms);
         ai.setWaitSecondsAfterPreviousAttackBeforeAttackingAgain(waitSeconds);
 
+        return ai;
+    }
+
+    /**
+     * Has the computer player invade only once it has no room left to build
+     * or research
+     *
+     * @param ai the computer player settings
+     * @return the same settings
+     */
+    public static AI withAllRoomsBeforeInvading(AI ai) {
+        ai.setRequireAllRoomTypesPlaced(true);
+        return ai;
+    }
+
+    /**
+     * Has the computer player invade only once it has researched every spell
+     *
+     * @param ai the computer player settings
+     * @param handPolicy how likely it is to see to its research with its hand
+     * @return the same settings
+     */
+    public static AI withAllSpellsBeforeInvading(AI ai, AI.MoveToResearchPolicy handPolicy) {
+        ai.setRequireAllKeeperSpellsResearched(true);
+        ai.setLikelyhoodToMovingCreaturesToLibraryForResearching(handPolicy);
         return ai;
     }
 

@@ -130,12 +130,13 @@ final class KeeperAiInvasions {
      * @param playerControllers all the players
      * @param ai its settings
      * @param creatureLevel the level it wants its creatures at
-     * @param allRoomsPlaced whether it has built every room it builds
      * @param ticksPerSecond the game ticks in a second
+     * @param creatures makes room for a researcher while it waits for its
+     * spells
      * @return true if it digs a tunnel to an enemy
      */
     boolean planInvasion(KeeperAi keeperAi, Map<Short, IPlayerController> playerControllers, AI ai, int creatureLevel,
-            boolean allRoomsPlaced, int ticksPerSecond) {
+            int ticksPerSecond, KeeperAiCreatures creatures) {
         if (ai.isNeverAttack() || keeperAi.cannotAttackTicks > 0 || keeperAi.callToArms) {
             return false;
         }
@@ -143,8 +144,11 @@ final class KeeperAiInvasions {
         IPlayerController playerController = playerControllers.get(keeperAi.playerId);
         boolean anyEnemy = false;
         short attackerId = 0;
-        if (isArmyReady(keeperAi.playerId, ai, creatureLevel) && (!ai.isRequireAllRoomTypesPlaced() || allRoomsPlaced)) {
+        if (isArmyReady(keeperAi.playerId, ai, creatureLevel) && (!ai.isRequireAllRoomTypesPlaced() || keeperAi.allRoomsBuilt)) {
             if (ai.isRequireAllKeeperSpellsResearched() && hasSpellsToResearch(playerController)) {
+
+                // DK II makes room for a researcher before it gives up (0x4FAEF0 calls 0x4FA8D0)
+                creatures.makeRoomForResearcher(keeperAi, playerController);
                 return false;
             }
             if (!ai.isOnlyAttackAttackers()) {
@@ -254,9 +258,11 @@ final class KeeperAiInvasions {
 
     /**
      * Digs on from where the first tunnel kept stopped, into the enemy's
-     * land
+     * land. DK II lets go of its invasion target here, with a spot to break
+     * through from or not (0x4FAEF0)
      */
     private boolean breakThrough(KeeperAi keeperAi, KeeperAiEnemy keeperAiEnemy) {
+        keeperAi.invasionTargetId = 0;
         for (int i = 0; i < KeeperAiEnemy.BREACH_POINTS; i++) {
             if (keeperAiEnemy.breachTiles[i] != null) {
                 Point start = keeperAiEnemy.breachTiles[i];
@@ -265,7 +271,6 @@ final class KeeperAiInvasions {
                 keeperAiEnemy.breachTargets[i] = null;
                 entityData.setComponent(findEnemy(keeperAi.playerId, keeperAiEnemy.enemyId), keeperAiEnemy);
                 startDig(keeperAi, start, target, "break through to player " + keeperAiEnemy.enemyId);
-                keeperAi.invasionTargetId = 0;
 
                 return true;
             }

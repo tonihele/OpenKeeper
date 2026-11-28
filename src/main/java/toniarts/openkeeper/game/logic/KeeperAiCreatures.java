@@ -225,9 +225,11 @@ final class KeeperAiCreatures {
             return;
         }
 
+        // The weakest is the one lowest in the creature's first unk3ea byte (Imp 10, Dwarf 15 up to Dark Angel 232),
+        // not its threat: DK II reads that byte (0x4FA8D0), on a tie the last one
         int researchers = 0;
         Entity weakest = null;
-        int weakestThreat = Integer.MAX_VALUE;
+        int weakestValue = Integer.MAX_VALUE;
         for (Entity creature : battles.getCreatures(keeperAi.playerId)) {
             if (creature.get(CreatureComponent.class).worker) {
                 continue;
@@ -235,9 +237,9 @@ final class KeeperAiCreatures {
             Creature type = kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId);
             if (likesJob(type, Creature.JobType.RESEARCH)) {
                 researchers++;
-            } else if (type.getAttributes().getThreat() <= weakestThreat) {
+            } else if (type.getUnk3ea()[0] <= weakestValue) {
                 weakest = creature;
-                weakestThreat = type.getAttributes().getThreat();
+                weakestValue = type.getUnk3ea()[0];
             }
         }
         IRoomController portal = getRoom(playerController, ROOM_PORTAL);

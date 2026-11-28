@@ -97,6 +97,12 @@ public final class KeeperAi implements EntityComponent {
     public boolean roomWanted;
 
     /**
+     * Set once it found no room left to build or research and planned a
+     * Portal instead, never cleared. DK II's AllRoomsBuilt bit
+     */
+    public boolean allRoomsBuilt;
+
+    /**
      * Whether the room it plans next is to be grown rather than built anew
      */
     public boolean wantedRoomExpand;
@@ -220,8 +226,9 @@ public final class KeeperAi implements EntityComponent {
     public int attackLookTicks;
 
     /**
-     * The enemy the tunnel being dug goes to, 0 for none. The tunnel stops
-     * at the enemy's land
+     * The enemy the last tunnel went to, 0 for none. Any path stops at an
+     * enemy's land while it is set, and that spot is kept to break through
+     * to this enemy. It stays set when a path ends, as in DK II
      */
     public short invasionTargetId;
 
@@ -263,6 +270,7 @@ public final class KeeperAi implements EntityComponent {
         this.roomId = keeperAi.roomId;
         this.wantedRoomId = keeperAi.wantedRoomId;
         this.roomWanted = keeperAi.roomWanted;
+        this.allRoomsBuilt = keeperAi.allRoomsBuilt;
         this.wantedRoomExpand = keeperAi.wantedRoomExpand;
         this.roomAsks = keeperAi.roomAsks.clone();
         this.roomAskTicks = keeperAi.roomAskTicks.clone();
