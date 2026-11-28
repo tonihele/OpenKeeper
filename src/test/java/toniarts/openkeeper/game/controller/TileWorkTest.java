@@ -50,6 +50,38 @@ class TileWorkTest {
     }
 
     @Test
+    void digSwingsLandOneTicksWorth() {
+
+        // Level 20 at 4 ticks a second, rates divided as whole numbers
+        assertEquals(1000, TileWork.perSwing(-5000 / 4, FRESH_IMP)); // Imp on rock, dirt (165) falls to one swing
+        assertEquals(154, TileWork.perSwing(6 * (-130 / 4), FRESH_IMP)); // Dwarf on anything, two swings for dirt
+        assertEquals(26, TileWork.perSwing(-130 / 4, FRESH_IMP)); // Imp on its own wall
+        assertEquals(2, TileWork.perSwing(-8 / 4, FRESH_IMP)); // Imp on an enemy wall
+        assertEquals(60, TileWork.perSwing(-300 / 4, FRESH_IMP)); // Mining
+    }
+
+    @Test
+    void claimingGroundDropsTheFractionOfATick() {
+
+        // Measured in the original: a fresh imp adds 164 a tick to a Dirt Path, the claim rate of 825 at 4 ticks a second
+        assertEquals(164, TileWork.perTick(825 / 4, FRESH_IMP));
+        assertEquals(206, TileWork.perTick(825 / 4, TileWork.FULL_EFFICIENCY));
+        assertEquals(9, TileWork.perTick(50 / 4, FRESH_IMP)); // Reinforce wall
+
+        // The original's 80% is 0xCCC of 0x1000, just under, so the 5 a tick of repairing a wall comes to 3
+        assertEquals(3, TileWork.perTick(22 / 4, FRESH_IMP));
+    }
+
+    @Test
+    void attacksLandATicksWorth() {
+
+        // Measured in the original: an enemy's floor 28 a blow, a neutral room 4000 and an enemy's room 800
+        assertEquals(28, TileWork.perSwing(-140 / 4, FRESH_IMP));
+        assertEquals(4000, TileWork.perSwing(-20000 / 4, FRESH_IMP));
+        assertEquals(800, TileWork.perSwing(-4000 / 4, FRESH_IMP));
+    }
+
+    @Test
     void seamReleasesGoldInProportionLikeTheOriginal() {
 
         // The original: a quarter of the rate four times a second, 60 health a swing

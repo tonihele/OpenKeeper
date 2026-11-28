@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumSet;
+import java.util.List;
 
 public final class ShotFixtures {
 
@@ -37,6 +38,16 @@ public final class ShotFixtures {
     public static final short FIREBALL_ID = 1;
 
     /**
+     * The Vampire's Raise Dead
+     */
+    public static final short RAISE_DEAD_ID = 40;
+
+    /**
+     * The Cyclone of the Wind spell
+     */
+    public static final short CYCLONE_ID = 41;
+
+    /**
      * The fireball's effect when it hits a thing, "Spot Hit 4"
      */
     public static final int FIREBALL_HIT_EFFECT_ID = 234;
@@ -45,6 +56,43 @@ public final class ShotFixtures {
      * The Boulder Trap's shot in the original data
      */
     public static final short BOULDER_ID = 26;
+
+    /**
+     * Shot 3 as it ships in the original data, the Bile Demon's Gas Cloud
+     */
+    public static final short GAS_CLOUD_ID = 3;
+
+    /**
+     * Shot 23 as it ships in the original data, the Bile Demon's Gas Missile
+     */
+    public static final short GAS_MISSILE_ID = 23;
+
+    /**
+     * Shot 55 as it ships in the original data, the cloud the Gas Missile
+     * leaves
+     */
+    public static final short GAS_MISSILE_CLOUD_ID = 55;
+
+    /**
+     * Shot 18 as it ships in the original data, the Elven Archer's Grenade
+     */
+    public static final short GRENADE_ID = 18;
+
+    /**
+     * Shot 19 as it ships in the original data, the Grenade's explosion
+     */
+    public static final short GRENADE_EXPLOSION_ID = 19;
+
+    /**
+     * Shot 37 as it ships in the original data, the Mistress's and the Dark
+     * Angel's Hail Storm
+     */
+    public static final short HAIL_STORM_ID = 37;
+
+    /**
+     * Shot 17 as it ships in the original data, the storm Hail Storm leaves
+     */
+    public static final short HAIL_STORM_CLOUD_ID = 17;
 
     private ShotFixtures() {
     }
@@ -89,6 +137,102 @@ public final class ShotFixtures {
         return shot;
     }
 
+    /**
+     * The Vampire's Raise Dead, with the values of the original data
+     */
+    public static Shot raiseDead() {
+        Shot shot = shot(RAISE_DEAD_ID, Shot.ProcessType.RAISE_DEAD, 1, EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING));
+        shot.setSpeed(0.5f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.DEAD_BODIES);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.MOVE_TOWARDS_TARGET));
+        return shot;
+    }
+
+    /**
+     * The Cyclone of the Wind spell, with the values of the original data
+     */
+    public static Shot cyclone() {
+        Shot shot = shot(CYCLONE_ID, Shot.ProcessType.WIND, 128, EnumSet.of(Shot.ShotProcessFlag.CONSTANT));
+        shot.setSpeed(0.25f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.NONE);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_OVER_TIME, Shot.ShotFlag.MOVE_TOWARDS_TARGET));
+        return shot;
+    }
+
+    /**
+     * The Gas Cloud or the Gas Missile's cloud, with the values of the
+     * original data
+     *
+     * @param shotId {@link #GAS_CLOUD_ID} or {@link #GAS_MISSILE_CLOUD_ID}
+     */
+    public static Shot gasCloud(short shotId) {
+        Shot shot = shot(shotId, Shot.ProcessType.GAS, 5, EnumSet.noneOf(Shot.ShotProcessFlag.class));
+        shot.setAttackCategory(Shot.AttackCategory.GAS);
+        shot.setSpeed(1f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.ENEMY_CREATURES);
+        shot.setDamageType(Shot.DamageType.RANGE_FROM_ORIGIN);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_OVER_TIME));
+        return shot;
+    }
+
+    /**
+     * The Gas Missile, with the values of the original data
+     */
+    public static Shot gasMissile() {
+        Shot shot = shot(GAS_MISSILE_ID, Shot.ProcessType.NONE, 16, EnumSet.noneOf(Shot.ShotProcessFlag.class));
+        shot.setSpeed(0.5f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.ENEMY_CREATURES);
+        shot.setDamageType(Shot.DamageType.NONE);
+        shot.setHitSolidShotId(GAS_MISSILE_CLOUD_ID);
+        shot.setHitThingShotId(GAS_MISSILE_CLOUD_ID);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.MOVE_TOWARDS_TARGET,
+                Shot.ShotFlag.RECOIL));
+        return shot;
+    }
+
+    /**
+     * The Grenade, with the values of the original data
+     */
+    public static Shot grenade() {
+        Shot shot = shot(GRENADE_ID, Shot.ProcessType.NONE, 16, EnumSet.noneOf(Shot.ShotProcessFlag.class));
+        shot.setSpeed(0.3f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.NONE);
+        shot.setDamageType(Shot.DamageType.NONE);
+        shot.setDeathShotId(GRENADE_EXPLOSION_ID);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_OVER_TIME, Shot.ShotFlag.BOUNCE, Shot.ShotFlag.THROWN_PROJECTILE,
+                Shot.ShotFlag.MOVE_TOWARDS_TARGET, Shot.ShotFlag.RECOIL));
+        return shot;
+    }
+
+    /**
+     * Hail Storm, with the values of the original data
+     */
+    public static Shot hailStorm() {
+        Shot shot = shot(HAIL_STORM_ID, Shot.ProcessType.INSTANTANEOUS_HIT, 1, EnumSet.of(Shot.ShotProcessFlag.CONSTANT));
+        shot.setCollideType(Shot.CollideType.ENEMY_CREATURES);
+        shot.setDamageType(Shot.DamageType.NONE);
+        shot.setDeathShotId(HAIL_STORM_CLOUD_ID);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_THING));
+        return shot;
+    }
+
+    public static CreatureSpell creatureSpell(short creatureSpellId, EnumSet<CreatureSpell.CreatureSpellFlag> flags, CreatureSpell.AlternativeShot alternativeShot,
+            short shotTypeId, int shotData1) {
+        CreatureSpell creatureSpell = new CreatureSpell();
+        creatureSpell.setCreatureSpellId(creatureSpellId);
+        creatureSpell.setName("Creature spell " + creatureSpellId);
+        creatureSpell.setFlags(flags);
+        creatureSpell.setAlternativeShot(alternativeShot);
+        creatureSpell.setShotTypeId(shotTypeId);
+        creatureSpell.setShotData1(shotData1);
+        return creatureSpell;
+    }
+
     public static GameLevel gameLevel(int ticksPerSecond) {
         GameLevel gameLevel = new GameLevel();
         gameLevel.setTicksPerSec(ticksPerSecond);
@@ -98,6 +242,10 @@ public final class ShotFixtures {
     public static void setSize(Creature creature, float width, float height) {
         creature.getAttributes().setWidth(width);
         creature.getAttributes().setHeight(height);
+    }
+
+    public static void setHealth(Creature creature, int health) {
+        creature.getAttributes().setHp(health);
     }
 
     /**
@@ -112,6 +260,44 @@ public final class ShotFixtures {
      */
     public static Shot inferno() {
         return shot(INFERNO_ID, Shot.ProcessType.INFERNO, 30, EnumSet.of(Shot.ShotProcessFlag.CONSTANT));
+    }
+
+    /**
+     * Shot 53, Heal Instant Shot, as it ships in the original data: it is cast
+     * on own creatures and dies into the given shot
+     */
+    public static Shot healInstantShot(short shotId, short deathShotId) {
+        Shot shot = shot(shotId, Shot.ProcessType.INSTANTANEOUS_HIT, 1, EnumSet.of(Shot.ShotProcessFlag.CONSTANT));
+        shot.setCollideType(Shot.CollideType.OWN_CREATURES);
+        shot.setDeathShotId(deathShotId);
+        return shot;
+    }
+
+    /**
+     * A shot that flies to one of our own creatures, as the shots of Armour,
+     * Invulnerability, Invisibility and Haste do in the original data
+     */
+    public static Shot flyingSupportShot(short shotId, Shot.ProcessType processType) {
+        Shot shot = shot(shotId, processType, 1, EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING));
+        shot.setSpeed(0.5f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.OWN_CREATURES);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.MOVE_TOWARDS_TARGET));
+        return shot;
+    }
+
+    /**
+     * A creature with one spell, whose shot leaves the given time into a cast
+     * that lasts a second
+     */
+    public static Creature caster(short creatureSpellId, float shotDelay) {
+        Creature creature = CasinoVariableFixtures.creatureWithAnimations((short) 1, Creature.AnimationType.CAST_SPELL);
+        Creature.Spell spell = new Creature.Spell();
+        spell.setCreatureSpellId(creatureSpellId);
+        spell.setShotDelay(shotDelay);
+        spell.setShotOffset(0, 0, 0);
+        creature.setSpells(List.of(spell));
+        return creature;
     }
 
     public static Creature creature(short creatureId, EnumSet<Creature.CreatureFlag> flags, EnumSet<Creature.CreatureFlag3> flags3) {

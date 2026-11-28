@@ -116,6 +116,7 @@ class HornedReaperHuntTest {
                 }));
                 yield path;
             }
+            case "isReachable" -> true;
             default -> throw new UnsupportedOperationException(method);
         });
         ICreaturesController creaturesController = proxy(ICreaturesController.class, (method, args) -> switch (method) {
