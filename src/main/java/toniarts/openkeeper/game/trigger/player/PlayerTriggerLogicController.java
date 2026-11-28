@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.trigger.player;
 
 import com.jme3.util.SafeArrayList;
+import com.simsilica.es.EntityData;
 import java.util.Map;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
@@ -38,12 +39,12 @@ public final class PlayerTriggerLogicController implements IGameLogicUpdatable {
     private final SafeArrayList<PlayerTriggerControl> playerTriggerControls = new SafeArrayList<>(PlayerTriggerControl.class);
 
     public PlayerTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
-            final ICreaturesController creaturesController, final PlayerService playerService) {
+            final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData) {
         Map<Short, Player> players = levelInfo.getLevelData().getPlayers();
         for (Keeper keeper : levelInfo.getPlayers().values()) {
             int triggerId = players.get(keeper.getId()).getTriggerId();
             if (triggerId != 0) {
-                playerTriggerControls.add(new PlayerTriggerControl(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, keeper.getId(), playerService));
+                playerTriggerControls.add(new PlayerTriggerControl(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, keeper.getId(), playerService, entityData));
             }
         }
 

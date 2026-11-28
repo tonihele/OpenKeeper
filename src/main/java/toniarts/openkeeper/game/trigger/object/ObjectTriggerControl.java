@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.trigger.object;
 
+import com.simsilica.es.EntityData;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -36,29 +37,23 @@ public final class ObjectTriggerControl extends AbstractThingTriggerControl<IObj
 
     public ObjectTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId, final short playerId,
-            final PlayerService playerService) {
-        super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService);
+            final PlayerService playerService, final EntityData entityData) {
+        super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService, entityData);
     }
 
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
-        boolean result = false;
-
-        float target = 0;
-
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case OBJECT_CLAIMED:
+                // STUB, event: this object was claimed (e.g. a Portal Gem picked up by a keeper). The
+                // object controller does not tell its owner changes to anybody, so there is nothing
+                // to detect a claim from. The original raises it, but nothing in a shipped level
+                // listens to it either
+                logStub(trigger, "The object controller does not tell its owner changes to anybody, so there is nothing to detect a claim from. The original raises it, but nothing in a shipped level listens to it either");
                 return false;
             default:
                 return super.isActive(trigger);
         }
-
-//        TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
-//        if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
-//            result = compare(target, comparisonType, (int) trigger.getUserData("value"));
-//        }
-//
-//        return result;
     }
 }

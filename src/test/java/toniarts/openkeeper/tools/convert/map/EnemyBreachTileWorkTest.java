@@ -26,6 +26,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.MapController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -199,7 +200,7 @@ class EnemyBreachTileWorkTest {
                 case "setFlag" -> { flags[((Number) args[0]).intValue()] = (int) args[1]; yield null; }
                 default -> throw new UnsupportedOperationException(method);
             });
-            scripts = new PlayerTriggerLogicController(null, level, null, null, null, null);
+            scripts = new PlayerTriggerLogicController((IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(), new Class<?>[]{IGameController.class}, (p, m, a) -> null), level, null, null, null, null, null);
             Map<MiscType, Variable.MiscVariable> settings = new EnumMap<>(MiscType.class);
             for (MiscType type : new MiscType[]{MiscType.DIG_ENEMY_WALL_HEALTH,
                 MiscType.DIG_OWN_WALL_HEALTH, MiscType.DIG_ROCK_HEALTH, MiscType.ATTACK_TILE_HEALTH}) {

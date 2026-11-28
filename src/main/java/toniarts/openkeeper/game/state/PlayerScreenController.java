@@ -127,6 +127,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private Screen screen;
 
     private Element selectedButton;
+    private Element hintedRoomButton;
+    private EntitySet nextRoomHints;
     private final Set<Element> unaffordableSpells = new HashSet<>();
     private final Set<Element> unaffordableRooms = new HashSet<>();
     private final Map<Element, String> workshopIconTints = new HashMap<>();
@@ -184,6 +186,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     lastImpCount = impCount;
                     populateSpellTab();
                 }
+            }
+            if (nextRoomHints != null && nextRoomHints.applyChanges()) {
+                showNextRoomHint();
             }
             if (payDayClocks != null && payDayClocks.applyChanges()) {
                 updatePayDay();
@@ -281,6 +286,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (creatureCardManager != null) {
             creatureCardManager.cleanup();
             creatureCardManager = null;
+        }
+        if (nextRoomHints != null) {
+            nextRoomHints.release();
+            nextRoomHints = null;
         }
         if (payDayClocks != null) {
             payDayClocks.release();
@@ -1261,7 +1270,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
         // Keeper spell recharge, a cast that is already in the set is not tracked, the changes are
         spellCasts = entityData.getEntities(new FieldFilter(KeeperSpellCast.class, "keeperId", state.getPlayer().getId()), KeeperSpellCast.class);
-        // Rooms
+
+        // Rooms, and the room the level script wants built next
+        if (nextRoomHints != null) {
+            nextRoomHints.release();
+        }
+        nextRoomHints = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", state.getPlayer().getId()), NextRoomHint.class, Owner.class);
 //        state.getRoomControl().addRoomAvailabilityListener(new PlayerRoomControl.IRoomAvailabilityListener() {
 //
 //            @Override
@@ -1338,6 +1352,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 icon.stopEffect(EffectEventId.onCustom);
                 if (icon == selectedButton) {
                     icon.startEffect(EffectEventId.onCustom, null, "select");
+                }
+                if (icon == hintedRoomButton) {
+                    icon.startEffect(EffectEventId.onCustom, null, "hint");
                 }
             }
         }
@@ -1618,9 +1635,39 @@ public final class PlayerScreenController implements IPlayerScreenController {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         FlowLayoutControl contentPanel = hud.findElementById("tab-room-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
+        hintedRoomButton = null; // The old buttons are going away
         for (final ResearchableEntity room : state.getAvailableRoomsToBuild()) {
             Element element = contentPanel.addElement(createRoomIcon(room));
             setResearchEffect(room, element);
+            if (nextRoomHints != null) {
+                for (Entity hint : nextRoomHints) {
+                    if (hint.get(NextRoomHint.class).roomId == room.getId()) {
+                        pulseRoomButton(element);
+                    }
+                }
+            }
+        }
+    }
+
+    private void pulseRoomButton(Element button) {
+        hintedRoomButton = button;
+        button.startEffect(EffectEventId.onCustom, null, "hint");
+    }
+
+    /**
+     * Pulses the button of the room the server hints at, and stops pulsing the
+     * previous one. Room id 0 means no hint.
+     */
+    private void showNextRoomHint() {
+        if (hintedRoomButton != null) {
+            hintedRoomButton.resetSingleEffect(EffectEventId.onCustom, "hint");
+            hintedRoomButton = null;
+        }
+        for (Entity hint : nextRoomHints) {
+            Element button = nifty.getScreen(SCREEN_HUD_ID).findElementById("room_" + hint.get(NextRoomHint.class).roomId);
+            if (button != null) {
+                pulseRoomButton(button);
+            }
         }
         unaffordableRooms.clear();
         updateRoomAffordability(state.getPlayer().getGold());
@@ -1780,6 +1827,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
     protected void updateSelectedItem(PlayerInteractionState.InteractionState state) {
         if (selectedButton != null) {
             selectedButton.stopEffect(EffectEventId.onCustom);
+            if (selectedButton == hintedRoomButton) {
+                selectedButton.startEffect(EffectEventId.onCustom, null, "hint");
+            }
             if (unaffordableSpells.contains(selectedButton) || unaffordableRooms.contains(selectedButton)) {
                 selectedButton.startEffect(EffectEventId.onCustom, null, "unaffordable");
             } else if (workshopIconTints.containsKey(selectedButton)) {

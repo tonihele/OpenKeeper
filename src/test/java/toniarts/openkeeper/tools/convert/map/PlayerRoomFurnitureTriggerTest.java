@@ -43,6 +43,7 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameController;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -440,6 +441,7 @@ class PlayerRoomFurnitureTriggerTest {
             game = proxy(IGameController.class, (name,args) -> switch(name) {
                 case "getPlayerController" -> proxy(IPlayerController.class, (method,a) -> switch(method) {
                     case "getRoomControl" -> owned.get((short)args[0]);
+                    case "getStatsControl" -> new PlayerStatsControl();
                     default -> throw new UnsupportedOperationException(method);
                 });
                 default -> throw new UnsupportedOperationException(name);
@@ -494,7 +496,7 @@ class PlayerRoomFurnitureTriggerTest {
 
         boolean fires() {
             flag.set(0);
-            var control = new PlayerTriggerControl(game,level,null,null,null,1,(short)3,null);
+            var control = new PlayerTriggerControl(game,level,null,null,null,1,(short)3,null,null);
             control.update(.25f);
             control.update(.25f);
             return flag.get()==1;
